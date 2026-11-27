@@ -105,7 +105,11 @@ async def test_a_closed_month_compares_each_budget_with_the_rows_it_lists(
     for category, line in lines.items():
         named = sum((amounts[row_id] for row_id in summary["row_ids"][category]), Decimal(0))
         assert Decimal(line["spent_chf"]) == named
-    assert [line["category"] for line in summary["budgets"]] == ["groceries", "health", "restaurants"]
+    assert [line["category"] for line in summary["budgets"]] == [
+        "groceries",
+        "health",
+        "restaurants",
+    ]
     assert lines["restaurants"] == {
         "category": "restaurants",
         "budget_chf": "20.00",

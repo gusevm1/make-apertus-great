@@ -65,9 +65,7 @@ def get_tools(
     return [
         *account_tools.get_tools(service=accounts, token=user.token),
         *bank_data_tools.get_tools(service=bank_data, token=user.token),
-        *budget_tools.get_tools(
-            service=budgets, owner_id=user.id, token=user.token, today=today
-        ),
+        *budget_tools.get_tools(service=budgets, owner_id=user.id, token=user.token, today=today),
         *context_entry_tools.get_tools(service=context_entries, owner_id=user.id),
         *document_tools.get_tools(service=documents, owner_id=user.id),
         *ledger_tools.get_tools(service=ledger, token=user.token, today=today),
