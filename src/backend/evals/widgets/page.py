@@ -8,10 +8,10 @@ from typing import Any, Literal, NamedTuple
 
 from pydantic import BaseModel, Field
 
-# Blocks every request the page could make, so generated code can't send data out or load a CDN.
+# Blocks fetches, CDNs, forms and <base>. Navigation isn't covered: the sandboxed iframe stops that.
 CSP = (
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
-    "img-src data:; font-src data:"
+    "img-src data:; font-src data:; form-action 'none'; base-uri 'none'"
 )
 BRIDGE = (Path(__file__).with_name("bridge.js")).read_text(encoding="utf-8")
 PREVIEW_ITEMS = 20
@@ -24,6 +24,10 @@ _DATE = re.compile(
 # A k or M only scales the number when no other letter follows: "6 Months" is six, not six million.
 _NUMBER = re.compile(r"-?\d(?:[\d'’,.]*\d)?(?:\s?(?:k|K|Mio\.?|M)(?![A-Za-z])|%)?")
 _BROKEN = re.compile(r"\b(?:NaN|undefined|Infinity|null)\b")
+# de-CH from toLocaleString may group thousands with a space or a (narrow) no-break space.
+_GROUP_SPACE = re.compile(r"(?<=\d)[   ](?=\d{3}(?!\d))")
+# An id such as BK-01911 holds digits, but they are no figure.
+_ID = re.compile(r"[A-Z]{2,}-[A-Z0-9-]+")
 _SCALES = {"k": 1e3, "K": 1e3, "M": 1e6, "Mio": 1e6, "Mio.": 1e6}
 
 
@@ -140,7 +144,7 @@ def _shows(allowed: float, shown: Shown) -> bool:
 
 def _numbers(text: str) -> list[Shown]:
     found = []
-    for match in _NUMBER.finditer(_DATE.sub(" ", text)):
+    for match in _NUMBER.finditer(_GROUP_SPACE.sub("'", _DATE.sub(" ", text))):
         shown = _parse(token=match.group(0))
         if shown is not None:
             found.append(shown)
@@ -176,6 +180,8 @@ def _data_numbers(value: Any) -> list[float]:
     if isinstance(value, list):
         return [number for item in value for number in _data_numbers(value=item)]
     if isinstance(value, str):
+        if _ID.fullmatch(value) is not None:
+            return []
         # A number inside a DATA text, such as the account in "Depot 0418-2210.01", is DATA too.
         return [number.value * number.scale for number in _numbers(text=value)]
     return []

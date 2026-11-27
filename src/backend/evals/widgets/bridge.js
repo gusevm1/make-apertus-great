@@ -45,7 +45,9 @@
     root.appendChild(element);
   }
 
+  // Time for the widget's own timers and transitions; VIRTUAL_TIME_MS in run.py must exceed it.
+  var REPORT_DELAY_MS = 1500;
   window.addEventListener("load", function () {
-    setTimeout(report, 1500);
+    setTimeout(report, REPORT_DELAY_MS);
   });
 })();

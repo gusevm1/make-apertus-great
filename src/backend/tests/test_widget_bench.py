@@ -1,5 +1,10 @@
+from datetime import date
+from decimal import Decimal
+
 import pytest
 
+from app.features.ledger.schemas import LedgerRow
+from evals.widgets.data import last_full_months, monthly_spending
 from evals.widgets.page import (
     CSP,
     Edit,
@@ -50,6 +55,16 @@ def test_numbers_inside_data_texts_count_as_found() -> None:
     assert missing_numbers(texts=["Depot 0418-2210.01", "3a"], data=data, request="") == []
 
 
+@pytest.mark.parametrize("space", [" ", " ", " "])
+def test_space_grouped_thousands_count_as_found(space: str) -> None:
+    assert missing_numbers(texts=[f"CHF 9{space}752.52"], data=DATA, request="") == []
+
+
+def test_digits_of_booking_ids_are_no_figures() -> None:
+    data = {"booking_ids": ["BK-01911"]}
+    assert missing_numbers(texts=["CHF 1911"], data=data, request="") == ["1911"]
+
+
 def test_broken_values_count_as_missing() -> None:
     assert missing_numbers(texts=["CHF NaN", "undefined"], data=DATA, request="") == [
         "NaN",
@@ -85,3 +100,30 @@ def test_preview_shortens_booking_ids() -> None:
 def test_strip_fence() -> None:
     assert strip_fence(text="```html\n<div></div>\n```") == "<div></div>"
     assert strip_fence(text="<div></div>") == "<div></div>"
+
+
+def _row(day: str, amount: str, booking_id: str) -> LedgerRow:
+    return LedgerRow(
+        source="booking",
+        id=booking_id,
+        account_id="ACC-PRIV",
+        date=date.fromisoformat(day),
+        amount_chf=Decimal(amount),
+        text="Migros",
+        kind="spending",
+    )
+
+
+def test_last_full_months_end_before_today() -> None:
+    assert last_full_months(today=date(2026, 11, 27), count=3) == ["2026-08", "2026-09", "2026-10"]
+    assert last_full_months(today=date(2026, 1, 5), count=2) == ["2025-11", "2025-12"]
+
+
+def test_monthly_spending_is_positive_and_names_its_bookings() -> None:
+    rows = [_row("2026-10-03", "-20.50", "BK-1"), _row("2026-10-20", "-9.50", "BK-2")]
+    result = monthly_spending(rows=rows, months=["2026-09", "2026-10"])
+    assert result["months"] == [
+        {"label": "2026-09", "total_chf": 0.0, "booking_ids": []},
+        {"label": "2026-10", "total_chf": 30.0, "booking_ids": ["BK-1", "BK-2"]},
+    ]
+    assert result["total_chf"] == 30.0

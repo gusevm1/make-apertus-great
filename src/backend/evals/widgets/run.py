@@ -18,7 +18,7 @@ from typing import Any
 import httpx
 from pydantic import ValidationError
 
-from app.clients.apertus import ApertusClient, Model
+from app.clients.apertus import ApertusClient, Message, Model
 from app.clients.banking import BankingClient
 from app.core.config import Settings
 from app.core.errors import UpstreamError
@@ -52,6 +52,13 @@ CHROME = os.environ.get(
 APERTUS_TIMEOUT_SECONDS = 300
 CHROME_TIMEOUT_SECONDS = 60
 CHROME_PARALLEL = 4
+# Chrome fast-forwards timers by this much; it has to exceed REPORT_DELAY_MS in bridge.js.
+VIRTUAL_TIME_MS = 5000
+LOGIN_TIMEOUT_SECONDS = 30
+FRAME_MIN_HEIGHT = 200
+FRAME_MAX_HEIGHT = 900
+SHOWN_MISSING = 5
+SAVED_DATA = re.compile(r"<script>window\.DATA = (.*?);</script>", re.DOTALL)
 REPORT = re.compile(r'<script type="application/json" id="bench-report">(.*?)</script>', re.DOTALL)
 
 
@@ -68,11 +75,13 @@ class Render:
 
 @dataclass
 class Run:
-    variant: str
+    variant: prompts.Variant
     model: str
     task: str
     revision: str | None = None
     mode: str | None = None
+    # A revision of a broken first version can't be clean, so it is counted apart.
+    base_is_clean: bool | None = None
     seconds: float | None = None
     tokens_out: int | None = None
     chars: int | None = None
@@ -107,16 +116,15 @@ class Bench:
 
     async def generate(self, run: Run) -> str | None:
         """Write the widget's first version; returns its code, or None when that failed."""
-        variant = _variant(run=run)
         messages = prompts.generate_messages(
-            variant=variant, task=run.task, data=self.data[run.task]
+            variant=run.variant, task=run.task, data=self.data[run.task]
         )
         return await self._timed(
-            run=run, call=self._write(variant=variant, model=run.model, messages=messages)
+            run=run, call=self._write(variant=run.variant, model=run.model, messages=messages)
         )
 
     async def revise(self, run: Run, code: str, revision: str, mode: prompts.Mode) -> str | None:
-        variant = _variant(run=run)
+        variant = run.variant
         messages = prompts.revise_messages(
             variant=variant,
             mode=mode,
@@ -132,7 +140,10 @@ class Bench:
 
         async def edit() -> tuple[str, int | None]:
             result = await self.apertus.structured(
-                messages, schema=Edits, model=Model(run.model), purpose="widget_bench_edits"
+                messages=messages,
+                schema=Edits,
+                model=Model(run.model),
+                purpose="widget_bench_edits",
             )
             return apply_edits(code=code, edits=result.content), result.tokens_out
 
@@ -154,12 +165,13 @@ class Bench:
                 body=body,
                 data=self.data[run.task],
                 d3=self.d3 if run.variant == "html_d3" else None,
-            )
+            ),
+            encoding="utf-8",
         )
         run.page = path.name
-        await self.check(run=run, path=path)
+        await self.check(run=run, path=path, data=self.data[run.task])
 
-    async def check(self, run: Run, path: Path) -> None:
+    async def check(self, run: Run, path: Path, data: dict[str, Any]) -> None:
         """Load the page in Chrome at every width and record what the bridge reports."""
         request = prompts.request(task=run.task)
         if run.revision is not None:
@@ -167,22 +179,25 @@ class Bench:
         run.renders = list(
             await asyncio.gather(
                 *(
-                    self._chrome(path=path, width=width, run=run, request=request)
+                    self._chrome(path=path, width=width, data=data, request=request)
                     for width in WIDTHS
                 )
             )
         )
 
     async def _write(
-        self, variant: prompts.Variant, model: str, messages: list[Any]
+        self, variant: prompts.Variant, model: str, messages: list[Message]
     ) -> tuple[str, int | None]:
         if variant == "shapes":
             result = await self.apertus.structured(
-                messages, schema=Scene, model=Model(model), purpose="widget_bench_shapes"
+                messages=messages,
+                schema=Scene,
+                model=Model(model),
+                purpose="widget_bench_shapes",
             )
             return result.content.model_dump_json(exclude_none=True), result.tokens_out
         text = await self.apertus.chat(
-            messages, model=Model(model), purpose=f"widget_bench_{variant}"
+            messages=messages, model=Model(model), purpose=f"widget_bench_{variant}"
         )
         return strip_fence(text=text.content), text.tokens_out
 
@@ -201,7 +216,7 @@ class Bench:
         print(f"{run.variant:8} {run.model:5} {run.name:45} {run.seconds:6.1f}s", flush=True)  # noqa: T201
         return code
 
-    async def _chrome(self, path: Path, width: int, run: Run, request: str) -> Render:
+    async def _chrome(self, path: Path, width: int, data: dict[str, Any], request: str) -> Render:
         async with self.chrome_slots:
             with tempfile.TemporaryDirectory() as profile:
                 process = await asyncio.create_subprocess_exec(
@@ -212,7 +227,7 @@ class Bench:
                     "--no-default-browser-check",
                     f"--user-data-dir={profile}",
                     f"--window-size={width},900",
-                    "--virtual-time-budget=5000",
+                    f"--virtual-time-budget={VIRTUAL_TIME_MS}",
                     "--dump-dom",
                     path.as_uri(),
                     stdout=asyncio.subprocess.PIPE,
@@ -234,16 +249,16 @@ class Bench:
             width=width,
             errors=report["errors"],
             drawn=report["drawn"],
-            missing=missing_numbers(
-                texts=report["texts"], data=self.data[run.task], request=request
-            ),
+            missing=missing_numbers(texts=report["texts"], data=data, request=request),
             overflows=report["overflows"],
             uses_canvas=report["uses_canvas"],
             height=report["height"],
         )
 
 
-async def run_pair(bench: Bench, variant: str, model: str, tasks: list[str]) -> list[Run]:
+async def run_pair(
+    bench: Bench, variant: prompts.Variant, model: str, tasks: list[str]
+) -> list[Run]:
     """One variant on one model: every task, then the revisions of the monthly spending chart."""
     runs = [Run(variant=variant, model=model, task=task) for task in tasks]
     codes = await asyncio.gather(*(bench.generate(run=run) for run in runs))
@@ -254,16 +269,28 @@ async def run_pair(bench: Bench, variant: str, model: str, tasks: list[str]) -> 
             if code is not None
         )
     )
-    base = next(
-        (code for run, code in zip(runs, codes, strict=True) if run.task == REVISED_TASK), None
+    base_run, base = next(
+        (
+            (run, code)
+            for run, code in zip(runs, codes, strict=True)
+            if run.task == REVISED_TASK and code is not None
+        ),
+        (None, None),
     )
-    if base is None:
+    if base_run is None or base is None:
         return runs
     plan: list[tuple[str, prompts.Mode]] = [
         (revision, mode) for revision in prompts.REVISIONS for mode in MODES
     ]
     revisions = [
-        Run(variant=variant, model=model, task=REVISED_TASK, revision=revision, mode=mode)
+        Run(
+            variant=variant,
+            model=model,
+            task=REVISED_TASK,
+            revision=revision,
+            mode=mode,
+            base_is_clean=base_run.is_clean,
+        )
         for revision, mode in plan
     ]
     revised = await asyncio.gather(
@@ -298,11 +325,14 @@ def results_markdown(runs: list[Run], settings: Settings) -> str:
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for run in runs:
-        cells = [_render_cell(render=render) for render in run.renders]
+        cells = [_render_cell(render=render, limit=SHOWN_MISSING) for render in run.renders]
         if len(cells) == 0:
             cells = [run.failure if run.failure is not None else "not rendered", ""]
+        clean = "yes" if run.is_clean else "no"
+        if run.base_is_clean is False:
+            clean += " (first version broken)"
         lines.append(
-            f"| {run.variant} | {run.model} | {run.name} | {'yes' if run.is_clean else 'no'} | "
+            f"| {run.variant} | {run.model} | {run.name} | {clean} | "
             f"{_or_dash(run.seconds)} | {_or_dash(run.tokens_out)} | {_or_dash(run.chars)} | "
             f"{_cell(text=cells[0])} | {_cell(text=cells[1])} |"
         )
@@ -310,36 +340,47 @@ def results_markdown(runs: list[Run], settings: Settings) -> str:
         "",
         "## Summary",
         "",
-        "| Variant | Model | Clean | Median seconds | Edits applied |",
-        "|---|---|---|---|---|",
+        "Revisions count only where the first version was clean, so a broken first version "
+        "doesn't count five times.",
+        "",
+        "| Variant | Model | Tasks clean | Median seconds | Revisions clean | Edits applied |",
+        "|---|---|---|---|---|---|",
     ]
     for variant, model in dict.fromkeys((run.variant, run.model) for run in runs):
         pair = [run for run in runs if run.variant == variant and run.model == model]
-        timed = [run.seconds for run in pair if run.seconds is not None and run.failure is None]
+        tasks = [run for run in pair if run.revision is None]
+        timed = [run.seconds for run in tasks if run.seconds is not None and run.failure is None]
+        revisions = [run for run in pair if run.base_is_clean is True]
         edits = [run for run in pair if run.mode == "edits"]
         lines.append(
-            f"| {variant} | {model} | {sum(run.is_clean for run in pair)} of {len(pair)} "
-            f"({sum(run.is_clean for run in pair) / len(pair):.0%}) | "
-            f"{_or_dash(round(statistics.median(timed), 1) if timed else None)} | "
+            f"| {variant} | {model} | {_share(runs=tasks)} | "
+            f"{_or_dash(round(statistics.median(timed), 1) if len(timed) > 0 else None)} | "
+            f"{_share(runs=revisions)} | "
             f"{sum(run.failure is None for run in edits)} of {len(edits)} |"
         )
     return "\n".join(lines) + "\n"
 
 
+def _share(runs: list[Run]) -> str:
+    if len(runs) == 0:
+        return "–"
+    clean = sum(run.is_clean for run in runs)
+    return f"{clean} of {len(runs)} ({clean / len(runs):.0%})"
+
+
 def gallery(runs: list[Run]) -> str:
     sections = []
     for run in runs:
-        status = (
-            "clean"
-            if run.is_clean
-            else (run.failure or "; ".join(_render_cell(render=r) for r in run.renders))
-        )
+        status = "clean" if run.is_clean else "not clean"
+        if run.failure is not None:
+            status = run.failure
         source = "" if run.page is None else html.escape(run.page)
         frames = "".join(
             f"<figure><figcaption>{render.width} px: "
-            f"{html.escape(_render_cell(render=render))}</figcaption>"
+            f"{html.escape(_render_cell(render=render, limit=None))}</figcaption>"
             f'<iframe src="pages/{source}" sandbox="allow-scripts" width="{render.width}" '
-            f'height="{min(max(render.height, 200), 900)}"></iframe></figure>'
+            f'height="{min(max(render.height, FRAME_MIN_HEIGHT), FRAME_MAX_HEIGHT)}">'
+            "</iframe></figure>"
             for render in run.renders
         )
         sections.append(
@@ -386,7 +427,7 @@ def main() -> int:
 async def bench_all(args: argparse.Namespace, d3: str | None) -> int:
     settings = Settings(apertus_timeout_seconds=APERTUS_TIMEOUT_SECONDS)  # pyright: ignore[reportCallIssue]
     accounts = EvalSettings()
-    async with httpx.AsyncClient(timeout=30) as bank:
+    async with httpx.AsyncClient(timeout=LOGIN_TIMEOUT_SECONDS) as bank:
         login = await bank.post(
             f"{settings.banking_api_url}/auth/login",
             json={"username": accounts.evals_username, "password": accounts.evals_password},
@@ -410,34 +451,48 @@ async def bench_all(args: argparse.Namespace, d3: str | None) -> int:
     finally:
         await banking.close()
         await apertus.close()
-    (RESULTS / "runs.json").write_text(json.dumps([asdict(run) for run in runs], indent=1))
-    (RESULTS / "index.html").write_text(gallery(runs=runs))
-    RESULTS_MD.write_text(results_markdown(runs=runs, settings=settings))
+    (RESULTS / "runs.json").write_text(
+        json.dumps([asdict(run) for run in runs], indent=1), encoding="utf-8"
+    )
+    (RESULTS / "index.html").write_text(gallery(runs=runs), encoding="utf-8")
+    RESULTS_MD.write_text(results_markdown(runs=runs, settings=settings), encoding="utf-8")
     print(f"Wrote {RESULTS_MD} and {RESULTS / 'index.html'}")  # noqa: T201
     return 0
 
 
 async def recheck(bench: Bench) -> list[Run]:
-    saved = json.loads((RESULTS / "runs.json").read_text())
+    """Check the saved pages again, each against the DATA it was written for."""
+    saved = json.loads((RESULTS / "runs.json").read_text(encoding="utf-8"))
     runs = [Run(**{**item, "renders": []}) for item in saved]
-    await asyncio.gather(
-        *(
-            bench.check(run=run, path=RESULTS / "pages" / run.page)
-            for run in runs
-            if run.page is not None
-        )
-    )
+    checks = []
+    for run in runs:
+        if run.page is None:
+            continue
+        path = RESULTS / "pages" / run.page
+        match = SAVED_DATA.search(path.read_text(encoding="utf-8"))
+        if match is None:
+            run.failure = "the saved page has no DATA"
+            continue
+        checks.append(bench.check(run=run, path=path, data=json.loads(match.group(1))))
+    await asyncio.gather(*checks)
+    firsts = {
+        (run.variant, run.model): run
+        for run in runs
+        if run.task == REVISED_TASK and run.revision is None
+    }
+    for run in runs:
+        if run.revision is not None:
+            run.base_is_clean = firsts[(run.variant, run.model)].is_clean
     return runs
 
 
-def _variant(run: Run) -> prompts.Variant:
-    return next(variant for variant in VARIANTS if variant == run.variant)
-
-
-def _render_cell(render: Render) -> str:
+def _render_cell(render: Render, limit: int | None) -> str:
     problems = [f"{len(render.errors)} JS errors: {render.errors[0]}"] if render.errors else []
     problems += [] if render.drawn else ["draws nothing"]
-    problems += [f"not in DATA: {', '.join(render.missing[:5])}"] if render.missing else []
+    if len(render.missing) > 0:
+        shown = render.missing if limit is None else render.missing[:limit]
+        more = len(render.missing) - len(shown)
+        problems.append(f"not in DATA: {', '.join(shown)}" + (f" (+{more})" if more > 0 else ""))
     problems += ["scrolls sideways"] if render.overflows else []
     problems += ["canvas, so nothing to click"] if render.uses_canvas else []
     return "; ".join(problems) or "ok"
