@@ -23,6 +23,24 @@ sum_by_counterparty: >-
   for "where does my money go", and first when a question names a category instead of a merchant
   (rent, online shops, insurance), to find the names to pass to the other tools. The total has
   `provisional_out_chf` and `provisional_in_chf`, as in search_movements.
+forecast_months: >-
+  The trend of the customer's money movements over the last full months, and where a straight line
+  through them leads in the next months. Returns `average_chf` per month, `trend_chf_per_month`, the
+  trend in % of the average, and a `projection` with the trend value and the average for each coming
+  month. Amounts are signed, so for spending a negative trend means the spending grows. It is a
+  straight-line trend from past months, not a prediction: say so, and name the months it rests on.
+  Takes the same filters as search_movements except the period. Use it for "is my spending going up"
+  or "what will I spend per month if this continues".
+sum_by_group: >-
+  The customer's money movements added up per `quarter`, `year`, `weekday`, `account` or `kind`, each
+  group with its `count`, `money_out_chf` and `money_in_chf`. Takes the same filters as
+  search_movements. Use it for "2025 against 2024" (year), "do I spend more at weekends" (weekday),
+  "what goes out of my savings account" (account) or "how much came in and went out" (kind, with
+  every kind that should count). One call covers a comparison: for 2025 against 2024, group by year
+  over both years.
+not_enough_months: >-
+  Only {months} full months of bookings exist for this, and a trend needs at least 3. Answer with the
+  monthly sums from sum_by_month instead.
 text_not_found: >-
   No movement in the whole ledger contains {words}. Movements carry no category: call
   sum_by_counterparty for the period to see who the customer pays, then search for those names.
@@ -35,5 +53,9 @@ account_id: "An account id from list_accounts, such as ACC-PRIV."
 card_id: "A card id from list_cards."
 amount_min: "Smallest amount in CHF, without a sign."
 amount_max: "Largest amount in CHF, without a sign."
+months_back: "How many full months before today the trend rests on, from 3 to 24."
+months_ahead: "How many months after the last full month to project, from 1 to 6."
+group_by: "What to add up per: quarter, year, weekday, account or kind."
 counterparty_limit: "How many counterparties to list one by one. The rest is added up as `others`."
+sort: "The order of the listed movements: newest, oldest, or largest for the biggest amounts first, as in \"my largest payments\"."
 limit: "How many movements to list. The sums always cover all matching movements."

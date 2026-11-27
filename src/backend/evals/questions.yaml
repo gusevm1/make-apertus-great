@@ -33,3 +33,35 @@
     - tool: sum_by_month
       arguments:
         date_from: "2026-(05|06)-01"
+- question: Is my spending going up or down over the last year?
+  calls:
+    - tool: forecast_months
+      arguments:
+        months_back: "(12)?"
+- question: What will I spend per month in the next 3 months if this continues?
+  calls:
+    - tool: forecast_months
+      arguments:
+        months_ahead: "3"
+- question: How much did we spend in 2025 compared with 2024?
+  calls:
+    - tool: sum_by_group
+      arguments:
+        group_by: "year"
+- question: Do I spend more at weekends?
+  calls:
+    - tool: sum_by_group
+      arguments:
+        group_by: "weekday"
+- question: How much came in and went out last month?
+  calls:
+    - tool: sum_by_group
+      arguments:
+        group_by: "kind"
+        date_from: "2026-10-01"
+- question: What were my five largest payments this year?
+  calls:
+    - tool: search_movements
+      arguments:
+        sort: "largest"
+        limit: "5"

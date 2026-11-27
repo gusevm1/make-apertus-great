@@ -11,7 +11,13 @@ from app.core.errors import BadRequestError
 from app.features.bank_data.service import BankDataService
 from app.features.bank_data.tools import get_tools
 from app.features.ledger import service as ledger_service
-from app.features.ledger.schemas import Filters, SearchMovementsArgs, SumByCounterpartyArgs
+from app.features.ledger.schemas import (
+    Filters,
+    ForecastMonthsArgs,
+    SearchMovementsArgs,
+    SumByCounterpartyArgs,
+    SumByGroupArgs,
+)
 from app.features.ledger.service import LedgerService
 
 TOKEN = "lukas-token"
@@ -94,6 +100,14 @@ def statements() -> list[dict]:
 
 @pytest.fixture
 def ledger(pages_read: list[str], statements: list[dict]) -> LedgerService:
+    return _fake_ledger(
+        bookings=BOOKINGS, purchases=PURCHASES, statements=statements, pages_read=pages_read
+    )
+
+
+def _fake_ledger(
+    bookings: list[dict], purchases: list[dict], statements: list[dict], pages_read: list[str]
+) -> LedgerService:
     """The ledger over a bank faked at the HTTP level; an unknown path is a 404 and fails."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
@@ -112,12 +126,12 @@ def ledger(pages_read: list[str], statements: list[dict]) -> LedgerService:
             return httpx2.Response(200, json={"items": cards})
         if path == "/bookings":
             pages_read.append(f"bookings offset={request.url.params['offset']}")
-            return _page(items=BOOKINGS, request=request)
+            return _page(items=bookings, request=request)
         if path == "/cards/CARD-VISA/statements":
             return httpx2.Response(200, json={"items": statements})
         if path == "/cards/CARD-VISA/transactions":
             pages_read.append(f"card offset={request.url.params['offset']}")
-            return _page(items=PURCHASES, request=request)
+            return _page(items=purchases, request=request)
         return httpx2.Response(404, json={"detail": "Not found"})
 
     http = httpx2.AsyncClient(
@@ -352,3 +366,98 @@ async def test_purchases_on_a_settled_statement_are_final(ledger: LedgerService)
 
     assert not any(row.provisional for row in search.rows)
     assert (search.provisional_out_chf, search.provisional_in_chf) == (Decimal(0), Decimal(0))
+
+
+TODAY = date(2026, 11, 27)
+
+
+def _spending(booking_id: str, day: str, amount: float) -> dict:
+    return _booking(booking_id, "debit_card", amount, booking_date=day)
+
+
+async def test_the_trend_is_a_straight_line_through_the_full_months() -> None:
+    bookings = [
+        _spending("BK-AUG", "2026-08-10", -100.0),
+        _spending("BK-SEP", "2026-09-10", -200.0),
+        _spending("BK-OCT", "2026-10-10", -300.0),
+        # November isn't over, so it stays out of the line.
+        _spending("BK-NOV", "2026-11-02", -5000.0),
+    ]
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+
+    trend = await ledger.forecast_months(
+        token=TOKEN, args=ForecastMonthsArgs(months_back=3, months_ahead=2), today=TODAY
+    )
+
+    assert (trend.first_month, trend.last_month, trend.months_used) == ("2026-08", "2026-10", 3)
+    assert (trend.average_chf, trend.trend_chf_per_month) == (Decimal("-200.00"), Decimal("-100.0"))
+    assert trend.trend_percent_per_month == Decimal("-50.00")
+    assert [(month.month, month.trend_chf) for month in trend.projection] == [
+        ("2026-11", Decimal("-400.0")),
+        ("2026-12", Decimal("-500.0")),
+    ]
+    assert "BK-NOV" not in [row_id for ids in trend.row_ids.values() for row_id in ids]
+
+
+async def test_a_month_without_a_match_counts_as_0_in_the_trend() -> None:
+    bookings = [
+        _spending("BK-AUG", "2026-08-10", -300.0),
+        _spending("BK-OCT", "2026-10-10", -300.0),
+    ]
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+
+    trend = await ledger.forecast_months(
+        token=TOKEN, args=ForecastMonthsArgs(months_back=3), today=TODAY
+    )
+
+    assert [month.count for month in trend.months] == [1, 0, 1]
+    assert (trend.average_chf, trend.trend_chf_per_month) == (Decimal("-200.00"), Decimal("0.0"))
+
+
+async def test_a_trend_needs_three_months_the_ledger_covers() -> None:
+    bookings = [
+        _spending("BK-SEP", "2026-09-10", -200.0),
+        _spending("BK-OCT", "2026-10-10", -300.0),
+    ]
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+
+    with pytest.raises(BadRequestError, match="Only 2 full months"):
+        await ledger.forecast_months(token=TOKEN, args=ForecastMonthsArgs(), today=TODAY)
+
+
+async def test_sums_per_year_add_up_to_the_monthly_sums_of_the_period() -> None:
+    bookings = [
+        _spending("BK-1", "2025-11-03", -40.0),
+        _spending("BK-2", "2025-12-20", -60.5),
+        _spending("BK-3", "2026-01-05", -10.25),
+        _booking("BK-4", "salary", 5000.0, booking_date="2026-01-25"),
+    ]
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+    first, last = date(2025, 12, 1), date(2026, 1, 31)
+
+    years = await ledger.sum_by_group(
+        token=TOKEN, args=SumByGroupArgs(group_by="year", date_from=first, date_to=last)
+    )
+    months = await ledger.sum_by_month(token=TOKEN, filters=Filters(date_from=first, date_to=last))
+
+    assert [group.group for group in years.groups] == ["2025", "2026"]
+    assert (years.money_out_chf, years.money_in_chf) == (months.money_out_chf, months.money_in_chf)
+    assert sorted(sum(years.row_ids.values(), [])) == sorted(sum(months.row_ids.values(), []))
+
+
+async def test_every_weekday_is_listed_and_kinds_count_only_when_asked(
+    ledger: LedgerService,
+) -> None:
+    weekdays = await ledger.sum_by_group(token=TOKEN, args=SumByGroupArgs(group_by="weekday"))
+    kinds = await ledger.sum_by_group(
+        token=TOKEN, args=SumByGroupArgs(group_by="kind", kind=["spending", "own_transfer"])
+    )
+
+    assert len(weekdays.groups) == 7
+    # The bookings fall on Friday 2026-10-30, the card purchases on a Monday and a Tuesday.
+    assert {group.group for group in weekdays.groups if group.count > 0} == {
+        "friday",
+        "monday",
+        "tuesday",
+    }
+    assert [group.group for group in kinds.groups] == ["own_transfer", "spending"]

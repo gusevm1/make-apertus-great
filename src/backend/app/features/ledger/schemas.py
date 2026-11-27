@@ -35,12 +35,10 @@ class LedgerRow(BaseModel):
     provisional: bool = False
 
 
-class Filters(BaseModel):
+class Selection(BaseModel):
     # An argument the tool does not have is an error the model can correct, not a dropped filter.
     model_config = ConfigDict(extra="forbid")
 
-    date_from: datetime.date | None = Field(default=None, description=PROMPTS["date_from"])
-    date_to: datetime.date | None = Field(default=None, description=PROMPTS["date_to"])
     text: list[str] | None = Field(default=None, min_length=1, description=PROMPTS["text"])
     kind: list[Kind] | None = Field(default=None, description=PROMPTS["kind"])
     account_id: str | None = Field(default=None, description=PROMPTS["account_id"])
@@ -58,6 +56,11 @@ class Filters(BaseModel):
         # An empty word would match every movement and turn a filter into "everything".
         return [item.strip() for item in values if not isinstance(item, str) or item.strip()]
 
+
+class Filters(Selection):
+    date_from: datetime.date | None = Field(default=None, description=PROMPTS["date_from"])
+    date_to: datetime.date | None = Field(default=None, description=PROMPTS["date_to"])
+
     @model_validator(mode="after")
     def _in_order(self) -> Self:
         # A period that ends before it starts matches no rows, which reads as "none".
@@ -71,7 +74,9 @@ class Filters(BaseModel):
 
 
 class SearchMovementsArgs(Filters):
-    sort: Literal["newest", "oldest", "largest"] = "newest"
+    sort: Literal["newest", "oldest", "largest"] = Field(
+        default="newest", description=PROMPTS["sort"]
+    )
     limit: int = Field(default=ROWS_DEFAULT, ge=1, le=ROWS_MAX, description=PROMPTS["limit"])
 
 
@@ -82,6 +87,18 @@ class SumByCounterpartyArgs(Filters):
         le=TOP_COUNTERPARTIES,
         description=PROMPTS["counterparty_limit"],
     )
+
+
+class ForecastMonthsArgs(Selection):
+    months_back: int = Field(default=12, ge=3, le=24, description=PROMPTS["months_back"])
+    months_ahead: int = Field(default=3, ge=1, le=6, description=PROMPTS["months_ahead"])
+
+
+GroupBy = Literal["quarter", "year", "weekday", "account", "kind"]
+
+
+class SumByGroupArgs(Filters):
+    group_by: GroupBy = Field(description=PROMPTS["group_by"])
 
 
 class Movement(BaseModel):
@@ -142,4 +159,38 @@ class CounterpartySums(BaseModel):
     provisional_in_chf: Decimal
     counterparties: list[CounterpartySum]
     others: CounterpartySum | None
+    row_ids: dict[str, list[str]]
+
+
+class ProjectedMonth(BaseModel):
+    month: str
+    trend_chf: Decimal
+    average_chf: Decimal
+
+
+class MonthTrend(BaseModel):
+    first_month: str
+    last_month: str
+    months_used: int
+    average_chf: Decimal
+    trend_chf_per_month: Decimal
+    # None when the average is 0, since a share of nothing has no meaning.
+    trend_percent_per_month: Decimal | None
+    projection: list[ProjectedMonth]
+    months: list[MonthSum]
+    row_ids: dict[str, list[str]]
+
+
+class GroupSum(BaseModel):
+    group: str
+    count: int
+    money_out_chf: Decimal
+    money_in_chf: Decimal
+
+
+class GroupSums(BaseModel):
+    count: int
+    money_out_chf: Decimal
+    money_in_chf: Decimal
+    groups: list[GroupSum]
     row_ids: dict[str, list[str]]

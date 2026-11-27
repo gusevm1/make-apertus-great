@@ -28,18 +28,24 @@ def get_tool_call_repo(session: SessionDep) -> ToolCallRepository:
     return ToolCallRepository(session=session)
 
 
+async def get_today(ledger: LedgerServiceDep) -> date:
+    # ponytail: asked once per turn; cache it when the banking API gets slow
+    return await ledger.get_today()
+
+
 def get_tools(
     searxng: SearxngClientDep,
     user: CurrentUserDep,
     accounts: AccountServiceDep,
     bank_data: BankDataServiceDep,
     ledger: LedgerServiceDep,
+    today: Annotated[date, Depends(get_today)],
 ) -> list[Tool[Any]]:
     # A feature whose tools read the customer's bank data adds its service dependency here.
     return [
         *account_tools.get_tools(service=accounts, token=user.token),
         *bank_data_tools.get_tools(service=bank_data, token=user.token),
-        *ledger_tools.get_tools(service=ledger, token=user.token),
+        *ledger_tools.get_tools(service=ledger, token=user.token, today=today),
         # Web search sends the query outside the bank, so it needs SearXNG's address to exist.
         *(
             []
@@ -47,11 +53,6 @@ def get_tools(
             else web_search_tools.get_tools(service=WebSearchService(searxng=searxng))
         ),
     ]
-
-
-async def get_today(ledger: LedgerServiceDep) -> date:
-    # ponytail: asked once per turn; cache it when the banking API gets slow
-    return await ledger.get_today()
 
 
 def get_tool_call_service(

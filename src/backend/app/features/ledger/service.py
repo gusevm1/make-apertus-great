@@ -1,7 +1,8 @@
 import re
+import statistics
 from collections import defaultdict
 from collections.abc import Iterable
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 from urllib.parse import quote
@@ -13,14 +14,21 @@ from app.features.ledger.schemas import (
     CounterpartySum,
     CounterpartySums,
     Filters,
+    ForecastMonthsArgs,
+    GroupBy,
+    GroupSum,
+    GroupSums,
     Kind,
     LedgerRow,
     MonthSum,
     MonthSums,
+    MonthTrend,
     Movement,
     MovementSearch,
+    ProjectedMonth,
     SearchMovementsArgs,
     SumByCounterpartyArgs,
+    SumByGroupArgs,
 )
 
 PROMPTS = load_prompts(prompts_py=__file__)
@@ -28,6 +36,10 @@ PAGE_SIZE = 1000  # the banking API's maximum
 OWN_TRANSFER_TYPES = {"account_transfer", "securities_buy"}
 # Without a kind, nothing counts twice: no move between own accounts, no card bill.
 COUNTED_KINDS: set[Kind] = {"spending", "credit"}
+# Fewer points than this make a line that says nothing.
+MIN_TREND_MONTHS = 3
+WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+CENT = Decimal("0.01")
 # Every path the model's tools may read; `{}` is one segment. Nothing here changes the bank.
 READ_PATHS = [
     "/customer",
@@ -103,9 +115,7 @@ class LedgerService:
         """One sum per month of the period, a month without a match as 0."""
         rows = await self._matching(token=token, filters=filters)
         everything = await self.list_rows(token=token)
-        by_month: dict[str, list[LedgerRow]] = defaultdict(list)
-        for row in rows:
-            by_month[row.date.strftime("%Y-%m")].append(row)
+        by_month = _by_month(rows=rows)
         months = _months(filters=filters, rows=everything)
         out, received = _sums(rows=rows)
         return MonthSums(
@@ -150,6 +160,79 @@ class LedgerService:
                 },
                 **({} if not rest else {"others": [row.id for row in rest_rows]}),
             },
+        )
+
+    async def forecast_months(
+        self, token: str, args: ForecastMonthsArgs, today: date
+    ) -> MonthTrend:
+        """A straight line through the last full months, and where it leads in the next ones."""
+        everything = await self.list_rows(token=token)
+        # The current month isn't over, so its low sum would bend the line.
+        last_day = today.replace(day=1) - timedelta(days=1)
+        first_day = _month_start(month=_shift(month=_month(day=last_day), by=1 - args.months_back))
+        if everything:
+            first_day = max(first_day, everything[0].date.replace(day=1))
+        filters = Filters(
+            **args.model_dump(exclude={"months_back", "months_ahead"}),
+            date_from=first_day,
+            date_to=last_day,
+        )
+        months = _months(filters=filters, rows=everything) if everything else []
+        if len(months) < MIN_TREND_MONTHS:
+            raise BadRequestError(PROMPTS["not_enough_months"].format(months=len(months)))
+        by_month = _by_month(rows=await self._matching(token=token, filters=filters))
+        sums = [_month_sum(month=month, rows=by_month[month]) for month in months]
+        nets = [month.money_out_chf + month.money_in_chf for month in sums]
+        slope, intercept = statistics.linear_regression(range(len(nets)), [float(n) for n in nets])
+        average = (sum(nets, Decimal(0)) / len(nets)).quantize(CENT)
+        trend = _cents(value=slope)
+        return MonthTrend(
+            first_month=months[0],
+            last_month=months[-1],
+            months_used=len(months),
+            average_chf=average,
+            trend_chf_per_month=trend,
+            trend_percent_per_month=None
+            if average == 0
+            else (trend / abs(average) * 100).quantize(CENT),
+            projection=[
+                ProjectedMonth(
+                    month=_shift(month=months[-1], by=ahead),
+                    trend_chf=_cents(value=intercept + slope * (len(nets) - 1 + ahead)),
+                    average_chf=average,
+                )
+                for ahead in range(1, args.months_ahead + 1)
+            ],
+            months=sums,
+            row_ids={month: [row.id for row in by_month[month]] for month in months},
+        )
+
+    async def sum_by_group(self, token: str, args: SumByGroupArgs) -> GroupSums:
+        """The matching movements added up per quarter, year, weekday, account or kind."""
+        rows = await self._matching(token=token, filters=args)
+        grouped: dict[str, list[LedgerRow]] = defaultdict(list)
+        for row in rows:
+            grouped[_group(row=row, group_by=args.group_by)].append(row)
+        # Every weekday, so a day without spending shows as 0 next to the others.
+        names = WEEKDAYS if args.group_by == "weekday" else sorted(grouped)
+        out, received = _sums(rows=rows)
+        groups = []
+        for name in names:
+            group_out, group_in = _sums(rows=grouped[name])
+            groups.append(
+                GroupSum(
+                    group=name,
+                    count=len(grouped[name]),
+                    money_out_chf=group_out,
+                    money_in_chf=group_in,
+                )
+            )
+        return GroupSums(
+            count=len(rows),
+            money_out_chf=out,
+            money_in_chf=received,
+            groups=groups,
+            row_ids={name: [row.id for row in grouped[name]] for name in names},
         )
 
     async def _matching(self, token: str, filters: Filters) -> list[LedgerRow]:
@@ -262,16 +345,54 @@ def _month_sum(month: str, rows: list[LedgerRow]) -> MonthSum:
     )
 
 
+def _by_month(rows: list[LedgerRow]) -> dict[str, list[LedgerRow]]:
+    by_month: dict[str, list[LedgerRow]] = defaultdict(list)
+    for row in rows:
+        by_month[_month(day=row.date)].append(row)
+    return by_month
+
+
+def _group(row: LedgerRow, group_by: GroupBy) -> str:
+    match group_by:
+        case "quarter":
+            return f"{row.date.year}-Q{(row.date.month - 1) // 3 + 1}"
+        case "year":
+            return str(row.date.year)
+        case "weekday":
+            return WEEKDAYS[row.date.weekday()]
+        case "account":
+            return row.account_id
+        case "kind":
+            return row.kind
+
+
+def _month(day: date) -> str:
+    return day.strftime("%Y-%m")
+
+
+def _month_start(month: str) -> date:
+    return date.fromisoformat(f"{month}-01")
+
+
+def _shift(month: str, by: int) -> str:
+    index = int(month[:4]) * 12 + int(month[5:]) - 1 + by
+    return f"{index // 12:04d}-{index % 12 + 1:02d}"
+
+
+def _cents(value: float) -> Decimal:
+    # Through str, so the float's last digits don't end up in the figure.
+    return Decimal(str(round(value, 2)))
+
+
 def _months(filters: Filters, rows: list[LedgerRow]) -> list[str]:
     # Without a period, from the first to the last row of the ledger.
     if not rows and (filters.date_from is None or filters.date_to is None):
         return []
     first = rows[0].date if filters.date_from is None else filters.date_from
     last = rows[-1].date if filters.date_to is None else filters.date_to
-    months, year, month = [], first.year, first.month
-    while (year, month) <= (last.year, last.month):
-        months.append(f"{year:04d}-{month:02d}")
-        year, month = (year + 1, 1) if month == 12 else (year, month + 1)
+    months = [_month(day=first)]
+    while months[-1] < _month(day=last):
+        months.append(_shift(month=months[-1], by=1))
     return months
 
 
