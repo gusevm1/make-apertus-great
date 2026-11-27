@@ -2,6 +2,7 @@ from collections import Counter
 from typing import Any
 
 from evals.run import (
+    DOCUMENTS_PATH,
     FIGURES_PATH,
     GUARDRAILS_PATH,
     QUESTIONS_PATH,
@@ -99,14 +100,53 @@ def test_answer_must_match_its_pattern() -> None:
     assert answer_problems(question=Question(question="Hi"), answer="Hallo") == []
 
 
-def test_figures_ask_the_four_core_questions_of_each_customer() -> None:
+def test_figures_ask_the_reference_questions_of_each_customer() -> None:
     questions = load_questions(path=FIGURES_PATH)
 
     customers = Counter(
         question.customer for question in questions if question.rule != "provisional"
     )
-    assert customers == {"lukas": 4, "jana": 4, "daniela": 4, "marco": 4}
+    assert customers == {"lukas": 6, "jana": 5, "daniela": 5, "marco": 5}
     assert all(question.answer is not None for question in questions)
+
+
+def test_every_attached_document_is_a_sample_document() -> None:
+    documents = [
+        name for question in load_questions(path=FIGURES_PATH) for name in question.documents
+    ]
+
+    assert len(documents) == 4
+    assert all((DOCUMENTS_PATH / name).is_file() for name in documents)
+
+
+def figure_question(customer: str, words: str) -> Question:
+    (question,) = [
+        question
+        for question in load_questions(path=FIGURES_PATH)
+        if question.customer == customer and words in question.question
+    ]
+    return question
+
+
+def test_the_japan_answer_needs_half_the_offer_and_the_savings() -> None:
+    japan = figure_question(customer="lukas", words="Japan")
+
+    answer = (
+        "Sara pays half, so your share is CHF 4'527.50; Sparkonto Langfristig holds CHF 37'566.29."
+    )
+    assert answer_problems(question=japan, answer=answer) == []
+    assert answer_problems(question=japan, answer="The trip costs CHF 9'055.00.") != []
+
+
+def test_the_mortgage_answer_needs_the_interest_and_the_maturity_date() -> None:
+    mortgage = figure_question(customer="marco", words="mortgage interest did we pay in 2025")
+
+    assert (
+        answer_problems(question=mortgage, answer="CHF 8'673.38; 0880-4471.02 ends 31.03.2027.")
+        == []
+    )
+    assert answer_problems(question=mortgage, answer="8673.38 CHF, next on 31 March 2027") == []
+    assert answer_problems(question=mortgage, answer="CHF 8'673.38, next on 31.03.2029.") != []
 
 
 def test_a_figure_passes_in_de_ch_and_plain_form_and_a_wrong_one_fails() -> None:

@@ -1,4 +1,4 @@
-# The core questions per customer, each with its figure from `python -m evals.reference`.
+# The reference questions per customer, each with its figure from `python -m evals.reference`.
 
 patterns:
   - &no_online_shops 'CHF\s?0(?:\.00)?(?![.,]?\d)|\b(?:no|keine?)\b[^.]{0,30}\b(?:online|purchases?|Einkäufe|shops?)|\bnothing\b[^.]{0,20}\b(?:online|shops?)|\bdidn[''’]t (?:spend|buy) anything'
@@ -99,3 +99,34 @@ questions:
     rule: provisional
     any_calls: true
     answer: '(?=[\s\S]*(?<![\d''’,])225(?:\.00)?(?![\d]|[.,]\d))(?=[\s\S]*(?:provisional|vorläufig|provisorisch|not (?:yet )?final|(?:can|may|might) (?:still )?change|(?:set|fixed) at the end of the quarter|Quartalsende))'
+  # The other reference questions of the brief. Payslip and offer figures are copied from the PDFs,
+  # the bank's figures come from `python -m evals.reference`.
+  - question: Does the salary on this payslip match what I received on my account?
+    customer: lukas
+    rule: lukas
+    documents: [P1_Lukas_Meier/Lohnabrechnung_2026-11_Lukas_Meier.pdf]
+    any_calls: true
+    answer: '(?<![\d''’,])8[''’,\s]?742\.35(?![\d]|[.,]\d)'
+  - question: Can I afford the Japan trip with my current savings, if Sara pays half?
+    customer: lukas
+    rule: lukas
+    documents: [P1_Lukas_Meier/Reiseofferte_Japan_2027_Fernweh_Atelier.pdf]
+    any_calls: true
+    answer: '(?=[\s\S]*(?<![\d''’,])4[''’,\s]?527\.50?(?![\d]|[.,]\d))(?=[\s\S]*(?<![\d''’,])(?:37[''’,\s]?566\.29|48[''’,\s]?983\.35)(?![\d]|[.,]\d))'
+  - question: Does the salary on this payslip match what I received on my account?
+    customer: jana
+    rule: jana
+    documents: [P2_Jana_Widmer/Lohnabrechnung_2026-11_Jana_Widmer.pdf]
+    any_calls: true
+    answer: '(?<![\d''’,])5[''’,\s]?718\.75(?![\d]|[.,]\d)'
+  - question: Does the salary on this payslip match what I received on my account?
+    customer: daniela
+    rule: daniela
+    documents: [P3_Daniela_Ruegg/Lohnabrechnung_2026-11_Daniela_Rueegg.pdf]
+    any_calls: true
+    answer: '(?<![\d''’,])3[''’,\s]?002\.12(?![\d]|[.,]\d)'
+  - question: How much mortgage interest did we pay in 2025, and when does my next tranche mature?
+    customer: marco
+    rule: marco
+    any_calls: true
+    answer: '(?=[\s\S]*(?<![\d''’,])8[''’,\s]?673\.38(?![\d]|[.,]\d))(?=[\s\S]*(?:31\.\s?0?3\.\s?2027|31\.?\s(?:March|März)\s2027|2027-03-31|March\s31,?\s2027))'
