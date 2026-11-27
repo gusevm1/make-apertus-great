@@ -1,10 +1,10 @@
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import httpx2
 from fastapi import Depends, Request
 
 from app.core.config import Settings
-from app.core.errors import BadRequestError, UnauthorizedError, UpstreamError
+from app.core.errors import BadRequestError, ConflictError, UnauthorizedError, UpstreamError
 
 
 class BankingClient:
@@ -27,6 +27,24 @@ class BankingClient:
             response = await self._http.get(path, params=params, headers=headers)
         except httpx2.HTTPError as exc:
             raise UpstreamError("The banking API is unreachable") from exc
+        return self._data(response=response)
+
+    async def write(
+        self,
+        method: Literal["POST", "PATCH", "DELETE"],
+        path: str,
+        token: str,
+        body: dict[str, Any] | None = None,
+    ) -> Any:
+        """Change the bank as the customer; None when it answers with no content."""
+        try:
+            response = await self._http.request(
+                method, path, json=body, headers={"Authorization": f"Bearer {token}"}
+            )
+        except httpx2.HTTPError as exc:
+            raise UpstreamError("The banking API is unreachable") from exc
+        if response.status_code == 204:
+            return None
         return self._data(response=response)
 
     async def upload_document(
@@ -61,6 +79,9 @@ class BankingClient:
         if response.status_code in (404, 422):
             # The id or a filter was wrong; the caller, often the model, can correct it.
             raise BadRequestError(f"The banking API refused the request: {response.text[:300]}")
+        if response.status_code == 409:
+            # Such as a change to a payment that is no longer pending.
+            raise ConflictError(f"The banking API refused the change: {response.text[:300]}")
         if response.is_error:
             raise UpstreamError(f"The banking API returned {response.status_code}")
         return response.json()
