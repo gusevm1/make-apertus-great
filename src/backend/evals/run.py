@@ -5,6 +5,7 @@ import asyncio
 import re
 import sys
 import time
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +64,27 @@ class ActualCall(BaseModel):
     tool_name: str
     arguments: dict[str, Any]
     error: str | None
+
+
+class Answer(BaseModel):
+    problems: list[str]
+    got: str = ""
+    # The model the backend names in the reply's provenance; None when the turn failed or had none.
+    model: str | None = None
+
+
+class QuestionResult(BaseModel):
+    question: Question
+    customer: str
+    problems: list[str]
+    got: str
+    model: str | None
+    # Wall time of the whole question, with uploads and the `before` turns.
+    seconds: float
+
+    @property
+    def is_passed(self) -> bool:
+        return not self.problems
 
 
 def password_for(customer: str, settings: EvalSettings) -> str:
@@ -148,10 +170,12 @@ def describe(calls: list[ActualCall]) -> str:
     return ", ".join(parts) or "no tool"
 
 
-async def ask(client: httpx.AsyncClient, question: Question) -> tuple[list[str], str]:
+async def ask(client: httpx.AsyncClient, question: Question) -> Answer:
     conversation = await client.post("/api/conversations", json={"title": "eval"})
     if conversation.status_code != 201:
-        return [f"no conversation: {conversation.status_code} {conversation.text[:200]}"], ""
+        return Answer(
+            problems=[f"no conversation: {conversation.status_code} {conversation.text[:200]}"]
+        )
     path = f"/api/conversations/{conversation.json()['id']}"
     document_ids: list[str] = []
     try:
@@ -161,7 +185,9 @@ async def ask(client: httpx.AsyncClient, question: Question) -> tuple[list[str],
                 "/api/documents", files={"file": (file.name, file.read_bytes(), "application/pdf")}
             )
             if upload.status_code != 201:
-                return [f"upload of {name} failed: {upload.status_code} {upload.text[:200]}"], ""
+                return Answer(
+                    problems=[f"upload of {name} failed: {upload.status_code} {upload.text[:200]}"]
+                )
             document_ids.append(upload.json()["id"])
         quotes: list[dict[str, Any]] = []
         messages = [*question.before, question.question]
@@ -173,7 +199,7 @@ async def ask(client: httpx.AsyncClient, question: Question) -> tuple[list[str],
                 json={"content": content, "quotes": quotes, "document_ids": attached},
             )
             if reply.status_code != 201:
-                return [f"turn failed: {reply.status_code} {reply.text[:200]}"], ""
+                return Answer(problems=[f"turn failed: {reply.status_code} {reply.text[:200]}"])
             if index == len(question.before) - 1 and question.quote is not None:
                 quotes = [
                     {"message_id": reply.json()["id"], "text": question.quote, "comment": None}
@@ -185,25 +211,65 @@ async def ask(client: httpx.AsyncClient, question: Question) -> tuple[list[str],
         answer = reply.json()["content"]
         problems += answer_problems(question=question, answer=answer)
         problems += spelling_problems(answer=answer)
-        return problems, describe(calls=calls)
+        provenance = reply.json()["provenance"]
+        return Answer(
+            problems=problems,
+            got=describe(calls=calls),
+            model=None if provenance is None else provenance["model"],
+        )
     finally:
         await client.delete(path)
         for document_id in document_ids:
             await client.delete(f"/api/documents/{document_id}")
 
 
-async def run_question(client: httpx.AsyncClient, question: Question) -> tuple[bool, str]:
+async def run_question(
+    client: httpx.AsyncClient, question: Question, customer: str
+) -> QuestionResult:
     started = time.perf_counter()
     try:
-        problems, got = await ask(client=client, question=question)
+        answer = await ask(client=client, question=question)
     except httpx.HTTPError as error:
-        problems, got = [f"request failed: {error!r}"], ""
-    is_passed = not problems
-    seconds = time.perf_counter() - started
-    line = f"{'ok  ' if is_passed else 'FAIL'} {seconds:5.1f}s  {question.question[:60]:60}  {got}"
-    if problems:
-        line += "  <- " + "; ".join(problems)
-    return is_passed, line
+        answer = Answer(problems=[f"request failed: {error!r}"])
+    return QuestionResult(
+        question=question,
+        customer=customer,
+        problems=answer.problems,
+        got=answer.got,
+        model=answer.model,
+        seconds=time.perf_counter() - started,
+    )
+
+
+def format_result(result: QuestionResult) -> str:
+    line = (
+        f"{'ok  ' if result.is_passed else 'FAIL'} {result.seconds:5.1f}s  "
+        f"{result.question.question[:60]:60}  {result.got}"
+    )
+    if result.problems:
+        line += "  <- " + "; ".join(result.problems)
+    return line
+
+
+async def run_questions(
+    questions: list[Question], base_url: str, settings: EvalSettings
+) -> AsyncIterator[QuestionResult]:
+    # The e-banking issues the token our backend expects, as it does for the iframe.
+    tokens: dict[str, str] = {}
+    async with (
+        httpx.AsyncClient(timeout=TURN_TIMEOUT_SECONDS) as bank,
+        httpx.AsyncClient(base_url=base_url, timeout=TURN_TIMEOUT_SECONDS) as client,
+    ):
+        # ponytail: one question after the other, gentle on the prepaid Apertus credit
+        for question in questions:
+            customer = settings.evals_username if question.customer is None else question.customer
+            if customer not in tokens:
+                try:
+                    tokens[customer] = await log_in(bank=bank, customer=customer, settings=settings)
+                except httpx.HTTPError as error:
+                    raise SystemExit(f"login as {customer} failed: {error!r}") from error
+            client.headers["Authorization"] = f"Bearer {tokens[customer]}"
+            yield await run_question(client=client, question=question, customer=customer)
 
 
 async def main() -> int:
@@ -223,26 +289,13 @@ async def main() -> int:
         return 0
     passed = 0
     passed_by_rule: dict[str, list[bool]] = {}
-    # The e-banking issues the token our backend expects, as it does for the iframe.
-    tokens: dict[str, str] = {}
-    async with (
-        httpx.AsyncClient(timeout=TURN_TIMEOUT_SECONDS) as bank,
-        httpx.AsyncClient(base_url=args.base_url, timeout=TURN_TIMEOUT_SECONDS) as client,
+    async for result in run_questions(
+        questions=questions, base_url=args.base_url, settings=settings
     ):
-        # ponytail: one question after the other, gentle on the prepaid Apertus credit
-        for question in questions:
-            customer = settings.evals_username if question.customer is None else question.customer
-            if customer not in tokens:
-                try:
-                    tokens[customer] = await log_in(bank=bank, customer=customer, settings=settings)
-                except httpx.HTTPError as error:
-                    parser.error(f"login as {customer} failed: {error!r}")
-            client.headers["Authorization"] = f"Bearer {tokens[customer]}"
-            is_passed, line = await run_question(client=client, question=question)
-            passed += is_passed
-            if question.rule is not None:
-                passed_by_rule.setdefault(question.rule, []).append(is_passed)
-            print(line, flush=True)  # noqa: T201
+        passed += result.is_passed
+        if result.question.rule is not None:
+            passed_by_rule.setdefault(result.question.rule, []).append(result.is_passed)
+        print(format_result(result=result), flush=True)  # noqa: T201
     for rule, results in passed_by_rule.items():
         print(f"{rule}: {sum(results)} of {len(results)}")  # noqa: T201
     rate = passed / len(questions)
