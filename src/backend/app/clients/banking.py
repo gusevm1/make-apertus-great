@@ -4,7 +4,13 @@ import httpx2
 from fastapi import Depends, Request
 
 from app.core.config import Settings
-from app.core.errors import BadRequestError, ConflictError, UnauthorizedError, UpstreamError
+from app.core.errors import (
+    BadRequestError,
+    ConflictError,
+    NotInBankError,
+    UnauthorizedError,
+    UpstreamError,
+)
 
 
 class BankingClient:
@@ -76,7 +82,9 @@ class BankingClient:
     def _data(self, response: httpx2.Response) -> Any:
         if response.status_code == 401:
             raise UnauthorizedError("The e-banking session is missing or has ended")
-        if response.status_code in (404, 422):
+        if response.status_code == 404:
+            raise NotInBankError(f"The banking API refused the request: {response.text[:300]}")
+        if response.status_code == 422:
             # The id or a filter was wrong; the caller, often the model, can correct it.
             raise BadRequestError(f"The banking API refused the request: {response.text[:300]}")
         if response.status_code == 409:

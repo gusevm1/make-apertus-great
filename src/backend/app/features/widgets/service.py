@@ -8,7 +8,7 @@ from urllib.parse import quote
 from uuid import UUID
 
 from app.clients.apertus import ApertusClient, Model
-from app.core.errors import BadRequestError, NotFoundError, UpstreamError
+from app.core.errors import BadRequestError, NotFoundError, NotInBankError, UpstreamError
 from app.core.provenance import Check
 from app.core.tools import TurnResult
 from app.features.figure_checks.service import FigureCheckService
@@ -142,8 +142,10 @@ class WidgetService:
         html = await asyncio.to_thread(render, spec, version.data, form)
         return version, html
 
-    async def publish(self, widget: Widget, dashboard_id: str | None, token: str) -> Widget:
-        """Put the widget's current version on the e-banking dashboard; call it after the click."""
+    async def publish_widget(
+        self, widget: Widget, dashboard_id: str | None, token: str
+    ) -> tuple[Widget, str, str]:
+        """Put the current version on the dashboard after the click; the dashboard and tile ids."""
         version = await self.versions.get_number(widget_id=widget.id, number=widget.current_version)
         if version is None:
             raise NotFoundError(f"Widget {widget.id} has no version {widget.current_version}")
@@ -151,10 +153,12 @@ class WidgetService:
         html = await asyncio.to_thread(render, spec, version.data, "static")
         if len(html) > DASHBOARD_HTML_MAX:
             raise BadRequestError(
-                f"This widget's page has {len(html):,} characters; the dashboard takes at most "
-                f"{DASHBOARD_HTML_MAX:,}."
+                f"This widget's page has {_swiss(number=len(html))} characters; the dashboard "
+                f"takes at most {_swiss(number=DASHBOARD_HTML_MAX)}."
             )
-        target = dashboard_id if dashboard_id is not None else await self._default_dashboard(token)
+        target = dashboard_id
+        if target is None:
+            target = await self._default_dashboard(token=token)
         tile = {
             "title": widget.title,
             "custom": {
@@ -181,13 +185,14 @@ class WidgetService:
             tile_id = str(created.root["id"])
         updated = await self.widgets.set_publication(
             widget_id=widget.id,
+            owner_id=widget.owner_id,
             dashboard_id=target,
             dashboard_widget_id=tile_id,
             version_number=version.number,
         )
         if updated is None:
             raise NotFoundError(f"Widget {widget.id} not found")
-        return updated
+        return updated, target, tile_id
 
     async def _default_dashboard(self, token: str) -> str:
         dashboards = await self.ledger.read(path="/dashboards", token=token)
@@ -204,8 +209,8 @@ class WidgetService:
         path = f"/dashboards/{quote(dashboard_id, safe='')}/widgets/{quote(tile_id, safe='')}"
         try:
             await self.payments.write(method="PATCH", path=path, token=token, body=tile)
-        except BadRequestError:
-            # The bank answers 404 for a tile that is gone; a new one is added instead.
+        except NotInBankError:
+            # Only a tile that is gone gets a new one; any other refusal stops the put.
             return None
         return tile_id
 
@@ -243,13 +248,21 @@ class WidgetService:
 
 
 def _tile_height(component: dict[str, Any]) -> int:
+    height = TILE_HEADER + _component_height(component=component)
+    return min(max(height, TILE_HEIGHT_MIN), TILE_HEIGHT_MAX)
+
+
+def _component_height(component: dict[str, Any]) -> int:
     children = component.get("children")
     if isinstance(children, list):
         # A dashboard tile is one column wide, so a grid stacks its children too.
-        inner = sum(_tile_height(component=child) for child in children)
-        return min(max(inner + TILE_GAP * len(children), TILE_HEIGHT_MIN), TILE_HEIGHT_MAX)
-    height = TILE_HEADER + TILE_HEIGHTS.get(component["type"], TILE_CHART_HEIGHT)
-    return min(max(height, TILE_HEIGHT_MIN), TILE_HEIGHT_MAX)
+        inner = sum(_component_height(component=child) for child in children)
+        return inner + TILE_GAP * (len(children) - 1)
+    return TILE_HEIGHTS.get(component["type"], TILE_CHART_HEIGHT)
+
+
+def _swiss(number: int) -> str:
+    return f"{number:,}".replace(",", "'")
 
 
 def _booking_ids(value: Any) -> list[str]:

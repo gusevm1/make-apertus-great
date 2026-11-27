@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.features.widgets import service as widget_service
 from app.features.widgets.models import WidgetORM, WidgetVersionORM
 from app.features.widgets.repository import WidgetRepository
-from tests.conftest import BANK_WRITES
+from tests.conftest import BANK_WRITES, INVALID_TILE_ID
 from tests.factories import DEMO_USER_ID, make_conversation
 
 SPEC = {
@@ -48,6 +48,16 @@ async def _widget(session: AsyncSession, owner_id: UUID = DEMO_USER_ID) -> UUID:
         version=_version(number=1),
     )
     return widget.id
+
+
+async def _set_tile(session: AsyncSession, widget_id: UUID, tile_id: str) -> None:
+    await WidgetRepository(session=session).set_publication(
+        widget_id=widget_id,
+        owner_id=DEMO_USER_ID,
+        dashboard_id="DASH-01",
+        dashboard_widget_id=tile_id,
+        version_number=1,
+    )
 
 
 async def _publish(client: httpx2.AsyncClient, widget_id: UUID, **body: Any) -> httpx2.Response:
@@ -122,9 +132,7 @@ async def test_a_tile_the_customer_removed_is_added_again(
     client: httpx2.AsyncClient, session: AsyncSession
 ) -> None:
     widget_id = await _widget(session=session)
-    await WidgetRepository(session=session).set_publication(
-        widget_id=widget_id, dashboard_id="DASH-01", dashboard_widget_id="W-GONE", version_number=1
-    )
+    await _set_tile(session=session, widget_id=widget_id, tile_id="W-GONE")
 
     published = await _publish(client=client, widget_id=widget_id)
 
@@ -134,6 +142,20 @@ async def test_a_tile_the_customer_removed_is_added_again(
         ("POST", "/dashboards/DASH-01/widgets"),
     ]
     assert published.json()["dashboard_widget_id"] == "W-0010"
+
+
+async def test_a_change_the_bank_refuses_adds_no_second_tile(
+    client: httpx2.AsyncClient, session: AsyncSession
+) -> None:
+    widget_id = await _widget(session=session)
+    await _set_tile(session=session, widget_id=widget_id, tile_id=INVALID_TILE_ID)
+
+    refused = await _publish(client=client, widget_id=widget_id)
+
+    assert refused.status_code == 400
+    assert [(method, path) for method, path, _ in BANK_WRITES] == [
+        ("PATCH", f"/dashboards/DASH-01/widgets/{INVALID_TILE_ID}")
+    ]
 
 
 async def test_a_page_too_large_for_the_dashboard_never_reaches_the_bank(
@@ -175,9 +197,10 @@ def test_a_tile_is_as_tall_as_the_components_it_stacks() -> None:
     kpi = {"type": "kpi"}
     chart = {"type": "bar_chart"}
 
-    assert widget_service._tile_height(component=kpi) == 166
+    # The page's header once, then each component, with a gap between neighbours.
+    assert widget_service._tile_height(component=kpi) == 56 + 110
     assert widget_service._tile_height(component={"type": "stack", "children": [kpi, chart]}) == (
-        166 + 356 + 2 * 16
+        56 + 110 + 16 + 300
     )
     many = {"type": "stack", "children": [chart] * 8}
     assert widget_service._tile_height(component=many) == 1200

@@ -173,11 +173,7 @@ function Chat({
     const publication = await api<WidgetPublication>(
       `/api/widgets/${visual.widgetId}/publications`,
       token,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dashboard_id: context.dashboard_id }),
-      },
+      json({ dashboard_id: context.dashboard_id }),
     );
     sendToHost("widgets-changed", { dashboard_id: publication.dashboard_id });
     setVisual((current) =>

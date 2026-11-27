@@ -52,6 +52,11 @@ class NotFoundError(AppError):
     code = "not_found"
 
 
+# The banking API's 404: still a bad request to callers, but one that says the thing is gone.
+class NotInBankError(BadRequestError):
+    pass
+
+
 class ConflictError(AppError):
     status_code = 409
     code = "conflict"

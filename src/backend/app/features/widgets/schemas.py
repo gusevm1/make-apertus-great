@@ -79,6 +79,5 @@ class RequestWidgetPublicationCreate(BaseModel):
 class ResponseWidgetPublication(BaseModel):
     widget_id: UUID
     version_number: int
-    # Set by every publication; typed like the widget's own columns, which start empty.
-    dashboard_id: str | None
-    dashboard_widget_id: str | None
+    dashboard_id: str
+    dashboard_widget_id: str

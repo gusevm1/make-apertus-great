@@ -18,9 +18,15 @@ class WidgetRepository(BaseRepository[WidgetORM, Widget]):
         return self._to_schema(row=row) if row is not None else None
 
     async def set_publication(
-        self, widget_id: UUID, dashboard_id: str, dashboard_widget_id: str, version_number: int
+        self,
+        widget_id: UUID,
+        owner_id: UUID,
+        dashboard_id: str,
+        dashboard_widget_id: str,
+        version_number: int,
     ) -> Widget | None:
-        row = await self.session.get(WidgetORM, widget_id)
+        stmt = select(WidgetORM).filter_by(id=widget_id, owner_id=owner_id)
+        row = await self.session.scalar(stmt)
         if row is None:
             return None
         row.dashboard_id = dashboard_id

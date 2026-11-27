@@ -41,12 +41,12 @@ async def create_widget_publication(
     service: WidgetServiceDep,
 ) -> ResponseWidgetPublication:
     """Put your widget's current version on your e-banking dashboard, replacing an older copy."""
-    published = await service.publish(
+    published, dashboard_id, tile_id = await service.publish_widget(
         widget=widget, dashboard_id=body.dashboard_id, token=user.token
     )
     return ResponseWidgetPublication(
         widget_id=published.id,
         version_number=published.current_version,
-        dashboard_id=published.dashboard_id,
-        dashboard_widget_id=published.dashboard_widget_id,
+        dashboard_id=dashboard_id,
+        dashboard_widget_id=tile_id,
     )

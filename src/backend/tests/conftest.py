@@ -197,6 +197,8 @@ DASHBOARDS = [
 ]
 # The ids of the custom widgets on the fake bank's dashboards, as "DASH-01/W-0010".
 DASHBOARD_TILES: set[str] = set()
+# A tile whose change the fake bank refuses with 422, as it does for an invalid body.
+INVALID_TILE_ID = "W-INVALID"
 
 
 @pytest.fixture(autouse=True)
@@ -213,6 +215,8 @@ def _fake_dashboard_write(method: str, path: str, body: dict[str, Any]) -> httpx
         DASHBOARD_TILES.add(f"{dashboard_id}/{tile_id}")
         return httpx2.Response(201, json={"id": tile_id, **body})
     tile_id = tile_id.removeprefix("/")
+    if tile_id == INVALID_TILE_ID:
+        return httpx2.Response(422, json={"code": "validation_error", "message": "Invalid input"})
     if f"{dashboard_id}/{tile_id}" not in DASHBOARD_TILES:
         return httpx2.Response(404, json={"detail": "Widget not found"})
     return httpx2.Response(200, json={"id": tile_id, **body})

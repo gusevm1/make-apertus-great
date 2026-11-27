@@ -44,8 +44,8 @@ export interface WidgetVersion {
 export interface WidgetPublication {
   widget_id: string;
   version_number: number;
-  dashboard_id: string | null;
-  dashboard_widget_id: string | null;
+  dashboard_id: string;
+  dashboard_widget_id: string;
 }
 
 export interface Conversation {
