@@ -23,3 +23,26 @@ class TransactionTagORM(Base):
     category_model: Mapped[str | None]
     category_confirmed: Mapped[bool] = mapped_column(server_default="false")
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
+class SeveritySettingORM(Base):
+    __tablename__ = "severity_settings"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "scope", "key"),
+        CheckConstraint("scope IN ('category', 'payee', 'booking')", name="scope"),
+        CheckConstraint(
+            "severity IN ('negligible', 'minor', 'moderate', 'major', 'critical')",
+            name="severity",
+        ),
+        CheckConstraint("set_by IN ('model', 'customer')", name="severity_set_by"),
+    )
+
+    owner_id: Mapped[UUID]
+    scope: Mapped[str]
+    key: Mapped[str]
+    severity: Mapped[str]
+    set_by: Mapped[str]
+    model: Mapped[str | None]
+    confirmed: Mapped[bool] = mapped_column(server_default="false")
+    reason: Mapped[str | None]
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
