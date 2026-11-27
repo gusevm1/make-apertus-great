@@ -20,11 +20,13 @@ from app.features.widgets.catalogue.schemas import (
     Callout,
     Chart,
     Donut,
+    ForecastChart,
     Grid,
     ItemList,
     Kpi,
     Node,
     Progress,
+    Scenarios,
     Stack,
     Stat,
     StatRow,
@@ -56,6 +58,9 @@ CSP = {
     "live": f"default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; {_CSP_REST}",
 }
 TABLE_ROWS = 50
+# Scenarios compare cases, so at least two; more than six no longer fit the switch.
+MIN_CASES = 2
+MAX_CASES = 6
 # Half a Rappen: a total may differ from the sum of its rows by rounding only.
 TOTAL_TOLERANCE = Decimal("0.005")
 
@@ -138,6 +143,8 @@ def _view(
         return _entries(node=node, data=data)
     if isinstance(node, Progress):
         return _progress(node=node, data=data)
+    if isinstance(node, Scenarios):
+        return _scenarios(node=node, data=data, form=form)
     if isinstance(node, Callout):
         return {"type": node.type, "title": node.title, "text": node.text, "tone": node.tone}
     return _chart(node=node, data=data, form=form, charts=charts)
@@ -340,6 +347,38 @@ def _progress(node: Progress, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _scenarios(node: Scenarios, data: dict[str, Any], form: Form) -> dict[str, Any]:
+    found = rows(
+        path=node.data, data=data, fields=[node.label] + [item.field for item in node.figures]
+    )
+    if not MIN_CASES <= len(found) <= MAX_CASES:
+        raise BadRequestError(
+            f"{node.data} has {len(found)} cases; scenarios show {MIN_CASES} to {MAX_CASES}"
+        )
+    # Every case's figures are drawn on the server; switching only shows another case.
+    cases = [
+        {
+            "index": index,
+            "path": f"{node.data}[{index}]",
+            "label": display(field=node.label, value=row[node.label]),
+            "figures": [
+                _figure(path=f"{node.data}[{index}].{item.field}", data=data)
+                | {"label": item.label}
+                for item in node.figures
+            ],
+        }
+        for index, row in enumerate(found)
+    ]
+    return {
+        "type": node.type,
+        "title": node.title,
+        "path": node.data,
+        "form": form,
+        "labels": [item.label for item in node.figures],
+        "cases": cases,
+    }
+
+
 def _drawn(
     node: Chart | Trend, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
 ) -> tuple[str, str | None, str, dict[str, Any]]:
@@ -374,7 +413,10 @@ def _chart(
         "rows": chart_rows,
         "legend": None,
         "total": None,
+        "forecast_legend": None,
     }
+    if isinstance(node, ForecastChart):
+        return view | {"forecast_legend": {"range": node.low is not None}}
     if not isinstance(node, Donut):
         return view
     # The legend's swatches are the slices' own colours, the customer's where chosen.

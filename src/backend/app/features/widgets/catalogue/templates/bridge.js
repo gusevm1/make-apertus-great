@@ -29,6 +29,8 @@
   document.addEventListener("click", function (event) {
     // A live chart reports its own clicks, with the clicked row's values.
     if (event.target.closest("[data-live]") !== null) return;
+    // Switching cases picks no part of the widget.
+    if (event.target.closest(".cases") !== null) return;
     var mark = event.target.closest("[role='graphics-symbol'][aria-label]");
     var element = event.target.closest("[data-path]");
     if (element === null) return;
@@ -42,6 +44,17 @@
       return;
     }
     select(element);
+  });
+
+  // Scenarios: every case is already on the page; a radio only shows another one.
+  document.addEventListener("change", function (event) {
+    var choice = event.target;
+    if (choice.closest === undefined || choice.closest(".cases") === null) return;
+    var section = choice.closest(".scenarios");
+    section.querySelectorAll(".case").forEach(function (panel) {
+      panel.hidden = panel.getAttribute("data-case") !== choice.value;
+    });
+    height();
   });
 
   window.addEventListener("error", function (event) { post({ type: "widget-error", message: String(event.message) }); });

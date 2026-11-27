@@ -12,6 +12,7 @@ from app.features.widgets.catalogue.schemas import (
     Chart,
     Comparison,
     Donut,
+    ForecastChart,
     LineChart,
     Trend,
 )
@@ -111,7 +112,12 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
     """The Vega-Lite spec of a chart, with its rows taken from DATA; it computes no figure."""
     x_field, y_field, series_field = _fields(component=component)
     fields = [x_field, y_field] + ([series_field] if series_field is not None else [])
-    found = rows(path=component.data, data=data, fields=fields)
+    is_forecast = isinstance(component, ForecastChart)
+    found = rows(
+        path=component.data, data=data, fields=fields + ([component.kind] if is_forecast else [])
+    )
+    if isinstance(component, ForecastChart):
+        _check_forecast(component=component, found=found)
     if isinstance(component, Donut) and len(found) > len(SLICES):
         raise BadRequestError(
             f"{component.data} has {len(found)} parts; a donut shows at most {len(SLICES)}"
@@ -139,21 +145,31 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
         full = display(field=x_field, value=row[x_field])
         shown = display(field=y_field, value=row[y_field])
         path = f"{component.data}[{index}]"
-        values.append(
-            {
-                "key": str(row[x_field]),
-                "label": shorts[index] if is_unique else full,
-                "y": row[y_field],
-                "shown": shown,
-                "series": series[index],
-                "path": path,
-                # What a screen reader says for the mark; the bridge reads the path in brackets.
-                "description": f"{full}, {shown} ({path})",
-                "booking_ids": row.get("booking_ids", []),
-            }
-        )
+        value = {
+            "key": str(row[x_field]),
+            "label": shorts[index] if is_unique else full,
+            "y": row[y_field],
+            "shown": shown,
+            "series": series[index],
+            "path": path,
+            # What a screen reader says for the mark; the bridge reads the path in brackets.
+            "description": f"{full}, {shown} ({path})",
+            "booking_ids": row.get("booking_ids", []),
+        }
+        if isinstance(component, ForecastChart):
+            value |= _forecast_fields(
+                component=component, row=row, full=full, shown=shown, path=path
+            )
+        values.append(value)
     if isinstance(component, Trend):
         return _sparkline(values=values)
+    if isinstance(component, ForecastChart):
+        size = (
+            {"width": "container", "autosize": {"type": "fit-x", "contains": "padding"}}
+            if live
+            else {"width": STATIC_WIDTH}
+        )
+        return {**size, **_forecast(values=values, has_range=component.low is not None)}
     chosen = _chosen(component=component, values=values, has_series=series_field is not None)
     if isinstance(component, Donut):
         colours = [chosen.get(value["key"], SLICES[index]) for index, value in enumerate(values)]
@@ -175,7 +191,11 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
     return {**size, **_line(values=values, has_series=has_series, filled=filled, scale=scale)}
 
 
-def _chosen(component: Chart, values: list[dict[str, Any]], has_series: bool) -> dict[str, str]:
+def _chosen(
+    component: BarChart | LineChart | AreaChart | Comparison | Donut,
+    values: list[dict[str, Any]],
+    has_series: bool,
+) -> dict[str, str]:
     # The customer's colours by row label or series value; a key the chart lacks is refused.
     if component.colors is None:
         return {}
@@ -211,9 +231,49 @@ def _series_scale(series: list[str | None], chosen: dict[str, str]) -> dict[str,
 def _fields(component: Chart | Trend) -> tuple[str, str, str | None]:
     if isinstance(component, Donut):
         return component.label, component.value, None
-    if isinstance(component, BarChart | Trend):
+    if isinstance(component, BarChart | Trend | ForecastChart):
         return component.x, component.y, None
     return component.x, component.y, component.series
+
+
+def _check_forecast(component: ForecastChart, found: list[dict[str, Any]]) -> None:
+    # A forecast's rows run from actual to forecast; a range needs numbers on the forecast rows.
+    seen_forecast = False
+    for index, row in enumerate(found):
+        where = f"{component.data}[{index}]"
+        kind = row[component.kind]
+        if kind not in ("actual", "forecast"):
+            raise BadRequestError(f"{where}.{component.kind} is {kind!r}: actual or forecast")
+        if kind == "actual" and seen_forecast:
+            raise BadRequestError(f"{where} is actual after a forecast row: actual rows come first")
+        seen_forecast = seen_forecast or kind == "forecast"
+        if kind == "actual" or component.low is None or component.high is None:
+            continue
+        low, high = row.get(component.low), row.get(component.high)
+        if low is None or high is None or not is_number(value=low) or not is_number(value=high):
+            raise BadRequestError(f"{where} needs numbers in {component.low} and {component.high}")
+        if low > high:
+            raise BadRequestError(f"{where}.{component.low} is above {component.high}")
+    if not seen_forecast:
+        raise BadRequestError(f"{component.data} has no forecast row: use a line_chart")
+
+
+def _forecast_fields(
+    component: ForecastChart, row: dict[str, Any], full: str, shown: str, path: str
+) -> dict[str, Any]:
+    is_forecast = row[component.kind] == "forecast"
+    fields: dict[str, Any] = {"kind": row[component.kind], "low": None, "high": None, "range": ""}
+    if is_forecast:
+        fields["description"] = f"{full}, forecast {shown} ({path})"
+    if not is_forecast or component.low is None or component.high is None:
+        return fields
+    low, high = row[component.low], row[component.high]
+    return fields | {
+        "low": low,
+        "high": high,
+        "range": f"{display(field=component.low, value=low)} to "
+        f"{display(field=component.high, value=high)}",
+    }
 
 
 def static_svg(spec: dict[str, Any]) -> str:
@@ -406,6 +466,68 @@ def _sparkline(values: list[dict[str, Any]]) -> dict[str, Any]:
             },
         ],
     }
+
+
+def _forecast(values: list[dict[str, Any]], has_range: bool) -> dict[str, Any]:
+    actual = [value for value in values if value["kind"] == "actual"]
+    forecast = [value for value in values if value["kind"] == "forecast"]
+    x = {"field": "label", "type": "ordinal", "sort": None}
+    y = {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}}
+    line = {"type": "line", "interpolate": "monotone", "strokeWidth": 2.5, "color": ACCENT}
+    layers: list[dict[str, Any]] = []
+    if has_range:
+        layers.append(
+            {
+                "data": {"values": forecast},
+                "mark": {"type": "area", "interpolate": "monotone", "color": ACCENT_LIGHT},
+                "encoding": {
+                    "x": x,
+                    "y": {**y, "field": "low"},
+                    "y2": {"field": "high"},
+                },
+            }
+        )
+    layers += [
+        {"data": {"values": actual}, "mark": line, "encoding": {"x": x, "y": y}},
+        # The dashed line starts at the last actual point, so the two lines meet.
+        {
+            "data": {"values": actual[-1:] + forecast},
+            "mark": {**line, "strokeDash": [6, 4]},
+            "encoding": {"x": x, "y": y},
+        },
+        # Only the points carry the row's path; forecast points are drawn hollow.
+        {
+            "mark": {"type": "point", "filled": True, "size": 60, "strokeWidth": 2},
+            "encoding": {
+                "x": x,
+                "y": y,
+                "fill": {
+                    "condition": {"test": "datum.kind === 'forecast'", "value": "#ffffff"},
+                    "value": ACCENT,
+                },
+                "stroke": {"value": ACCENT},
+                "description": {"field": "description"},
+                "tooltip": [
+                    *_tooltip(y_title="value"),
+                    {"field": "kind", "title": " "},
+                    {"field": "range", "title": "range"},
+                ],
+            },
+        },
+    ]
+    ends = [value["y"] for value in values] + [
+        end for value in forecast for end in (value["low"], value["high"]) if end is not None
+    ]
+    if min(ends) < 0 < max(ends):
+        # A zero line where the series crosses from plus to minus.
+        layers.append(
+            {
+                "data": {"values": [{}]},
+                "mark": {"type": "rule", "color": MUTED, "strokeDash": [2, 3]},
+                "encoding": {"y": {"datum": 0}},
+            }
+        )
+    return {"height": LINE_HEIGHT, "data": {"values": values}, "layer": layers}
 
 
 def _comparison(values: list[dict[str, Any]], scale: dict[str, Any]) -> dict[str, Any]:

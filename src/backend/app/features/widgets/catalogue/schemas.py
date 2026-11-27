@@ -160,6 +160,41 @@ class Donut(Component):
     colors: Colours | None = None
 
 
+class ForecastChart(Component):
+    type: Literal["forecast_chart"]
+    title: Label | None = None
+    data: DataPath
+    x: FieldName
+    y: FieldName
+    # The field that says "actual" or "forecast" for each row; actual rows come first.
+    kind: FieldName
+    # Fields of the forecast rows that hold the lower and upper end of their range.
+    low: FieldName | None = None
+    high: FieldName | None = None
+
+    @model_validator(mode="after")
+    def _range_has_both_ends(self) -> Self:
+        if (self.low is None) != (self.high is None):
+            raise ValueError("a range needs both low and high")
+        return self
+
+
+class ScenarioFigure(Component):
+    label: Label
+    # A field of every case's row, such as "left_chf".
+    field: FieldName
+
+
+class Scenarios(Component):
+    type: Literal["scenarios"]
+    title: Label | None = None
+    # The cases, one row each, such as rent today, +200 and +400.
+    data: DataPath
+    # The field that names each case.
+    label: FieldName
+    figures: list[ScenarioFigure] = Field(min_length=1, max_length=4)
+
+
 class Timeline(Component):
     type: Literal["timeline"]
     title: Label | None = None
@@ -196,7 +231,7 @@ class Grid(Component):
     children: list["Node"] = Field(min_length=2, max_length=6)
 
 
-Chart = BarChart | LineChart | AreaChart | Comparison | Donut
+Chart = BarChart | LineChart | AreaChart | Comparison | Donut | ForecastChart
 Node = Annotated[
     Kpi
     | StatRow
@@ -208,6 +243,8 @@ Node = Annotated[
     | AreaChart
     | Comparison
     | Donut
+    | ForecastChart
+    | Scenarios
     | Progress
     | Callout
     | Stack
@@ -228,6 +265,8 @@ COMPONENTS: list[type[Component]] = [
     AreaChart,
     Comparison,
     Donut,
+    ForecastChart,
+    Scenarios,
     Progress,
     Callout,
     Stack,

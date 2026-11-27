@@ -90,7 +90,41 @@
   {%- if n.title is not none %}<strong>{{ n.title }}</strong>{% endif %}
   <p>{{ n.text }}</p>
 </aside>
-{%- elif n.type in ("bar_chart", "line_chart", "area_chart", "comparison", "donut") -%}
+{%- elif n.type == "scenarios" -%}
+<section class="scenarios" data-component="scenarios" data-path="{{ n.path }}">
+  {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
+  {%- if n.form == "live" %}
+  <fieldset class="cases"><legend class="sr-only">Case</legend>
+    {%- for c in n.cases %}<label class="case-option"><input type="radio" name="cases-{{ n.path }}" value="{{ c.index }}"{% if loop.first %} checked{% endif %}><span>{{ c.label }}</span></label>{% endfor %}
+  </fieldset>
+  {%- for c in n.cases %}
+  <div class="stats case" data-case="{{ c.index }}" data-path="{{ c.path }}" aria-live="polite"{% if not loop.first %} hidden{% endif %}>
+    {%- for f in c.figures %}
+    <div class="stat" data-component="scenario-figure" data-path="{{ f.path }}" data-value="{{ f.raw }}" data-booking-ids="{{ f.booking_ids }}"><span class="stat-label">{{ f.label }}</span><span class="stat-value">{{ f.text }}</span></div>
+    {%- endfor %}
+  </div>
+  {%- endfor %}
+  {%- else %}
+  {%- set first = n.cases[0] %}
+  <p class="case-shown">{{ first.label }}</p>
+  <div class="stats case" data-case="0" data-path="{{ first.path }}">
+    {%- for f in first.figures %}
+    <div class="stat" data-component="scenario-figure" data-path="{{ f.path }}" data-value="{{ f.raw }}" data-booking-ids="{{ f.booking_ids }}"><span class="stat-label">{{ f.label }}</span><span class="stat-value">{{ f.text }}</span></div>
+    {%- endfor %}
+  </div>
+  <div class="table-wrap"><div class="table-scroll">
+  <table role="table">
+    <thead role="rowgroup"><tr role="row"><th role="columnheader">Case</th>{% for label in n.labels %}<th role="columnheader" class="num">{{ label }}</th>{% endfor %}</tr></thead>
+    <tbody role="rowgroup">
+    {%- for c in n.cases %}
+      <tr role="row" data-component="scenario-case" data-path="{{ c.path }}"><td role="cell" data-label="Case">{{ c.label }}</td>{% for f in c.figures %}<td role="cell" class="num" data-label="{{ f.label }}">{{ f.text }}</td>{% endfor %}</tr>
+    {%- endfor %}
+    </tbody>
+  </table>
+  </div></div>
+  {%- endif %}
+</section>
+{%- elif n.type in ("bar_chart", "line_chart", "area_chart", "comparison", "donut", "forecast_chart") -%}
 <section class="chart" data-component="{{ n.type }}" data-path="{{ n.path }}" data-rows="{{ n.rows }}">
   {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
   {%- if n.legend is not none %}
@@ -109,6 +143,9 @@
   </div>
   {%- else %}
   <div class="chart-area" id="{{ n.id }}">{% if n.svg is not none %}{{ n.svg | safe }}{% endif %}</div>
+  {%- endif %}
+  {%- if n.forecast_legend is not none %}
+  <p class="forecast-legend"><span><i class="key solid" aria-hidden="true"></i>Actual</span><span><i class="key dashed" aria-hidden="true"></i>Forecast</span>{% if n.forecast_legend.range %}<span><i class="key band" aria-hidden="true"></i>Range</span>{% endif %}</p>
   {%- endif %}
 </section>
 {%- elif n.type == "stack" -%}

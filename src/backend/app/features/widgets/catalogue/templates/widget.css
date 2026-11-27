@@ -14,6 +14,8 @@
   /* A change that goes the good way, or not: tokens.css --color-credit and --color-error. */
   --good: #1d7a45;
   --bad: #b3261e;
+  /* A forecast's range, as the chart draws it (charts.ACCENT_LIGHT). */
+  --band: #cfe2df;
   --radius-sm: 8px;
   --radius: 12px;
   --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -97,6 +99,21 @@ tfoot td { font-weight: 700; border-bottom: 0; }
 .legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: baseline; gap: 8px; font-size: 0.85rem; }
 .swatch { width: 10px; height: 10px; border-radius: 3px; align-self: center; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.scenarios { display: grid; gap: 10px; min-width: 0; }
+.cases { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.case-option { position: relative; }
+/* The radio stays a real radio, for arrow keys and screen readers; the label is the button. */
+.case-option input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.case-option span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-weight: 500; }
+.case-option input:checked + span { background: var(--primary); border-color: var(--primary); color: var(--surface); }
+.case-option input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.case-shown { margin: 0; font-weight: 600; }
+.forecast-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
+.forecast-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--primary); }
+.key.dashed { border-top-style: dashed; }
+.key.band { height: 10px; border: 0; border-radius: 2px; background: var(--band); }
 .chart-area { width: 100%; min-width: 0; }
 .chart-area svg { display: block; width: 100%; height: auto; max-width: 720px; }
 .chart-area .vega-embed { display: block; width: 100%; }
