@@ -212,13 +212,13 @@ def fake_banking_client() -> BankingClient:
 OCR_MARKDOWN = "## Lohnabrechnung November 2026\n\nNettolohn CHF 7'412.55"
 
 
-def fake_ocr_client() -> OcrClient:
-    """An OCR client faked at the HTTP level: every file reads as `OCR_MARKDOWN`."""
+def fake_ocr_client(markdown: str = OCR_MARKDOWN) -> OcrClient:
+    """An OCR client faked at the HTTP level: every file reads as `markdown`."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
         if b".exe" in request.content:
             return httpx2.Response(422, json={"detail": "Unsupported file type"})
-        return httpx2.Response(200, json={"filename": "file", "markdown": OCR_MARKDOWN})
+        return httpx2.Response(200, json={"filename": "file", "markdown": markdown})
 
     fake_http = httpx2.AsyncClient(
         transport=httpx2.MockTransport(handle), base_url=get_settings().ocr_url

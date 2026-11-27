@@ -74,14 +74,15 @@ class Document(BaseModel):
     banking_document_id: str
     name: str
     markdown: str
-    kind: DocumentKind | None
-    title: str | None
-    issuer: str | None
-    document_date: date | None
-    summary: str | None
-    fields: list[DocumentField]
-    provenance: Provenance | None
     created_at: datetime
+    # Empty until Apertus has described the document.
+    kind: DocumentKind | None = None
+    title: str | None = None
+    issuer: str | None = None
+    document_date: date | None = None
+    summary: str | None = None
+    fields: list[DocumentField] = []
+    provenance: Provenance | None = None
 
 
 class ResponseDocument(BaseModel):

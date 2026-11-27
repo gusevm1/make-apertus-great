@@ -78,6 +78,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
             documents=DocumentRepository(session=session),
             banking=fake_banking_client(),
             ocr=fake_ocr_client(),
+            apertus=cast(ApertusClient, apertus),
         ),
         figure_checks=FigureCheckService(),
     )
