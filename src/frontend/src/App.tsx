@@ -29,6 +29,7 @@ function Chat({ context }: { context: HostContext }) {
   const [question, setQuestion] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isOpening, setIsOpening] = useState(false);
   const stream = useStream<Message>();
   const voice = useVoiceInput({
     token,
@@ -91,31 +92,42 @@ function Chat({ context }: { context: HostContext }) {
       const path = `/api/conversations/${id}`;
       const reply = await stream.start(`${path}/messages?stream=true`, token, {
         content,
-        page: {
-          title: context.page.title,
-          account_name: context.account?.name ?? null,
-        },
+        page: pageOf(context),
       });
       if (reply === null) {
-        setQuestion(content);
+        restoreQuestion(content);
         return;
       }
-      await open(id);
+      // The reply is stored. A failed reload only costs the tool lines, never a second send.
+      try {
+        await open(id);
+      } catch (error) {
+        setLoadError(messageOf(error));
+      }
       stream.reset();
     } catch (error) {
       setLoadError(messageOf(error));
-      setQuestion(content);
+      restoreQuestion(content);
     } finally {
       setPending(null);
     }
   }
 
+  // Puts a failed question back, unless the customer has typed or dictated a new one meanwhile.
+  function restoreQuestion(content: string) {
+    setQuestion((current) => (current === "" ? content : current));
+  }
+
   async function handleOpen(id: string) {
     setLoadError(null);
+    // The select is disabled meanwhile, so two picks cannot finish out of order.
+    setIsOpening(true);
     try {
       await open(id);
     } catch (error) {
       setLoadError(messageOf(error));
+    } finally {
+      setIsOpening(false);
     }
   }
 
@@ -126,7 +138,7 @@ function Chat({ context }: { context: HostContext }) {
     stream.reset();
   }
 
-  const isBusy = stream.status === "streaming" || pending !== null;
+  const isBusy = stream.status === "streaming" || pending !== null || isOpening;
   const account = context.account ? `, account ${context.account.name}` : "";
 
   return (
@@ -215,7 +227,9 @@ function Chat({ context }: { context: HostContext }) {
           <button
             type="button"
             onClick={voice.phase === "recording" ? voice.stop : voice.start}
-            disabled={voice.phase === "transcribing"}
+            disabled={
+              voice.phase === "transcribing" || voice.phase === "starting"
+            }
             aria-pressed={voice.phase === "recording"}
           >
             {voice.phase === "recording" ? "Stop" : "Speak"}
@@ -230,6 +244,16 @@ function Chat({ context }: { context: HostContext }) {
 }
 
 const TITLE_LENGTH = 60;
+// The backend takes a page title of 1 to 200 characters.
+const PAGE_TEXT_LENGTH = 200;
+
+/** The page for the prompt; the e-banking has pages without a title, such as its not-found page. */
+function pageOf(context: HostContext) {
+  const title = context.page.title.trim().slice(0, PAGE_TEXT_LENGTH);
+  if (title === "") return null;
+  const account = context.account?.name.trim().slice(0, PAGE_TEXT_LENGTH);
+  return { title, account_name: account === "" ? null : (account ?? null) };
+}
 
 function ToolLine({ title, error }: { title: string; error: string | null }) {
   return (

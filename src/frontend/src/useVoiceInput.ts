@@ -5,7 +5,7 @@ import { type AudioCapture, startAudioCapture } from "./lib/audioCapture";
 // The backend takes at most 60 seconds per recording.
 const RECORDING_MAX_MS = 60_000;
 
-type Phase = "idle" | "recording" | "transcribing";
+type Phase = "idle" | "starting" | "recording" | "transcribing";
 
 /** Records from the microphone and hands the transcribed text to `onTranscript`. */
 export function useVoiceInput({
@@ -21,11 +21,15 @@ export function useVoiceInput({
   const timer = useRef<number | undefined>(undefined);
 
   async function start() {
+    // A second click while the permission prompt is open must not start a second capture.
+    if (phase !== "idle") return;
     setError(null);
+    setPhase("starting");
     try {
       capture.current = await startAudioCapture();
     } catch {
       setError("Could not start the microphone. Check that it is allowed.");
+      setPhase("idle");
       return;
     }
     setPhase("recording");
