@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { StreamToolCall } from "./lib/useStream";
+import type { SheetLine, StreamToolCall } from "./lib/useStream";
 
 interface Props {
   toolCall: StreamToolCall;
@@ -31,10 +31,13 @@ export function Confirmation({ toolCall, onAnswer }: Props) {
     <section className="sheet" role="group" aria-label={toolCall.title}>
       <h2>{toolCall.title}?</h2>
       <dl className="facts">
-        {Object.entries(toolCall.arguments).map(([name, value]) => (
-          <div key={name}>
-            <dt>{labelOf(name)}</dt>
-            <dd>{typeof value === "string" ? value : JSON.stringify(value)}</dd>
+        {linesOf(toolCall).map(({ label, value, detail }) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>
+              {value}
+              {detail !== null && <span className="detail">{detail}</span>}
+            </dd>
           </div>
         ))}
       </dl>
@@ -69,6 +72,18 @@ export function Confirmation({ toolCall, onAnswer }: Props) {
       )}
     </section>
   );
+}
+
+/** The server's lines, or the raw arguments for a call that has none, such as a web search. */
+function linesOf(toolCall: StreamToolCall): SheetLine[] {
+  if (toolCall.lines !== null) {
+    return toolCall.lines;
+  }
+  return Object.entries(toolCall.arguments).map(([name, value]) => ({
+    label: labelOf(name),
+    value: typeof value === "string" ? value : JSON.stringify(value),
+    detail: null,
+  }));
 }
 
 /** `search_query` → "Search query". */

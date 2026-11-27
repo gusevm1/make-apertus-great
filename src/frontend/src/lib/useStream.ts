@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { failureMessage } from "../api";
 
+export interface SheetLine {
+  label: string;
+  value: string;
+  /** A second, quieter line, such as an account's IBAN. */
+  detail: string | null;
+}
+
 export interface StreamToolCall {
   id: string;
   tool_name: string;
@@ -12,6 +19,8 @@ export interface StreamToolCall {
   plan: string;
   /** What the customer has to allow before the call runs; null when it runs without asking. */
   confirmation: string | null;
+  /** What the sheet lists, built by the server; null: the raw arguments. */
+  lines: SheetLine[] | null;
   result: Record<string, unknown> | null;
   error: string | null;
   isRunning: boolean;
@@ -28,6 +37,7 @@ type ToolCallEvent = Pick<
   | "round"
   | "plan"
   | "confirmation"
+  | "lines"
 >;
 type ToolResultEvent = Pick<StreamToolCall, "id" | "result" | "error">;
 

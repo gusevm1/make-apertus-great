@@ -699,6 +699,12 @@ main,
   overflow-wrap: anywhere;
 }
 
+.facts .detail {
+  display: block;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
 .sheet > .hint {
   padding-top: 8px;
   font-size: 12px;
