@@ -1,13 +1,14 @@
-"""Widget pages for the benchmark: assembly, the shapes variant, code edits and the number check."""
+"""Widget pages for the benchmark: assembly, the shapes variant, code edits and the figure check."""
 
 import html
 import json
 import re
-from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from typing import Any, Literal, NamedTuple
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+from app.features.figure_checks.service import FigureCheckService
 
 # Blocks fetches, CDNs, forms and <base>. It doesn't stop the page from navigating itself to a URL
 # that carries DATA; no CSP or sandbox flag here does.
@@ -20,17 +21,8 @@ PREVIEW_ITEMS = 20
 PREVIEW_IDS = 3
 
 _FENCE = re.compile(r"\s*```[a-zA-Z]*\n(.*?)\n?```\s*", re.DOTALL)
-_DATE = re.compile(
-    r"\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b|\b\d{4}-\d{2}(?:-\d{2})?\b|\b\d{1,2}/\d{4}\b"
-)
-# A k or M only scales the number when no other letter follows: "6 Months" is six, not six million.
-_NUMBER = re.compile(r"-?\d(?:[\d'’,.]*\d)?(?:\s?(?:k|K|Mio\.?|M)(?![A-Za-z])|%)?")
+# What a script shows when it read a value that isn't there.
 _BROKEN = re.compile(r"\b(?:NaN|undefined|Infinity|null)\b")
-# de-CH from toLocaleString may group thousands with a space or a (narrow) no-break space.
-_GROUP_SPACE = re.compile(r"(?<=\d)[   ](?=\d{3}(?!\d))")
-# An id such as BK-01911 holds digits, but they are no figure.
-_ID = re.compile(r"[A-Z]{2,}-[A-Z0-9-]+")
-_SCALES = {"k": 1e3, "K": 1e3, "M": 1e6, "Mio": 1e6, "Mio.": 1e6}
 
 
 class Shape(BaseModel):
@@ -116,85 +108,15 @@ def preview(value: Any, key: str = "") -> Any:
     return value
 
 
-def missing_numbers(texts: list[str], data: dict[str, Any], request: str) -> list[str]:
-    """Numbers the page shows that are not in DATA or the request, and values such as NaN."""
-    allowed = [abs(number) for number in _data_numbers(value=data)]
-    allowed += [abs(number.value) * number.scale for number in _numbers(text=request)]
+def figure_problems(texts: list[str], data: dict[str, Any], request: str) -> list[str]:
+    """Values such as NaN, and the chat's own figure check of the page against DATA."""
     broken = [match.group(0) for text in texts for match in _BROKEN.finditer(text)]
-    return broken + [
-        number.token
-        for text in texts
-        for number in _numbers(text=text)
-        if not any(_shows(allowed=candidate, shown=number) for candidate in allowed)
-    ]
-
-
-class Shown(NamedTuple):
-    value: float
-    decimals: int
-    scale: float
-    is_percent: bool
-    token: str
-
-
-def _shows(allowed: float, shown: Shown) -> bool:
-    # 12.5% may come from 12.5 or from 0.125 in DATA.
-    candidates = (allowed, allowed * 100) if shown.is_percent else (allowed,)
-    target = _round_half_up(value=abs(shown.value), decimals=shown.decimals)
-    return any(
-        _round_half_up(value=candidate / shown.scale, decimals=shown.decimals) == target
-        for candidate in candidates
+    check = FigureCheckService().check_figures(
+        answer="\n".join(texts), sources=[json.dumps(data, ensure_ascii=False), request]
     )
-
-
-def _round_half_up(value: float, decimals: int) -> Decimal:
-    # The browser's toLocaleString rounds 9752.50 to 9753; Python's round() would give 9752.
-    return Decimal(str(value)).quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP)
-
-
-def _numbers(text: str) -> list[Shown]:
-    found = []
-    for match in _NUMBER.finditer(_GROUP_SPACE.sub("'", _DATE.sub(" ", text))):
-        shown = _parse(token=match.group(0))
-        if shown is not None:
-            found.append(shown)
-    return found
-
-
-def _parse(token: str) -> Shown | None:
-    suffix = re.search(r"\s?(k|K|Mio\.?|M|%)$", token)
-    digits = token[: suffix.start()] if suffix is not None else token
-    digits = digits.replace("'", "").replace("’", "")
-    digits = re.sub(r",(?=\d{3}(?!\d))", "", digits).replace(",", ".")
-    if digits.count(".") > 1:
-        digits = digits.replace(".", "")
-    try:
-        value = float(digits)
-    except ValueError:
-        return None
-    decimals = len(digits.split(".")[1]) if "." in digits else 0
-    if suffix is None and decimals == 0 and 1990 <= value <= 2100:
-        return None  # a year
-    unit = None if suffix is None else suffix.group(1)
-    scale = 1.0 if unit is None or unit == "%" else _SCALES[unit]
-    return Shown(value=value, decimals=decimals, scale=scale, is_percent=unit == "%", token=token)
-
-
-def _data_numbers(value: Any) -> list[float]:
-    if isinstance(value, bool):
-        return []
-    if isinstance(value, int | float):
-        return [float(value)]
-    if isinstance(value, dict):
-        return [number for item in value.values() for number in _data_numbers(value=item)]
-    if isinstance(value, list):
-        return [number for item in value for number in _data_numbers(value=item)]
-    if isinstance(value, str):
-        if _ID.fullmatch(value) is not None:
-            return []
-        # A number inside a DATA text, such as the account in "Depot 0418-2210.01", is DATA too.
-        return [number.value * number.scale for number in _numbers(text=value)]
-    return []
+    if check is None or check.passed:
+        return broken
+    return [*broken, check.detail if check.detail is not None else "figures not found"]
 
 
 def _shape(shape: Shape) -> str:

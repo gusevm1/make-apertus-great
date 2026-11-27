@@ -13,7 +13,7 @@ from evals.widgets.page import (
     Scene,
     Shape,
     apply_edits,
-    missing_numbers,
+    figure_problems,
     page,
     preview,
     render_scene,
@@ -36,44 +36,22 @@ def test_data_cannot_close_its_script() -> None:
     assert "</script><script>alert(1)" not in html
 
 
-@pytest.mark.parametrize("shown", ["CHF 9'752.52", "9’753", "9.8k", "12.5%", "9,752.52"])
-def test_numbers_from_data_count_as_found(shown: str) -> None:
-    assert missing_numbers(texts=[shown], data=DATA, request="") == []
+# The matching rules themselves are tested with the chat's figure check in
+# test_figure_checks_service.py; these only pin how a widget page is fed to it.
+def test_figures_from_data_pass_the_chat_check() -> None:
+    texts = ["Ausgaben Oktober", "CHF 9 752.52", "12.5 %"]
+    assert figure_problems(texts=texts, data=DATA, request="") == []
 
 
-def test_half_rappen_round_up_like_the_browser() -> None:
-    assert missing_numbers(texts=["CHF 9'753"], data={"total": 9752.50}, request="") == []
+def test_invented_figure_is_reported() -> None:
+    problems = figure_problems(texts=["Total CHF 1'234.00"], data=DATA, request="")
+    assert len(problems) == 1
+    assert "1'234.00" in problems[0]
 
 
-def test_number_not_in_data_is_missing() -> None:
-    assert missing_numbers(texts=["Total CHF 1'234.00"], data=DATA, request="") == ["1'234.00"]
-
-
-def test_dates_years_and_request_numbers_are_skipped() -> None:
-    texts = ["Oct 2026", "27.11.2026", "2026-10", "letzte 6 Monate"]
-    assert missing_numbers(texts=texts, data=DATA, request="over the last 6 months") == []
-
-
-def test_numbers_inside_data_texts_count_as_found() -> None:
-    data = {"payee": "Depot 0418-2210.01", "note": "Restbetrag 3a 2026"}
-    assert missing_numbers(texts=["Depot 0418-2210.01", "3a"], data=data, request="") == []
-
-
-@pytest.mark.parametrize("space", [" ", " ", " "])
-def test_space_grouped_thousands_count_as_found(space: str) -> None:
-    assert missing_numbers(texts=[f"CHF 9{space}752.52"], data=DATA, request="") == []
-
-
-def test_digits_of_booking_ids_are_no_figures() -> None:
-    data = {"booking_ids": ["BK-01911"]}
-    assert missing_numbers(texts=["CHF 1911"], data=data, request="") == ["1911"]
-
-
-def test_broken_values_count_as_missing() -> None:
-    assert missing_numbers(texts=["CHF NaN", "undefined"], data=DATA, request="") == [
-        "NaN",
-        "undefined",
-    ]
+def test_broken_values_come_first() -> None:
+    problems = figure_problems(texts=["CHF NaN", "undefined"], data=DATA, request="")
+    assert problems == ["NaN", "undefined"]
 
 
 def test_edits_apply_only_when_they_match_once() -> None:

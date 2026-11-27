@@ -31,7 +31,7 @@ from evals.widgets.page import (
     Edits,
     Scene,
     apply_edits,
-    missing_numbers,
+    figure_problems,
     page,
     render_scene,
     strip_fence,
@@ -67,7 +67,7 @@ class Render:
     width: int
     errors: list[str]
     drawn: bool = False
-    missing: list[str] = field(default_factory=list)
+    figures: list[str] = field(default_factory=list)
     overflows: bool = False
     uses_canvas: bool = False
     height: int = 0
@@ -100,7 +100,7 @@ class Run:
         return (
             self.failure is None
             and len(self.renders) == len(WIDTHS)
-            and all(not r.errors and r.drawn and not r.missing for r in self.renders)
+            and all(not r.errors and r.drawn and not r.figures for r in self.renders)
         )
 
 
@@ -249,7 +249,7 @@ class Bench:
             width=width,
             errors=report["errors"],
             drawn=report["drawn"],
-            missing=missing_numbers(texts=report["texts"], data=data, request=request),
+            figures=figure_problems(texts=report["texts"], data=data, request=request),
             overflows=report["overflows"],
             uses_canvas=report["uses_canvas"],
             height=report["height"],
@@ -316,7 +316,8 @@ def results_markdown(runs: list[Run], settings: Settings) -> str:
         "",
         f"Run on {date.today().isoformat()}. `smart` is `{settings.llm_name}`, `fast` is `{fast}`. "
         "A run is clean when the page loads without a JavaScript error at 360 px and 1000 px, "
-        "draws something, and shows only numbers from `DATA` or the request.",
+        "draws something, shows no NaN or undefined, and passes the chat's own figure check "
+        "(`app/features/figure_checks`) against `DATA` and the request.",
         "",
         "Clean says nothing about how the widget looks: a clean page can still overlap its labels "
         "or show a list instead of a chart. Judge that in `results/index.html`.",
@@ -489,10 +490,10 @@ async def recheck(bench: Bench) -> list[Run]:
 def _render_cell(render: Render, limit: int | None) -> str:
     problems = [f"{len(render.errors)} JS errors: {render.errors[0]}"] if render.errors else []
     problems += [] if render.drawn else ["draws nothing"]
-    if len(render.missing) > 0:
-        shown = render.missing if limit is None else render.missing[:limit]
-        more = len(render.missing) - len(shown)
-        problems.append(f"not in DATA: {', '.join(shown)}" + (f" (+{more})" if more > 0 else ""))
+    if len(render.figures) > 0:
+        shown = render.figures if limit is None else render.figures[:limit]
+        more = len(render.figures) - len(shown)
+        problems.append(f"figures: {', '.join(shown)}" + (f" (+{more})" if more > 0 else ""))
     problems += ["scrolls sideways"] if render.overflows else []
     problems += ["canvas, so nothing to click"] if render.uses_canvas else []
     return "; ".join(problems) or "ok"
