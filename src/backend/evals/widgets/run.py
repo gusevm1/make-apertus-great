@@ -46,6 +46,7 @@ from evals.widgets.page import (
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 RESULTS_MD = HERE / "results.md"
+RUNS = HERE / "runs"
 D3_PATH = HERE / "vendor" / "d3.v7.min.js"
 VARIANTS: list[prompts.Variant] = [
     "html_svg",
@@ -631,6 +632,13 @@ async def bench_all(args: argparse.Namespace, d3: str | None) -> int:
     (RESULTS / "runs.json").write_text(
         json.dumps([asdict(run) for run in runs], indent=1), encoding="utf-8"
     )
+    if not args.recheck:
+        # The raw results stay in git, one dated file per variant; the pages don't.
+        RUNS.mkdir(exist_ok=True)
+        for variant in dict.fromkeys(run.variant for run in runs):
+            kept = [asdict(run) for run in runs if run.variant == variant]
+            name = f"{date.today().isoformat()}-{variant.replace('_', '-')}.json"
+            (RUNS / name).write_text(json.dumps(kept, indent=1), encoding="utf-8")
     (RESULTS / "index.html").write_text(gallery(runs=runs), encoding="utf-8")
     catalogue = catalogue_markdown(runs=runs, schema_note=schema_note)
     if set(args.variants) <= CATALOGUE:
