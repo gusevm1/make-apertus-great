@@ -179,3 +179,12 @@ def test_language_comes_from_the_question_not_from_the_page_block() -> None:
     question = page + "Wie viel Geld habe ich auf dem Konto?"
 
     assert question_language(message={"role": "user", "content": question}) == "German"
+
+
+def test_question_language_skips_an_attached_document() -> None:
+    content = (
+        '<document name="a.pdf">\nThe rent is due on the first of the month and you are'
+        " to pay it.\n</document>\nWie hoch ist die Miete?"
+    )
+
+    assert question_language(message={"role": "user", "content": content}) == "German"

@@ -11,7 +11,7 @@ from app.features.tool_calls.schemas import ToolCall, ToolDecision
 PROMPTS = load_prompts(prompts_py=__file__)
 TOOL_RESULT_MAX_CHARS = 4000
 # The blocks `chat_prompt` puts in front of the question; their own text is escaped.
-BLOCK_END = re.compile(r"</(?:page|quote)>")
+BLOCK_END = re.compile(r"</(?:document|page|quote)>")
 # ponytail: common words of four languages, ask the model once other languages matter
 COMMON_WORDS = {
     language: set(words.split())
@@ -65,7 +65,7 @@ def question_language(message: LLMMessage) -> str | None:
     content = message["content"]
     if not isinstance(content, str):
         content = " ".join(part["text"] for part in content if part["type"] == "text")
-    # The English wording of a page or quote block would outvote a short German question.
+    # The English wording of a document, page or quote block would outvote a short German question.
     content = BLOCK_END.split(content)[-1]
     words = re.findall(r"[^\W\d_]+", content.lower())
     ranked = sorted(
