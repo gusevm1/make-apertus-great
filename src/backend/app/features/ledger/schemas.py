@@ -117,6 +117,9 @@ class SumByGroupArgs(Filters):
     group_by: GroupBy = Field(description=PROMPTS["group_by"])
 
 
+Reason = Literal["unusual_amount", "first_payment", "same_day_twice"]
+
+
 class Movement(BaseModel):
     id: str
     date: datetime.date
@@ -138,6 +141,25 @@ class MovementSearch(BaseModel):
     rows: list[Movement]
     rows_not_listed: int
     # Last, so a cut in the tool result drops ids before any figure.
+    row_ids: list[str]
+
+
+class UnusualMovement(BaseModel):
+    reason: Reason
+    movement: Movement
+    # For unusual_amount: the median of the counterparty's earlier payments and how many there were.
+    typical_chf: Decimal | None = None
+    typical_count: int | None = None
+
+
+class UnusualMovements(BaseModel):
+    # The period checked; None is open at that end.
+    date_from: datetime.date | None
+    date_to: datetime.date | None
+    checked: int
+    flagged: int
+    movements: list[UnusualMovement]
+    not_listed: int
     row_ids: list[str]
 
 

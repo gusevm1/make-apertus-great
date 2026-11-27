@@ -41,6 +41,16 @@ sum_by_group: >-
   "what goes out of my savings account" (account) or "how much came in and went out" (kind, with
   every kind that should count). One call covers a comparison: for 2025 against 2024, group by year
   over both years.
+find_unusual_movements: >-
+  The customer's payments in the period that stand out, each with its `reason`: `unusual_amount` is
+  more than 3 times the median of the payments to the same counterparty over the year before (shown
+  as `typical_chf`, from `typical_count` payments) and at least CHF 100 above it, `first_payment` is
+  the first payment ever to a counterparty, CHF 100 or more, and `same_day_twice` is the same amount
+  to the same counterparty twice on one day, CHF 20 or more. Standing orders and cash withdrawals are
+  not checked. Without a period it checks the last full month. Use it for "is anything unusual on my
+  accounts" or "was I charged twice". A flag is a reason to look, not proof of a mistake or of fraud:
+  say what stands out and why, and name the movement. When nothing is flagged, say that `checked`
+  payments were looked at and none stood out.
 not_enough_months: >-
   Only {months} full months of bookings exist for this, and a trend needs at least 3. Answer with the
   monthly sums from sum_by_month instead.

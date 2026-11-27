@@ -12,6 +12,7 @@ from app.core.errors import BadRequestError
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import (
     MIN_TREND_MONTHS,
+    ROWS_MAX,
     CounterpartySum,
     CounterpartySums,
     Filters,
@@ -27,9 +28,12 @@ from app.features.ledger.schemas import (
     Movement,
     MovementSearch,
     ProjectedMonth,
+    Reason,
     SearchMovementsArgs,
     SumByCounterpartyArgs,
     SumByGroupArgs,
+    UnusualMovement,
+    UnusualMovements,
 )
 
 PROMPTS = load_prompts(prompts_py=__file__)
@@ -39,6 +43,15 @@ OWN_TRANSFER_TYPES = {"account_transfer", "securities_buy"}
 COUNTED_KINDS: set[Kind] = {"spending", "credit"}
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 CENT = Decimal("0.01")
+# A payment stands out at UNUSUAL_FACTOR times its counterparty's median and UNUSUAL_ABOVE_CHF more.
+UNUSUAL_FACTOR = 3
+UNUSUAL_ABOVE_CHF = Decimal(100)
+UNUSUAL_HISTORY_MIN = 5
+UNUSUAL_HISTORY_DAYS = 365
+FIRST_PAYMENT_MIN_CHF = Decimal(100)
+SAME_DAY_MIN_CHF = Decimal(20)
+# Planned or cash: neither is a charge the customer would want to check.
+NOT_CHECKED_TYPES = {"standing_order", "atm"}
 # Every path the model's tools may read; `{}` is one segment. Nothing here changes the bank.
 READ_PATHS = [
     "/customer",
@@ -243,6 +256,40 @@ class LedgerService:
             row_ids={name: [row.id for row in grouped[name]] for name in names},
         )
 
+    async def find_unusual_movements(
+        self, token: str, filters: Filters, today: date
+    ) -> UnusualMovements:
+        """Payments in the period that stand out against the same counterparty's earlier ones."""
+        if filters.date_from is None and filters.date_to is None:
+            last_day = today.replace(day=1) - timedelta(days=1)
+            filters = filters.model_copy(
+                update={"date_from": last_day.replace(day=1), "date_to": last_day}
+            )
+        in_period = {row.id for row in await self._matching(token=token, filters=filters)}
+        earlier_by_counterparty: dict[str, list[LedgerRow]] = defaultdict(list)
+        checked = 0
+        flags: list[UnusualMovement] = []
+        for row in await self.list_rows(token=token):
+            if row.kind != "spending" or row.transaction_type in NOT_CHECKED_TYPES:
+                continue
+            earlier = earlier_by_counterparty[row.counterparty or row.text]
+            if row.id in in_period:
+                checked += 1
+                flag = _unusual(row=row, earlier=earlier)
+                if flag is not None:
+                    flags.append(flag)
+            earlier.append(row)
+        flags.sort(key=lambda flag: abs(flag.movement.amount_chf), reverse=True)
+        return UnusualMovements(
+            date_from=filters.date_from,
+            date_to=filters.date_to,
+            checked=checked,
+            flagged=len(flags),
+            movements=flags[:ROWS_MAX],
+            not_listed=max(len(flags) - ROWS_MAX, 0),
+            row_ids=[flag.movement.id for flag in flags],
+        )
+
     async def _matching(self, token: str, filters: Filters) -> list[LedgerRow]:
         rows = await self.list_rows(token=token)
         # A word no movement contains is a category the model made up, not an empty period.
@@ -315,6 +362,35 @@ def _matches(row: LedgerRow, filters: Filters) -> bool:
         filters.amount_max is None or amount <= filters.amount_max,
     ]
     return all(checks)
+
+
+def _unusual(row: LedgerRow, earlier: list[LedgerRow]) -> UnusualMovement | None:
+    amount = abs(row.amount_chf)
+    if amount >= SAME_DAY_MIN_CHF and any(
+        payment.date == row.date and payment.amount_chf == row.amount_chf for payment in earlier
+    ):
+        return _flag(row=row, reason="same_day_twice")
+    if not earlier:
+        return None if amount < FIRST_PAYMENT_MIN_CHF else _flag(row=row, reason="first_payment")
+    since = row.date - timedelta(days=UNUSUAL_HISTORY_DAYS)
+    recent = [abs(payment.amount_chf) for payment in earlier if payment.date >= since]
+    if len(recent) < UNUSUAL_HISTORY_MIN:
+        return None
+    typical = statistics.median(recent).quantize(CENT)
+    if amount <= UNUSUAL_FACTOR * typical or amount - typical < UNUSUAL_ABOVE_CHF:
+        return None
+    return _flag(row=row, reason="unusual_amount", typical=typical, typical_count=len(recent))
+
+
+def _flag(
+    row: LedgerRow, reason: Reason, typical: Decimal | None = None, typical_count: int | None = None
+) -> UnusualMovement:
+    return UnusualMovement(
+        reason=reason,
+        movement=Movement.model_validate(row, from_attributes=True),
+        typical_chf=typical,
+        typical_count=typical_count,
+    )
 
 
 def _has_words(row: LedgerRow, words: list[str]) -> bool:

@@ -486,3 +486,128 @@ async def test_each_group_says_how_much_of_it_is_provisional(
     assert by_day["tuesday"].provisional_in_chf == Decimal("40.0")
     assert by_day["friday"].provisional_out_chf == Decimal(0)
     assert weekdays.provisional_out_chf == Decimal("-10.96")
+
+
+OCTOBER = Filters(date_from=date(2026, 10, 1), date_to=date(2026, 10, 31))
+
+
+def _payment(
+    booking_id: str, day: str, amount: float, counterparty: str = "Digitec", **fields: Any
+) -> dict:
+    return (
+        _booking(booking_id, "debit_card", amount, booking_date=day, counterparty_name=counterparty)
+        | fields
+    )
+
+
+def _history(median: float, count: int = 5, counterparty: str = "Digitec") -> list[dict]:
+    return [
+        _payment(f"BK-H{index}", f"2026-0{index % 9 + 1}-05", -median, counterparty)
+        for index in range(count)
+    ]
+
+
+async def _flags(bookings: list[dict], filters: Filters = OCTOBER) -> dict[str, str]:
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+    found = await ledger.find_unusual_movements(token=TOKEN, filters=filters, today=TODAY)
+    return {flag.movement.id: flag.reason for flag in found.movements}
+
+
+async def test_a_payment_far_above_the_counterpartys_median_is_flagged_with_it() -> None:
+    ledger = _fake_ledger(
+        bookings=[*_history(median=50.0), _payment("BK-BIG", "2026-10-10", -151.0)],
+        purchases=[],
+        statements=[],
+        pages_read=[],
+    )
+
+    found = await ledger.find_unusual_movements(token=TOKEN, filters=OCTOBER, today=TODAY)
+
+    [flag] = found.movements
+    assert (flag.reason, flag.movement.id) == ("unusual_amount", "BK-BIG")
+    assert (flag.typical_chf, flag.typical_count) == (Decimal("50.00"), 5)
+    assert (found.checked, found.flagged, found.row_ids) == (1, 1, ["BK-BIG"])
+
+
+async def test_an_amount_needs_three_times_the_median_and_100_above_it() -> None:
+    at_three_times = [*_history(median=50.0), _payment("BK-150", "2026-10-10", -150.0)]
+    less_than_100_above = [*_history(median=20.0), _payment("BK-99", "2026-10-10", -119.0)]
+
+    assert await _flags(bookings=at_three_times) == {}
+    assert await _flags(bookings=less_than_100_above) == {}
+
+
+async def test_the_median_needs_five_payments_in_the_year_before() -> None:
+    old = _payment("BK-OLD", "2025-09-30", -50.0)
+    bookings = [*_history(median=50.0, count=4), old, _payment("BK-BIG", "2026-10-10", -500.0)]
+
+    assert await _flags(bookings=bookings) == {}
+
+
+async def test_a_first_payment_counts_from_100_chf() -> None:
+    bookings = [
+        _payment("BK-NEW", "2026-10-10", -100.0, counterparty="Schreinerei Binz"),
+        _payment("BK-SMALL", "2026-10-11", -99.99, counterparty="Bäckerei Kuhn"),
+        # Paid before the period, so not a first payment in it.
+        _payment("BK-SEP", "2026-09-02", -300.0, counterparty="Musikschule"),
+        _payment("BK-OCT", "2026-10-02", -300.0, counterparty="Musikschule"),
+    ]
+
+    assert await _flags(bookings=bookings) == {"BK-NEW": "first_payment"}
+
+
+async def test_the_second_of_two_equal_payments_on_one_day_is_flagged_from_20_chf() -> None:
+    bookings = [
+        *_history(median=45.0, counterparty="Coop"),
+        _payment("BK-1", "2026-10-10", -45.0, counterparty="Coop"),
+        _payment("BK-2", "2026-10-10", -45.0, counterparty="Coop"),
+        _payment("BK-3", "2026-10-11", -45.0, counterparty="Coop"),
+        *_history(median=19.99, counterparty="Mensa"),
+        _payment("BK-4", "2026-10-12", -19.99, counterparty="Mensa"),
+        _payment("BK-5", "2026-10-12", -19.99, counterparty="Mensa"),
+    ]
+
+    assert await _flags(bookings=bookings) == {"BK-2": "same_day_twice"}
+
+
+async def test_standing_orders_cash_own_transfers_and_card_bills_are_not_checked() -> None:
+    bookings = [
+        _booking("BK-SO", "standing_order", -2140.0, counterparty_name="Verwaltung Zürich"),
+        _booking("BK-ATM", "atm", -500.0, counterparty_name="Bancomat Zürich HB"),
+        _booking("BK-OWN", "account_transfer", -900.0, counterparty_name="Sparkonto"),
+        _booking("BK-BILL", "card_settlement", -800.0, counterparty_name="Visa"),
+    ]
+
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+    found = await ledger.find_unusual_movements(token=TOKEN, filters=OCTOBER, today=TODAY)
+
+    assert (found.checked, found.flagged) == (0, 0)
+
+
+async def test_without_a_period_the_last_full_month_is_checked_largest_first() -> None:
+    bookings = [
+        _payment("BK-SEP", "2026-09-30", -900.0, counterparty="Hotel"),
+        _payment("BK-A", "2026-10-03", -150.0, counterparty="Garage"),
+        _payment("BK-B", "2026-10-20", -700.0, counterparty="Zahnarzt"),
+        _payment("BK-NOV", "2026-11-02", -800.0, counterparty="Schreinerei"),
+    ]
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+
+    found = await ledger.find_unusual_movements(token=TOKEN, filters=Filters(), today=TODAY)
+
+    assert (found.date_from, found.date_to) == (date(2026, 10, 1), date(2026, 10, 31))
+    assert [flag.movement.id for flag in found.movements] == ["BK-B", "BK-A"]
+
+
+async def test_only_20_flags_are_listed_but_all_are_counted() -> None:
+    bookings = [
+        _payment(f"BK-{index}", "2026-10-10", -100.0 - index, counterparty=f"Shop {index}")
+        for index in range(25)
+    ]
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+
+    found = await ledger.find_unusual_movements(token=TOKEN, filters=OCTOBER, today=TODAY)
+
+    assert (found.flagged, len(found.movements), found.not_listed) == (25, 20, 5)
+    assert found.movements[0].movement.id == "BK-24"
+    assert len(found.row_ids) == 25

@@ -14,6 +14,7 @@ from app.features.ledger.schemas import (
     SearchMovementsArgs,
     SumByCounterpartyArgs,
     SumByGroupArgs,
+    UnusualMovements,
 )
 from app.features.ledger.service import LedgerService
 
@@ -35,6 +36,9 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
 
     async def sum_by_group(args: SumByGroupArgs) -> GroupSums:
         return await service.sum_by_group(token=token, args=args)
+
+    async def find_unusual_movements(args: Filters) -> UnusualMovements:
+        return await service.find_unusual_movements(token=token, filters=args, today=today)
 
     return [
         Tool(
@@ -76,5 +80,13 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
             description=PROMPTS["sum_by_group"],
             args_schema=SumByGroupArgs,
             handler=sum_by_group,
+        ),
+        Tool(
+            name="find_unusual_movements",
+            title="Look for unusual payments",
+            icon="alert-triangle",
+            description=PROMPTS["find_unusual_movements"],
+            args_schema=Filters,
+            handler=find_unusual_movements,
         ),
     ]
