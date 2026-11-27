@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, ForeignKey, Index, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -46,3 +46,55 @@ class SeveritySettingORM(Base):
     confirmed: Mapped[bool] = mapped_column(server_default="false")
     reason: Mapped[str | None]
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
+class PersonalTagORM(Base):
+    __tablename__ = "personal_tags"
+    __table_args__ = (CheckConstraint("set_by IN ('model', 'customer')", name="set_by"),)
+
+    owner_id: Mapped[UUID]
+    name: Mapped[str]
+    description: Mapped[str]
+    set_by: Mapped[str]
+    model: Mapped[str | None]
+    confirmed: Mapped[bool] = mapped_column(server_default="false")
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
+Index(
+    "uq_personal_tags_owner_lower_name",
+    PersonalTagORM.owner_id,
+    func.lower(PersonalTagORM.name),
+    unique=True,
+)
+
+
+class PersonalTagAssignmentORM(Base):
+    __tablename__ = "personal_tag_assignments"
+    __table_args__ = (
+        UniqueConstraint("tag_id", "row_source", "row_id"),
+        CheckConstraint("row_source IN ('booking', 'card_transaction')", name="row_source"),
+        CheckConstraint("set_by IN ('model', 'customer')", name="set_by"),
+    )
+
+    tag_id: Mapped[UUID] = mapped_column(ForeignKey("personal_tags.id", ondelete="CASCADE"))
+    owner_id: Mapped[UUID]
+    row_source: Mapped[str]
+    row_id: Mapped[str]
+    set_by: Mapped[str]
+    model: Mapped[str | None]
+    confirmed: Mapped[bool] = mapped_column(server_default="false")
+
+
+class PersonalTagEvaluationORM(Base):
+    """A row Apertus has judged for personal tags, whether or not it got one."""
+
+    __tablename__ = "personal_tag_evaluations"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "row_source", "row_id"),
+        CheckConstraint("row_source IN ('booking', 'card_transaction')", name="row_source"),
+    )
+
+    owner_id: Mapped[UUID]
+    row_source: Mapped[str]
+    row_id: Mapped[str]
