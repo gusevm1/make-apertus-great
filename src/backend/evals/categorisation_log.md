@@ -23,6 +23,10 @@ sends to review; "review load" the share of all model bookings it sends.
 | v3 | a payment to a private person goes by the purpose in its message | 94.1 % | 334 | 94.6 / 38.7 / 76.1 % | 47.0 % / 6.4 % |
 | v4 | five worked examples of the hardest borders, with made-up names | 95.4 % | 248 | 96.0 / 27.6 / 78.1 % | 61.1 % / 5.8 % |
 | v5 | high only when the payee sells one kind of thing or the text names it; medium for shops, stations, telecoms and venues where it depends | 95.2 % | 204 | 96.5 / 73.4 / 76.0 % | 65.0 % / 9.7 % |
+| v6 | low for a payee Apertus does not know whose name says nothing (rejected, reverted) | 95.2 % | 217 | 96.3 / 77.3 / 78.4 % | 59.5 % / 9.4 % |
+| v7 | a phone company's home package stays housing; the Mensa is restaurants, "not children" | 93.9 % | 286 | 95.2 / 71.2 / 79.3 % | 76.6 % / 10.7 % |
+| v8 | v7 with the Mensa named among canteens, "also at a university" | 94.8 % | 224 | 96.2 / 72.7 / 82.9 % | 73.8 % / 10.5 % |
+| **v9** | v5 with only the home-package example of v7 | **95.5 %** | **182** | 96.9 / 72.8 / 82.0 % | 70.8 % / 9.8 % |
 
 v0 held out: 77.6 %, 383 wrong but high, review catches 66.0 % at 19.3 % load.
 
@@ -76,3 +80,96 @@ Accuracy stays (95.4 → 95.2 %, within a run's noise), certainty starts to mean
 right 73 % of the time instead of 28 %, wrong but high drops to 204. Left at high: payees Apertus cannot
 know from the name (a vegetarian buffet, a food delivery service, a bar it reads as a bookshop), Swisscom
 "inOne home", and the university Mensa read as school (children).
+
+## v6 (rejected)
+
+Apertus kept rating unknown payees high (Tibits, Smood, Glacier du Port), and the review rule caught
+fewer wrong bookings (65.0 → 59.5 %). Reverted to v5. The first draft named two tune payees as examples;
+they were replaced by made-up names before the run.
+
+## Noise
+
+v5 ran twice unchanged: 95.2 and 95.1 %, 204 and 212 wrong but high, review catches 65.0 and 69.3 %;
+298 wrong bookings are the same in both runs, 13 differ. So differences under about half a point of
+accuracy, 15 wrong-but-high bookings or 5 points of review catches are noise: v4 and v5 are equal on
+accuracy, v5's calibration gain and v6's loss are real.
+
+## v7
+
+The home-package example worked: Swisscom and Sunrise home bills 35 → 15 wrong. The Mensa sentence
+backfired: with "not children" in it, 71 Mensa lunches went to children and 26 to housing (10 before).
+v8 keeps the telecom line and names the Mensa among canteens without a negation.
+
+## v8
+
+Mensa still 52 wrong (35 children, 17 housing). Counting Mensa and telecom errors per version shows the
+v2 wording "canteens and university Mensa" had 0 Mensa errors (7 to 10 once v4 added the examples), and
+every rewrite since made it worse; the telecom example is what helped (28 to 30 → 15 to 16). v9 is v5
+with only the telecom example changed.
+
+| | v1 | v2 | v3 | v4 | v5 | v5b | v7 | v8 |
+|---|---|---|---|---|---|---|---|---|
+| Mensa wrong | 91 | 0 | 1 | 7 | 10 | 10 | 97 | 52 |
+| Swisscom/Sunrise wrong | 67 | 77 | 68 | 23 | 30 | 28 | 15 | 16 |
+
+## v9 (kept)
+
+Mensa 5 wrong, telecom 16. What is left are payees Apertus cannot know from their name (a bar in a
+cultural centre read as leisure, a vegetarian buffet, a bar read as a bookshop, a food delivery
+service, a toy shop read as general shopping) and the borders («Grill», «Geschenk», a children's ski
+school). Fixing those in the prompt would mean naming the payees, which is a payee rule; the customer's
+correction is the remedy, so step 4 measures it.
+
+## The customers review in the category center
+
+`categorisation_review.py` plays each customer once through the center's review list on top of v9,
+for half of their tune payees ("reviewed"); the other half ("untouched") is never corrected, so
+carry-over is measured on payees nobody touched, on the same bookings with and without the
+corrections. A payee with one true category gets one "All are X"; a payee whose bookings rightly differ
+gets "Right" or a booking-only change per flagged row.
+
+| Customer | Flagged | Clicks | Payee corrections | Booking corrections | Bookings changed |
+|---|---|---|---|---|---|
+| Lukas | 176 | 60 | 12 | 48 | 424 |
+| Jana | 164 | 24 | 12 | 12 | 437 |
+| Daniela | 111 | 26 | 5 | 21 | 56 |
+| Marco | 165 | 47 | 9 | 38 | 129 |
+
+Then the tune split was categorised again with the corrections kept:
+- One correction fixes a payee for good: all 927 bookings of the 38 corrected payees came back right,
+  from the payee memory, without Apertus. Scored apart, never as model accuracy.
+- A payee whose bookings rightly differ cannot be fixed per payee; its booking corrections hold for those
+  bookings, and new ones need review again. No payee correction was put on such a payee, so none broke
+  a booking that rightly belongs elsewhere.
+- No carry-over: untouched payees 95.3 → 95.2 %, wrong but high 104 → 121, both within noise. The
+  correction examples in the prompt neither help nor clearly hurt similar payees.
+- Review effort falls by 41 % after one pass (616 → 362 flagged bookings): Lukas 176 → 86, Jana
+  164 → 97, Daniela 111 → 96, Marco 165 → 83.
+
+So the teacher-tuned prompt does the work on payees nobody has seen, and the payee memory removes what
+the customer has corrected; both stay. The examples in the prompt stay as they are, since they cost
+nothing measurable.
+
+## Held out, measured once at the end
+
+2,316 bookings of 120 payees, never used for a decision. Run through the backend with v0 at the start
+(before any change) and with v9 at the end, once with the payee memory and examples from the tune
+review kept, once without.
+
+| | v0 | v9 | v9 with the tune corrections |
+|---|---|---|---|
+| Accuracy | 77.6 % | 88.6 % | 89.9 % |
+| Wrong but high | 383 | 163 | 182 |
+| Accuracy at high / medium / low | 82.2 / 14.3 / 29.3 % | 92.1 / 54.6 / 75.0 % | 91.6 / 61.8 / 89.3 % |
+| Review catches / load | 66.0 % / 19.3 % | 58.7 % / 17.5 % | 41.7 % / 13.6 % |
+| Lukas / Jana / Daniela / Marco | 76 / 65 / 65 / 92 % | 82 / 96 / 83 / 97 % | 85 / 95 / 83 / 98 % |
+
+- No sign of overfitting: tune and held out are 7 points apart before (84.7 / 77.6 %) and after
+  (95.5 / 88.6 %); the gain is the same on both (+10.8 / +11.0 points). The held-out payees are harder,
+  above all Lukas's travel bookings abroad.
+- The correction examples make Apertus surer on payees nobody corrected without making it much more
+  right (+1.3 points), so the review rule catches far fewer of its errors (58.7 → 41.7 %). The payee
+  memory is worth keeping; the examples in the prompt are not.
+- Not yet where it should be: 88.6 % against a ceiling of about 98.8 %, and the review rule catches
+  59 % of the errors. Tuning on after this run would be tuning with the held-out result in mind, so a
+  next round needs a fresh held-out part.
