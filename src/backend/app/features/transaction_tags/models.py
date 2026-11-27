@@ -13,6 +13,7 @@ class TransactionTagORM(Base):
         UniqueConstraint("owner_id", "row_source", "row_id"),
         CheckConstraint("row_source IN ('booking', 'card_transaction')", name="row_source"),
         CheckConstraint("category_set_by IN ('rule', 'model', 'customer')", name="set_by"),
+        CheckConstraint("category_certainty IN ('low', 'medium', 'high')", name="certainty"),
     )
 
     owner_id: Mapped[UUID]
@@ -22,6 +23,19 @@ class TransactionTagORM(Base):
     category_set_by: Mapped[str]
     category_model: Mapped[str | None]
     category_confirmed: Mapped[bool] = mapped_column(server_default="false")
+    category_certainty: Mapped[str | None]
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
+class CategoryCorrectionORM(Base):
+    """The customer's category for a payee, given to its later rows without asking Apertus."""
+
+    __tablename__ = "category_corrections"
+    __table_args__ = (UniqueConstraint("owner_id", "payee"),)
+
+    owner_id: Mapped[UUID]
+    payee: Mapped[str]
+    category: Mapped[str]
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
 
