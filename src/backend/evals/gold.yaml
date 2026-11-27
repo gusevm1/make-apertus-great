@@ -68,6 +68,7 @@ questions:
       - {name: statement, group: visa_october, source: ledger, card: CARD-VISA, measure: net, date_from: 2026-10-01, date_to: 2026-10-31}
       - {name: refund, source: ledger, card: CARD-VISA, measure: in, date_from: 2026-10-01, date_to: 2026-10-31, required: false}
     decoys:
+      - {name: october_2025, failure: wrong_date_range, source: ledger, card: CARD-VISA, date_from: 2025-10-01, date_to: 2025-10-31}
       - {name: bill_booked_in_october, failure: wrong_date_range, source: bookings, measure: out, type: [card_settlement], date_from: 2026-10-01, date_to: 2026-10-31}
     traps:
       - The card bill booked in October pays the September purchases.
@@ -129,6 +130,7 @@ questions:
         date_to: 2026-10-31
         minus: [{source: ledger, card: CARD-VISA, measure: in, date_from: 2026-10-01, date_to: 2026-10-31}]
     decoys:
+      - {name: september, failure: wrong_date_range, source: ledger, kind: [spending], date_from: 2026-09-01, date_to: 2026-09-30}
       - name: with_card_bill
         failure: double_counting
         source: ledger
@@ -320,6 +322,7 @@ questions:
     call_sets:
       - [{tool: search_movements, arguments: {text: '(?=.*migros)(?=.*coop)(?=.*denner).*', date_from: 2026-10-01, date_to: 2026-10-31}}]
       - [{tool: sum_by_month, arguments: {text: '(?=.*migros)(?=.*coop)(?=.*denner).*', date_to: 2026-10-31}}]
+      - [{tool: sum_by_counterparty, arguments: {text: '(?=.*migros)(?=.*coop)(?=.*denner).*', date_from: 2026-10-01, date_to: 2026-10-31}}]
       - - {tool: search_movements, arguments: {text: '.*migros.*', date_from: 2026-10-01, date_to: 2026-10-31}}
         - {tool: search_movements, arguments: {text: '.*coop.*', date_from: 2026-10-01, date_to: 2026-10-31}}
         - {tool: search_movements, arguments: {text: '.*denner.*', date_from: 2026-10-01, date_to: 2026-10-31}}
@@ -495,6 +498,7 @@ questions:
     figures:
       - {name: spent, source: ledger, kind: [spending], date_from: 2026-10-01, date_to: 2026-10-31}
     decoys:
+      - {name: september, failure: wrong_date_range, source: ledger, kind: [spending], date_from: 2026-09-01, date_to: 2026-09-30}
       - name: with_own_transfers
         failure: double_counting
         source: ledger
@@ -544,6 +548,7 @@ questions:
     call_sets:
       - [{tool: search_movements, arguments: {text: '(?=.*migros)(?=.*coop).*', date_from: 2026-10-01, date_to: 2026-10-31}}]
       - [{tool: sum_by_month, arguments: {text: '(?=.*migros)(?=.*coop).*', date_to: 2026-10-31}}]
+      - [{tool: sum_by_counterparty, arguments: {text: '(?=.*migros)(?=.*coop).*', date_from: 2026-10-01, date_to: 2026-10-31}}]
       - - {tool: search_movements, arguments: {text: '.*coop.*', date_from: 2026-10-01, date_to: 2026-10-31}}
         - {tool: search_movements, arguments: {text: '.*migros.*', date_from: 2026-10-01, date_to: 2026-10-31}}
     example: [{tool: search_movements, arguments: {text: [Coop, Migros], date_from: 2026-10-01, date_to: 2026-10-31}}]
@@ -700,6 +705,7 @@ questions:
     figures:
       - {name: spent, source: ledger, kind: [spending], date_from: 2026-10-01, date_to: 2026-10-31}
     decoys:
+      - {name: september, failure: wrong_date_range, source: ledger, kind: [spending], date_from: 2026-09-01, date_to: 2026-09-30}
       - name: with_own_transfers
         failure: double_counting
         source: ledger
@@ -880,6 +886,7 @@ questions:
     figures:
       - {name: spent, source: ledger, kind: [spending], date_from: 2026-10-01, date_to: 2026-10-31}
     decoys:
+      - {name: september, failure: wrong_date_range, source: ledger, kind: [spending], date_from: 2026-09-01, date_to: 2026-09-30}
       - name: with_own_transfers
         failure: double_counting
         source: ledger
