@@ -27,6 +27,7 @@ from app.features.widgets.catalogue.schemas import (
     BarChart,
     ColourName,
     Comparison,
+    ForecastChart,
     LineChart,
     WidgetSpec,
 )
@@ -37,7 +38,7 @@ CHROME = os.environ.get(
     "CHROME_PATH", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 )
 WIDTHS = (360, 440, 1000)
-CHARTS = ("bar_chart", "line_chart", "area_chart", "comparison", "donut")
+CHARTS = ("bar_chart", "line_chart", "area_chart", "comparison", "donut", "forecast_chart")
 # Sparklines in BODIES: the kpi's and the second stat's.
 TRENDS = 2
 DATA: dict[str, Any] = {
@@ -64,6 +65,30 @@ DATA: dict[str, Any] = {
     "months_change_chf": -6674.83,
     "budget_change_chf": -120.5,
     "goals": [{"name": "Japan 2027", "saved_chf": 9000.0, "goal_chf": 12000.0}],
+    "forecast": [
+        {"month": "2026-08", "net_chf": 500.0, "kind": "actual", "booking_ids": ["BK-10"]},
+        {"month": "2026-09", "net_chf": -200.0, "kind": "actual", "booking_ids": ["BK-11"]},
+        {"month": "2026-10", "net_chf": 300.0, "kind": "actual", "booking_ids": ["BK-12"]},
+        {
+            "month": "2026-11",
+            "net_chf": 250.0,
+            "kind": "forecast",
+            "low_chf": 100.0,
+            "high_chf": 300.0,
+        },
+        {
+            "month": "2026-12",
+            "net_chf": 200.0,
+            "kind": "forecast",
+            "low_chf": -50.0,
+            "high_chf": 350.0,
+        },
+    ],
+    "rent_cases": [
+        {"case": "Rent today", "rent_chf": 2800.0, "left_chf": 912.4},
+        {"case": "200 more", "rent_chf": 3000.0, "left_chf": 712.4},
+        {"case": "<b>400 more</b>", "rent_chf": 3200.0, "left_chf": 512.4},
+    ],
 }
 BODIES: dict[str, dict[str, Any]] = {
     "kpi": {
@@ -143,6 +168,24 @@ BODIES: dict[str, dict[str, Any]] = {
         "label": "label",
         "value": "total_chf",
         "total": "months_total_chf",
+    },
+    "forecast_chart": {
+        "type": "forecast_chart",
+        "data": "forecast",
+        "x": "month",
+        "y": "net_chf",
+        "kind": "kind",
+        "low": "low_chf",
+        "high": "high_chf",
+    },
+    "scenarios": {
+        "type": "scenarios",
+        "data": "rent_cases",
+        "label": "case",
+        "figures": [
+            {"label": "Rent", "field": "rent_chf"},
+            {"label": "Left over", "field": "left_chf"},
+        ],
     },
     "progress": {
         "type": "progress",
@@ -620,7 +663,12 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
             BODIES[name]
             for name in ("kpi", "stat_row", "table", "list", "timeline", "progress", "callout")
         ]
-        + [{"type": "stack", "children": [BODIES[name] for name in (*CHARTS, "grid")]}],
+        + [
+            {
+                "type": "stack",
+                "children": [BODIES[name] for name in (*CHARTS, "grid", "scenarios")],
+            }
+        ],
     }
     page = render(spec=spec(body=body), data=DATA, form=form)
     measure = (
@@ -869,3 +917,142 @@ def test_clicking_a_sparkline_point_reports_its_row_in_both_forms() -> None:
 def test_clicking_a_static_bar_reports_its_row_and_bookings() -> None:
     bar = "document.querySelector('.chart-area [aria-label$=\"(months[1])\"]')"
     assert _clicks(body=BODIES["bar_chart"], targets=[bar], form="static") == "months[1] BK-03"
+
+
+def _forecast_spec(**changes: Any) -> dict[str, Any]:
+    body = ForecastChart.model_validate({**BODIES["forecast_chart"], **changes})
+    return chart_spec(component=body, data=DATA, live=True)
+
+
+def test_a_forecast_draws_actual_solid_forecast_dashed_and_its_range() -> None:
+    layers = _forecast_spec()["layer"]
+    band, solid, dashed, points, zero = layers
+    assert band["mark"]["type"] == "area"
+    assert band["encoding"]["y"]["field"] == "low" and band["encoding"]["y2"]["field"] == "high"
+    assert [value["path"] for value in band["data"]["values"]] == ["forecast[3]", "forecast[4]"]
+    assert [value["path"] for value in solid["data"]["values"]] == [
+        "forecast[0]",
+        "forecast[1]",
+        "forecast[2]",
+    ]
+    assert "strokeDash" not in solid["mark"]
+    # The dashed line starts at the last actual point, so the two lines meet.
+    assert dashed["mark"]["strokeDash"] == [6, 4]
+    assert [value["path"] for value in dashed["data"]["values"]] == [
+        "forecast[2]",
+        "forecast[3]",
+        "forecast[4]",
+    ]
+    assert "data" not in points and points["encoding"]["description"] == {"field": "description"}
+    assert zero["mark"]["type"] == "rule" and zero["encoding"]["y"] == {"datum": 0}
+
+
+def test_a_forecast_draws_no_zero_line_when_it_stays_above_zero() -> None:
+    above = [{**row, "net_chf": 400.0} for row in DATA["forecast"]]
+    above[4] = {**above[4], "low_chf": 100.0}
+    body = ForecastChart.model_validate(BODIES["forecast_chart"])
+    layers = chart_spec(component=body, data={**DATA, "forecast": above}, live=True)["layer"]
+    assert [layer["mark"]["type"] for layer in layers] == ["area", "line", "line", "point"]
+
+
+def test_a_forecast_without_a_range_draws_no_band() -> None:
+    layers = _forecast_spec(low=None, high=None)["layer"]
+    assert [layer["mark"]["type"] for layer in layers][:3] == ["line", "line", "point"]
+
+
+def test_a_forecast_reads_its_figures_and_says_which_points_are_forecast() -> None:
+    values = _forecast_spec()["data"]["values"]
+    assert values[3]["description"] == "Nov 2026, forecast CHF 250.00 (forecast[3])"
+    assert values[3]["range"] == "CHF 100.00 to CHF 300.00"
+    assert values[0]["description"] == "Aug 2026, CHF 500.00 (forecast[0])"
+    assert values[0]["booking_ids"] == ["BK-10"]
+
+
+@pytest.mark.parametrize(
+    ("rows", "error"),
+    [
+        ([{**DATA["forecast"][0], "kind": "plan"}], "actual or forecast"),
+        ([DATA["forecast"][3], DATA["forecast"][0]], "actual after a forecast row"),
+        (DATA["forecast"][:3], "no forecast row"),
+        ([{**DATA["forecast"][3], "low_chf": 400.0}], "low_chf is above high_chf"),
+        ([{**DATA["forecast"][3], "high_chf": None}], "needs numbers in low_chf and high_chf"),
+    ],
+)
+def test_a_forecast_refuses_rows_it_cannot_draw_truthfully(
+    rows: list[dict[str, Any]], error: str
+) -> None:
+    body = ForecastChart.model_validate(BODIES["forecast_chart"])
+    with pytest.raises(BadRequestError, match=error):
+        chart_spec(component=body, data={"forecast": rows}, live=True)
+
+
+def test_a_forecast_range_needs_both_ends() -> None:
+    with pytest.raises(ValidationError, match="both low and high"):
+        ForecastChart.model_validate({**BODIES["forecast_chart"], "high": None})
+
+
+def test_a_static_forecast_is_svg_with_a_dashed_line_and_labelled_points() -> None:
+    page = render(spec=spec(body=BODIES["forecast_chart"]), data=DATA, form="static")
+    assert "stroke-dasharray" in page
+    assert 'aria-label="Nov 2026, forecast CHF 250.00 (forecast[3])"' in page
+    assert '<span><i class="key band" aria-hidden="true"></i>Range</span>' in page
+
+
+def test_live_scenarios_draw_every_case_and_show_the_first() -> None:
+    page = render(spec=spec(body=BODIES["scenarios"]), data=DATA, form="live")
+    assert re.findall(r'<input type="radio" name="cases-rent_cases" value="(\d)"', page) == [
+        "0",
+        "1",
+        "2",
+    ]
+    assert 'value="0" checked>' in page
+    panels = re.findall(r'<div class="stats case" data-case="(\d)"[^>]*?( hidden)?>', page)
+    assert panels == [("0", ""), ("1", " hidden"), ("2", " hidden")]
+    # Each case's figures come from its own row of DATA.
+    assert 'data-path="rent_cases[1].left_chf" data-value="712.4"' in page
+    assert "CHF 3&#39;200.00" in page
+    assert "&lt;b&gt;400 more&lt;/b&gt;" in page and "<b>400 more</b>" not in page
+
+
+def test_static_scenarios_show_the_first_case_and_a_table_of_all() -> None:
+    page = render(spec=spec(body=BODIES["scenarios"]), data=DATA, form="static")
+    assert 'type="radio"' not in page
+    assert '<p class="case-shown">Rent today</p>' in page
+    cases = re.findall(r'data-component="scenario-case" data-path="([^"]*)"', page)
+    assert cases == ["rent_cases[0]", "rent_cases[1]", "rent_cases[2]"]
+    assert page.count("CHF 712.40") == 1 and page.count("CHF 912.40") == 2
+
+
+@pytest.mark.parametrize("count", [1, 7])
+def test_scenarios_need_two_to_six_cases(count: int) -> None:
+    cases = [{"case": f"Case {i}", "rent_chf": 1.0, "left_chf": 1.0} for i in range(count)]
+    with pytest.raises(BadRequestError, match=f"has {count} cases"):
+        render(spec=spec(body=BODIES["scenarios"]), data={"rent_cases": cases}, form="live")
+
+
+def test_a_scenario_figure_must_be_a_number() -> None:
+    cases = [{**case, "left_chf": "a lot"} for case in DATA["rent_cases"]]
+    with pytest.raises(BadRequestError, match="not a number"):
+        render(spec=spec(body=BODIES["scenarios"]), data={"rent_cases": cases}, form="static")
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_clicking_a_live_forecast_reports_only_its_points() -> None:
+    targets = [_live_mark(kind="line"), _live_mark(kind="area"), _live_mark(kind="symbol")]
+    assert _clicks(body=BODIES["forecast_chart"], targets=targets) == "forecast[4] "
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_choosing_a_case_shows_its_figures_and_picks_no_part() -> None:
+    page = render(spec=spec(body=BODIES["scenarios"]), data=DATA, form="live")
+    # Keys and pointer both change the radio, and the page answers the change event.
+    measure = (
+        "var radio=document.querySelectorAll('.cases input')[1];radio.click();"
+        "var shown=Array.from(document.querySelectorAll('.case')).filter(function(p){"
+        "return !p.hidden;});"
+        "return shown.length+':'+shown[0].getAttribute('data-case')+':'"
+        "+shown[0].querySelector('.stat-value').textContent;"
+    )
+    assert _at_widths(page=page, measure=measure) == sorted(f"{w}:1:1:CHF 3'000.00" for w in WIDTHS)
+    radio = "document.querySelectorAll('.cases input')[1]"
+    assert _clicks(body=BODIES["scenarios"], targets=[radio]) == ""
