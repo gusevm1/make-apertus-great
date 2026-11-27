@@ -62,7 +62,19 @@ If the second push is rejected, the branch moved while you were checking. Go bac
 1. CI (the Board workflow, the only check on a PR into `main`, listed as `sync` in `gh pr checks`) moves the card to Done and closes it. Wait for that first with `.claude/skills/build-card/wait.py status <n> Done`, never with `sleep`, and the Bash `timeout` at 300000 ms. It gives up after 3 minutes with exit 2, or exits 1 with the error when `gh` fails.
 2. Only now read the PR state: `gh pr view <pr> --json state -q .state` prints `MERGED`. In the first seconds after the push it still prints `OPEN`; that is expected and is why you wait first. Anything other than `MERGED` after the wait (still `OPEN`, `CLOSED`, or `gh` failing): run `git fetch origin` and `git merge-base --is-ancestor HEAD origin/main`. Exit 0 means your commits are on `main` and GitHub is late, so note it in your report and go on. Exit 1 means the push did not land: go back to step 1 (See what landed), and leave the card as it is.
 3. Only when the landing is confirmed and `wait.py` did not exit 0, move the card yourself and note it in your report: `board move <n> done` and `gh issue close <n>`.
-4. Comment on the card: what now works in one or two lines, and every contract or shared file you changed that other agents build on.
+4. Comment on the card, so that someone who opens it later sees what was built. Keep it under ten lines and apply the `unslop` skill:
+
+   ```
+   ## Implemented
+   <one line: what works now>
+   - <a behaviour someone can see, with its name or number>
+   - <the next one, five at most>
+
+   Where: <the feature folder, endpoint, tool or part of the page>
+   Checked: <the command or the steps, and the result as a number>
+   Left out: <what the card names and this does not do, or none>
+   Changed for others: <every contract or shared file other agents build on, or none>
+   ```
 5. Stop your servers by port.
 
 ## Never
