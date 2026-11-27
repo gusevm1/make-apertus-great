@@ -12,6 +12,7 @@ from app.features.widgets.catalogue.schemas import (
     Chart,
     Comparison,
     Donut,
+    LineChart,
     Trend,
 )
 from app.features.widgets.catalogue.values import display, is_number, rows, short
@@ -62,8 +63,15 @@ PALETTE = {
 }
 # A series value naming a year, month or day; the newest such series gets the accent colour.
 PERIOD = re.compile(r"^\d{4}(-\d{2}){0,2}$")
-# Earlier periods step back in lighter greys, so the current one stands out.
-PERIOD_SERIES = [ACCENT, PALETTE["grey_light"], "#a9b2b6", "#c2c8c8"]
+# The newest period in the accent colour, earlier ones in quieter colours that are still 3:1 on
+# white and never the accent again; a chart shows at most this many periods.
+PERIOD_SERIES = [
+    ACCENT,
+    PALETTE["grey_light"],
+    PALETTE["navy_light"],
+    PALETTE["blue_light"],
+    PALETTE["amber_light"],
+]
 # A sparkline has one size in both forms, beside a figure.
 SPARK_WIDTH = 160
 SPARK_HEIGHT = 40
@@ -171,6 +179,10 @@ def _chosen(component: Chart, values: list[dict[str, Any]], has_series: bool) ->
     # The customer's colours by row label or series value; a key the chart lacks is refused.
     if component.colors is None:
         return {}
+    if isinstance(component, LineChart | AreaChart) and not has_series:
+        raise BadRequestError(
+            f"{component.type} without series draws one line: colors needs a series to colour"
+        )
     keys = {value["series"] if has_series else value["key"] for value in values}
     for key in component.colors:
         if key not in keys:
@@ -187,6 +199,10 @@ def _series_scale(series: list[str | None], chosen: dict[str, str]) -> dict[str,
     # Periods newest first, so the current year gets the accent colour and leads the legend.
     is_periods = len(names) > 0 and all(PERIOD.fullmatch(name) is not None for name in names)
     domain = sorted(names, reverse=is_periods)
+    if is_periods and len(domain) > len(PERIOD_SERIES):
+        raise BadRequestError(
+            f"{len(domain)} periods; a chart shows at most {len(PERIOD_SERIES)} side by side"
+        )
     base = PERIOD_SERIES if is_periods else SERIES
     colours = [chosen.get(name, base[index % len(base)]) for index, name in enumerate(domain)]
     return {"domain": domain, "range": colours}
@@ -399,7 +415,8 @@ def _comparison(values: list[dict[str, Any]], scale: dict[str, Any]) -> dict[str
         "data": {"values": values},
         "encoding": {
             "x": {"field": "label", "type": "ordinal", "sort": None},
-            "xOffset": {"field": "series", "type": "nominal"},
+            # Bars in each group in the legend's order, newest period first.
+            "xOffset": {"field": "series", "type": "nominal", "sort": scale["domain"]},
             "y": {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}},
             "color": {"field": "series", "type": "nominal", "scale": scale},
             "description": {"field": "description"},

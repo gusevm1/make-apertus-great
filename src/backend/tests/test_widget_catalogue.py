@@ -10,7 +10,15 @@ from pydantic import ValidationError
 
 from app.core.errors import BadRequestError
 from app.features.widgets.catalogue import render as render_module
-from app.features.widgets.catalogue.charts import ACCENT, LABEL_LIMIT, PALETTE, chart_spec
+from app.features.widgets.catalogue.charts import (
+    ACCENT,
+    LABEL_LIMIT,
+    PALETTE,
+    PERIOD_SERIES,
+    SERIES,
+    chart_spec,
+    static_svg,
+)
 from app.features.widgets.catalogue.prompts import NOT_COMPONENTS, PROMPTS, catalogue_prompt
 from app.features.widgets.catalogue.render import Form, fallback, render
 from app.features.widgets.catalogue.schemas import (
@@ -373,20 +381,54 @@ def _contrast_on_white(colour: str) -> float:
     return 1.05 / (luminance + 0.05)
 
 
-def test_every_palette_colour_is_a_name_apertus_may_use_and_readable_on_white() -> None:
+def test_every_palette_and_period_colour_is_readable_on_white() -> None:
     assert set(PALETTE) == set(get_args(ColourName))
-    for name, colour in PALETTE.items():
+    for name, colour in [*PALETTE.items(), *enumerate(PERIOD_SERIES)]:
         assert _contrast_on_white(colour=colour) >= 3, name
+    assert ACCENT not in PERIOD_SERIES[1:]
+
+
+def _fills(svg: str, path: str) -> list[str]:
+    # The fills of the static marks whose screen-reader label ends with the row's path.
+    tags = re.findall(r"<[^>]*\(" + re.escape(path) + r"\)\"[^>]*>", svg)
+    return [fill for tag in tags for fill in re.findall(r'fill="(#[0-9a-f]{6})"', tag)]
+
+
+def _scale(body: dict[str, Any], live: bool) -> dict[str, Any]:
+    chart = spec(body=body).body
+    assert isinstance(chart, LineChart | AreaChart | Comparison)
+    return chart_spec(component=chart, data=DATA, live=live)["encoding"]["color"]["scale"]
 
 
 @pytest.mark.parametrize("name", ["line_chart", "area_chart", "comparison"])
 def test_the_newest_period_gets_the_accent_colour_in_both_forms(name: str) -> None:
+    for live in (True, False):
+        assert _scale(body=BODIES[name], live=live) == {
+            "domain": ["2026", "2025"],
+            "range": [ACCENT, PALETTE["grey_light"]],
+        }
     chart = spec(body=BODIES[name]).body
     assert isinstance(chart, LineChart | AreaChart | Comparison)
-    scale = chart_spec(component=chart, data=DATA, live=False)["encoding"]["color"]["scale"]
-    assert scale == {"domain": ["2026", "2025"], "range": [ACCENT, PALETTE["grey_light"]]}
-    for form in ("live", "static"):
-        assert ACCENT in render(spec=spec(body=BODIES[name]), data=DATA, form=form)
+    svg = static_svg(spec=chart_spec(component=chart, data=DATA, live=False))
+    # years[2] is a 2026 row, years[0] a 2025 one.
+    assert ACCENT in _fills(svg=svg, path="years[2]")
+    assert PALETTE["grey_light"] in _fills(svg=svg, path="years[0]")
+
+
+def test_a_comparison_draws_its_bars_in_the_legends_order() -> None:
+    chart = spec(body=BODIES["comparison"]).body
+    assert isinstance(chart, Comparison)
+    encoding = chart_spec(component=chart, data=DATA, live=True)["encoding"]
+    assert encoding["xOffset"]["sort"] == encoding["color"]["scale"]["domain"] == ["2026", "2025"]
+
+
+def test_more_periods_than_colours_are_refused() -> None:
+    years = [
+        {"month": "09", "year": str(year), "total_chf": 1.0}
+        for year in range(2026 - len(PERIOD_SERIES), 2027)
+    ]
+    with pytest.raises(BadRequestError, match=f"at most {len(PERIOD_SERIES)}"):
+        render(spec=spec(body=BODIES["line_chart"]), data={"years": years}, form="static")
 
 
 def test_series_that_are_not_periods_keep_their_order() -> None:
@@ -399,13 +441,38 @@ def test_series_that_are_not_periods_keep_their_order() -> None:
     chart = spec(body=BODIES["line_chart"]).body
     assert isinstance(chart, LineChart)
     scale = chart_spec(component=chart, data=accounts, live=False)["encoding"]["color"]["scale"]
-    assert scale["domain"] == ["Private", "Savings"]
+    assert scale == {"domain": ["Private", "Savings"], "range": SERIES[:2]}
+
+
+def _bar_colour(body: dict[str, Any]) -> tuple[Any, list[str]]:
+    chart = spec(body=body).body
+    assert isinstance(chart, BarChart)
+    bar_spec = chart_spec(component=chart, data=DATA, live=True)
+    condition = bar_spec["layer"][0]["encoding"]["color"]["condition"]
+    static = static_svg(spec=chart_spec(component=chart, data=DATA, live=False))
+    # months[1] is the 2026-10 row.
+    return condition, _fills(svg=static, path="months[1]")
 
 
 def test_a_chosen_colour_draws_its_bar_in_both_forms() -> None:
-    body = {**BODIES["bar_chart"], "colors": {"2026-10": "red"}}
-    for form in ("live", "static"):
-        assert PALETTE["red"] in render(spec=spec(body=body), data=DATA, form=form)
+    condition, fills = _bar_colour(body={**BODIES["bar_chart"], "colors": {"2026-10": "red"}})
+    assert {"test": 'datum.key === "2026-10"', "value": PALETTE["red"]} in condition
+    assert PALETTE["red"] in fills
+
+
+def test_highlight_color_draws_the_highlight_in_both_forms() -> None:
+    condition, fills = _bar_colour(body={**BODIES["bar_chart"], "highlight_color": "blue"})
+    assert condition == {"test": 'datum.key === "2026-10"', "value": PALETTE["blue"]}
+    assert PALETTE["blue"] in fills
+
+
+def test_colours_that_would_do_nothing_are_refused() -> None:
+    with pytest.raises(ValidationError, match="highlight_color needs highlight"):
+        body = {key: value for key, value in BODIES["bar_chart"].items() if key != "highlight"}
+        spec(body={**body, "highlight_color": "blue"})
+    single = {"type": "line_chart", "data": "months", "x": "label", "y": "total_chf"}
+    with pytest.raises(BadRequestError, match="without series draws one line"):
+        render(spec=spec(body={**single, "colors": {"2026-10": "red"}}), data=DATA, form="static")
 
 
 def test_a_chosen_colour_changes_a_series_and_a_donut_part_with_its_legend() -> None:

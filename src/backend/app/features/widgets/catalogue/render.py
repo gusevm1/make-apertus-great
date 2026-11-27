@@ -325,7 +325,7 @@ def _progress(node: Progress, data: dict[str, Any]) -> dict[str, Any]:
 
 def _drawn(
     node: Chart | Trend, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
-) -> tuple[str, str | None, str, list[dict[str, Any]]]:
+) -> tuple[str, str | None, str, dict[str, Any]]:
     chart_id = f"chart-{len(charts) + 1}"
     spec = chart_spec(component=node, data=data, live=form == "live")
     charts.append({"id": chart_id, "spec": spec})
@@ -340,13 +340,14 @@ def _drawn(
         }
         for value in values
     }
-    return chart_id, svg, json.dumps(chart_rows, ensure_ascii=False), values
+    return chart_id, svg, json.dumps(chart_rows, ensure_ascii=False), spec
 
 
 def _chart(
     node: Chart, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    chart_id, svg, chart_rows, values = _drawn(node=node, data=data, form=form, charts=charts)
+    chart_id, svg, chart_rows, spec = _drawn(node=node, data=data, form=form, charts=charts)
+    values = spec["data"]["values"]
     view = {
         "type": node.type,
         "title": node.title,
@@ -360,7 +361,7 @@ def _chart(
     if not isinstance(node, Donut):
         return view
     # The legend's swatches are the slices' own colours, the customer's where chosen.
-    colours = charts[-1]["spec"]["encoding"]["color"]["scale"]["range"]
+    colours = spec["encoding"]["color"]["scale"]["range"]
     legend = [
         {
             "path": value["path"],

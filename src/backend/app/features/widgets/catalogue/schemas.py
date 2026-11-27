@@ -113,6 +113,12 @@ class BarChart(Component):
     horizontal: bool = False
     colors: Colours | None = None
 
+    @model_validator(mode="after")
+    def _highlight_color_needs_a_highlight(self) -> Self:
+        if self.highlight_color is not None and self.highlight is None:
+            raise ValueError("highlight_color needs highlight: the label to draw in it")
+        return self
+
 
 class LineChart(Component):
     type: Literal["line_chart"]
