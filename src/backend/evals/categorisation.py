@@ -226,10 +226,20 @@ async def main() -> None:
                 )
             )
     result = score(gold=gold, tags=tags)
+    result["predictions"] = {
+        row["uid"]: {
+            key: tags[row["uid"]][key]
+            for key in ("category", "category_set_by", "category_certainty", "payee_usual_category")
+        }
+        for row in gold
+        if row["uid"] in tags
+    }
     result["label"] = args.label
     result["split"] = args.split
     summary = {
-        key: value for key, value in result.items() if key not in ("wrong_examples", "matrix")
+        key: value
+        for key, value in result.items()
+        if key not in ("wrong_examples", "matrix", "predictions")
     }
     print(json.dumps(summary, indent=1, ensure_ascii=False))  # noqa: T201
     if args.out is not None:

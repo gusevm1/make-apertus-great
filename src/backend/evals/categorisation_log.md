@@ -21,6 +21,8 @@ sends to review; "review load" the share of all model bookings it sends.
 | v1 | each answer copies its row's payee before the category; 25 rows per call instead of 50 | 89.6 % | 418 | 92.8 / 37.5 / 52.0 % | 67.2 % / 12.0 % |
 | v2 | every category described by what was paid for, with the borders spelled out | 91.2 % | 304 | 94.8 / 37.2 / 33.9 % | 67.2 % / 9.6 % |
 | v3 | a payment to a private person goes by the purpose in its message | 94.1 % | 334 | 94.6 / 38.7 / 76.1 % | 47.0 % / 6.4 % |
+| v4 | five worked examples of the hardest borders, with made-up names | 95.4 % | 248 | 96.0 / 27.6 / 78.1 % | 61.1 % / 5.8 % |
+| v5 | high only when the payee sells one kind of thing or the text names it; medium for shops, stations, telecoms and venues where it depends | 95.2 % | 204 | 96.5 / 73.4 / 76.0 % | 65.0 % / 9.7 % |
 
 v0 held out: 77.6 %, 383 wrong but high, review catches 66.0 % at 19.3 % load.
 
@@ -58,3 +60,19 @@ Payments to friends now follow their message (border bookings 290 → 463 of 620
 catches only 47 % of the wrong ones. Wrong but high, all systematic: home internet from Swisscom and
 Sunrise (66), a bar that also hosts concerts (25), fuel stations (24), drugstores (13), children's
 swimming and ski courses (18).
+
+## v4
+
+The examples use names that appear nowhere in the gold set (Quickline, Agrola, an invented drugstore and
+swimming club, a concert bar). Fixed: fuel stations, drugstores, most home internet. During this run
+the gateway timed out 148 calls between 20:50 and 21:30, so Jana's last 401 bookings were categorised
+by a further call after the run; the prompt was the same.
+Left at high: a bar with concerts (Rössli Reitschule, 20, a border the blind labeller also split on),
+Swisscom home internet (19), food delivery and toy shops, «Grill» shares as restaurants.
+
+## v5
+
+Accuracy stays (95.4 → 95.2 %, within a run's noise), certainty starts to mean something: medium is now
+right 73 % of the time instead of 28 %, wrong but high drops to 204. Left at high: payees Apertus cannot
+know from the name (a vegetarian buffet, a food delivery service, a bar it reads as a bookshop), Swisscom
+"inOne home", and the university Mensa read as school (children).
