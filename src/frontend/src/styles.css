@@ -1,23 +1,280 @@
-/* The TrustRoom page. Colours, radii and the font come from the e-banking's tokens.css. */
+/* The TrustRoom page, drawn like the e-banking around it: grey page, white cards, rows split by
+   hairlines. Colours, radii and the font come from the e-banking's tokens.css. */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font: 14px/1.5 var(--font-family);
+  font-variant-numeric: tabular-nums;
   color: var(--color-text);
-  background: var(--color-surface);
+  background: var(--color-background);
+}
+
+h1,
+h2,
+p,
+ul,
+ol,
+dl,
+dd {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+.icon {
+  cursor: pointer;
+}
+
+button:disabled,
+.icon:has(input:disabled) {
+  cursor: default;
+  opacity: 0.5;
+}
+
+button:focus-visible,
+input:focus-visible,
+summary:focus-visible,
+.icon:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.hint {
+  color: var(--color-text-muted);
+}
+
+/* Layout: one column in the panel; the chat list moves to the left in a wide page. */
+.layout {
+  display: flex;
+  height: 100vh;
+  container-type: inline-size;
+}
+
+.sidebar {
+  display: none;
+  flex: none;
+  flex-direction: column;
+  gap: 12px;
+  width: 300px;
+  padding: 16px 0 16px 16px;
+  overflow-y: auto;
 }
 
 main {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  box-sizing: border-box;
-  height: 100vh;
-  padding: 16px;
-  gap: 12px;
+  min-width: 0;
 }
 
-.hint {
-  margin: 0;
+@container (min-width: 760px) {
+  .sidebar {
+    display: flex;
+  }
+
+  .thread-bar .back,
+  .home-chats {
+    display: none;
+  }
+}
+
+/* Buttons: outlined in the bank's green, filled for the main action. */
+.sidebar > button,
+.sheet-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.sheet-actions button.primary {
+  color: var(--color-sidebar-text);
+  background: var(--color-primary);
+}
+
+.sheet-actions button:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+
+.sheet-actions button.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   color: var(--color-text-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+.icon:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.link {
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+}
+
+/* Cards and rows, as on the e-banking's dashboard. */
+.card {
+  padding: 16px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.card h2 {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 12px;
+}
+
+.card-head .hint {
+  font-size: 12px;
+}
+
+.card > .hint {
+  margin-top: 8px;
+}
+
+.rows {
+  margin-top: 4px;
+}
+
+.rows li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 0;
+  text-align: left;
+  background: none;
+  border: 0;
+}
+
+.row-main.single {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.row:hover:not(:disabled) .row-main,
+.row[aria-current="page"] .row-main {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.row[aria-current="page"] .row-main {
+  font-weight: 600;
+}
+
+/* Home */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.capabilities {
+  margin-top: 4px;
+}
+
+.capabilities li {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.capabilities li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.capabilities strong,
+.capabilities small {
+  display: block;
+}
+
+.capabilities small {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.capability-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-sm);
+}
+
+/* Thread */
+.thread-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.thread-bar h1 {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.back {
+  margin-left: -8px;
 }
 
 .ai-notice {
@@ -33,31 +290,98 @@ main {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px;
   overflow-y: auto;
 }
 
-.msg {
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-end;
   max-width: 85%;
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
+  padding: 10px 14px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  background: var(--color-primary-soft);
+  border-radius: var(--radius);
 }
 
-.msg.user {
-  align-self: flex-end;
-  color: var(--color-sidebar-text);
-  background: var(--color-primary);
-}
-
-.msg.assistant {
-  align-self: flex-start;
-  background: var(--color-surface-muted);
+.document {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
+.document svg {
+  flex: none;
+  color: var(--color-primary);
+}
+
+.document span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-wrap: anywhere;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.answer-text {
+  line-height: 1.6;
+}
+
+.answer-text:empty {
+  display: none;
+}
+
+.timeline + .answer-text {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.answer footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  padding-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+}
+
+.answer footer a {
+  color: var(--color-primary);
+}
+
+.error-note {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--color-error);
+  background: var(--color-surface);
+  border-left: 3px solid var(--color-error);
+  border-radius: var(--radius-sm);
+}
+
+/* The model's formatting inside an answer. */
 .markdown > * {
   margin: 0;
 }
@@ -71,10 +395,18 @@ main {
   padding-left: 20px;
 }
 
+.markdown ul {
+  list-style: disc;
+}
+
+.markdown ol {
+  list-style: decimal;
+}
+
 .markdown code {
   padding: 0 4px;
   font-size: 13px;
-  background: var(--color-surface);
+  background: var(--color-surface-muted);
   border-radius: var(--radius-sm);
 }
 
@@ -83,7 +415,7 @@ main {
   overflow-x: auto;
   font-size: 12px;
   white-space: pre;
-  background: var(--color-surface);
+  background: var(--color-surface-muted);
   border-radius: var(--radius-sm);
 }
 
@@ -101,153 +433,298 @@ main {
   color: var(--color-text-muted);
 }
 
-.msg.error {
-  align-self: flex-start;
-  color: var(--color-error);
-  border: 1px solid var(--color-error);
+/* Timeline: plan, then one row per tool call with its state as a word. */
+.timeline {
+  font-size: 13px;
 }
 
-.msg.confirm {
-  align-self: flex-start;
-  border: 1px solid var(--color-primary);
+.timeline > li {
+  position: relative;
+  padding: 0 0 8px 18px;
 }
 
-.msg.confirm p {
-  margin: 4px 0;
+.timeline > li:last-child {
+  padding-bottom: 0;
 }
 
-.msg.confirm div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+.timeline > li::before {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  background: var(--color-border-strong);
+  border-radius: 50%;
+  content: "";
 }
 
-.msg.confirm [role="alert"] {
-  color: var(--color-error);
+.timeline > li::after {
+  position: absolute;
+  top: 16px;
+  bottom: -2px;
+  left: 3px;
+  width: 1px;
+  background: var(--color-border-strong);
+  content: "";
 }
 
-.msg footer,
-.document,
-.step {
-  display: block;
+.timeline > li:last-child::after {
+  display: none;
+}
+
+.timeline > .done::before {
+  background: var(--color-credit);
+}
+
+.timeline > .running::before,
+.timeline > .waiting::before {
+  background: var(--color-primary);
+}
+
+.timeline > .failed::before {
+  background: var(--color-error);
+}
+
+.timeline .plan p {
+  color: var(--color-text-muted);
+}
+
+.timeline .plan strong {
+  color: var(--color-text);
+}
+
+.timeline summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.timeline summary::-webkit-details-marker {
+  display: none;
+}
+
+.step-title {
+  font-weight: 600;
+}
+
+.timeline summary:hover .step-title {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.step-state {
   font-size: 12px;
   color: var(--color-text-muted);
 }
 
-.msg footer a {
-  display: block;
-  color: inherit;
+.failed .step-state,
+.step-error {
+  color: var(--color-error);
 }
 
-.step summary {
-  cursor: pointer;
+.waiting .step-state {
+  font-weight: 600;
+  color: var(--color-primary);
 }
 
-.step p,
-.step pre {
-  margin: 4px 0 4px 14px;
+.step-reason {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
-.step pre {
+.timeline details > p {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.timeline details > .step-error {
+  color: var(--color-error);
+}
+
+.timeline pre {
   max-height: 240px;
+  margin: 2px 0 0;
   padding: 8px;
   overflow: auto;
   font-size: 11px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
 
-form,
-nav {
-  display: flex;
-  gap: 8px;
-}
-
-input,
-select {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 12px;
-  font: inherit;
-  color: inherit;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-}
-
-button,
-.button {
-  padding: 8px 12px;
-  font: inherit;
-  color: var(--color-primary);
+/* Confirmation sheet over the input, like the e-banking's payment confirmation. */
+.sheet {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px;
   background: var(--color-surface);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background var(--transition);
+  border-top: 1px solid var(--color-border);
+  box-shadow: var(--shadow-pop);
 }
 
-button.primary,
-button[aria-pressed="true"] {
-  color: var(--color-sidebar-text);
-  background: var(--color-primary);
+.sheet h2 {
+  font-size: 14px;
+  font-weight: 600;
 }
 
-button:hover:not(:disabled),
-.button:hover {
-  color: var(--color-sidebar-text);
-  background: var(--color-primary-hover);
+.facts {
+  margin-top: 8px;
+  font-size: 13px;
 }
 
-.msg.user .document {
-  color: inherit;
-  text-decoration: underline;
+.facts div {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.facts dt {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.facts dd {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sheet > .hint {
+  padding-top: 8px;
+  font-size: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.sheet .error-note {
+  margin-top: 8px;
+}
+
+.sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Input, shaped like the e-banking's own TrustRoom placeholder. */
+.composer {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 12px 16px 16px;
 }
 
 .attached {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  gap: 6px;
+  margin-bottom: 6px;
   font-size: 12px;
-  color: var(--color-text-muted);
 }
 
 .attached li {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  background: var(--color-primary-soft);
+  max-width: 100%;
+  padding: 2px 2px 2px 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
 }
 
-.attached button {
-  padding: 0 4px;
-  border: none;
+.attached li span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.attached .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.attached .reading {
+  padding-right: 8px;
+  color: var(--color-text-muted);
+  border-style: dashed;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+}
+
+.input-row:focus-within {
+  border-color: var(--color-primary);
+}
+
+.input-row > input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px;
   background: none;
+  border: 0;
+  outline: 0;
 }
 
-.button:has(input:focus-visible) {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.input-row > input:disabled {
+  cursor: not-allowed;
 }
 
-button:disabled,
-.button:has(input:disabled) {
-  opacity: 0.5;
-  cursor: default;
+.send {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--color-sidebar-text);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
 }
 
-input:focus-visible,
-select:focus-visible,
-button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.send:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.send:disabled {
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  opacity: 1;
+}
+
+.recording {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-error);
+  background: none;
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-error);
+  border-radius: 50%;
 }
 
 /* Out of sight, but still reachable with the keyboard. */

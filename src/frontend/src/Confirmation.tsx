@@ -6,7 +6,7 @@ interface Props {
   onAnswer: (isAllowed: boolean) => Promise<void>;
 }
 
-/** Asks the customer before a tool call runs, and shows what it would send. */
+/** Asks the customer before a tool call runs, like the e-banking's payment confirmation. */
 export function Confirmation({ toolCall, onAnswer }: Props) {
   const [answer, setAnswer] = useState<boolean | null>(null);
   const [isSending, setIsSending] = useState(false);
@@ -28,24 +28,24 @@ export function Confirmation({ toolCall, onAnswer }: Props) {
   }
 
   return (
-    <article className="msg confirm" role="group" aria-label={toolCall.title}>
-      <strong>{toolCall.title}?</strong>
-      {Object.entries(toolCall.arguments).map(([name, value]) => (
-        <p key={name}>
-          {name}: {typeof value === "string" ? value : JSON.stringify(value)}
-        </p>
-      ))}
+    <section className="sheet" role="group" aria-label={toolCall.title}>
+      <h2>{toolCall.title}?</h2>
+      <dl className="facts">
+        {Object.entries(toolCall.arguments).map(([name, value]) => (
+          <div key={name}>
+            <dt>{labelOf(name)}</dt>
+            <dd>{typeof value === "string" ? value : JSON.stringify(value)}</dd>
+          </div>
+        ))}
+      </dl>
       <p className="hint">{toolCall.confirmation}</p>
-      {answer === null && (
-        <div>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => void handleAnswer(true)}
-            disabled={isSending}
-          >
-            Allow
-          </button>
+      {failure !== null && (
+        <p className="error-note" role="alert">
+          {failure}
+        </p>
+      )}
+      {answer === null ? (
+        <div className="sheet-actions">
           <button
             type="button"
             onClick={() => void handleAnswer(false)}
@@ -53,11 +53,26 @@ export function Confirmation({ toolCall, onAnswer }: Props) {
           >
             Don’t allow
           </button>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => void handleAnswer(true)}
+            disabled={isSending}
+          >
+            {isSending ? "Sending…" : "Allow"}
+          </button>
         </div>
+      ) : (
+        <p className="hint">
+          {answer ? "Allowed, one moment…" : "Not allowed."}
+        </p>
       )}
-      {answer === true && <p className="hint">Allowed, one moment…</p>}
-      {answer === false && <p className="hint">Not allowed.</p>}
-      {failure !== null && <p role="alert">{failure}</p>}
-    </article>
+    </section>
   );
+}
+
+/** `search_query` → "Search query". */
+function labelOf(name: string): string {
+  const words = name.replaceAll("_", " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

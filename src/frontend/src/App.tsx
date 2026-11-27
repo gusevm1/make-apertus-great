@@ -1,7 +1,7 @@
 import {
   type ChangeEvent,
   type FormEvent,
-  Fragment,
+  type ReactNode,
   useEffect,
   useRef,
   useState,
@@ -16,6 +16,8 @@ import {
 } from "./api";
 import { type HostContext, useHostContext } from "./host";
 import { Confirmation } from "./Confirmation";
+import { ChatList, type ChatListProps, Home } from "./Home";
+import { Icon } from "./Icon";
 import { canCaptureAudio } from "./lib/audioCapture";
 import { Markdown } from "./lib/markdown";
 import { useStream } from "./lib/useStream";
@@ -34,11 +36,13 @@ export function App() {
 function Chat({ context }: { context: HostContext }) {
   const token = context.access_token;
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
   const [question, setQuestion] = useState("");
   const [pending, setPending] = useState<string | null>(null);
+  const [pendingDocuments, setPendingDocuments] = useState<DocumentRef[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isOpening, setIsOpening] = useState(false);
   const [attached, setAttached] = useState<DocumentRef[]>([]);
@@ -64,24 +68,28 @@ function Chat({ context }: { context: HostContext }) {
     setToolCalls(storedCalls);
   }
 
+  const isHome = conversationId === null && pending === null;
+
   // The chat follows new text until the customer scrolls up, and again once they are back down.
+  // The home starts at its top.
   useEffect(() => {
     const chat = chatRef.current;
-    if (chat !== null && isFollowing.current)
-      chat.scrollTop = chat.scrollHeight;
-  }, [messages, pending, stream.text, stream.toolCalls.length]);
+    if (chat === null) return;
+    if (isHome) chat.scrollTop = 0;
+    else if (isFollowing.current) chat.scrollTop = chat.scrollHeight;
+  }, [isHome, messages, pending, stream.text, stream.toolCalls.length]);
 
-  // The stored chats come back after a reload, and are the same in the panel and the full page.
+  // The stored chats come back after a reload, listed on the home in the panel and the full page.
   useEffect(() => {
     let isCurrent = true;
     async function load() {
       try {
         const stored = await api<Conversation[]>("/api/conversations", token);
-        if (!isCurrent) return;
-        setConversations(stored);
-        if (stored[0] !== undefined) await open(stored[0].id);
+        if (isCurrent) setConversations(stored);
       } catch (error) {
         if (isCurrent) setLoadError(messageOf(error));
+      } finally {
+        if (isCurrent) setIsLoadingChats(false);
       }
     }
     void load();
@@ -102,15 +110,19 @@ function Chat({ context }: { context: HostContext }) {
     lastScrollTop.current = chat.scrollTop;
   }
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const content = question.trim();
+    void ask(question.trim());
+  }
+
+  async function ask(content: string) {
     if (content === "" || stream.status === "streaming") return;
     const documents = attached;
     isFollowing.current = true;
     setQuestion("");
     setAttached([]);
     setPending(content);
+    setPendingDocuments(documents);
     setLoadError(null);
     let createdId: string | null = null;
     try {
@@ -207,7 +219,7 @@ function Chat({ context }: { context: HostContext }) {
 
   async function handleOpen(id: string) {
     setLoadError(null);
-    // The select is disabled meanwhile, so two picks cannot finish out of order.
+    // The chat list is disabled meanwhile, so two picks cannot finish out of order.
     setIsOpening(true);
     try {
       await open(id);
@@ -230,184 +242,255 @@ function Chat({ context }: { context: HostContext }) {
     pending !== null ||
     isOpening ||
     isUploading;
-  const account = context.account ? `, account ${context.account.name}` : "";
   const waitingCalls = stream.toolCalls.filter(
     (toolCall) => toolCall.confirmation !== null && toolCall.isRunning,
   );
+  const title =
+    conversations.find((conversation) => conversation.id === conversationId)
+      ?.title ?? pending;
+  const error = stream.error ?? loadError ?? voice.error;
+  const errorNote = error !== null && (
+    <p className="error-note" role="alert">
+      {error}
+    </p>
+  );
+  const chats: ChatListProps = {
+    conversations,
+    currentId: conversationId,
+    isLoading: isLoadingChats,
+    isBusy,
+    onOpen: (id) => void handleOpen(id),
+  };
 
   return (
-    <main>
-      <header>
-        <p className="hint">
-          You are on “{context.page.title}”{account}.
-        </p>
-      </header>
-      <nav>
-        <select
-          value={conversationId ?? ""}
-          onChange={(event) => void handleOpen(event.target.value)}
-          disabled={isBusy || conversations.length === 0}
-          aria-label="Past chats"
-        >
-          {conversationId === null && <option value="">New chat</option>}
-          {conversations.map((conversation) => (
-            <option key={conversation.id} value={conversation.id}>
-              {conversation.title ?? "Untitled chat"}
-            </option>
-          ))}
-        </select>
+    <div className="layout">
+      <aside className="sidebar">
         <button type="button" onClick={handleNewChat} disabled={isBusy}>
-          New chat
+          <Icon name="plus" size={16} /> New chat
         </button>
-      </nav>
+        <ChatList {...chats} />
+      </aside>
 
-      <section
-        ref={chatRef}
-        className="chat"
-        aria-live="polite"
-        onScroll={handleChatScroll}
-      >
-        {messages.length === 0 && pending === null && (
-          <>
-            <p className="ai-notice">
-              You are talking to an AI. It works with your own data only and
-              gives no investment advice.
-            </p>
-            <p className="hint">
-              Ask about your finances, e.g. “How much money do I have?”
-            </p>
-          </>
+      <main>
+        {!isHome && (
+          <header className="thread-bar">
+            <button
+              type="button"
+              className="icon back"
+              onClick={handleNewChat}
+              disabled={isBusy}
+              aria-label="All chats"
+            >
+              <Icon name="chevronLeft" />
+            </button>
+            <h1>{title ?? "Untitled chat"}</h1>
+          </header>
         )}
-        {messages.map((message) => (
-          <Fragment key={message.id}>
-            <article className={`msg ${message.role}`}>
-              {message.documents.map((document) => (
-                <span key={document.id} className="document">
-                  {document.name}
-                </span>
-              ))}
-              {message.role === "assistant" ? (
-                <Markdown text={message.content} />
-              ) : (
-                message.content
-              )}
-              {message.provenance !== null && (
-                <footer>
-                  {message.provenance.model},{" "}
-                  {(message.provenance.latency_ms / 1000).toFixed(1)} s
-                  {message.provenance.sources.map(
-                    (source) =>
-                      // Only web addresses become links; the list comes from a search result.
-                      source.url?.startsWith("http") === true && (
-                        <a
-                          key={source.id}
-                          href={source.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {source.title}
-                        </a>
-                      ),
-                  )}
-                </footer>
-              )}
-            </article>
-            <Trace
-              steps={toolCalls.filter((call) => call.message_id === message.id)}
+
+        <section
+          ref={chatRef}
+          className="chat"
+          aria-live="polite"
+          onScroll={handleChatScroll}
+        >
+          {/* On the home the error goes first, where the customer still looks. */}
+          {isHome && errorNote}
+          {isHome && (
+            <Home
+              context={context}
+              chats={chats}
+              isBusy={isBusy}
+              onAsk={(text) => void ask(text)}
             />
-          </Fragment>
-        ))}
-        {pending !== null && (
-          <>
-            <article className="msg user">{pending}</article>
-            <Trace steps={stream.toolCalls} />
-            {waitingCalls.map((toolCall) => (
-              <Confirmation
-                key={toolCall.id}
-                toolCall={toolCall}
-                onAnswer={(isAllowed) =>
-                  handleConfirmation(toolCall.id, isAllowed)
-                }
+          )}
+          {messages.map((message, index) =>
+            message.role === "user" ? (
+              <Question
+                key={message.id}
+                text={message.content}
+                documents={message.documents}
               />
-            ))}
-            {waitingCalls.length === 0 && (
-              <article className="msg assistant">
-                {stream.text === "" ? (
-                  "Thinking…"
-                ) : (
-                  <Markdown text={stream.text} />
+            ) : (
+              <Answer
+                key={message.id}
+                // Tool calls are stored on the question they answer.
+                steps={toolCalls.filter(
+                  (call) => call.message_id === messages[index - 1]?.id,
                 )}
-              </article>
-            )}
-          </>
-        )}
-        {(stream.error ?? loadError ?? voice.error) !== null && (
-          <p className="msg error" role="alert">
-            {stream.error ?? loadError ?? voice.error}
-          </p>
-        )}
-      </section>
-
-      {(attached.length > 0 || isUploading) && (
-        <ul className="attached">
-          {attached.map((document) => (
-            <li key={document.id}>
-              {document.name}
-              <button
-                type="button"
-                aria-label={`Remove ${document.name}`}
-                onClick={() =>
-                  setAttached((current) =>
-                    current.filter((other) => other.id !== document.id),
-                  )
-                }
+                provenance={message.provenance}
               >
-                ×
-              </button>
-            </li>
-          ))}
-          {isUploading && <li>Reading the document…</li>}
-        </ul>
-      )}
+                <Markdown text={message.content} />
+              </Answer>
+            ),
+          )}
+          {pending !== null && (
+            <>
+              <Question text={pending} documents={pendingDocuments} />
+              <Answer steps={stream.toolCalls} provenance={null}>
+                {stream.text !== "" ? (
+                  <Markdown text={stream.text} />
+                ) : (
+                  waitingCalls.length === 0 && <p className="hint">Thinking…</p>
+                )}
+              </Answer>
+            </>
+          )}
+          {!isHome && errorNote}
+        </section>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder={
-            voice.phase === "transcribing" ? "Transcribing…" : "Ask something"
-          }
-          aria-label="Your question"
-          autoComplete="off"
-        />
-        <label className="button">
-          Attach
-          <input
-            type="file"
-            accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx"
-            onChange={(event) => void handleAttach(event)}
-            disabled={isBusy || attached.length >= DOCUMENTS_PER_MESSAGE}
-            className="visually-hidden"
+        {waitingCalls.map((toolCall) => (
+          <Confirmation
+            key={toolCall.id}
+            toolCall={toolCall}
+            onAnswer={(isAllowed) => handleConfirmation(toolCall.id, isAllowed)}
           />
-        </label>
-        {canCaptureAudio() && (
-          <button
-            type="button"
-            onClick={voice.phase === "recording" ? voice.stop : voice.start}
-            disabled={
-              voice.phase === "transcribing" || voice.phase === "starting"
-            }
-            aria-pressed={voice.phase === "recording"}
-          >
-            {voice.phase === "recording" ? "Stop" : "Speak"}
-          </button>
-        )}
-        <button type="submit" className="primary" disabled={isBusy}>
-          Send
-        </button>
-      </form>
-    </main>
+        ))}
+
+        <form className="composer" onSubmit={handleSubmit}>
+          {(attached.length > 0 || isUploading) && (
+            <ul className="attached">
+              {attached.map((document) => (
+                <li key={document.id}>
+                  <Icon name="file" size={14} />
+                  <span>{document.name}</span>
+                  <button
+                    type="button"
+                    className="icon"
+                    aria-label={`Remove ${document.name}`}
+                    onClick={() =>
+                      setAttached((current) =>
+                        current.filter((other) => other.id !== document.id),
+                      )
+                    }
+                  >
+                    <Icon name="close" size={12} />
+                  </button>
+                </li>
+              ))}
+              {isUploading && (
+                <li className="reading">Reading the document…</li>
+              )}
+            </ul>
+          )}
+          <div className="input-row">
+            <label className="icon" aria-label="Attach a document">
+              <Icon name="paperclip" />
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx"
+                onChange={(event) => void handleAttach(event)}
+                disabled={isBusy || attached.length >= DOCUMENTS_PER_MESSAGE}
+                className="visually-hidden"
+              />
+            </label>
+            <input
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder={placeholderOf(voice.phase, waitingCalls.length > 0)}
+              aria-label="Your question"
+              autoComplete="off"
+              disabled={waitingCalls.length > 0}
+            />
+            {canCaptureAudio() &&
+              (voice.phase === "recording" ? (
+                <button
+                  type="button"
+                  className="recording"
+                  onClick={voice.stop}
+                  aria-pressed="true"
+                >
+                  <span className="recording-dot" /> Stop
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="icon"
+                  onClick={voice.start}
+                  disabled={voice.phase !== "idle"}
+                  aria-label="Speak"
+                >
+                  <Icon name="mic" />
+                </button>
+              ))}
+            <button
+              type="submit"
+              className="send"
+              disabled={isBusy || question.trim() === ""}
+              aria-label="Send"
+            >
+              <Icon name="send" />
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
   );
+}
+
+/** The customer's question, with the documents sent along. */
+function Question({
+  text,
+  documents,
+}: {
+  text: string;
+  documents: DocumentRef[];
+}) {
+  return (
+    <article className="question">
+      <p>{text}</p>
+      {documents.map((document) => (
+        <span key={document.id} className="document">
+          <Icon name="file" size={16} />
+          <span>{document.name}</span>
+        </span>
+      ))}
+    </article>
+  );
+}
+
+/** One answer: how it came about, the text, and which model wrote it from which sources. */
+function Answer({
+  steps,
+  provenance,
+  children,
+}: {
+  steps: Parameters<typeof Trace>[0]["steps"];
+  provenance: Message["provenance"];
+  children: ReactNode;
+}) {
+  return (
+    <article className="answer">
+      <Trace steps={steps} />
+      <div className="answer-text">{children}</div>
+      {provenance !== null && (
+        <footer>
+          <span>
+            {provenance.model} · {(provenance.latency_ms / 1000).toFixed(1)} s
+          </span>
+          {provenance.sources.map(
+            (source) =>
+              // Only web addresses become links; the list comes from a search result.
+              source.url?.startsWith("http") === true && (
+                <a
+                  key={source.id}
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {source.title}
+                </a>
+              ),
+          )}
+        </footer>
+      )}
+    </article>
+  );
+}
+
+function placeholderOf(phase: string, isWaiting: boolean): string {
+  if (isWaiting) return "Answer the question above first";
+  if (phase === "transcribing") return "Transcribing…";
+  return "Ask about your accounts";
 }
 
 const TITLE_LENGTH = 60;
