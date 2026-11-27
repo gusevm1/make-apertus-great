@@ -29,6 +29,7 @@ CADENCES: dict[Cadence, Gap] = {
     "yearly": Gap(shortest=350, longest=380, months=12),
 }
 MIN_PAYMENTS = 3
+DAYS_IN_YEAR = 365
 # Share of the gaps that must fit the cadence, so one skipped or doubled month still counts.
 MIN_REGULAR_SHARE = 2 / 3
 # A payment still runs until this many usual gaps have passed without it.
@@ -71,7 +72,7 @@ class RecurringPaymentService:
             _plan(payee=payee, plan=plan, rows=items) for (payee, plan), items in by_plan.items()
         ]
         return RecurringPayments(
-            recurring=sorted(recurring, key=lambda payment: -payment.paid_per_year_chf),
+            recurring=sorted(recurring, key=lambda payment: -payment.paid_last_12_months_chf),
             instalment_plans=sorted(plans, key=lambda plan: plan.last_date, reverse=True),
         )
 
@@ -93,7 +94,9 @@ def _recurring(payee: str, rows: list[LedgerRow], today: date) -> RecurringPayme
         payments=len(rows),
         last_date=last.date,
         last_paid_chf=last_paid,
-        paid_per_year_chf=last_paid * (12 // months),
+        paid_last_12_months_chf=sum(
+            (-row.amount_chf for row in rows if (today - row.date).days < DAYS_IN_YEAR), Decimal(0)
+        ),
         next_expected=_months_later(day=last.date, months=months),
         active=(today - last.date).days <= median_gap * ACTIVE_GAPS,
         price_changes=_price_changes(rows=rows, cadence=cadence),

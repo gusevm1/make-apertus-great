@@ -169,7 +169,11 @@ async def test_a_price_rise_names_the_bookings_before_and_after(
         -20.9,
         "2026-01-05",
     )
-    assert (netflix.last_paid_chf, netflix.paid_per_year_chf) == (Decimal("20.9"), Decimal("250.8"))
+    # December 2025 at 17.90, then eleven months at 20.90.
+    assert (netflix.last_paid_chf, netflix.paid_last_12_months_chf) == (
+        Decimal("20.9"),
+        Decimal("247.8"),
+    )
     assert netflix.active
     assert netflix.next_expected == date(2026, 12, 5)
 

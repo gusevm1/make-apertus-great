@@ -23,7 +23,7 @@ class RecurringPayment(BaseModel):
     payments: int
     last_date: datetime.date
     last_paid_chf: Decimal
-    paid_per_year_chf: Decimal
+    paid_last_12_months_chf: Decimal  # the sum of real payments, not a projection
     next_expected: datetime.date
     active: bool
     price_changes: list[PriceChange]
