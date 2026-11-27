@@ -129,13 +129,29 @@ def figure_question(customer: str, words: str) -> Question:
 
 
 def test_the_japan_answer_needs_half_the_offer_and_the_savings() -> None:
-    japan = figure_question(customer="lukas", words="Japan")
+    japan = figure_question(customer="lukas", words="Japan trip")
 
     answer = (
         "Sara pays half, so your share is CHF 4'527.50; Sparkonto Langfristig holds CHF 37'566.29."
     )
     assert answer_problems(question=japan, answer=answer) == []
     assert answer_problems(question=japan, answer="The trip costs CHF 9'055.00.") != []
+
+
+def test_the_cover_answer_needs_cancellation_not_covered_and_the_offer_price() -> None:
+    cover = figure_question(customer="lukas", words="sick in Japan")
+
+    right = "Trip cancellation is not covered; the offer sells it for CHF 198.00."
+    assert answer_problems(question=cover, answer=right) == []
+    assert (
+        answer_problems(question=cover, answer="Annullationskosten sind nicht versichert, CHF 198.")
+        == []
+    )
+    wrong = (
+        "You are covered for illness and trip cancellation. Cancellation insurance costs CHF 198."
+    )
+    assert answer_problems(question=cover, answer=wrong) != []
+    assert answer_problems(question=cover, answer="Trip cancellation is not covered.") != []
 
 
 def test_the_mortgage_answer_needs_the_interest_and_the_maturity_date() -> None:
