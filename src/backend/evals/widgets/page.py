@@ -3,12 +3,14 @@
 import html
 import json
 import re
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any, Literal, NamedTuple
 
 from pydantic import BaseModel, Field
 
-# Blocks fetches, CDNs, forms and <base>. Navigation isn't covered: the sandboxed iframe stops that.
+# Blocks fetches, CDNs, forms and <base>. It doesn't stop the page from navigating itself to a URL
+# that carries DATA; no CSP or sandbox flag here does.
 CSP = (
     "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
     "img-src data:; font-src data:; form-action 'none'; base-uri 'none'"
@@ -138,8 +140,16 @@ class Shown(NamedTuple):
 def _shows(allowed: float, shown: Shown) -> bool:
     # 12.5% may come from 12.5 or from 0.125 in DATA.
     candidates = (allowed, allowed * 100) if shown.is_percent else (allowed,)
-    target = round(abs(shown.value), shown.decimals)
-    return any(round(candidate / shown.scale, shown.decimals) == target for candidate in candidates)
+    target = _round_half_up(value=abs(shown.value), decimals=shown.decimals)
+    return any(
+        _round_half_up(value=candidate / shown.scale, decimals=shown.decimals) == target
+        for candidate in candidates
+    )
+
+
+def _round_half_up(value: float, decimals: int) -> Decimal:
+    # The browser's toLocaleString rounds 9752.50 to 9753; Python's round() would give 9752.
+    return Decimal(str(value)).quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP)
 
 
 def _numbers(text: str) -> list[Shown]:

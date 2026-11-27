@@ -41,6 +41,10 @@ def test_numbers_from_data_count_as_found(shown: str) -> None:
     assert missing_numbers(texts=[shown], data=DATA, request="") == []
 
 
+def test_half_rappen_round_up_like_the_browser() -> None:
+    assert missing_numbers(texts=["CHF 9'753"], data={"total": 9752.50}, request="") == []
+
+
 def test_number_not_in_data_is_missing() -> None:
     assert missing_numbers(texts=["Total CHF 1'234.00"], data=DATA, request="") == ["1'234.00"]
 
