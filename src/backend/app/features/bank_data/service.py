@@ -1,4 +1,5 @@
 import json
+from datetime import date
 from typing import Any
 
 from app.features.bank_data.schemas import BankData
@@ -17,6 +18,17 @@ class BankDataService:
         """One read from the banking API as the customer, shortened to fit a tool result."""
         data = await self.ledger.read(path=path, token=token, params=params)
         return BankData(root=fit(data=data))
+
+    async def list_upcoming_payments(
+        self, token: str, date_from: date | None, date_to: date | None
+    ) -> dict[str, Any]:
+        """The bank's upcoming payments as it lists them; without dates, its next 60 days."""
+        params = {
+            name: value.isoformat()
+            for name, value in {"from": date_from, "to": date_to}.items()
+            if value is not None
+        }
+        return await self.ledger.read(path="/upcoming-payments", token=token, params=params)
 
 
 def fit(data: dict[str, Any]) -> dict[str, Any]:

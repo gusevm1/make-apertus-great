@@ -45,3 +45,8 @@ class InstalmentPlan(BaseModel):
 class RecurringPayments(BaseModel):
     recurring: list[RecurringPayment]
     instalment_plans: list[InstalmentPlan]
+
+
+class ResponseRecurringPayments(BaseModel):
+    recurring: list[RecurringPayment]
+    instalment_plans: list[InstalmentPlan]

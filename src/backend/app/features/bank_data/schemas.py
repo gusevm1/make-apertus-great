@@ -14,6 +14,10 @@ class BankData(RootModel[dict[str, Any]]):
     """What the banking API answered, with empty fields dropped and long lists shortened."""
 
 
+class ResponseUpcomingPayments(RootModel[dict[str, Any]]):
+    """The banking API's upcoming payments, unchanged."""
+
+
 class Args(BaseModel):
     # An argument the tool does not have is an error the model can correct, not a dropped filter.
     model_config = ConfigDict(extra="forbid")
