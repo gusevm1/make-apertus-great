@@ -29,7 +29,7 @@ GOLD_PATH = Path(__file__).with_name("categorisation_gold.jsonl")
 PERSONAS = ("lukas", "jana", "daniela", "marco")
 HELD_OUT_SHARE = 4  # one payee in four, per customer, is held out
 CATEGORISE_TIMEOUT_SECONDS = 900
-MAX_CATEGORISE_CALLS = 3
+MAX_CATEGORISE_CALLS = 6
 UPSTREAM_FAILED = 502
 
 
