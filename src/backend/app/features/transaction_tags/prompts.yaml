@@ -88,7 +88,8 @@ sum_spending: >-
   what went to own savings for it, apart from what was spent. A booking can carry several personal
   tags, so never add up tag groups. These sums are final: use them as they are and never add rows
   yourself. Use it for "how much do I spend on groceries", "what has the Japan trip cost me" and
-  "where could I save": saving starts from negligible and minor spending, never from critical.
+  "where could I save": saving starts from negligible and minor spending, never from critical. It
+  knows no month: for spending per month, also for a chart, use sum_by_month.
 group_by: "What to add up per: category, personal_tag or severity."
 date_from: "First day of the period, as YYYY-MM-DD. Leave it out for the whole history."
 date_to: "Last day of the period, as YYYY-MM-DD."
