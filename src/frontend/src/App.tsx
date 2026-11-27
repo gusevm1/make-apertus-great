@@ -529,7 +529,11 @@ function Chat({
                     <Markdown text={stream.text} />
                   ) : (
                     waitingCalls.length === 0 && (
-                      <p className="hint">Thinking…</p>
+                      <p className="hint">
+                        {stream.isChecking
+                          ? "Checking the figures…"
+                          : "Thinking…"}
+                      </p>
                     )
                   )}
                 </Answer>

@@ -52,6 +52,8 @@ interface StreamState {
   toolCalls: StreamToolCall[];
   /** The planning round in progress, from the last `planning` event. */
   round: number | null;
+  /** The answer is written and its figures are being checked, from the `checking` event. */
+  isChecking: boolean;
   startedAt: number | null;
   /** Time from `start` to the last tool result. */
   workedMs: number | null;
@@ -63,6 +65,7 @@ const IDLE: StreamState = {
   text: "",
   toolCalls: [],
   round: null,
+  isChecking: false,
   startedAt: null,
   workedMs: null,
   error: null,
@@ -98,6 +101,8 @@ export function useStream<TDone>() {
     if (event === "token") {
       const data: { text: string } = JSON.parse(raw);
       setState((current) => ({ ...current, text: current.text + data.text }));
+    } else if (event === "checking") {
+      setState((current) => ({ ...current, isChecking: true }));
     } else if (event === "planning") {
       const data: { round: number } = JSON.parse(raw);
       setState((current) => ({ ...current, round: data.round }));
