@@ -96,3 +96,10 @@ def test_a_long_reference_in_a_source_is_skipped_not_a_crash() -> None:
 
     assert result is not None
     assert result.detail == "0 of 1 found; not found: 39.90"
+
+
+def test_a_figure_after_a_narrow_space_is_checked() -> None:
+    result = check(answer="IKEA CHF 184.90 and CHF 39.90.", sources=["184.9"])
+
+    assert result is not None
+    assert result.detail == "1 of 2 found; not found: 39.90"

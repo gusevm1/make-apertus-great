@@ -28,7 +28,7 @@ _DATES = re.compile(
 _THOUSANDS = "'\u2019\u00a0\u202f\u2009"
 # 2'916.35, 2 916.35 with a narrow space, 114,599.33, 2916.35, 0,95, 12 %, 9.8k
 _NUMBER = re.compile(
-    rf"(?<![\w.,{_THOUSANDS}])(\d{{1,3}}(?:[{_THOUSANDS}]\d{{3}})+"
+    rf"(?<![\w.,'\u2019])(?<!\d[{_THOUSANDS}])(\d{{1,3}}(?:[{_THOUSANDS}]\d{{3}})+"
     r"|\d{1,3}(?:,\d{3})+(?![\d,])|\d+)"
     r"(?:[.,](\d+))?(\s?%|k\b)?"
 )
