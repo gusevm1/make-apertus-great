@@ -34,7 +34,8 @@ questions:
         account: [ACC-PRIV, ACC-TAX, ACC-RES, ACC-LT]
     traps:
       - Adding the balances in the answer instead of quoting total_balance_chf.
-      - Giving the asset overview, which adds the depot, as the account total.
+      - Giving the asset overview, which adds the depot, as the account total. Customers without a
+        depot may use it.
 
   - id: l02
     customer: lukas
@@ -454,6 +455,7 @@ questions:
     question: What is my total balance across all my accounts right now?
     call_sets:
       - [{tool: list_accounts}]
+      - [{tool: get_asset_overview}]
     example: [{tool: list_accounts}]
     figures:
       - {name: total, source: accounts, measure: sum}
@@ -625,6 +627,7 @@ questions:
     question: What is my total balance across all my accounts right now?
     call_sets:
       - [{tool: list_accounts}]
+      - [{tool: get_asset_overview}]
     example: [{tool: list_accounts}]
     figures:
       - {name: total, source: accounts, measure: sum}
@@ -909,6 +912,7 @@ questions:
     question: What is my total balance across all my accounts right now?
     call_sets:
       - [{tool: list_accounts}]
+      - [{tool: get_asset_overview}]
     example: [{tool: list_accounts}]
     figures:
       - {name: total, source: accounts, measure: sum}

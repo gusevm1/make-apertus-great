@@ -34,6 +34,7 @@ CHECK_NAME = "figures_found"
 # Sums of more answer figures than this are not tried, since the subsets grow as 2^n.
 MAX_ADDENDS = 12
 MIN_ADDEND = Decimal(10)
+SMALL_WHOLE = 100
 # Constants an answer may name without a tool: the card's fx fee.
 CONSTANTS = [Decimal("1.75")]
 ANSWER_FAILURES: set[Failure] = {
@@ -83,6 +84,8 @@ class RunResult(BaseModel):
     failures: list[Failure]
     check: Check | None
     error: str | None
+    # The turn as asked, so a later scorer can score it again without the gateway.
+    turn: Turn
 
     @property
     def passed(self) -> bool:
@@ -111,7 +114,9 @@ def flagged_texts(check: Check | None) -> set[str]:
 
 
 def has_minus(answer: str, text: str) -> bool:
-    return re.search(rf"[-−]\s?(?:CHF\s?)?{re.escape(text)}", answer) is not None
+    # Right before the number or after the currency, so a list's "- CHF 430.05" is no sign.
+    number = re.escape(text)
+    return re.search(rf"[-−‑]{number}|CHF\s?[-−‑]\s?{number}", answer) is not None
 
 
 def sum_of(figure: Figure, values: list[Decimal], largest_subset: int) -> list[Decimal] | None:
@@ -126,11 +131,21 @@ def sum_of(figure: Figure, values: list[Decimal], largest_subset: int) -> list[D
     return None
 
 
+def is_small_whole(figure: Figure) -> bool:
+    """A bare whole number below 100, such as a day, a month or a count of bookings."""
+    is_bare = not (figure.is_amount or figure.is_percent or figure.is_kilo)
+    return is_bare and figure.decimals == 0 and figure.value < SMALL_WHOLE
+
+
 def classify(
     question: GoldQuestion, computed: Computed, answer: str, sources: list[str]
 ) -> tuple[list[FigureVerdict], list[str]]:
     """Each figure of the answer with its verdict, and the required gold groups it lacks."""
-    figures = [figure for figure in _figures(text=answer) if not _is_count_or_year(figure)]
+    figures = [
+        figure
+        for figure in _figures(text=answer)
+        if not _is_count_or_year(figure) and not is_small_whole(figure=figure)
+    ]
     source_values = {figure.value for source in sources for figure in _figures(text=source)}
     # Counts, months and days are no amounts to add.
     money = sorted(value for value in source_values if value >= MIN_ADDEND)
@@ -274,6 +289,7 @@ def score_turn(question: GoldQuestion, computed: Computed, turn: Turn, run: int)
         failures=failures,
         check=check,
         error=turn.error,
+        turn=turn,
     )
 
 
@@ -431,6 +447,17 @@ def write_results(split: str, reports: dict[str, Any], results: list[RunResult])
     return path
 
 
+def earlier_turns(path: Path, questions: list[GoldQuestion]) -> dict[tuple[str, int], Turn]:
+    """The turns of an earlier results file, only those of the selected questions."""
+    asked = {question.id for question in questions}
+    results = json.loads(path.read_text())["results"]
+    return {
+        (result["question_id"], result["run"]): Turn.model_validate(result["turn"])
+        for result in results
+        if result["question_id"] in asked
+    }
+
+
 def select(questions: list[GoldQuestion], split: str) -> list[GoldQuestion]:
     """The questions of one split; held-out ones are never asked for `tune`."""
     if split == "all":
@@ -445,8 +472,14 @@ async def main() -> int:
     parser.add_argument("--runs", type=int, default=1)
     parser.add_argument("--concurrency", type=int, default=1)
     parser.add_argument("--only", nargs="*", default=None, help="question ids of the split")
+    parser.add_argument(
+        "--rescore",
+        type=Path,
+        default=None,
+        help="score the turns of an earlier results file again",
+    )
     args = parser.parse_args()
-    if args.base_url is None:
+    if args.base_url is None and args.rescore is None:
         parser.error("set EVALS_BASE_URL or pass --base-url http://localhost:<your backend port>")
     questions = select(questions=load_gold(), split=args.split)
     if args.only is not None:
@@ -457,9 +490,16 @@ async def main() -> int:
         for problem in problems:
             print(f"PROBLEM {problem}")  # noqa: T201
         return 1
-    turns = await ask_all(
-        questions=questions, base_url=args.base_url, runs=args.runs, concurrency=args.concurrency
-    )
+    if args.rescore is not None:
+        turns = earlier_turns(path=args.rescore, questions=questions)
+        args.runs = 1 + max(run for _, run in turns)
+    else:
+        turns = await ask_all(
+            questions=questions,
+            base_url=str(args.base_url),
+            runs=args.runs,
+            concurrency=args.concurrency,
+        )
     results = [
         score_turn(
             question=question,

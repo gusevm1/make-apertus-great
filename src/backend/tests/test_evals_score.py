@@ -67,6 +67,10 @@ def _written(folder: Path) -> dict:
     return json.loads(next(folder.glob("*-tune.json")).read_text())
 
 
+def _write(path: Path, results: list[dict]) -> None:
+    path.write_text(json.dumps({"results": results}))
+
+
 def _score(turn: Turn) -> score.RunResult:
     return score_turn(question=QUESTION, computed=COMPUTED, turn=turn, run=0)
 
@@ -135,6 +139,13 @@ def test_a_minus_before_spending_is_a_wrong_sign() -> None:
     result = _score(_turn(answer="Ausgaben: CHF -430.05"))
 
     assert "wrong_sign" in result.failures
+
+
+def test_a_list_dash_is_no_sign_and_small_whole_numbers_are_no_figures() -> None:
+    result = _score(_turn(answer="- CHF 430.05 in 10 Einkäufen am 31. Oktober, Monat 2026-10"))
+
+    assert result.passed
+    assert [verdict.text for verdict in result.figures] == ["430.05"]
 
 
 def test_any_call_set_passes_and_a_forbidden_tool_fails() -> None:
@@ -206,3 +217,27 @@ async def test_a_tune_run_asks_and_writes_only_tune_questions(
     assert not held_out & set(seen["asked"])
     assert not held_out & {result["question_id"] for result in written["results"]}
     assert list(written["reports"]) == ["tune"]
+
+
+async def test_rescoring_reads_the_stored_turns_instead_of_asking(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    turn = _turn(answer="CHF 430.05")
+    earlier = tmp_path / "earlier.json"
+    _write(path=earlier, results=[_score(turn).model_dump(mode="json")])
+
+    async def compute_all(questions: list[GoldQuestion], check_paths: bool) -> tuple:
+        return {question.id: COMPUTED for question in questions}, []
+
+    async def ask_all(**_: object) -> dict:
+        raise AssertionError("a rescore never asks the gateway")
+
+    monkeypatch.setattr(score, "load_gold", lambda: [QUESTION])
+    monkeypatch.setattr(score, "compute_all", compute_all)
+    monkeypatch.setattr(score, "ask_all", ask_all)
+    monkeypatch.setattr(score, "check_frozen", lambda **_: [])
+    monkeypatch.setattr(score, "RESULTS_PATH", tmp_path)
+    monkeypatch.setattr(sys, "argv", ["score", "--rescore", str(earlier)])
+
+    assert await score.main() == 0
+    assert _written(folder=tmp_path)["reports"]["tune"]["passed_runs"] == 1
