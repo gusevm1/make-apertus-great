@@ -18,7 +18,11 @@
 <script>{{ bridge | safe }}</script>
 {% if form == "live" %}
 <script>{{ runtime | safe }}</script>
-<script>window.trustroomCharts({{ charts_json | safe }});</script>
+{# Vega measures labels on a canvas, which uses Inter only once it has loaded. #}
+<script>
+  Promise.all(["400", "500", "600"].map(function (weight) { return document.fonts.load(weight + " 12px Inter"); }))
+    .finally(function () { window.trustroomCharts({{ charts_json | safe }}); });
+</script>
 {% endif %}
 </body>
 </html>

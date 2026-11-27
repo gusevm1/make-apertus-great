@@ -268,7 +268,11 @@ tfoot td { font-weight: 700; border-bottom: 0; }
 </script>
 
 <script></script>
-<script>window.trustroomCharts({"charts": [], "config": {"background": null, "font": "Inter, system-ui, -apple-system, Segoe UI, sans-serif", "padding": {"left": 0, "right": 4, "top": 10, "bottom": 0}, "view": {"stroke": null}, "axis": {"labelColor": "#5b6870", "labelFontSize": 12, "labelPadding": 6, "domain": false, "ticks": false, "title": null, "gridColor": "#e6e8e8"}, "axisX": {"grid": false, "labelAngle": 0}, "axisY": {"tickCount": 4, "labelFontWeight": 500}, "legend": {"orient": "top", "direction": "horizontal", "title": null, "labelColor": "#12202a", "labelFontSize": 12, "symbolType": "circle"}}, "locale": {"decimal": ".", "thousands": "'", "grouping": [3], "currency": ["CHF ", ""]}});</script>
+
+<script>
+  Promise.all(["400", "500", "600"].map(function (weight) { return document.fonts.load(weight + " 12px Inter"); }))
+    .finally(function () { window.trustroomCharts({"charts": [], "config": {"background": null, "font": "Inter, system-ui, -apple-system, Segoe UI, sans-serif", "padding": {"left": 0, "right": 4, "top": 10, "bottom": 0}, "view": {"stroke": null}, "axis": {"labelColor": "#5b6870", "labelFontSize": 12, "labelPadding": 6, "domain": false, "ticks": false, "title": null, "gridColor": "#e6e8e8"}, "axisX": {"grid": false, "labelAngle": 0}, "axisY": {"tickCount": 4, "labelFontWeight": 500}, "legend": {"orient": "top", "direction": "horizontal", "title": null, "labelColor": "#12202a", "labelFontSize": 12, "symbolType": "circle"}}, "locale": {"decimal": ".", "thousands": "'", "grouping": [3], "currency": ["CHF ", ""]}}); });
+</script>
 
 </body>
 </html>
