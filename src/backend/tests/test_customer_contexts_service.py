@@ -167,12 +167,13 @@ def test_a_document_or_an_entry_cannot_close_the_block_or_open_a_tag() -> None:
 
 
 def test_the_oldest_documents_are_cut_first() -> None:
-    documents = [_document(name=f"doc-{number:02}.pdf", title="x" * 400) for number in range(20)]
+    documents = [_document(name=f"doc-{number:02}.pdf", title="x" * 400) for number in range(25)]
 
     block = customer_block(profile={}, documents=documents, entries=[_entry(text="Keep me")])
 
     assert len(block) <= BLOCK_MAX_CHARS
     assert "doc-00.pdf" in block
     assert "doc-19.pdf" not in block
-    assert "older ones left out here" in block
+    # The five beyond the newest 20 count as left out too.
+    assert f"- {25 - block.count('.pdf: ')} older ones left out here" in block
     assert "Keep me" in block

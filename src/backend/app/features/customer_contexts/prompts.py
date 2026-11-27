@@ -6,6 +6,7 @@ from app.features.documents.schemas import Document, DocumentField
 
 PROMPTS = load_prompts(prompts_py=__file__)
 BLOCK_MAX_CHARS = 6000
+DOCUMENTS_MAX = 20
 # What the chat may know from /customer; address, email, mobile and advisor stay out.
 PROFILE_FIELDS = (
     "birth_date",
@@ -27,8 +28,8 @@ def customer_block(
     profile: dict[str, Any], documents: list[Document], entries: list[ContextEntry]
 ) -> str:
     """The customer block for a turn; `documents` and `entries` newest first."""
-    documents, entries = list(documents), list(entries)
-    left_out_documents, left_out_entries = 0, 0
+    left_out_documents, left_out_entries = max(0, len(documents) - DOCUMENTS_MAX), 0
+    documents, entries = documents[:DOCUMENTS_MAX], list(entries)
     while True:
         block = PROMPTS["customer"].format(
             profile=_lines(lines=_profile_lines(profile=profile), left_out=0),

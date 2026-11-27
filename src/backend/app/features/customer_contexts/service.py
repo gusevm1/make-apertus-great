@@ -5,7 +5,6 @@ from app.features.context_entries.service import ContextEntryService
 from app.features.customer_contexts.prompts import customer_block
 from app.features.documents.service import DocumentService
 
-DOCUMENTS_MAX = 20
 ENTRIES_MAX = 50
 
 
@@ -16,9 +15,7 @@ class CustomerContextService:
 
     async def get_customer_block(self, owner_id: UUID, profile: dict[str, Any]) -> str:
         """Who the customer is, for a chat turn: profile, newest documents and active entries."""
-        # ponytail: loads every document with its text to keep 20; a list without markdown if slow
+        # ponytail: loads every document with its text; a list without markdown if it gets slow
         documents = await self.documents.list_documents(owner_id=owner_id)
         entries = await self.context_entries.list_entries(owner_id=owner_id)
-        return customer_block(
-            profile=profile, documents=documents[:DOCUMENTS_MAX], entries=entries[:ENTRIES_MAX]
-        )
+        return customer_block(profile=profile, documents=documents, entries=entries[:ENTRIES_MAX])
