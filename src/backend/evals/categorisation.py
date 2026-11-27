@@ -5,6 +5,8 @@ Run against a running backend on the real gateway, from `src/backend`:
 It clears the stored categories of the chosen split's bookings, has the backend categorise them
 again through `POST /api/categorisations`, and compares every booking with its gold label.
 The held-out split is for the final report only: never tune on its results.
+It deletes stored categories, and without --keep-corrections the customer's corrections too,
+straight in the database: run it against your own worktree database, never the shared demo one.
 """
 
 import argparse
@@ -128,7 +130,7 @@ async def categorise_persona(
 
 
 def needs_review(tag: dict[str, Any]) -> bool:
-    """The category center's rule: unsure, unrated, or unlike the payee's usual category."""
+    """The center's `needsReview` (CategoryCenter.tsx): unsure, unrated or unusual for the payee."""
     if tag["category_confirmed"]:
         return False
     if tag["category"] != tag["payee_usual_category"]:

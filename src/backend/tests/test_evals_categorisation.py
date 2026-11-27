@@ -1,5 +1,6 @@
 from typing import Any
 
+from app.features.transaction_tags.schemas import CATEGORIES
 from evals.categorisation import load_gold, score, split_of
 
 
@@ -38,6 +39,7 @@ def test_every_gold_row_carries_its_split_and_a_valid_category() -> None:
     gold = load_gold()
 
     assert len({row["uid"] for row in gold}) == len(gold)
+    assert all(row["category"] in CATEGORIES for row in gold)
     assert all(row["split"] == split_of(persona=row["persona"], payee=row["payee"]) for row in gold)
     held_out = sum(row["split"] == "heldout" for row in gold) / len(gold)
     assert 0.15 < held_out < 0.35

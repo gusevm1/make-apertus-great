@@ -2,7 +2,7 @@
 
 Gold set: `categorisation_gold.jsonl`, 8,623 spending bookings of the four customers, labelled one by one by
 Claude (Opus 5.5) against `categorisation_rubric.md`. Held out: one payee in four per customer (2,316
-bookings, 120 payees), fixed in commit 7570a89 before the first run and never used for tuning.
+bookings, 120 payees), fixed in commit c1354d9 before the first run and never used for tuning.
 
 Gold quality: a second Opus labeller relabelled 500 rows blind (weighted to the batches written per payee
 and to payees whose rows vary) and agreed on 494 (98.8 %). The six disagreements are real borders: club
@@ -67,8 +67,9 @@ swimming and ski courses (18).
 
 ## v4
 
-The examples use names that appear nowhere in the gold set (Quickline, Agrola, an invented drugstore and
-swimming club, a concert bar). Fixed: fuel stations, drugstores, most home internet. During this run
+The examples use names that appear nowhere in the gold set: an invented drugstore, pharmacy and swimming
+club, and Quickline, Agrola and a concert bar, which are real but absent from the data (the prompt calls
+them made up). Fixed: fuel stations, drugstores, most home internet. During this run
 the gateway timed out 148 calls between 20:50 and 21:30, so Jana's last 401 bookings were categorised
 by a further call after the run; the prompt was the same.
 Left at high: a bar with concerts (Rössli Reitschule, 20, a border the blind labeller also split on),
@@ -147,8 +148,8 @@ Then the tune split was categorised again with the corrections kept:
   164 → 97, Daniela 111 → 96, Marco 165 → 83.
 
 So the teacher-tuned prompt does the work on payees nobody has seen, and the payee memory removes what
-the customer has corrected; both stay. The examples in the prompt stay as they are, since they cost
-nothing measurable.
+the customer has corrected; both stay. On the tune split the examples in the prompt looked neutral; the
+held-out run below shows they make Apertus overconfident, so #296 removes them.
 
 ## Held out, measured once at the end
 
