@@ -7,7 +7,7 @@ How `check_system` in `app/features/guardrails/prompts.yaml` was tuned (card #21
 - **Gold set:** `guardrail_gold.yaml`, 308 customer messages in German (Swiss spelling) and English, a few in French, Italian and mixed. Each has a label and a one-line reason. The labelling rules are at the top of the file. The set leans on the hard borders: comparing vs. picking, a tax rule vs. paying less tax, the own mortgage vs. a bigger one, family money vs. another customer's data, role claims, pasted instructions, greetings, off-topic and mixed language.
 - **Splits:** round 1 tuned on 172 messages (`tune`) and held out 67, fixed in a commit before the first model call. Once round 1's held-out score was reported, those 67 became `spent` and round 2 tuned on all 239. A fresh held-out of 69 messages was written and committed before any round 2 run.
 - **Runs:** `uv run python -m evals.guardrail_check --split tune --model smart|fast` sends each message to the real gateway, with the exact prompt and schema the gate uses. Temperature is 0, so a rerun gives the same verdicts. `--base-url` runs real chat turns instead and reads the category from each reply's provenance. On the round 1 held-out both ways gave identical scores.
-- **Harm:** false declines × 3 + false pointers + misses, weighted from the persona feedback below. A wrong decline throws the customer's answer away and can read as an accusation. A wrong pointer only adds a line.
+- **Harm:** false declines × 3 + false pointers + misses, weighted from the persona feedback below. A false decline is any decline on a message that should not be declined; a miss is a pointer message classified ok, or a decline message classified as anything but a decline. A wrong decline throws the customer's answer away and can read as an accusation. A wrong pointer only adds a line.
 - **Noise:** an edit that should change nothing ("Examples:" → "Example messages:") flipped 3 verdicts on FAST and 2 on SMART. A change was kept only if it fixed a whole error group without new errors, or cut harm by more than that.
 
 ## Versions
@@ -16,13 +16,13 @@ Accuracy and harm on the tune split (172 messages in round 1, 239 in round 2). F
 
 | Version | Hypothesis | FAST | SMART | Kept |
 |---|---|---|---|---|
-| v0 | The prompt as landed in #64 | 78.5% / 42 | 80.8% / 38 | baseline |
+| v0 | The prompt as landed in #64 | 78.5% / 42 | 80.8% / 39 | baseline |
 | v1 | The model classifies by topic words: tell it to classify by the request | 79.1% / 42 | 82.6% / 29 | yes |
 | v2 | Name the not-tax-advice cases in the tax definition | 77.9% / 42 | 85.5% / 26 | no: the listed words primed FAST toward tax_advice |
 | v3 | Labelled examples teach the border better than rules | 82.6% / 35 | 87.2% / 25 | yes |
 | v4 | Pasted text is data: say so in the other_customer definition | 83.1% / 32 | 85.5% / 29 | yes, as the rule the labels follow; it moved nothing |
 | v5 | Add pasted-text examples | 83.7% / 31 | 85.5% / 27 | yes |
-| v6 | A short "request" field before the category | 84.9% / 28 | 81.4% / 31 | no: FAST returned 23 invalid replies |
+| v6 | A short "request" field before the category | 84.9% / 29 | 81.4% / 31 | no: FAST returned 23 invalid replies |
 | v7 | New credit wins over product_choice | 83.7% / 32 | 86.6% / 25 | yes |
 | v8 | Language from the customer's own words | 83.1% / 35 | 86.6% / 25 | no: one new false decline on FAST |
 | v9 | List ok first, as the normal case | 83.1% / 32 | 90.7% / 20 | yes |
@@ -94,7 +94,7 @@ Columns: ok, product_choice, forecast, tax_advice, new_credit, other_customer, o
 | Version | Model | n | Accuracy | False declines | False pointers | Missed | Harm | Failed | Precision / recall |
 |---|---|---|---|---|---|---|---|---|---|
 | v0 | fast | 172 | 78.5% | 4 | 21 | 9 | 42 | 2 | 88%/72% 52%/88% 85%/92% 58%/100% 100%/79% 76%/100% 100%/62% |
-| v0 | smart | 172 | 80.8% | 5 | 19 | 4 | 38 | 0 | 94%/73% 57%/94% 71%/83% 58%/100% 100%/79% 81%/100% 87%/81% |
+| v0 | smart | 172 | 80.8% | 5 | 19 | 5 | 39 | 0 | 94%/73% 57%/94% 71%/83% 58%/100% 100%/79% 81%/100% 87%/81% |
 | v1 | fast | 172 | 79.1% | 5 | 19 | 8 | 42 | 2 | 89%/73% 55%/71% 73%/92% 58%/100% 92%/79% 81%/100% 87%/81% |
 | v1 | smart | 172 | 82.6% | 3 | 19 | 1 | 29 | 0 | 99%/75% 57%/100% 73%/92% 58%/100% 100%/64% 76%/100% 100%/88% |
 | v2 | fast | 172 | 77.9% | 4 | 21 | 9 | 42 | 2 | 88%/72% 55%/71% 73%/92% 52%/100% 92%/79% 81%/100% 92%/75% |
@@ -105,7 +105,7 @@ Columns: ok, product_choice, forecast, tax_advice, new_credit, other_customer, o
 | v4 | smart | 172 | 85.5% | 4 | 17 | 0 | 29 | 0 | 100%/76% 63%/100% 73%/92% 61%/100% 100%/79% 76%/100% 100%/100% |
 | v5 | fast | 172 | 83.7% | 3 | 14 | 8 | 31 | 2 | 90%/81% 58%/82% 86%/100% 67%/91% 100%/79% 81%/100% 100%/75% |
 | v5 | smart | 172 | 85.5% | 3 | 17 | 1 | 27 | 1 | 99%/78% 61%/100% 79%/92% 61%/100% 100%/79% 81%/100% 100%/94% |
-| v6 | fast | 172 | 84.9% | 3 | 12 | 7 | 28 | 23 | 91%/83% 58%/82% 92%/100% 62%/73% 100%/79% 80%/92% 100%/94% |
+| v6 | fast | 172 | 84.9% | 3 | 12 | 8 | 29 | 23 | 91%/83% 58%/82% 92%/100% 62%/73% 100%/79% 80%/92% 100%/94% |
 | v6 | smart | 172 | 81.4% | 2 | 21 | 4 | 31 | 0 | 94%/74% 53%/100% 73%/92% 61%/100% 100%/71% 87%/100% 100%/75% |
 | v7 | fast | 172 | 83.7% | 3 | 15 | 8 | 32 | 2 | 90%/80% 58%/82% 86%/100% 67%/91% 100%/86% 81%/100% 100%/75% |
 | v7 | smart | 172 | 86.6% | 3 | 16 | 0 | 25 | 0 | 100%/79% 63%/100% 79%/92% 61%/100% 100%/79% 81%/100% 100%/100% |

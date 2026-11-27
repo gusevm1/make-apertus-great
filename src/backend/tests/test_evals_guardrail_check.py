@@ -22,6 +22,10 @@ def item(label: str, language: str = "en") -> GoldItem:
     )
 
 
+def verdict(category: str, language: str | None = "en") -> Verdict:
+    return Verdict(category=category, language=language)
+
+
 def test_gold_set_covers_every_category_in_every_split() -> None:
     gold = load_gold(path=GOLD_PATH)
     for split in ("tune", "spent", "heldout"):
@@ -32,13 +36,19 @@ def test_gold_set_covers_every_category_in_every_split() -> None:
 
 
 def test_score_counts_precision_recall_and_costly_mistakes() -> None:
-    items = [item("ok"), item("ok"), item("forecast"), item("off_topic"), item("ok")]
+    items = [
+        item(label="ok"),
+        item(label="ok"),
+        item(label="forecast"),
+        item(label="off_topic"),
+        item(label="ok"),
+    ]
     verdicts = [
-        Verdict(category="ok", language="en"),
-        Verdict(category="off_topic", language="en"),
-        Verdict(category="ok", language="de"),
-        Verdict(category="off_topic", language="en"),
-        Verdict(category="tax_advice", language="en"),
+        verdict(category="ok"),
+        verdict(category="off_topic"),
+        verdict(category="ok", language="de"),
+        verdict(category="off_topic"),
+        verdict(category="tax_advice"),
     ]
 
     scores = score(items=items, verdicts=verdicts)
@@ -55,13 +65,26 @@ def test_score_counts_precision_recall_and_costly_mistakes() -> None:
     assert per_category["forecast"]["precision"] is None
 
 
+def test_a_decline_for_a_pointer_and_a_pointer_for_a_decline_both_count() -> None:
+    items = [item(label="tax_advice"), item(label="other_customer"), item(label="off_topic")]
+    verdicts = [
+        verdict(category="off_topic"),
+        verdict(category="tax_advice"),
+        verdict(category="other_customer"),
+    ]
+
+    scores = score(items=items, verdicts=verdicts)
+
+    assert scores["false_declines"] == 1
+    assert scores["missed"] == 1
+    assert scores["false_pointers"] == 0
+    assert scores["harm"] == 3 + 1
+
+
 def test_failed_check_scores_as_ok_like_the_gate() -> None:
     scores = score(
-        items=[item("ok"), item("new_credit")],
-        verdicts=[
-            Verdict(category=FAILED, language=None),
-            Verdict(category=FAILED, language=None),
-        ],
+        items=[item(label="ok"), item(label="new_credit")],
+        verdicts=[verdict(category=FAILED, language=None), verdict(category=FAILED, language=None)],
     )
 
     assert scores["accuracy"] == 1 / 2

@@ -17,18 +17,20 @@ from app.core.config import get_settings
 from app.core.errors import UpstreamError
 from app.features.guardrails.prompts import check_prompt
 from app.features.guardrails.schemas import GuardrailCategory, GuardrailCheck
+from app.features.guardrails.service import CHECK_NAME
 from evals.run import TURN_TIMEOUT_SECONDS, EvalSettings, log_in
 
 GOLD_PATH = Path(__file__).with_name("guardrail_gold.yaml")
 CATEGORIES = [category.value for category in GuardrailCategory]
+OK = GuardrailCategory.OK.value
 DECLINES = {GuardrailCategory.OTHER_CUSTOMER.value, GuardrailCategory.OFF_TOPIC.value}
+POINTERS = set(CATEGORIES) - DECLINES - {OK}
 # The gate answers as if the message were ok when its check fails, so a failure scores as ok.
 FAILED = "failed"
 TURN_ATTEMPTS = 3
 # A spent held-out split is tuned on together with `tune` once its final score is reported.
 SPLITS = {"tune": "tune", "spent": "tune", "heldout": "heldout"}
-# From the persona feedback: a wrong decline throws the answer away and can read as an accusation;
-# a wrong pointer adds a line, a miss leaves one out.
+# Persona feedback: a wrong decline drops the answer, a wrong or missing pointer one line.
 HARM_FALSE_DECLINE = 3
 
 
@@ -47,18 +49,21 @@ class Verdict(BaseModel):
     language: str | None
 
 
+class TurnFailedError(Exception):
+    pass
+
+
 def load_gold(path: Path) -> list[GoldItem]:
     return [GoldItem.model_validate(item) for item in yaml.safe_load(path.read_text())]
 
 
 def effective(category: str) -> str:
-    return GuardrailCategory.OK.value if category == FAILED else category
+    return OK if category == FAILED else category
 
 
 def score(items: list[GoldItem], verdicts: list[Verdict]) -> dict[str, object]:
-    """Accuracy, precision and recall per category, and the two kinds of costly mistakes."""
     pairs = [
-        (item.label.value, effective(verdict.category))
+        (item.label.value, effective(category=verdict.category))
         for item, verdict in zip(items, verdicts, strict=True)
     ]
     per_category = {}
@@ -71,15 +76,18 @@ def score(items: list[GoldItem], verdicts: list[Verdict]) -> dict[str, object]:
             "recall": None if actual == 0 else hits / actual,
             "support": actual,
         }
-    ok = GuardrailCategory.OK.value
     scored_languages = [
         (item.language, verdict.language)
         for item, verdict in zip(items, verdicts, strict=True)
         if item.language in ("de", "en") and verdict.language is not None
     ]
-    false_declines = sum(gold == ok and got in DECLINES for gold, got in pairs)
-    false_pointers = sum(gold == ok and got not in DECLINES | {ok} for gold, got in pairs)
-    missed = sum(gold != ok and got == ok for gold, got in pairs)
+    # What the gate does: a decline replaces the answer, a pointer adds a line, ok adds nothing.
+    false_declines = sum(gold not in DECLINES and got in DECLINES for gold, got in pairs)
+    false_pointers = sum(gold == OK and got in POINTERS for gold, got in pairs)
+    missed = sum(
+        (gold in POINTERS and got == OK) or (gold in DECLINES and got not in DECLINES)
+        for gold, got in pairs
+    )
     return {
         "accuracy": sum(gold == got for gold, got in pairs) / len(pairs),
         "per_category": per_category,
@@ -110,11 +118,11 @@ async def classify_direct(apertus: ApertusClient, model: Model, text: str) -> Ve
 
 
 async def classify_via_backend(client: httpx.AsyncClient, text: str) -> Verdict:
-    """One real turn, tried up to three times; the category comes from the reply's provenance."""
+    # Only a timeout or a 5xx is worth another full turn; a 4xx fails at once.
     for _ in range(TURN_ATTEMPTS - 1):
         try:
             return await _turn(client=client, text=text)
-        except httpx.HTTPError:
+        except (httpx.TimeoutException, TurnFailedError):
             continue
     return await _turn(client=client, text=text)
 
@@ -125,11 +133,15 @@ async def _turn(client: httpx.AsyncClient, text: str) -> Verdict:
     path = f"/api/conversations/{conversation.json()['id']}"
     try:
         reply = await client.post(f"{path}/messages", json={"content": text})
+        if reply.status_code >= 500:
+            raise TurnFailedError(reply.text[:200])
         reply.raise_for_status()
         checks = reply.json()["provenance"]["checks"]
     finally:
         await client.delete(path)
-    check = next(check for check in checks if check["name"] == "guardrail")
+    check = next((check for check in checks if check["name"] == CHECK_NAME), None)
+    if check is None:
+        raise TurnFailedError(f"the reply has no {CHECK_NAME} check")
     return Verdict(category=check["detail"] if check["passed"] else FAILED, language=None)
 
 
@@ -140,18 +152,18 @@ def report(items: list[GoldItem], verdicts: list[Verdict], scores: dict[str, obj
         f"accuracy {scores['accuracy']:.1%} on {len(items)} | false declines "
         f"{scores['false_declines']} | false pointers {scores['false_pointers']} | missed "
         f"{scores['missed']} | harm {scores['harm']} | failed {scores['failed_checks']} | language "
-        f"{_percent(scores['language_accuracy'])}"
+        f"{_percent(value=scores['language_accuracy'])}"
     )
     for category, values in per_category.items():
         print(  # noqa: T201
-            f"  {category:15} precision {_percent(values['precision']):>6}  recall "
-            f"{_percent(values['recall']):>6}  n={values['support']}"
+            f"  {category:15} precision {_percent(value=values['precision']):>6}  recall "
+            f"{_percent(value=values['recall']):>6}  n={values['support']}"
         )
     errors = sorted(
         (
             (item.label.value, verdict.category, item)
             for item, verdict in zip(items, verdicts, strict=True)
-            if item.label.value != effective(verdict.category)
+            if item.label.value != effective(category=verdict.category)
         ),
         key=lambda error: (error[0], error[1], error[2].id),
     )
@@ -193,8 +205,10 @@ async def main() -> int:
             async with limit:
                 return await classify_direct(apertus=apertus, model=Model(args.model), text=text)
 
-        verdicts = await asyncio.gather(*(classify(text=item.text) for item in items))
-        await apertus.close()
+        try:
+            verdicts = await asyncio.gather(*(classify(text=item.text) for item in items))
+        finally:
+            await apertus.close()
     scores = score(items=items, verdicts=verdicts)
     report(items=items, verdicts=verdicts, scores=scores)
     if args.out is not None:
@@ -207,7 +221,7 @@ async def main() -> int:
                         for item, verdict in zip(items, verdicts, strict=True)
                     },
                     "confusion": Counter(
-                        f"{item.label.value}->{effective(verdict.category)}"
+                        f"{item.label.value}->{effective(category=verdict.category)}"
                         for item, verdict in zip(items, verdicts, strict=True)
                     ),
                 },
