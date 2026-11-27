@@ -54,9 +54,9 @@ CRITERIA = [
             "no closed models or proprietary AI APIs at runtime."
         ),
         behind=(
-            "Every question on this page: the reply names the model that wrote it, and it has to "
-            "be an Apertus model. The rest of this criterion, the self-hosted components and the "
-            "data flow, is documented in the technical report."
+            "Every question on this page that got a reply: the reply names the model that wrote "
+            "it, and it has to be an Apertus model. The rest of this criterion, the self-hosted "
+            "components and the data flow, is documented in the technical report."
         ),
     ),
     Criterion(
@@ -67,8 +67,9 @@ CRITERIA = [
             "counselling, and the customer's own data only."
         ),
         behind=(
-            "The questions of evals/guardrails.yaml, asked as Lukas, because their patterns name "
-            "his advisor and the other customers."
+            "The questions of evals/guardrails.yaml, asked as the eval customer (Lukas unless "
+            "EVALS_USERNAME says otherwise), because their patterns name his advisor and the other "
+            "customers."
         ),
     ),
 ]
@@ -99,7 +100,7 @@ def plan_questions(
 
 def sovereignty_problems(result: QuestionResult) -> list[str]:
     if result.model is None:
-        return ["the reply names no model", *result.problems[:1]]
+        return ["the reply names no model"]
     if "apertus" not in result.model.lower():
         return [f"written by {result.model}"]
     return []
@@ -113,7 +114,8 @@ def problems_for(criterion: str, result: QuestionResult) -> list[str]:
 
 def results_for(criterion: str, entries: list[Entry]) -> list[QuestionResult]:
     if criterion == SOVEREIGNTY:
-        return [entry.result for entry in entries]
+        # A turn that got no reply has no model to check; its own criterion shows why.
+        return [entry.result for entry in entries if entry.result.got != ""]
     return [entry.result for entry in entries if entry.criterion == criterion]
 
 

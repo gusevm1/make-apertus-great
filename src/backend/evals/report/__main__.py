@@ -36,13 +36,15 @@ async def main() -> None:
         settings=EvalSettings(),
     )
     entries: list[Entry] = []
-    async for result in results:
-        entries.append(Entry(criterion=planned[len(entries)].criterion, result=result))
-        print(f"{len(entries):3}/{len(planned)} {format_result(result=result)}", flush=True)  # noqa: T201
-    PAGE_PATH.write_text(
-        render_page(entries=entries, base_url=args.base_url, finished_at=datetime.now())
-    )
-    print(f"Wrote {PAGE_PATH}")  # noqa: T201
+    # A run takes over an hour; a crash late in it still leaves a page of what was asked.
+    try:
+        async for result in results:
+            entries.append(Entry(criterion=planned[len(entries)].criterion, result=result))
+            print(f"{len(entries):3}/{len(planned)} {format_result(result=result)}", flush=True)  # noqa: T201
+    finally:
+        page = render_page(entries=entries, base_url=args.base_url, finished_at=datetime.now())
+        PAGE_PATH.write_text(page, encoding="utf-8")
+        print(f"Wrote {PAGE_PATH} with {len(entries)} of {len(planned)} questions")  # noqa: T201
 
 
 if __name__ == "__main__":

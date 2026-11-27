@@ -5,6 +5,7 @@ from evals.report import (
     CUSTOMERS,
     GUARDRAILS,
     OUTPUT,
+    SOVEREIGNTY,
     TRACEABILITY,
     Entry,
     plan_questions,
@@ -125,5 +126,15 @@ def test_sovereignty_needs_an_apertus_model_on_every_reply() -> None:
     assert sovereignty_problems(result=result(question="Hi", model="gpt-4o")) == [
         "written by gpt-4o"
     ]
+    assert sovereignty_problems(result=result(question="Hi", model=None)) == [
+        "the reply names no model"
+    ]
+
+
+def test_a_turn_without_reply_is_left_out_of_sovereignty() -> None:
     failed = result(question="Hi", model=None, problems=["turn failed: 502"])
-    assert sovereignty_problems(result=failed) == ["the reply names no model", "turn failed: 502"]
+    failed.got = ""
+    html = page(entries=[Entry(criterion=OUTPUT, result=failed)])
+
+    assert "the reply names no model" not in section(html=html, criterion=SOVEREIGNTY)
+    assert "turn failed: 502" in section(html=html, criterion=OUTPUT)
