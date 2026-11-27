@@ -1,0 +1,3 @@
+list_accounts: >-
+  The customer's own bank accounts with name, type, IBAN and current balance in CHF,
+  and the total over all of them, already added up.
