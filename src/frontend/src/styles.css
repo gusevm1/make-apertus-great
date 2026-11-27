@@ -880,3 +880,257 @@ main,
   overflow: hidden;
   clip-path: inset(50%);
 }
+
+/* Category center: bars per category split by certainty, then the bookings to review by payee. */
+.center {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1000px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.center-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.center-bar h1 {
+  flex: 1;
+  font-size: 18px;
+}
+
+.center-bar .link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.seg {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
+}
+
+.seg button {
+  padding: 4px 10px;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+}
+
+.seg button[aria-pressed="true"] {
+  font-weight: 600;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.bars {
+  margin: 8px 0;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 150px;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 8px;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+.bar:hover,
+.bar[aria-pressed="true"] {
+  background: var(--color-primary-soft);
+}
+
+.bar-total {
+  text-align: right;
+}
+
+.stack {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+}
+
+.count {
+  margin-left: 6px;
+  padding: 0 7px;
+  font-size: 12px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--chart-2);
+  border-radius: 999px;
+}
+
+.certainty-confirmed {
+  background: var(--color-primary);
+}
+
+.certainty-high {
+  background: var(--chart-5);
+}
+
+.certainty-medium {
+  background: var(--chart-2);
+}
+
+.certainty-low {
+  background: var(--chart-1);
+}
+
+.certainty-unknown {
+  background: var(--color-border-strong);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 3px;
+}
+
+.payees {
+  margin: 8px 0;
+}
+
+.payees > li {
+  border-top: 1px solid var(--color-border);
+}
+
+.payees summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  align-items: baseline;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+.payees summary strong {
+  flex: 1;
+  text-transform: capitalize;
+}
+
+.payees summary .hint {
+  font-size: 12px;
+}
+
+.payee-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-bottom: 8px;
+}
+
+.payee-actions button {
+  padding: 6px 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+.payee-actions button.primary {
+  color: var(--color-sidebar-text);
+  background: var(--color-primary);
+}
+
+.center select {
+  max-width: 100%;
+  padding: 4px 6px;
+  font: inherit;
+  color: inherit;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.review-rows li {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) auto 170px 100px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.review-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amount {
+  text-align: right;
+}
+
+.chip,
+.tag {
+  padding: 1px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.tag {
+  margin-left: 6px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-soft);
+}
+
+.certainty-chip-low {
+  border-color: var(--chart-1);
+}
+
+.certainty-chip-medium,
+.certainty-chip-unknown {
+  border-color: var(--chart-2);
+}
+
+@media (max-width: 600px) {
+  .bar {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+
+  .bar-total {
+    grid-column: 2;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    text-align: left;
+  }
+
+  .review-rows li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .review-rows .review-text {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    white-space: normal;
+  }
+}

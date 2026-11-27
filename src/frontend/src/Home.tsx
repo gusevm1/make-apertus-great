@@ -32,10 +32,17 @@ interface Props {
   chats: ChatListProps;
   isBusy: boolean;
   onAsk: (question: string) => void;
+  onOpenCategories: () => void;
 }
 
 /** The empty chat: questions for the page the customer is on, past chats, and what can be asked. */
-export function Home({ context, chats, isBusy, onAsk }: Props) {
+export function Home({
+  context,
+  chats,
+  isBusy,
+  onAsk,
+  onOpenCategories,
+}: Props) {
   const account = context.account;
   return (
     <section className="home">
@@ -70,6 +77,21 @@ export function Home({ context, chats, isBusy, onAsk }: Props) {
               </button>
             </li>
           ))}
+        </ul>
+      </div>
+      <div className="card">
+        <ul className="rows">
+          <li>
+            <button type="button" className="row" onClick={onOpenCategories}>
+              <span>
+                <span className="row-main">Check your categories</span>
+                <small className="hint">
+                  See where Apertus was unsure and correct it
+                </small>
+              </span>
+              <Icon name="chevronRight" size={16} />
+            </button>
+          </li>
         </ul>
       </div>
       <div className="home-chats">

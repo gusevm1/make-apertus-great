@@ -16,6 +16,7 @@ import {
 } from "./api";
 import { type HostContext, useHostContext } from "./host";
 import { Canvas, shownViewOf, type View, type Visual } from "./Canvas";
+import { CategoryCenter } from "./CategoryCenter";
 import { Confirmation } from "./Confirmation";
 import { ChatList, type ChatListProps, Home } from "./Home";
 import { Icon } from "./Icon";
@@ -25,16 +26,61 @@ import { useStream } from "./lib/useStream";
 import { Trace } from "./Trace";
 import { useVoiceInput } from "./useVoiceInput";
 
+const CATEGORIES_HASH = "#categories";
+
 export function App() {
   const context = useHostContext();
+  const [isCenter, setIsCenter] = useState(location.hash === CATEGORIES_HASH);
+
+  // A chat answer links to the category center with #categories.
+  useEffect(() => {
+    function handleHashChange() {
+      setIsCenter(location.hash === CATEGORIES_HASH);
+    }
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  function closeCenter() {
+    history.replaceState(null, "", location.pathname + location.search);
+    setIsCenter(false);
+  }
+
   if (context === null) {
     return <p className="hint">Waiting for the e-banking…</p>;
   }
   // A new customer logging in gets a fresh chat, never the previous customer's state.
-  return <Chat key={context.customer?.customer_id} context={context} />;
+  // The chat stays mounted behind the center, so the back button returns to the same chat.
+  return (
+    <>
+      <div hidden={isCenter}>
+        <Chat
+          key={context.customer?.customer_id}
+          context={context}
+          onOpenCategories={() => {
+            location.hash = CATEGORIES_HASH;
+          }}
+        />
+      </div>
+      {isCenter && (
+        <CategoryCenter
+          key={context.customer?.customer_id}
+          token={context.access_token}
+          today={context.today}
+          onBack={closeCenter}
+        />
+      )}
+    </>
+  );
 }
 
-function Chat({ context }: { context: HostContext }) {
+function Chat({
+  context,
+  onOpenCategories,
+}: {
+  context: HostContext;
+  onOpenCategories: () => void;
+}) {
   const token = context.access_token;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
@@ -309,6 +355,9 @@ function Chat({ context }: { context: HostContext }) {
           <button type="button" onClick={handleNewChat} disabled={isBusy}>
             <Icon name="plus" size={16} /> New chat
           </button>
+          <button type="button" onClick={onOpenCategories}>
+            Categories
+          </button>
           <ChatList {...chats} />
         </aside>
 
@@ -350,6 +399,7 @@ function Chat({ context }: { context: HostContext }) {
                 chats={chats}
                 isBusy={isBusy}
                 onAsk={(text) => void ask(text)}
+                onOpenCategories={onOpenCategories}
               />
             )}
             {messages.map((message, index) =>
