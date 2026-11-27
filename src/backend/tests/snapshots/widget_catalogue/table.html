@@ -46,6 +46,7 @@ th { font-weight: 500; font-size: 0.78rem; color: var(--muted); white-space: now
 td.num, th.num { text-align: right; white-space: nowrap; overflow-wrap: normal; }
 td.date { white-space: nowrap; overflow-wrap: normal; }
 tfoot td { font-weight: 700; border-bottom: 0; }
+.cut-note { margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
 .list ul { list-style: none; margin: 0; padding: 0; }
 .list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .list li:last-child { border-bottom: 0; }
@@ -78,8 +79,7 @@ tfoot td { font-weight: 700; border-bottom: 0; }
       <tr data-component="table-row" data-path="payments[1]" data-values="{&#34;due_date&#34;: &#34;2026-12-01&#34;, &#34;payee&#34;: &#34;&lt;b&gt;Fitnesspark&lt;/b&gt;&#34;, &#34;amount_chf&#34;: 119.0}" data-booking-ids="[]"><td class="date">01.12.2026</td><td>&lt;b&gt;Fitnesspark&lt;/b&gt;</td><td class="num">CHF 119.00</td>
       </tr>
     </tbody>
-    <tfoot><tr data-component="table-total" data-path="payments_total_chf" data-value="2919.0">
-      <td>Total</td><td></td><td class="num">CHF 2&#39;919.00</td>
+    <tfoot><tr data-component="table-total" data-path="payments_total_chf" data-value="2919.0" data-booking-ids="[]"><td>Total</td><td></td><td class="num">CHF 2&#39;919.00</td>
     </tr></tfoot>
   </table>
   </div>
@@ -119,9 +119,10 @@ tfoot td { font-weight: 700; border-bottom: 0; }
     var mark = event.target.closest("[role='graphics-symbol'][aria-label]");
     var element = event.target.closest("[data-path]");
     if (element === null) return;
-    // A mark in a static chart carries its row's path as its label.
-    if (mark !== null && element.contains(mark)) {
-      select(element, { path: mark.getAttribute("aria-label").replace(/^.*?:\s*/, "") });
+    // A mark in a static chart ends its label with its row's path in brackets.
+    var path = mark === null ? null : /\(([^()]*)\)$/.exec(mark.getAttribute("aria-label"));
+    if (path !== null && element.contains(mark)) {
+      select(element, { path: path[1] });
       return;
     }
     select(element);
@@ -146,6 +147,8 @@ tfoot td { font-weight: 700; border-bottom: 0; }
       }).then(function (result) {
         result.view.addEventListener("click", function (event, item) {
           if (item === null || item === undefined || item.datum === undefined || item.datum.path === undefined) return;
+          // A line or area is one shape for all its rows; only points, bars and labels name a row.
+          if (item.mark.marktype === "line" || item.mark.marktype === "area") return;
           select(host.closest("[data-path]"), {
             path: item.datum.path,
             label: item.datum.label,

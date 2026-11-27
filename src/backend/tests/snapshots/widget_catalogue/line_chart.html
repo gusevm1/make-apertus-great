@@ -46,6 +46,7 @@ th { font-weight: 500; font-size: 0.78rem; color: var(--muted); white-space: now
 td.num, th.num { text-align: right; white-space: nowrap; overflow-wrap: normal; }
 td.date { white-space: nowrap; overflow-wrap: normal; }
 tfoot td { font-weight: 700; border-bottom: 0; }
+.cut-note { margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
 .list ul { list-style: none; margin: 0; padding: 0; }
 .list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .list li:last-child { border-bottom: 0; }
@@ -106,9 +107,10 @@ tfoot td { font-weight: 700; border-bottom: 0; }
     var mark = event.target.closest("[role='graphics-symbol'][aria-label]");
     var element = event.target.closest("[data-path]");
     if (element === null) return;
-    // A mark in a static chart carries its row's path as its label.
-    if (mark !== null && element.contains(mark)) {
-      select(element, { path: mark.getAttribute("aria-label").replace(/^.*?:\s*/, "") });
+    // A mark in a static chart ends its label with its row's path in brackets.
+    var path = mark === null ? null : /\(([^()]*)\)$/.exec(mark.getAttribute("aria-label"));
+    if (path !== null && element.contains(mark)) {
+      select(element, { path: path[1] });
       return;
     }
     select(element);
@@ -133,6 +135,8 @@ tfoot td { font-weight: 700; border-bottom: 0; }
       }).then(function (result) {
         result.view.addEventListener("click", function (event, item) {
           if (item === null || item === undefined || item.datum === undefined || item.datum.path === undefined) return;
+          // A line or area is one shape for all its rows; only points, bars and labels name a row.
+          if (item.mark.marktype === "line" || item.mark.marktype === "area") return;
           select(host.closest("[data-path]"), {
             path: item.datum.path,
             label: item.datum.label,
@@ -150,7 +154,7 @@ tfoot td { font-weight: 700; border-bottom: 0; }
 </script>
 
 <script></script>
-<script>window.trustroomCharts({"charts": [{"id": "chart-1", "spec": {"width": "container", "autosize": {"type": "fit-x", "contains": "padding"}, "height": 220, "data": {"values": [{"x": "09", "label": "Sep", "y": 18699.41, "shown": "CHF 18'699.41", "series": "2025", "path": "years[0]", "booking_ids": []}, {"x": "10", "label": "Oct", "y": 8454.39, "shown": "CHF 8'454.39", "series": "2025", "path": "years[1]", "booking_ids": []}, {"x": "09", "label": "Sep", "y": 17273.6, "shown": "CHF 17'273.60", "series": "2026", "path": "years[2]", "booking_ids": []}, {"x": "10", "label": "Oct", "y": 10598.77, "shown": "CHF 10'598.77", "series": "2026", "path": "years[3]", "booking_ids": []}]}, "encoding": {"x": {"field": "label", "type": "ordinal", "sort": null}, "y": {"field": "y", "type": "quantitative", "axis": {"format": ",.0f"}}, "color": {"field": "series", "type": "nominal", "scale": {"range": ["#2e6b66", "#5b6870", "#9cc2be", "#7f9fb0", "#c2c8c8"]}}}, "layer": [{"mark": {"type": "line", "interpolate": "monotone", "strokeWidth": 2.5}}, {"mark": {"type": "point", "filled": true, "size": 60}, "encoding": {"description": {"field": "path"}, "tooltip": [{"field": "label", "title": " "}, {"field": "shown", "title": "value"}, {"field": "series", "title": " "}]}}]}}], "config": {"background": null, "font": "Inter, system-ui, -apple-system, Segoe UI, sans-serif", "padding": {"left": 0, "right": 4, "top": 10, "bottom": 0}, "view": {"stroke": null}, "axis": {"labelColor": "#5b6870", "labelFontSize": 12, "labelPadding": 6, "domain": false, "ticks": false, "title": null, "gridColor": "#e6e8e8"}, "axisX": {"grid": false, "labelAngle": 0}, "axisY": {"tickCount": 4, "labelFontWeight": 500}, "legend": {"orient": "top", "direction": "horizontal", "title": null, "labelColor": "#12202a", "labelFontSize": 12, "symbolType": "circle"}}, "locale": {"decimal": ".", "thousands": "'", "grouping": [3], "currency": ["CHF ", ""]}});</script>
+<script>window.trustroomCharts({"charts": [{"id": "chart-1", "spec": {"width": "container", "autosize": {"type": "fit-x", "contains": "padding"}, "height": 220, "data": {"values": [{"key": "09", "label": "Sep", "y": 18699.41, "shown": "CHF 18'699.41", "series": "2025", "path": "years[0]", "description": "09, CHF 18'699.41 (years[0])", "booking_ids": []}, {"key": "10", "label": "Oct", "y": 8454.39, "shown": "CHF 8'454.39", "series": "2025", "path": "years[1]", "description": "10, CHF 8'454.39 (years[1])", "booking_ids": []}, {"key": "09", "label": "Sep", "y": 17273.6, "shown": "CHF 17'273.60", "series": "2026", "path": "years[2]", "description": "09, CHF 17'273.60 (years[2])", "booking_ids": []}, {"key": "10", "label": "Oct", "y": 10598.77, "shown": "CHF 10'598.77", "series": "2026", "path": "years[3]", "description": "10, CHF 10'598.77 (years[3])", "booking_ids": []}]}, "encoding": {"x": {"field": "label", "type": "ordinal", "sort": null}, "y": {"field": "y", "type": "quantitative", "axis": {"format": ",.0f"}}, "color": {"field": "series", "type": "nominal", "scale": {"range": ["#2e6b66", "#5b6870", "#9cc2be", "#7f9fb0", "#c2c8c8"]}}}, "layer": [{"mark": {"type": "line", "interpolate": "monotone", "strokeWidth": 2.5}}, {"mark": {"type": "point", "filled": true, "size": 60}, "encoding": {"description": {"field": "description"}, "tooltip": [{"field": "label", "title": " "}, {"field": "shown", "title": "value"}, {"field": "series", "title": " "}]}}]}}], "config": {"background": null, "font": "Inter, system-ui, -apple-system, Segoe UI, sans-serif", "padding": {"left": 0, "right": 4, "top": 10, "bottom": 0}, "view": {"stroke": null}, "axis": {"labelColor": "#5b6870", "labelFontSize": 12, "labelPadding": 6, "domain": false, "ticks": false, "title": null, "gridColor": "#e6e8e8"}, "axisX": {"grid": false, "labelAngle": 0}, "axisY": {"tickCount": 4, "labelFontWeight": 500}, "legend": {"orient": "top", "direction": "horizontal", "title": null, "labelColor": "#12202a", "labelFontSize": 12, "symbolType": "circle"}}, "locale": {"decimal": ".", "thousands": "'", "grouping": [3], "currency": ["CHF ", ""]}});</script>
 
 </body>
 </html>

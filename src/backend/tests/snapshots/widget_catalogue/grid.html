@@ -46,6 +46,7 @@ th { font-weight: 500; font-size: 0.78rem; color: var(--muted); white-space: now
 td.num, th.num { text-align: right; white-space: nowrap; overflow-wrap: normal; }
 td.date { white-space: nowrap; overflow-wrap: normal; }
 tfoot td { font-weight: 700; border-bottom: 0; }
+.cut-note { margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
 .list ul { list-style: none; margin: 0; padding: 0; }
 .list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .list li:last-child { border-bottom: 0; }
@@ -68,10 +69,10 @@ tfoot td { font-weight: 700; border-bottom: 0; }
     <h1>Spending</h1>
     <p class="widget-sub">Sample</p>
   </header>
-  <div class="grid cols-2" data-component="grid"><section class="kpi" data-component="kpi" data-path="months[0].total_chf" data-value="17273.6">
+  <div class="grid cols-2" data-component="grid"><section class="kpi" data-component="kpi" data-path="months[0].total_chf" data-value="17273.6" data-booking-ids="[&#34;BK-01&#34;, &#34;BK-02&#34;]">
   <span class="kpi-label">Sep</span>
   <span class="kpi-value">CHF 17&#39;273.60</span>
-</section><section class="kpi" data-component="kpi" data-path="months[1].total_chf" data-value="10598.77">
+</section><section class="kpi" data-component="kpi" data-path="months[1].total_chf" data-value="10598.77" data-booking-ids="[&#34;BK-03&#34;]">
   <span class="kpi-label">Oct</span>
   <span class="kpi-value">CHF 10&#39;598.77</span>
 </section>
@@ -111,9 +112,10 @@ tfoot td { font-weight: 700; border-bottom: 0; }
     var mark = event.target.closest("[role='graphics-symbol'][aria-label]");
     var element = event.target.closest("[data-path]");
     if (element === null) return;
-    // A mark in a static chart carries its row's path as its label.
-    if (mark !== null && element.contains(mark)) {
-      select(element, { path: mark.getAttribute("aria-label").replace(/^.*?:\s*/, "") });
+    // A mark in a static chart ends its label with its row's path in brackets.
+    var path = mark === null ? null : /\(([^()]*)\)$/.exec(mark.getAttribute("aria-label"));
+    if (path !== null && element.contains(mark)) {
+      select(element, { path: path[1] });
       return;
     }
     select(element);
@@ -138,6 +140,8 @@ tfoot td { font-weight: 700; border-bottom: 0; }
       }).then(function (result) {
         result.view.addEventListener("click", function (event, item) {
           if (item === null || item === undefined || item.datum === undefined || item.datum.path === undefined) return;
+          // A line or area is one shape for all its rows; only points, bars and labels name a row.
+          if (item.mark.marktype === "line" || item.mark.marktype === "area") return;
           select(host.closest("[data-path]"), {
             path: item.datum.path,
             label: item.datum.label,

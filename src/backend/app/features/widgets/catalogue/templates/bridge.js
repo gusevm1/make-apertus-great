@@ -32,9 +32,10 @@
     var mark = event.target.closest("[role='graphics-symbol'][aria-label]");
     var element = event.target.closest("[data-path]");
     if (element === null) return;
-    // A mark in a static chart carries its row's path as its label.
-    if (mark !== null && element.contains(mark)) {
-      select(element, { path: mark.getAttribute("aria-label").replace(/^.*?:\s*/, "") });
+    // A mark in a static chart ends its label with its row's path in brackets.
+    var path = mark === null ? null : /\(([^()]*)\)$/.exec(mark.getAttribute("aria-label"));
+    if (path !== null && element.contains(mark)) {
+      select(element, { path: path[1] });
       return;
     }
     select(element);
@@ -59,6 +60,8 @@
       }).then(function (result) {
         result.view.addEventListener("click", function (event, item) {
           if (item === null || item === undefined || item.datum === undefined || item.datum.path === undefined) return;
+          // A line or area is one shape for all its rows; only points, bars and labels name a row.
+          if (item.mark.marktype === "line" || item.mark.marktype === "area") return;
           select(host.closest("[data-path]"), {
             path: item.datum.path,
             label: item.datum.label,

@@ -39,6 +39,7 @@ th { font-weight: 500; font-size: 0.78rem; color: var(--muted); white-space: now
 td.num, th.num { text-align: right; white-space: nowrap; overflow-wrap: normal; }
 td.date { white-space: nowrap; overflow-wrap: normal; }
 tfoot td { font-weight: 700; border-bottom: 0; }
+.cut-note { margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
 .list ul { list-style: none; margin: 0; padding: 0; }
 .list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .list li:last-child { border-bottom: 0; }

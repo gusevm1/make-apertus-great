@@ -3,6 +3,21 @@ intro: |
   Every figure comes from DATA. A field marked "path into DATA" names where a value is, such as "months[5].total_chf" or "payments"; never write a figure yourself. Labels and titles are your own words.
   Return one widget: {"title": ..., "subtitle": optional, "body": one component}. Put several components into a stack or a grid.
 
+# How one component and one of its fields are written; {kind} is one of `kinds` below.
+component: "{name}: {description}\n  fields: {fields}\n  example: {example}"
+field: "{field} ({kind}{optional})"
+optional: ", optional"
+field_separator: "; "
+kinds:
+  path: path into DATA
+  field: field name of the rows
+  fields: list of field names of the rows
+  stats: "list of {{label, value: path into DATA}}"
+  components: list of components
+  choice: "one of {values}"
+  boolean: true or false
+  text: text
+
 kpi:
   description: One figure, large, with an optional second figure to compare it with.
   example: {"type": "kpi", "label": "Spending in October", "value": "months[5].total_chf", "compare": "months[4].total_chf", "compare_label": "September"}
@@ -23,7 +38,7 @@ line_chart:
   example: {"type": "line_chart", "data": "years", "x": "month", "y": "total_chf", "series": "year"}
 stack:
   description: Components one below the other.
-  example: {"type": "stack", "children": [{"type": "kpi", "label": "Total", "value": "months_total"}, {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf"}]}
+  example: {"type": "stack", "children": [{"type": "kpi", "label": "Total", "value": "months_total_chf"}, {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf"}]}
 grid:
   description: Two or three columns side by side on wide screens, one column on a phone.
   example: {"type": "grid", "columns": 2, "children": [{"type": "kpi", "label": "October", "value": "months[5].total_chf"}, {"type": "kpi", "label": "September", "value": "months[4].total_chf"}]}

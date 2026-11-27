@@ -1,11 +1,15 @@
 import json
+import re
 from pathlib import Path
 from typing import Any, Literal
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from app.core.errors import BadRequestError
 from app.features.widgets.catalogue.charts import LOCALE, THEME, chart_spec, runtime, static_svg
 from app.features.widgets.catalogue.schemas import (
+    FIELD_PATTERN,
+    PATH_PATTERN,
     BarChart,
     Grid,
     ItemList,
@@ -17,7 +21,7 @@ from app.features.widgets.catalogue.schemas import (
     Table,
     WidgetSpec,
 )
-from app.features.widgets.catalogue.values import display, last_field, resolve, rows
+from app.features.widgets.catalogue.values import booking_ids, display, last_field, resolve, rows
 
 Form = Literal["live", "static"]
 TEMPLATES = Path(__file__).with_name("templates")
@@ -58,17 +62,31 @@ def render(spec: WidgetSpec, data: dict[str, Any], form: Form) -> str:
 def fallback(data: dict[str, Any]) -> WidgetSpec:
     """A plain widget built from DATA alone, for when no valid spec came back."""
     for key, value in data.items():
-        if isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict):
-            columns = [field for field in value[0] if not isinstance(value[0][field], list | dict)]
-            return WidgetSpec(
-                title=key.replace("_", " ").capitalize(),
-                body=Table(type="table", rows=key, columns=columns[:5]),
-            )
+        if re.fullmatch(PATH_PATTERN, key) is None or not _is_rows(value=value):
+            continue
+        columns = [
+            field
+            for field, cell in value[0].items()
+            if re.fullmatch(FIELD_PATTERN, field) is not None
+            and not isinstance(cell, list | dict)
+            and all(field in row for row in value)
+        ]
+        if len(columns) > 0:
+            body = Table(type="table", rows=key, columns=columns[:5])
+            return WidgetSpec(title=_title(field=key)[:80], body=body)
     for key, value in data.items():
+        if re.fullmatch(PATH_PATTERN, key) is None:
+            continue
         if isinstance(value, int | float) and not isinstance(value, bool):
-            label = key.replace("_", " ").capitalize()
+            label = _title(field=key)[:80]
             return WidgetSpec(title=label, body=Kpi(type="kpi", label=label, value=key))
-    raise ValueError("DATA holds no list of rows and no number to show")
+    raise BadRequestError("DATA holds no rows and no figure a widget can show")
+
+
+def _is_rows(value: Any) -> bool:
+    return (
+        isinstance(value, list) and len(value) > 0 and all(isinstance(row, dict) for row in value)
+    )
 
 
 def _view(
@@ -98,6 +116,7 @@ def _figure(path: str, data: dict[str, Any]) -> dict[str, Any]:
         "path": path,
         "raw": json.dumps(value),
         "text": display(field=last_field(path=path), value=value),
+        "booking_ids": json.dumps(booking_ids(path=path, data=data)),
     }
 
 
@@ -110,6 +129,7 @@ def _kpi(node: Kpi, data: dict[str, Any]) -> dict[str, Any]:
         "compare_path": compare["path"],
         "compare_raw": compare["raw"],
         "compare_text": compare["text"],
+        "compare_booking_ids": compare["booking_ids"],
         "compare_label": node.compare_label if node.compare_label is not None else "Compared with",
     }
 
@@ -135,15 +155,27 @@ def _table(node: Table, data: dict[str, Any]) -> dict[str, Any]:
         "path": node.rows,
         "columns": columns,
         "rows": view_rows,
+        "cut_note": _cut_note(count=len(found)),
     }
     if node.total is None:
-        return view | {"total_text": None}
+        return view | {"total": None}
     total = _figure(path=node.total, data=data)
-    return view | {
-        "total_text": total["text"],
-        "total_path": total["path"],
-        "total_raw": total["raw"],
-    }
+    holder = node.total_column()
+    label_at = next((index for index, field in enumerate(node.columns) if field != holder), None)
+    cells = [
+        {
+            "text": total["text"] if field == holder else ("Total" if index == label_at else ""),
+            "numeric": columns[index]["numeric"],
+        }
+        for index, field in enumerate(node.columns)
+    ]
+    if label_at is None:
+        cells[0]["text"] = f"Total {total['text']}"
+    return view | {"total": total | {"cells": cells}}
+
+
+def _cut_note(count: int) -> str | None:
+    return None if count <= TABLE_ROWS else f"First {TABLE_ROWS} of {count} rows"
 
 
 def _list(node: ItemList, data: dict[str, Any]) -> dict[str, Any]:
@@ -160,7 +192,13 @@ def _list(node: ItemList, data: dict[str, Any]) -> dict[str, Any]:
         }
         for index, row in enumerate(found[:TABLE_ROWS])
     ]
-    return {"type": node.type, "title": node.title, "path": node.rows, "entries": items}
+    return {
+        "type": node.type,
+        "title": node.title,
+        "path": node.rows,
+        "entries": items,
+        "cut_note": _cut_note(count=len(found)),
+    }
 
 
 def _chart(

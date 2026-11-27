@@ -1,16 +1,16 @@
 {% macro node(n) -%}
 {%- if n.type == "kpi" -%}
-<section class="kpi" data-component="kpi" data-path="{{ n.path }}" data-value="{{ n.raw }}">
+<section class="kpi" data-component="kpi" data-path="{{ n.path }}" data-value="{{ n.raw }}" data-booking-ids="{{ n.booking_ids }}">
   <span class="kpi-label">{{ n.label }}</span>
   <span class="kpi-value">{{ n.text }}</span>
   {%- if n.compare_text is not none %}
-  <span class="kpi-compare" data-component="kpi-compare" data-path="{{ n.compare_path }}" data-value="{{ n.compare_raw }}">{{ n.compare_label }} {{ n.compare_text }}</span>
+  <span class="kpi-compare" data-component="kpi-compare" data-path="{{ n.compare_path }}" data-value="{{ n.compare_raw }}" data-booking-ids="{{ n.compare_booking_ids }}">{{ n.compare_label }} {{ n.compare_text }}</span>
   {%- endif %}
 </section>
 {%- elif n.type == "stat_row" -%}
 <section class="stats" data-component="stat_row">
   {%- for s in n.stats %}
-  <div class="stat" data-component="stat" data-path="{{ s.path }}" data-value="{{ s.raw }}">
+  <div class="stat" data-component="stat" data-path="{{ s.path }}" data-value="{{ s.raw }}" data-booking-ids="{{ s.booking_ids }}">
     <span class="stat-label">{{ s.label }}</span>
     <span class="stat-value">{{ s.text }}</span>
   </div>
@@ -29,13 +29,14 @@
       </tr>
     {%- endfor %}
     </tbody>
-    {%- if n.total_text is not none %}
-    <tfoot><tr data-component="table-total" data-path="{{ n.total_path }}" data-value="{{ n.total_raw }}">
-      <td>Total</td>{% for c in n.columns[1:] %}<td{% if c.numeric %} class="num"{% endif %}>{% if loop.last %}{{ n.total_text }}{% endif %}</td>{% endfor %}
+    {%- if n.total is not none %}
+    <tfoot><tr data-component="table-total" data-path="{{ n.total.path }}" data-value="{{ n.total.raw }}" data-booking-ids="{{ n.total.booking_ids }}">
+      {%- for cell in n.total.cells %}<td{% if cell.numeric %} class="num"{% endif %}>{{ cell.text }}</td>{% endfor %}
     </tr></tfoot>
     {%- endif %}
   </table>
   </div>
+  {%- if n.cut_note is not none %}<p class="cut-note">{{ n.cut_note }}</p>{% endif %}
 </section>
 {%- elif n.type == "list" -%}
 <section class="list" data-component="list" data-path="{{ n.path }}">
@@ -48,6 +49,7 @@
     </li>
   {%- endfor %}
   </ul>
+  {%- if n.cut_note is not none %}<p class="cut-note">{{ n.cut_note }}</p>{% endif %}
 </section>
 {%- elif n.type in ("bar_chart", "line_chart") -%}
 <section class="chart" data-component="{{ n.type }}" data-path="{{ n.path }}">

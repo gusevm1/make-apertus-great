@@ -36,16 +36,28 @@ def rows(path: str, data: dict[str, Any], fields: list[str]) -> list[dict[str, A
     found = resolve(path=path, data=data)
     if not isinstance(found, list) or not all(isinstance(row, dict) for row in found):
         raise BadRequestError(f"{path} is not a list of rows")
-    for field in fields:
-        if len(found) > 0 and field not in found[0]:
-            raise BadRequestError(
-                f"{path} rows have no field {field}; fields: {', '.join(found[0])}"
-            )
+    for index, row in enumerate(found):
+        for field in fields:
+            if field not in row:
+                raise BadRequestError(
+                    f"{path}[{index}] has no field {field}; fields: {', '.join(row)}"
+                )
     return found
 
 
 def last_field(path: str) -> str:
     return _SEGMENT.findall(path)[-1][0]
+
+
+def booking_ids(path: str, data: dict[str, Any]) -> list[str]:
+    """The booking ids of the row a figure sits in: months[5]'s for months[5].total_chf."""
+    parent = path.rpartition(".")[0]
+    if parent == "":
+        return []
+    row = resolve(path=parent, data=data)
+    if not isinstance(row, dict) or not isinstance(row.get("booking_ids"), list):
+        return []
+    return row["booking_ids"]
 
 
 def number(value: Any, decimals: int = 2) -> str:

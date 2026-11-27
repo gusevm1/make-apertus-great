@@ -1,6 +1,7 @@
-from typing import Annotated, Literal
+import re
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 PATH_PATTERN = r"^[A-Za-z_]\w*(\[\d+\])?(\.[A-Za-z_]\w*(\[\d+\])?)*$"
 FIELD_PATTERN = r"^[A-Za-z_]\w*$"
@@ -39,6 +40,21 @@ class Table(Component):
     rows: DataPath
     columns: list[FieldName] = Field(min_length=1, max_length=5)
     total: DataPath | None = None
+
+    @model_validator(mode="after")
+    def _total_has_a_column(self) -> Self:
+        if self.total is not None and self.total_column() is None:
+            raise ValueError("a total needs a column for it: name a column ending in _chf")
+        return self
+
+    def total_column(self) -> str | None:
+        """The column the total sits under: the one named like its field, else the first amount."""
+        if self.total is None:
+            return None
+        field = re.findall(r"[A-Za-z_]\w*", self.total)[-1]
+        if field in self.columns:
+            return field
+        return next((column for column in self.columns if column.endswith("_chf")), None)
 
 
 class ItemList(Component):

@@ -57,18 +57,28 @@ def chart_spec(component: BarChart | LineChart, data: dict[str, Any], live: bool
     if isinstance(component, LineChart) and component.series is not None:
         fields.append(component.series)
     found = rows(path=component.data, data=data, fields=fields)
-    values = [
-        {
-            "x": row[component.x],
-            "label": short(field=component.x, value=row[component.x]),
-            "y": row[component.y],
-            "shown": display(field=component.y, value=row[component.y]),
-            "series": None if len(fields) < 3 else str(row[fields[2]]),
-            "path": f"{component.data}[{index}]",
-            "booking_ids": row.get("booking_ids", []),
-        }
-        for index, row in enumerate(found)
-    ]
+    series = [None if len(fields) < 3 else str(row[fields[2]]) for row in found]
+    shorts = [short(field=component.x, value=row[component.x]) for row in found]
+    # Two rows of one series with the same short label ("Oct" of two years) get the full one.
+    is_unique = len(set(zip(series, shorts, strict=True))) == len(found)
+    values = []
+    for index, row in enumerate(found):
+        full = display(field=component.x, value=row[component.x])
+        shown = display(field=component.y, value=row[component.y])
+        path = f"{component.data}[{index}]"
+        values.append(
+            {
+                "key": str(row[component.x]),
+                "label": shorts[index] if is_unique else full,
+                "y": row[component.y],
+                "shown": shown,
+                "series": series[index],
+                "path": path,
+                # What a screen reader says for the mark; the bridge reads the path in brackets.
+                "description": f"{full}, {shown} ({path})",
+                "booking_ids": row.get("booking_ids", []),
+            }
+        )
     # A horizontal chart's labels sit beside the plot, so its static plot is narrower.
     labels_beside = isinstance(component, BarChart) and component.horizontal
     size: dict[str, Any] = (
@@ -100,11 +110,11 @@ def _tooltip(y_title: str) -> list[dict[str, str]]:
 def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
     highlight = component.highlight
     accent = {
-        "condition": {"test": f"datum.x === {_js(highlight)}", "value": ACCENT},
+        "condition": {"test": f"datum.key === {_js(highlight)}", "value": ACCENT},
         "value": ACCENT_LIGHT if highlight is not None else ACCENT_MID,
     }
     text_colour = {
-        "condition": {"test": f"datum.x === {_js(highlight)}", "value": TEXT},
+        "condition": {"test": f"datum.key === {_js(highlight)}", "value": TEXT},
         "value": MUTED,
     }
     label_axis = {"field": "label", "type": "ordinal", "sort": None}
@@ -117,7 +127,7 @@ def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
             "encoding": {
                 "y": {**label_axis, "axis": {"labelLimit": LABEL_LIMIT, "labelColor": TEXT}},
                 "x": {"field": "y", "type": "quantitative", "axis": None},
-                "description": {"field": "path"},
+                "description": {"field": "description"},
             },
             "layer": [
                 {
@@ -139,7 +149,7 @@ def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "height": BAR_HEIGHT,
         "data": {"values": values},
-        "encoding": {"x": label_axis, "y": amount_axis, "description": {"field": "path"}},
+        "encoding": {"x": label_axis, "y": amount_axis, "description": {"field": "description"}},
         "layer": [
             {
                 "mark": {
@@ -167,7 +177,7 @@ def _line(values: list[dict[str, Any]], has_series: bool) -> dict[str, Any]:
     points = {
         "mark": {"type": "point", "filled": True, "size": 60},
         "encoding": {
-            "description": {"field": "path"},
+            "description": {"field": "description"},
             "tooltip": [*_tooltip(y_title="value"), {"field": "series", "title": " "}],
         },
     }
