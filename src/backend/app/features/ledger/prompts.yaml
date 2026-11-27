@@ -51,6 +51,12 @@ find_unusual_movements: >-
   anything unusual on my accounts", "was I charged twice" or "any payments I should check". A flag is a reason to look, not proof of a mistake or of fraud:
   say what stands out and why, and name the movement. When nothing is flagged, say that `checked`
   payments were looked at and none stood out.
+compare_periods: >-
+  Compares two periods, in either order, under the same filters as search_movements: each period's
+  sums and average per month, and the change in CHF and percent of the totals and of the averages.
+  Use it for "how has my spending changed since ...", "since I started working" or "this summer
+  against last summer", and never subtract sums yourself. A job starts with its first salary: find
+  it with search_movements (kind credit, sort oldest), then compare before and after it.
 not_enough_months: >-
   Only {months} full months of bookings exist for this, and a trend needs at least 3. Answer with the
   monthly sums from sum_by_month instead.
@@ -71,4 +77,12 @@ months_ahead: "How many months after the last full month to project, from 1 to 6
 group_by: "What to add up per: quarter, year, weekday, account or kind."
 counterparty_limit: "How many counterparties to list one by one. The rest is added up as `others`."
 sort: "The order of the listed movements: newest, oldest, or largest for the biggest amounts first, as in \"my largest payments\"."
+not_a_date: >-
+  "{value}" is not a date. If the question names an event, such as starting a job, call
+  search_movements to find its date (for a job the first salary, kind credit, sort oldest), and
+  compare_periods once its result is in.
+first_from: "First day of one period, as YYYY-MM-DD."
+first_to: "Last day of that period, as YYYY-MM-DD."
+second_from: "First day of the other period, as YYYY-MM-DD."
+second_to: "Last day of the other period, as YYYY-MM-DD."
 limit: "How many movements to list. The sums always cover all matching movements."

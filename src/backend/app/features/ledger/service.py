@@ -3,7 +3,8 @@ import statistics
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
+from operator import attrgetter
 from typing import Any
 from urllib.parse import quote
 
@@ -12,6 +13,7 @@ from app.core.errors import BadRequestError
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import (
     MIN_TREND_MONTHS,
+    ComparePeriodsArgs,
     CounterpartySum,
     CounterpartySums,
     Filters,
@@ -26,6 +28,8 @@ from app.features.ledger.schemas import (
     MonthTrend,
     Movement,
     MovementSearch,
+    PeriodComparison,
+    PeriodSum,
     ProjectedMonth,
     Reason,
     SearchMovementsArgs,
@@ -53,6 +57,7 @@ SAME_DAY_MIN_CHF = Decimal(20)
 UNUSUAL_LISTED = 10
 # Planned or cash: neither is a charge the customer would want to check.
 NOT_CHECKED_TYPES = {"standing_order", "atm"}
+TENTH = Decimal("0.1")
 # Every path the model's tools may read; `{}` is one segment. Nothing here changes the bank.
 READ_PATHS = [
     "/customer",
@@ -130,14 +135,53 @@ class LedgerService:
         everything = await self.list_rows(token=token)
         by_month = _by_month(rows=rows)
         months = _months(filters=filters, rows=everything)
+        month_sums = [_month_sum(month=month, rows=by_month[month]) for month in months]
         out, received = _sums(rows=rows)
+        # min and max keep the earliest of equal months; money out is negative.
+        by_out, by_in = attrgetter("money_out_chf"), attrgetter("money_in_chf")
         return MonthSums(
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
             **_provisional(rows=rows),
-            months=[_month_sum(month=month, rows=by_month[month]) for month in months],
+            average_out_chf=_average(total=out, months=len(months)),
+            average_in_chf=_average(total=received, months=len(months)),
+            month_most_out=None if out == 0 else min(month_sums, key=by_out),
+            month_least_out=None if out == 0 else max(month_sums, key=by_out),
+            month_most_in=None if received == 0 else max(month_sums, key=by_in),
+            month_least_in=None if received == 0 else min(month_sums, key=by_in),
+            months=month_sums,
             row_ids={month: [row.id for row in by_month[month]] for month in months},
+        )
+
+    async def compare_periods(self, token: str, args: ComparePeriodsArgs) -> PeriodComparison:
+        """Two periods under the same filters, and how much more the later one moved."""
+        # The model passes the periods in the order the question names them, not by date.
+        earlier, later = sorted(
+            [(args.first_from, args.first_to), (args.second_from, args.second_to)]
+        )
+        earlier_sum, earlier_ids = await self._period_sum(token=token, args=args, period=earlier)
+        later_sum, later_ids = await self._period_sum(token=token, args=args, period=later)
+        out_change = abs(later_sum.money_out_chf) - abs(earlier_sum.money_out_chf)
+        in_change = later_sum.money_in_chf - earlier_sum.money_in_chf
+        average_out_change = abs(later_sum.average_out_chf) - abs(earlier_sum.average_out_chf)
+        average_in_change = later_sum.average_in_chf - earlier_sum.average_in_chf
+        return PeriodComparison(
+            earlier=earlier_sum,
+            later=later_sum,
+            money_out_change_chf=out_change,
+            money_out_change_percent=_percent(change=out_change, base=earlier_sum.money_out_chf),
+            money_in_change_chf=in_change,
+            money_in_change_percent=_percent(change=in_change, base=earlier_sum.money_in_chf),
+            average_out_change_chf=average_out_change,
+            average_out_change_percent=_percent(
+                change=average_out_change, base=earlier_sum.average_out_chf
+            ),
+            average_in_change_chf=average_in_change,
+            average_in_change_percent=_percent(
+                change=average_in_change, base=earlier_sum.average_in_chf
+            ),
+            row_ids={"earlier": earlier_ids, "later": later_ids},
         )
 
     async def sum_by_counterparty(
@@ -291,6 +335,31 @@ class LedgerService:
             row_ids=[flag.movement.id for flag in flags],
         )
 
+    async def _period_sum(
+        self, token: str, args: ComparePeriodsArgs, period: tuple[date, date]
+    ) -> tuple[PeriodSum, list[str]]:
+        covered = _covered(
+            date_from=period[0], date_to=period[1], rows=await self.list_rows(token=token)
+        )
+        date_from, date_to = period if covered is None else covered
+        shared = args.model_dump(exclude={"first_from", "first_to", "second_from", "second_to"})
+        filters = Filters(**shared, date_from=date_from, date_to=date_to)
+        rows = [] if covered is None else await self._matching(token=token, filters=filters)
+        months = 0 if covered is None else _count_months(first=date_from, last=date_to)
+        out, received = _sums(rows=rows)
+        period_sum = PeriodSum(
+            date_from=date_from,
+            date_to=date_to,
+            months=months,
+            count=len(rows),
+            money_out_chf=out,
+            money_in_chf=received,
+            **_provisional(rows=rows),
+            average_out_chf=_average(total=out, months=months),
+            average_in_chf=_average(total=received, months=months),
+        )
+        return period_sum, [row.id for row in rows]
+
     async def _matching(self, token: str, filters: Filters) -> list[LedgerRow]:
         rows = await self.list_rows(token=token)
         # A word no movement contains is a category the model made up, not an empty period.
@@ -412,6 +481,19 @@ def _provisional(rows: Iterable[LedgerRow]) -> dict[str, Decimal]:
     return {"provisional_out_chf": out, "provisional_in_chf": received}
 
 
+def _average(total: Decimal, months: int) -> Decimal:
+    if months == 0:
+        return Decimal(0)
+    return (total / months).quantize(CENT, rounding=ROUND_HALF_UP)
+
+
+def _percent(change: Decimal, base: Decimal) -> Decimal | None:
+    # A change from nothing has no percentage.
+    if base == 0:
+        return None
+    return (change / abs(base) * 100).quantize(TENTH, rounding=ROUND_HALF_UP)
+
+
 def _counterparty_sum(counterparty: str, rows: list[LedgerRow]) -> CounterpartySum:
     out, received = _sums(rows=rows)
     return CounterpartySum(
@@ -473,12 +555,26 @@ def _count_months(first: date, last: date) -> int:
     return (last.year - first.year) * 12 + last.month - first.month + 1
 
 
+def _covered(
+    date_from: date | None, date_to: date | None, rows: list[LedgerRow]
+) -> tuple[date, date] | None:
+    # The history covers whole months, so a period is cut to the months of the ledger's rows.
+    if not rows:
+        return None
+    first_month = rows[0].date.replace(day=1)
+    last_month_end = _month_start(month=_shift(month=_month(day=rows[-1].date), by=1)) - timedelta(
+        days=1
+    )
+    first = first_month if date_from is None else max(date_from, first_month)
+    last = last_month_end if date_to is None else min(date_to, last_month_end)
+    return None if first > last else (first, last)
+
+
 def _months(filters: Filters, rows: list[LedgerRow]) -> list[str]:
-    # Without a period, from the first to the last row of the ledger.
-    if not rows and (filters.date_from is None or filters.date_to is None):
+    covered = _covered(date_from=filters.date_from, date_to=filters.date_to, rows=rows)
+    if covered is None:
         return []
-    first = rows[0].date if filters.date_from is None else filters.date_from
-    last = rows[-1].date if filters.date_to is None else filters.date_to
+    first, last = covered
     months = [_month(day=first)]
     while months[-1] < _month(day=last):
         months.append(_shift(month=months[-1], by=1))

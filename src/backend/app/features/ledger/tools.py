@@ -4,6 +4,7 @@ from typing import Any
 from app.core.prompts import load_prompts
 from app.core.tools import Tool
 from app.features.ledger.schemas import (
+    ComparePeriodsArgs,
     CounterpartySums,
     Filters,
     ForecastMonthsArgs,
@@ -11,6 +12,7 @@ from app.features.ledger.schemas import (
     MonthSums,
     MonthTrend,
     MovementSearch,
+    PeriodComparison,
     SearchMovementsArgs,
     SumByCounterpartyArgs,
     SumByGroupArgs,
@@ -40,6 +42,9 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
     async def find_unusual_movements(args: Filters) -> UnusualMovements:
         return await service.find_unusual_movements(token=token, filters=args, today=today)
 
+    async def compare_periods(args: ComparePeriodsArgs) -> PeriodComparison:
+        return await service.compare_periods(token=token, args=args)
+
     return [
         Tool(
             name="search_movements",
@@ -56,6 +61,14 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
             description=PROMPTS["sum_by_month"],
             args_schema=Filters,
             handler=sum_by_month,
+        ),
+        Tool(
+            name="compare_periods",
+            title="Compare two periods",
+            icon="git-compare",
+            description=PROMPTS["compare_periods"],
+            args_schema=ComparePeriodsArgs,
+            handler=compare_periods,
         ),
         Tool(
             name="sum_by_counterparty",

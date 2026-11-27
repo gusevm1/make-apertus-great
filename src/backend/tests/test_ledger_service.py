@@ -12,6 +12,7 @@ from app.features.bank_data.service import BankDataService
 from app.features.bank_data.tools import get_tools
 from app.features.ledger import service as ledger_service
 from app.features.ledger.schemas import (
+    ComparePeriodsArgs,
     Filters,
     ForecastMonthsArgs,
     SearchMovementsArgs,
@@ -260,19 +261,16 @@ async def test_only_the_limit_is_listed_but_the_sums_cover_all(ledger: LedgerSer
     assert found.money_out_chf == Decimal("-3281.81")
 
 
-async def test_every_month_of_the_period_is_listed_also_without_a_match(
+async def test_months_before_the_first_or_after_the_last_row_are_not_listed(
     ledger: LedgerService,
 ) -> None:
-    filters = Filters(date_from=date(2026, 8, 1), date_to=date(2026, 10, 31), kind=["spending"])
+    filters = Filters(date_from=date(2026, 8, 1), date_to=date(2026, 12, 31), kind=["spending"])
 
     sums = await ledger.sum_by_month(token=TOKEN, filters=filters)
 
-    assert [(month.month, month.count) for month in sums.months] == [
-        ("2026-08", 0),
-        ("2026-09", 0),
-        ("2026-10", 4),
-    ]
-    assert sums.months[2].money_out_chf == Decimal("-3281.81")
+    assert [(month.month, month.count) for month in sums.months] == [("2026-10", 4)]
+    assert sums.average_out_chf == sums.money_out_chf
+    assert sums.months[0].money_out_chf == Decimal("-3281.81")
     assert sorted(sums.row_ids["2026-10"]) == ["BK-2", "BK-4", "BK-8", "CTX-1"]
 
 
@@ -608,3 +606,147 @@ async def test_only_10_flags_are_listed_but_all_are_counted() -> None:
     assert (found.flagged, len(found.movements), found.not_listed) == (25, 10, 15)
     assert found.movements[0].movement.id == "BK-24"
     assert len(found.row_ids) == 25
+
+
+# Restaurant spending in two half years, and a salary that only the later one has.
+HALF_YEARS = [
+    _booking("BK-A1", "debit_card", -120.0, booking_date="2025-01-14", counterparty_name="Hiltl"),
+    _booking("BK-A2", "debit_card", -80.5, booking_date="2025-03-02", counterparty_name="Hiltl"),
+    _booking("BK-B1", "debit_card", -150.0, booking_date="2026-02-20", counterparty_name="Hiltl"),
+    _booking("BK-B2", "debit_card", -99.5, booking_date="2026-05-09", counterparty_name="Hiltl"),
+    _booking("BK-B3", "debit_card", -50.0, booking_date="2026-05-30", counterparty_name="Hiltl"),
+    _booking("BK-B4", "salary", 4200.0, booking_date="2026-06-25"),
+]
+
+
+def _half_years() -> LedgerService:
+    return _fake_ledger(bookings=HALF_YEARS, purchases=[], statements=[], pages_read=[])
+
+
+def _compare(first: tuple[str, str], second: tuple[str, str], **filters: Any) -> ComparePeriodsArgs:
+    return ComparePeriodsArgs.model_validate(
+        {
+            "first_from": first[0],
+            "first_to": first[1],
+            "second_from": second[0],
+            "second_to": second[1],
+            **filters,
+        }
+    )
+
+
+async def test_the_average_counts_a_month_without_a_match_as_zero() -> None:
+    filters = Filters(date_from=date(2025, 1, 1), date_to=date(2025, 3, 31), text=["Hiltl"])
+
+    sums = await _half_years().sum_by_month(token=TOKEN, filters=filters)
+
+    assert sums.money_out_chf == Decimal("-200.5")
+    assert sums.average_out_chf == Decimal("-66.83")
+    assert sums.month_most_out is not None and sums.month_least_out is not None
+    assert (sums.month_most_out.month, sums.month_most_out.money_out_chf) == (
+        "2025-01",
+        Decimal("-120.0"),
+    )
+    assert (sums.month_least_out.month, sums.month_least_out.money_out_chf) == (
+        "2025-02",
+        Decimal(0),
+    )
+    assert (sums.average_in_chf, sums.month_most_in, sums.month_least_in) == (
+        Decimal(0),
+        None,
+        None,
+    )
+
+
+async def test_two_periods_compare_by_their_sums_and_averages() -> None:
+    args = _compare(first=("2025-01-01", "2025-06-30"), second=("2026-01-01", "2026-06-30"))
+
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+
+    earlier, later = comparison.earlier, comparison.later
+    assert (earlier.months, earlier.count, earlier.money_out_chf) == (6, 2, Decimal("-200.5"))
+    assert (later.months, later.count, later.money_out_chf) == (6, 4, Decimal("-299.5"))
+    assert (earlier.average_out_chf, later.average_out_chf) == (
+        Decimal("-33.42"),
+        Decimal("-49.92"),
+    )
+    assert comparison.money_out_change_chf == abs(later.money_out_chf) - abs(earlier.money_out_chf)
+    assert comparison.money_out_change_chf == Decimal("99.0")
+    assert comparison.money_out_change_percent == Decimal("49.4")
+    assert (comparison.money_in_change_chf, comparison.money_in_change_percent) == (
+        Decimal("4200.0"),
+        None,
+    )
+    assert comparison.average_out_change_chf == Decimal("16.5")
+    assert comparison.average_out_change_percent == Decimal("49.4")
+    assert comparison.row_ids == {
+        "earlier": ["BK-A1", "BK-A2"],
+        "later": ["BK-B1", "BK-B2", "BK-B3", "BK-B4"],
+    }
+
+
+async def test_both_periods_take_the_same_filters() -> None:
+    args = _compare(
+        first=("2025-01-01", "2025-06-30"), second=("2026-01-01", "2026-06-30"), text="Hiltl"
+    )
+
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+
+    assert comparison.row_ids["later"] == ["BK-B1", "BK-B2", "BK-B3"]
+    assert comparison.later.money_in_chf == Decimal(0)
+
+
+async def test_the_periods_count_by_date_in_whatever_order_they_come() -> None:
+    args = _compare(first=("2026-01-01", "2026-06-30"), second=("2025-01-01", "2025-06-30"))
+
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+
+    assert (comparison.earlier.date_from, comparison.later.date_from) == (
+        date(2025, 1, 1),
+        date(2026, 1, 1),
+    )
+    assert comparison.money_out_change_chf == Decimal("99.0")
+
+
+async def test_a_period_that_ends_before_it_starts_names_its_bounds() -> None:
+    with pytest.raises(ValueError, match="second_from is after second_to"):
+        _compare(first=("2025-01-01", "2025-06-30"), second=("2026-06-30", "2026-01-01"))
+    with pytest.raises(ValueError, match="date_from"):
+        _compare(
+            first=("2025-01-01", "2025-06-30"),
+            second=("2026-01-01", "2026-06-30"),
+            date_from="2025-01-01",
+        )
+
+
+async def test_a_period_beyond_the_history_counts_only_the_months_it_covers() -> None:
+    args = _compare(first=("2020-01-01", "2025-12-31"), second=("2026-01-01", "2026-12-31"))
+
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+
+    earlier, later = comparison.earlier, comparison.later
+    assert (earlier.date_from, earlier.months, earlier.average_out_chf) == (
+        date(2025, 1, 1),
+        12,
+        Decimal("-16.71"),
+    )
+    assert (later.date_to, later.months, later.average_out_chf) == (
+        date(2026, 6, 30),
+        6,
+        Decimal("-49.92"),
+    )
+    assert comparison.average_out_change_chf == Decimal("33.21")
+
+
+async def test_a_period_outside_the_history_has_no_months_and_no_rows() -> None:
+    args = _compare(first=("2019-01-01", "2019-12-31"), second=("2026-01-01", "2026-06-30"))
+
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+
+    assert (comparison.earlier.months, comparison.earlier.count) == (0, 0)
+    assert comparison.row_ids["earlier"] == []
+
+
+async def test_a_placeholder_instead_of_a_date_asks_to_find_the_date_first() -> None:
+    with pytest.raises(ValueError, match="is not a date.*search_movements"):
+        _compare(first=("<first_salary_date>", "2025-08-31"), second=("2025-09-01", "2026-11-27"))

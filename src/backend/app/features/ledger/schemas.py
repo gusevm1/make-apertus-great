@@ -1,4 +1,5 @@
 import datetime
+import re
 from decimal import Decimal
 from typing import Any, Literal, Self
 
@@ -16,6 +17,7 @@ TREND_MONTHS_DEFAULT = 12
 MAX_PROJECTED_MONTHS = 6
 PROJECTED_MONTHS_DEFAULT = 3
 TOP_COUNTERPARTIES = 15
+DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 # own_transfer moves money between own accounts or into the depot; card_settlement is the card bill.
 Kind = Literal["spending", "credit", "own_transfer", "card_settlement"]
@@ -93,6 +95,33 @@ class SumByCounterpartyArgs(Filters):
         le=TOP_COUNTERPARTIES,
         description=PROMPTS["counterparty_limit"],
     )
+
+
+class ComparePeriodsArgs(Selection):
+    first_from: datetime.date = Field(description=PROMPTS["first_from"])
+    first_to: datetime.date = Field(description=PROMPTS["first_to"])
+    second_from: datetime.date = Field(description=PROMPTS["second_from"])
+    second_to: datetime.date = Field(description=PROMPTS["second_to"])
+
+    @field_validator("first_from", "first_to", "second_from", "second_to", mode="before")
+    @classmethod
+    def _a_date(cls, value: Any) -> Any:
+        # The model writes placeholders when it plans this call before it knows the date.
+        if isinstance(value, str) and DATE.fullmatch(value) is None:
+            raise ValueError(PROMPTS["not_a_date"].format(value=value))
+        return value
+
+    @model_validator(mode="after")
+    def _in_order(self) -> Self:
+        for start, end, name in [
+            (self.first_from, self.first_to, "first"),
+            (self.second_from, self.second_to, "second"),
+        ]:
+            if start > end:
+                raise ValueError(
+                    f"{name}_from is after {name}_to. The period starts on {name}_from."
+                )
+        return self
 
 
 class ForecastMonthsArgs(Selection):
@@ -178,7 +207,45 @@ class MonthSums(BaseModel):
     money_in_chf: Decimal
     provisional_out_chf: Decimal
     provisional_in_chf: Decimal
+    # Over every month of the period, a month without a match counting as 0.
+    average_out_chf: Decimal
+    average_in_chf: Decimal
+    # None when no money moved that way in the whole period.
+    month_most_out: MonthSum | None
+    month_least_out: MonthSum | None
+    month_most_in: MonthSum | None
+    month_least_in: MonthSum | None
     months: list[MonthSum]
+    row_ids: dict[str, list[str]]
+
+
+class PeriodSum(BaseModel):
+    date_from: datetime.date
+    date_to: datetime.date
+    months: int
+    count: int
+    money_out_chf: Decimal
+    money_in_chf: Decimal
+    provisional_out_chf: Decimal
+    provisional_in_chf: Decimal
+    average_out_chf: Decimal
+    average_in_chf: Decimal
+
+
+class PeriodComparison(BaseModel):
+    earlier: PeriodSum
+    later: PeriodSum
+    # Positive means more money moved that way in the later period than in the earlier one.
+    money_out_change_chf: Decimal
+    money_out_change_percent: Decimal | None
+    money_in_change_chf: Decimal
+    money_in_change_percent: Decimal | None
+    # The change of the average per month, which compares periods of different length.
+    average_out_change_chf: Decimal
+    average_out_change_percent: Decimal | None
+    average_in_change_chf: Decimal
+    average_in_change_percent: Decimal | None
+    # Last, so a cut in the tool result drops ids before any figure.
     row_ids: dict[str, list[str]]
 
 

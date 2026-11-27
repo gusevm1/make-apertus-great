@@ -10,7 +10,8 @@ decision_system: |
   {tools}
 
   You do not write the answer. It is written afterwards, from the tool results.
-  Most messages need no tool: explanations, definitions, opinions, small talk and arithmetic do not.
+  Most messages need no tool: explanations, definitions, opinions, small talk and arithmetic on numbers I give do not.
+  Averages, differences and shares of my own bookings come from a tool, never from your own arithmetic.
   A call is only right when the answer depends on what that tool looks up.
   First write your plan, then list every tool call my last message needs, all of them at once:
   - If two parts of my message need the same call, list it once.
