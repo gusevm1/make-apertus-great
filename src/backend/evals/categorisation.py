@@ -30,6 +30,7 @@ PERSONAS = ("lukas", "jana", "daniela", "marco")
 HELD_OUT_SHARE = 4  # one payee in four, per customer, is held out
 CATEGORISE_TIMEOUT_SECONDS = 900
 MAX_CATEGORISE_CALLS = 3
+UPSTREAM_FAILED = 502
 
 
 def split_of(persona: str, payee: str) -> str:
@@ -99,6 +100,10 @@ async def categorise_persona(
                 headers=headers,
                 timeout=CATEGORISE_TIMEOUT_SECONDS,
             )
+            if response.status_code == UPSTREAM_FAILED:
+                # Apertus answered no batch at all; the rows stay untagged for the next call.
+                print(f"  {persona} #{attempt}: Apertus unavailable", file=sys.stderr)  # noqa: T201
+                continue
             response.raise_for_status()
             counts = response.json()
             elapsed = time.monotonic() - started
