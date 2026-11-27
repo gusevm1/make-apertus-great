@@ -511,7 +511,9 @@ class SecondPath:
                     params |= {} if kind is None else {"transaction_type": kind}
                     params |= {} if account is None else {"account": account}
                     params |= {} if direction is None else {"direction": direction}
-                    page = await self.reader.get(path="/bookings", params=params | {"limit": 1000})
+                    page = await self.reader.get(
+                        path="/bookings", params=params | {"limit": PAGE_SIZE}
+                    )
                     if page["total"] > PAGE_SIZE:
                         raise ValueError("narrow the booking figure, more than one page")
                     total = chf(amount=page["sum_credit"]) + chf(amount=page["sum_debit"])
@@ -687,7 +689,9 @@ async def compute_all(
     problems: list[str] = []
     try:
         async with httpx.AsyncClient(timeout=settings.banking_timeout_seconds) as client:
-            info = (await client.get(f"{settings.banking_api_url}/system/info")).json()
+            response = await client.get(f"{settings.banking_api_url}/system/info")
+            response.raise_for_status()
+            info = response.json()
             today = date.fromisoformat(info["today"])
             for customer, folder_name in reference.CUSTOMERS.items():
                 asked = [question for question in questions if question.customer == customer]

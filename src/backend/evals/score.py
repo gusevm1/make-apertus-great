@@ -342,7 +342,8 @@ async def ask_all(
                 turn = await ask(
                     client=client, question=question.question, profile=profiles[question.customer]
                 )
-            except httpx.HTTPError as error:
+            # One broken turn must not lose the turns already paid for on the gateway.
+            except (httpx.HTTPError, ValueError, KeyError, TypeError) as error:
                 turn = Turn(error=f"request failed: {error!r}")
             turns[(question.id, run)] = turn
             print(f"  asked {question.id} run {run + 1}", flush=True)  # noqa: T201
