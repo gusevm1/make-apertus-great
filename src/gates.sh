@@ -3,8 +3,8 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 
-# Tests run against a real Postgres.
-(cd "$here" && docker compose up -d --wait db >/dev/null)
+# Tests run against a real Postgres. --no-recreate leaves a running src-db-1 alone, whichever worktree made it.
+(cd "$here" && docker compose up -d --wait --no-recreate db >/dev/null)
 
 cd "$here/backend"
 uv run ruff format --check .
