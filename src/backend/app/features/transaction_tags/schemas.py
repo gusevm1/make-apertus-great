@@ -22,6 +22,9 @@ CATEGORIES = (
     "children",
     "other",
 )
+Certainty = Literal["low", "medium", "high"]
+CERTAINTIES = get_args(Certainty)
+MAX_CORRECTION_EXAMPLES = 30
 Severity = Literal["negligible", "minor", "moderate", "major", "critical"]
 SEVERITIES = get_args(Severity)
 RowSource = Literal["booking", "card_transaction"]
@@ -46,12 +49,24 @@ class TransactionTag(BaseModel):
     category_set_by: SetBy
     category_model: str | None
     category_confirmed: bool
+    category_certainty: Certainty | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class CategoryCorrection(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    owner_id: UUID
+    payee: str
+    category: str
     created_at: datetime
     updated_at: datetime
 
 
 class Categorisation(BaseModel):
-    tagged_by_rule: int
+    tagged_by_rule: int  # by loan rule or by the customer's correction of the payee
     tagged_by_model: int
     already_tagged: int
     skipped: int  # rows Apertus gave no valid category, so they stay untagged for the next call
@@ -105,6 +120,7 @@ class ResponseTransactionTag(BaseModel):
     category_set_by: SetBy
     category_model: str | None
     category_confirmed: bool
+    category_certainty: Certainty | None
     severity: str
     severity_source: SeveritySource
     created_at: datetime
@@ -123,6 +139,7 @@ class RowCategory(BaseModel):
 
     ref: str
     category: str = Field(json_schema_extra={"enum": list(CATEGORIES)})
+    certainty: str | None = Field(default=None, json_schema_extra={"enum": list(CERTAINTIES)})
 
 
 class BatchCategories(BaseModel):

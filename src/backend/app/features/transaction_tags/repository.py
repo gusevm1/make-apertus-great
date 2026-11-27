@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.core.repository import BaseRepository
 from app.features.transaction_tags.models import (
+    CategoryCorrectionORM,
     PersonalTagAssignmentORM,
     PersonalTagEvaluationORM,
     PersonalTagORM,
@@ -12,6 +13,7 @@ from app.features.transaction_tags.models import (
     TransactionTagORM,
 )
 from app.features.transaction_tags.schemas import (
+    CategoryCorrection,
     PersonalTag,
     PersonalTagAssignment,
     PersonalTagEvaluation,
@@ -57,6 +59,18 @@ class TransactionTagRepository(BaseRepository[TransactionTagORM, TransactionTag]
         created = len((await self.session.scalars(stmt)).all())
         await self.session.commit()
         return created
+
+
+class CategoryCorrectionRepository(BaseRepository[CategoryCorrectionORM, CategoryCorrection]):
+    orm_model = CategoryCorrectionORM
+    schema = CategoryCorrection
+    sortable_fields = frozenset({"created_at", "updated_at"})
+
+    async def list_newest(self, owner_id: UUID) -> list[CategoryCorrection]:
+        corrections = await self.list(sort="-updated_at", owner_id=owner_id)
+        # Ends the read's transaction, so none stays open while Apertus works.
+        await self.session.commit()
+        return corrections
 
 
 class SeveritySettingRepository(BaseRepository[SeveritySettingORM, SeveritySetting]):

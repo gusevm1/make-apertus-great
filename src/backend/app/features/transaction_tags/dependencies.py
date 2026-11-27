@@ -9,6 +9,7 @@ from app.core.db import SessionDep
 from app.features.ledger.dependencies import LedgerServiceDep
 from app.features.transaction_tags.personal_tag_service import PersonalTagService
 from app.features.transaction_tags.repository import (
+    CategoryCorrectionRepository,
     PersonalTagAssignmentRepository,
     PersonalTagEvaluationRepository,
     PersonalTagRepository,
@@ -30,10 +31,16 @@ def get_severity_setting_repo(session: SessionDep) -> SeveritySettingRepository:
 
 def get_transaction_tag_service(
     tags: Annotated[TransactionTagRepository, Depends(get_transaction_tag_repo)],
+    session: SessionDep,
     ledger: LedgerServiceDep,
     apertus: ApertusClientDep,
 ) -> TransactionTagService:
-    return TransactionTagService(tags=tags, ledger=ledger, apertus=apertus)
+    return TransactionTagService(
+        tags=tags,
+        corrections=CategoryCorrectionRepository(session=session),
+        ledger=ledger,
+        apertus=apertus,
+    )
 
 
 TransactionTagServiceDep = Annotated[TransactionTagService, Depends(get_transaction_tag_service)]
