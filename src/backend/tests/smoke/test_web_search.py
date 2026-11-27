@@ -82,7 +82,12 @@ async def test_allowed_search_runs_and_the_answer_cites_the_page(
         (SNB_PAGE["title"], SNB_PAGE["url"])
     ]
     (call,) = (await client.get(f"{url}/tool-calls")).json()
-    assert (call["id"], call["title"], call["icon"]) == (asked[0]["id"], "Search the web", "globe")
+    assert call["id"] == asked[0]["id"]
+    assert (call["tool_name"], call["title"], call["icon"]) == (
+        SEARCH_TOOL,
+        "Search the web",
+        "globe",
+    )
     assert call["result"]["results"][0]["snippet"] == SNB_PAGE["content"]
     answer = apertus.requests[-1]["messages"][-1]["content"]
     assert SNB_PAGE["content"] in answer
