@@ -29,6 +29,17 @@ class Change(Args):
         return self
 
 
+def _check_recipient(credit_account_id: str | None, payee: list[str | None], is_own: bool) -> None:
+    # The bank refuses these too, but only after the customer has allowed a call that cannot work.
+    if is_own and credit_account_id is None:
+        raise ValueError("A transfer between own accounts needs credit_account_id.")
+    if not is_own and None in payee:
+        raise ValueError(
+            "Send payee_name and payee_iban as list_payees gives them (without text it lists"
+            " every payee), or credit_account_id for one of the customer's own accounts."
+        )
+
+
 class Address(Args):
     street: str
     zip: str
@@ -50,6 +61,15 @@ class PaymentCreateArgs(Args):
     execution_date: date = Field(description=PROMPTS["execution_date"])
     message: str | None = Field(default=None, max_length=MESSAGE_MAX_CHARS)
     reference: str | None = Field(default=None, description=PROMPTS["reference"])
+
+    @model_validator(mode="after")
+    def _has_a_recipient(self) -> Self:
+        _check_recipient(
+            credit_account_id=self.credit_account_id,
+            payee=[self.payee_name, self.payee_iban],
+            is_own=self.payment_type == "account_transfer",
+        )
+        return self
 
 
 class PaymentArgs(Args):
@@ -81,6 +101,15 @@ class StandingOrderCreateArgs(Args):
     start_date: date
     end_date: date | None = None
     message: str | None = Field(default=None, max_length=MESSAGE_MAX_CHARS)
+
+    @model_validator(mode="after")
+    def _has_a_recipient(self) -> Self:
+        _check_recipient(
+            credit_account_id=self.credit_account_id,
+            payee=[self.payee_name, self.payee_iban],
+            is_own=self.payee_iban is None and self.credit_account_id is not None,
+        )
+        return self
 
 
 class StandingOrderArgs(Args):

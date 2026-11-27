@@ -202,6 +202,11 @@ async def test_turn_without_a_stream_never_writes(
     [
         ("create_payment", {**PAYMENT, "amount": -120}, "Invalid arguments. amount:"),
         ("create_payment", {**PAYMENT, "to": "/admin/reset"}, "Invalid arguments. to:"),
+        (
+            "create_payment",
+            {key: value for key, value in PAYMENT.items() if key != "payee_iban"},
+            "Invalid arguments. : Value error, Send payee_name and payee_iban",
+        ),
         ("update_payment", {"payment_id": "PAY-0232"}, "Invalid arguments. : Value error"),
         ("delete_standing_order", {}, "Invalid arguments. standing_order_id:"),
     ],

@@ -3,7 +3,9 @@
 create_payment: >-
   Prepares a one-off payment or a transfer between the customer's own accounts. It becomes a pending
   payment in the e-banking. Take the account from list_accounts and the payee's name and IBAN from
-  list_payees. Use it only when the customer asks to pay or transfer money.
+  list_payees. When the customer names a role instead of a name, such as "my landlord", call
+  list_payees without text and pick the payee that fits. Use it only when the customer asks to pay
+  or transfer money.
 update_payment: >-
   Changes a pending payment: amount, date, account, payee or message. Take the payment id from
   list_payments with status pending. Send only the fields that change.
