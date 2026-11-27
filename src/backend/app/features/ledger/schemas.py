@@ -39,7 +39,7 @@ class Filters(BaseModel):
 
     date_from: datetime.date | None = Field(default=None, description=PROMPTS["date_from"])
     date_to: datetime.date | None = Field(default=None, description=PROMPTS["date_to"])
-    text: list[str] | None = Field(default=None, description=PROMPTS["text"])
+    text: list[str] | None = Field(default=None, min_length=1, description=PROMPTS["text"])
     kind: list[Kind] | None = Field(default=None, description=PROMPTS["kind"])
     account_id: str | None = Field(default=None, description=PROMPTS["account_id"])
     card_id: str | None = Field(default=None, description=PROMPTS["card_id"])
@@ -50,7 +50,11 @@ class Filters(BaseModel):
     @classmethod
     def _one_value_is_a_list(cls, value: Any) -> Any:
         # The model sends one value as a string, several often as "Migros|Coop".
-        return value.split("|") if isinstance(value, str) else value
+        values = value.split("|") if isinstance(value, str) else value
+        if not isinstance(values, list):
+            return values
+        # An empty word would match every movement and turn a filter into "everything".
+        return [item.strip() for item in values if not isinstance(item, str) or item.strip()]
 
     @model_validator(mode="after")
     def _in_order(self) -> Self:
@@ -70,7 +74,12 @@ class SearchMovementsArgs(Filters):
 
 
 class SumByCounterpartyArgs(Filters):
-    limit: int = Field(default=TOP_COUNTERPARTIES, ge=1, le=TOP_COUNTERPARTIES)
+    limit: int = Field(
+        default=TOP_COUNTERPARTIES,
+        ge=1,
+        le=TOP_COUNTERPARTIES,
+        description=PROMPTS["counterparty_limit"],
+    )
 
 
 class Movement(BaseModel):

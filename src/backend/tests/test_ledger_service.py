@@ -268,6 +268,7 @@ async def test_the_largest_counterparties_come_first_and_the_rest_is_one_group(
     ]
     assert sums.others is not None
     assert (sums.others.count, sums.others.money_out_chf) == (2, Decimal("-223.06"))
+    assert sorted(sums.row_ids["others"]) == ["BK-2", "CTX-1"]
 
 
 async def test_three_tools_in_one_turn_read_the_bank_once(
@@ -304,3 +305,18 @@ async def test_words_match_at_a_word_start_and_a_bar_separates_them(ledger: Ledg
     assert sorted(found.row_ids) == ["CTX-1", "CTX-2"]
     with pytest.raises(BadRequestError):
         await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs(text=["ando"]))
+
+
+async def test_an_empty_word_is_an_error_not_a_filter_that_matches_everything() -> None:
+    assert SearchMovementsArgs.model_validate({"text": "Migros|"}).text == ["Migros"]
+    with pytest.raises(ValueError, match="at least 1 item"):
+        SearchMovementsArgs.model_validate({"text": "|"})
+
+
+async def test_without_a_period_the_months_run_from_the_first_to_the_last_row(
+    ledger: LedgerService,
+) -> None:
+    sums = await ledger.sum_by_month(token=TOKEN, filters=Filters())
+
+    assert [month.month for month in sums.months] == ["2026-10"]
+    assert sums.months[0].count == 6

@@ -118,7 +118,7 @@ class LedgerService:
     async def sum_by_counterparty(
         self, token: str, args: SumByCounterpartyArgs
     ) -> CounterpartySums:
-        """The counterparties with the largest sums, and the rest as one group."""
+        """The counterparties that moved the most money, in and out, and the rest as one group."""
         rows = await self._matching(token=token, filters=args)
         by_counterparty: dict[str, list[LedgerRow]] = defaultdict(list)
         for row in rows:
@@ -141,8 +141,11 @@ class LedgerService:
             counterparties=top,
             others=None if not rest else _counterparty_sum(counterparty="others", rows=rest_rows),
             row_ids={
-                group.counterparty: [row.id for row in by_counterparty[group.counterparty]]
-                for group in top
+                **{
+                    group.counterparty: [row.id for row in by_counterparty[group.counterparty]]
+                    for group in top
+                },
+                **({} if not rest else {"others": [row.id for row in rest_rows]}),
             },
         )
 
