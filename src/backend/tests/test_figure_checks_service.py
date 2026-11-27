@@ -60,3 +60,28 @@ def test_the_customers_own_figures_count() -> None:
 
     assert result is not None
     assert result.passed
+
+
+@pytest.mark.parametrize(
+    ("answer", "missing"),
+    [
+        ("Your rent is CHF 2000.", "2000"),
+        ("Your rent is 2'050 CHF.", "2'050"),
+        ("You paid CHF 5.", "5"),
+        ("You may 400 times.", "400"),
+    ],
+)
+def test_an_amount_is_checked_even_when_it_looks_like_a_year_or_a_count(
+    answer: str, missing: str
+) -> None:
+    result = check(answer=answer, sources=[RESULT])
+
+    assert result is not None
+    assert result.detail == f"0 of 1 found; not found: {missing}"
+
+
+def test_a_percentage_may_be_a_ratio_in_the_data() -> None:
+    result = check(answer="That is 12 % more.", sources=['{"change": 0.12}'])
+
+    assert result is not None
+    assert result.passed
