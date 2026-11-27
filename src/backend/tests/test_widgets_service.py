@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from decimal import Decimal
 from typing import Any, cast
 from uuid import uuid4
@@ -7,7 +8,7 @@ import pytest
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.clients.apertus import ApertusClient, LLMResult, Message, Model
+from app.clients.apertus import ApertusClient, LLMResult, LLMStream, Message, Model
 from app.core.errors import BadRequestError, UpstreamError
 from app.core.tools import Tool, TurnResult
 from app.features.figure_checks.service import FigureCheckService
@@ -70,8 +71,15 @@ class ScriptedApertus:
             content=content, model="fake", latency_ms=1, tokens_in=None, tokens_out=None
         )
 
-    async def chat(self, messages: list[Message], *, model: Model, purpose: str) -> LLMResult[str]:
-        return LLMResult(content="ok", model="fake", latency_ms=1, tokens_in=None, tokens_out=None)
+    def stream_chat(self, messages: list[Message], *, model: Model, purpose: str) -> LLMStream:
+        async def chunks() -> AsyncIterator[str]:
+            yield "ok"
+
+        stream = LLMStream(chunks=chunks())
+        stream.result = LLMResult(
+            content="ok", model="fake", latency_ms=1, tokens_in=None, tokens_out=None
+        )
+        return stream
 
 
 class MonthsArgs(BaseModel):
