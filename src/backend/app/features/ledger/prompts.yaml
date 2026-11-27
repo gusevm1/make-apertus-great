@@ -47,8 +47,8 @@ find_unusual_movements: >-
   as `typical_chf`, from `typical_count` payments) and at least CHF 100 above it, `first_payment` is
   the first payment ever to a counterparty, CHF 100 or more, and `same_day_twice` is the same amount
   to the same counterparty twice on one day, CHF 20 or more. Standing orders and cash withdrawals are
-  not checked. Without a period it checks the last full month. Use it for "is anything unusual on my
-  accounts" or "was I charged twice". A flag is a reason to look, not proof of a mistake or of fraud:
+  not checked. Without a period it checks the last full month. Use it, not search_movements, for "is
+  anything unusual on my accounts", "was I charged twice" or "any payments I should check". A flag is a reason to look, not proof of a mistake or of fraud:
   say what stands out and why, and name the movement. When nothing is flagged, say that `checked`
   payments were looked at and none stood out.
 not_enough_months: >-
