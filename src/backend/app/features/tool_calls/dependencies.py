@@ -16,6 +16,8 @@ from app.features.documents import tools as document_tools
 from app.features.documents.dependencies import DocumentServiceDep
 from app.features.ledger import tools as ledger_tools
 from app.features.ledger.dependencies import LedgerServiceDep
+from app.features.payments import tools as payment_tools
+from app.features.payments.dependencies import PaymentServiceDep
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.service import ToolCallService
@@ -42,6 +44,7 @@ def get_tools(
     bank_data: BankDataServiceDep,
     documents: DocumentServiceDep,
     ledger: LedgerServiceDep,
+    payments: PaymentServiceDep,
     today: Annotated[date, Depends(get_today)],
 ) -> list[Tool[Any]]:
     # A feature whose tools read the customer's bank data adds its service dependency here.
@@ -50,6 +53,8 @@ def get_tools(
         *bank_data_tools.get_tools(service=bank_data, token=user.token),
         *document_tools.get_tools(service=documents, owner_id=user.id),
         *ledger_tools.get_tools(service=ledger, token=user.token, today=today),
+        # Changes to the bank: each one waits for the customer's yes in the page.
+        *payment_tools.get_tools(service=payments, token=user.token),
         # Web search sends the query outside the bank, so it needs SearXNG's address to exist.
         *(
             []

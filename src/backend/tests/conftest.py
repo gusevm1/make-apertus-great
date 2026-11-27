@@ -186,6 +186,33 @@ BOOKINGS = [
 ]
 # The query strings the fake bank got for /bookings, newest last.
 BANKING_QUERIES: list[str] = []
+# Every request but a GET the fake bank got, as (method, path, JSON body or None), newest last.
+BANK_WRITES: list[tuple[str, str, Any]] = []
+# A payment that was already paid, so the bank refuses to change it.
+COMPLETED_PAYMENT_ID = "PAY-0001"
+
+
+@pytest.fixture(autouse=True)
+def no_bank_writes() -> None:
+    BANK_WRITES.clear()
+
+
+def _fake_bank_write(request: httpx2.Request) -> httpx2.Response:
+    """Payments and standing orders, answered the way the banking API does."""
+    body: dict[str, Any] | None = json.loads(request.content) if request.content else None
+    path = request.url.path.removeprefix("/api")
+    BANK_WRITES.append((request.method, path, body))
+    collection, _, item_id = path.removeprefix("/").partition("/")
+    id_field = {"payments": "payment_id", "standing-orders": "standing_order_id"}.get(collection)
+    if id_field is None:
+        return httpx2.Response(404, json={"detail": "Not found"})
+    if item_id == COMPLETED_PAYMENT_ID:
+        return httpx2.Response(409, json={"detail": "Payment is not pending"})
+    if body is None:
+        return httpx2.Response(204)
+    if request.method == "POST":
+        return httpx2.Response(201, json={id_field: "NEW-1", **body})
+    return httpx2.Response(200, json={id_field: item_id, **body})
 
 
 def fake_banking_client() -> BankingClient:
@@ -206,6 +233,8 @@ def fake_banking_client() -> BankingClient:
             )
         if request.url.path == "/api/documents" and request.method == "POST":
             return httpx2.Response(201, json={"id": "DOC-0001"})
+        if request.method != "GET":
+            return _fake_bank_write(request=request)
         if request.url.path == "/api/bookings":
             BANKING_QUERIES.append(str(request.url.query, "ascii"))
             offset = int(request.url.params.get("offset", 0))
