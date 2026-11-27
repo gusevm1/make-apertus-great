@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import Any
+from urllib.parse import quote
 
 from app.clients.banking import BankingClient
 from app.features.ledger.schemas import Kind, LedgerRow
@@ -12,7 +13,7 @@ class LedgerService:
     def __init__(self, banking: BankingClient) -> None:
         self.banking = banking
 
-    async def rows(self, token: str) -> list[LedgerRow]:
+    async def list_rows(self, token: str) -> list[LedgerRow]:
         """Every booking and credit card purchase of the customer, oldest first."""
         accounts = await self.banking.get(path="/accounts", token=token)
         own_ibans = {_compact(iban=account["iban"]) for account in accounts["items"]}
@@ -33,7 +34,7 @@ class LedgerService:
             if card["type"] != "credit":
                 continue
             purchases = await self._all_pages(
-                path=f"/cards/{card['card_id']}/transactions", token=token
+                path=f"/cards/{quote(card['card_id'], safe='')}/transactions", token=token
             )
             rows += [
                 _card_row(purchase=purchase, account_id=card["linked_account"])

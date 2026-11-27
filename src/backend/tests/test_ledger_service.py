@@ -115,7 +115,7 @@ def ledger(pages_read: list[str]) -> LedgerService:
 
 
 async def test_each_movement_gets_its_kind(ledger: LedgerService) -> None:
-    rows = await ledger.rows(token=TOKEN)
+    rows = await ledger.list_rows(token=TOKEN)
 
     assert {row.id: row.kind for row in rows} == {
         "BK-1": "credit",
@@ -134,7 +134,7 @@ async def test_each_movement_gets_its_kind(ledger: LedgerService) -> None:
 async def test_card_purchases_replace_the_bill_with_the_sign_of_a_booking(
     ledger: LedgerService,
 ) -> None:
-    rows = {row.id: row for row in await ledger.rows(token=TOKEN)}
+    rows = {row.id: row for row in await ledger.list_rows(token=TOKEN)}
 
     purchase, refund, bill = rows["CTX-1"], rows["CTX-2"], rows["BK-5"]
     assert (purchase.amount_chf, purchase.original_amount) == (Decimal("-10.96"), Decimal("-11.99"))
@@ -145,7 +145,7 @@ async def test_card_purchases_replace_the_bill_with_the_sign_of_a_booking(
 
 
 async def test_a_loan_booking_carries_its_tranche_and_adds_no_row(ledger: LedgerService) -> None:
-    rows = await ledger.rows(token=TOKEN)
+    rows = await ledger.list_rows(token=TOKEN)
 
     (interest,) = [row for row in rows if row.loan_id is not None]
     assert (interest.id, interest.loan_id, interest.loan_charge) == ("BK-8", "LOAN-03", "interest")
@@ -157,7 +157,7 @@ async def test_every_page_is_read_once(
 ) -> None:
     monkeypatch.setattr(ledger_service, "PAGE_SIZE", 3)
 
-    rows = await ledger.rows(token=TOKEN)
+    rows = await ledger.list_rows(token=TOKEN)
 
     assert sorted(row.id for row in rows) == sorted(
         [b["booking_id"] for b in BOOKINGS] + [p["card_transaction_id"] for p in PURCHASES]
