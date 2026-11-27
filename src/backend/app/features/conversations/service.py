@@ -12,10 +12,13 @@ from app.features.conversations.repository import ConversationRepository, Messag
 from app.features.conversations.schemas import (
     Conversation,
     Message,
+    MessageDocument,
     RequestConversationCreate,
     RequestConversationUpdate,
     RequestMessageCreate,
 )
+from app.features.documents.schemas import Document
+from app.features.documents.service import DocumentService
 from app.features.tool_calls.service import ToolCallService
 
 HISTORY_LIMIT = 20
@@ -41,10 +44,12 @@ class ConversationService:
         conversations: ConversationRepository,
         messages: MessageRepository,
         tool_calls: ToolCallService,
+        documents: DocumentService,
     ) -> None:
         self.conversations = conversations
         self.messages = messages
         self.tool_calls = tool_calls
+        self.documents = documents
 
     async def create_conversation(
         self, data: RequestConversationCreate, owner_id: UUID
@@ -85,11 +90,15 @@ class ConversationService:
         """List a conversation's messages, oldest first by default."""
         return await self.messages.list(sort=sort, conversation_id=conversation_id)
 
-    async def create_message(self, conversation_id: UUID, data: RequestMessageCreate) -> Message:
+    async def create_message(
+        self, conversation_id: UUID, data: RequestMessageCreate, owner_id: UUID
+    ) -> Message:
         """Store the user's message and return the stored reply, which may have used tools."""
-        history = await self._add_user_message(conversation_id=conversation_id, data=data)
+        history, documents = await self._add_user_message(
+            conversation_id=conversation_id, data=data, owner_id=owner_id
+        )
         try:
-            messages = chat_prompt(history=history, page=data.page)
+            messages = chat_prompt(history=history, page=data.page, documents=documents)
             content, provenance = await self.tool_calls.create_answer(
                 conversation_id=conversation_id,
                 message_id=history[-1].id,
@@ -103,11 +112,13 @@ class ConversationService:
         )
 
     async def stream_message(
-        self, conversation_id: UUID, data: RequestMessageCreate
+        self, conversation_id: UUID, data: RequestMessageCreate, owner_id: UUID
     ) -> AsyncIterator[StreamEvent[Message]]:
         """Like `create_message`, but yields the turn's events, then the stored reply."""
-        history = await self._add_user_message(conversation_id=conversation_id, data=data)
-        messages = chat_prompt(history=history, page=data.page)
+        history, documents = await self._add_user_message(
+            conversation_id=conversation_id, data=data, owner_id=owner_id
+        )
+        messages = chat_prompt(history=history, page=data.page, documents=documents)
         events = self.tool_calls.stream_answer(
             conversation_id=conversation_id,
             message_id=history[-1].id,
@@ -133,12 +144,15 @@ class ConversationService:
         yield DoneEvent(result=reply)
 
     async def _add_user_message(
-        self, conversation_id: UUID, data: RequestMessageCreate
-    ) -> list[Message]:
-        """Store the user's message; returns the recent history ending with it."""
+        self, conversation_id: UUID, data: RequestMessageCreate, owner_id: UUID
+    ) -> tuple[list[Message], list[Document]]:
+        """Store the message; returns the recent history ending with it, and its documents."""
         # Read first: the write's commit then leaves no transaction open across the LLM call.
         history = await self.messages.list_recent(
             conversation_id=conversation_id, limit=HISTORY_LIMIT - 1
+        )
+        documents = await self.documents.get_documents(
+            document_ids=data.document_ids, owner_id=owner_id
         )
         await self._check_quotes(conversation_id=conversation_id, data=data)
         message = await self.messages.create(
@@ -146,8 +160,12 @@ class ConversationService:
             role="user",
             content=data.content,
             quotes=[quote.model_dump(mode="json") for quote in data.quotes],
+            documents=[
+                MessageDocument(id=document.id, name=document.name).model_dump(mode="json")
+                for document in documents
+            ],
         )
-        return [*history, message]
+        return [*history, message], documents
 
     async def _check_quotes(self, conversation_id: UUID, data: RequestMessageCreate) -> None:
         if not data.quotes:

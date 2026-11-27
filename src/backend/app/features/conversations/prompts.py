@@ -1,23 +1,32 @@
+from collections.abc import Sequence
+
 from app.clients.apertus import Message as LLMMessage
 from app.core.prompts import load_prompts
 from app.features.conversations.schemas import Message, PageContext, Quote
+from app.features.documents.schemas import Document
 
 PROMPTS = load_prompts(prompts_py=__file__)
+# ponytail: a long contract is cut here; search inside documents once they outgrow the prompt
+DOCUMENT_MAX_CHARS = 20_000
 
 
-def chat_prompt(history: list[Message], page: PageContext | None = None) -> list[LLMMessage]:
-    """The chat for Apertus; `page` is where in the e-banking the customer is right now."""
+def chat_prompt(
+    history: list[Message],
+    page: PageContext | None = None,
+    documents: Sequence[Document] = (),
+) -> list[LLMMessage]:
+    """The chat for Apertus; `page` and `documents` belong to the last message."""
     # A truncated history can start with a reply; chat templates expect a user turn first.
     while history and history[0].role == "assistant":
         history = history[1:]
     system: LLMMessage = {"role": "system", "content": PROMPTS["chat_system"]}
     *earlier, last = history
-    # ponytail: only the last turn sends its quotes, earlier ones live on in the replies
+    # ponytail: only the last turn sends its quotes and documents; earlier ones live on in replies
     turns: list[LLMMessage] = [{"role": m.role, "content": m.content} for m in earlier]
     # The page goes with the question, not into the system message: the tool decision only
     # sees the turns, and what the browser sends has no place in the system role.
-    text = _page(page=page) + _text(message=last)
-    return [system, *turns, {"role": last.role, "content": text}]
+    blocks = "".join(_document(document=document) for document in documents) + _page(page=page)
+    return [system, *turns, {"role": last.role, "content": blocks + _text(message=last)}]
 
 
 def _page(page: PageContext | None) -> str:
@@ -33,6 +42,14 @@ def _page(page: PageContext | None) -> str:
 def _escaped(text: str) -> str:
     # Escaped, a text can neither close its block nor open a tag of its own.
     return text.replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _document(document: Document) -> str:
+    # Escaped, a document can neither close its block nor open a tag of its own.
+    text = document.markdown[:DOCUMENT_MAX_CHARS].replace("<", "&lt;").replace(">", "&gt;")
+    if len(document.markdown) > DOCUMENT_MAX_CHARS:
+        text += PROMPTS["document_cut"]
+    return PROMPTS["document"].format(name=document.name.replace('"', "'"), text=text)
 
 
 def _text(message: Message) -> str:

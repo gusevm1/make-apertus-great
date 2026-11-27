@@ -89,14 +89,19 @@ async def list_messages(
 async def create_message(
     body: RequestMessageCreate,
     conversation: OwnedConversationDep,
+    user: CurrentUserDep,
     service: ConversationServiceDep,
     stream: bool = False,
 ) -> ResponseMessage | StreamingResponse:
     """Send a message and get the reply, which may use tools; `?stream=true` streams it as SSE."""
     if stream:
-        events = service.stream_message(conversation_id=conversation.id, data=body)
+        events = service.stream_message(
+            conversation_id=conversation.id, data=body, owner_id=user.id
+        )
         return sse_response(events=events, to_response=_message_response)
-    message = await service.create_message(conversation_id=conversation.id, data=body)
+    message = await service.create_message(
+        conversation_id=conversation.id, data=body, owner_id=user.id
+    )
     return _message_response(message=message)
 
 

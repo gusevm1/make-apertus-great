@@ -8,6 +8,7 @@ from app.core.db import SessionDep
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import Conversation
 from app.features.conversations.service import ConversationService
+from app.features.documents.dependencies import DocumentServiceDep
 from app.features.tool_calls.dependencies import ToolCallServiceDep
 
 
@@ -23,11 +24,13 @@ def get_conversation_service(
     conversations: Annotated[ConversationRepository, Depends(get_conversation_repo)],
     messages: Annotated[MessageRepository, Depends(get_message_repo)],
     tool_calls: ToolCallServiceDep,
+    documents: DocumentServiceDep,
 ) -> ConversationService:
     return ConversationService(
         conversations=conversations,
         messages=messages,
         tool_calls=tool_calls,
+        documents=documents,
     )
 
 

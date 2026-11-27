@@ -26,3 +26,6 @@ class MessageORM(Base):
     content: Mapped[str]
     provenance: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     quotes: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
+    documents: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
