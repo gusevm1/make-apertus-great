@@ -620,6 +620,8 @@ async def run_example(tools: dict[str, Tool[Any]], calls: list[ExampleCall]) -> 
     results = []
     for call in calls:
         tool = tools[call.tool]
+        if tool.handler is None:
+            raise ValueError(f"{call.tool} reads earlier results of a turn, no example can call it")
         result = await tool.handler(tool.args_schema.model_validate(call.arguments))
         results.append(result.model_dump_json())
     return results
