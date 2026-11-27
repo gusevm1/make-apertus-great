@@ -30,9 +30,8 @@ class Settings(BaseSettings):
     ocr_url: str = "http://localhost:8002"
     ocr_timeout_seconds: float = 300
 
-    # Web search leaves the bank's environment, so it is off until a key is set.
-    tavily_base_url: str = "https://api.tavily.com"
-    tavily_api_key: SecretStr = SecretStr("")
+    # Web search leaves the bank's environment, so it is off until SearXNG's address is set.
+    searxng_url: str = ""
 
     # Writes from other origins are refused.
     app_origin: str = "http://localhost:3000"

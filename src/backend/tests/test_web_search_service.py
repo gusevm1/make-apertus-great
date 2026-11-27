@@ -1,11 +1,10 @@
 import pytest
-from pydantic import SecretStr
 
-from app.clients.tavily import TavilyClient, create_tavily_client
+from app.clients.searxng import SearxngClient, create_searxng_client
 from app.core.config import get_settings
 from app.core.errors import UpstreamError
 from app.features.web_search.service import SNIPPET_MAX_CHARS, WebSearchService, trim
-from tests.conftest import FakeTavily
+from tests.conftest import FakeSearxng
 
 
 def _page(number: int, score: float, content: str = "Text.") -> dict[str, object]:
@@ -18,26 +17,36 @@ def _page(number: int, score: float, content: str = "Text.") -> dict[str, object
 
 
 async def test_search_keeps_the_five_best_pages(
-    tavily: FakeTavily, tavily_client: TavilyClient
+    searxng: FakeSearxng, searxng_client: SearxngClient
 ) -> None:
-    tavily.results = [_page(number=number, score=number / 10) for number in range(7)]
+    searxng.results = [_page(number=number, score=number / 10) for number in range(7)]
 
-    found = await WebSearchService(tavily=tavily_client).search_web(query="SNB Leitzins")
+    found = await WebSearchService(searxng=searxng_client).search_web(query="SNB Leitzins")
 
-    assert tavily.requests == [{"query": "SNB Leitzins", "max_results": 5}]
+    assert searxng.requests == [{"q": "SNB Leitzins", "format": "json"}]
     assert [page.title for page in found.results] == [f"Page {n}" for n in (6, 5, 4, 3, 2)]
     assert [(source.title, source.url) for source in found.sources] == [
         (page.title, page.url) for page in found.results
     ]
 
 
-async def test_search_fails_with_an_upstream_error(
-    tavily: FakeTavily, tavily_client: TavilyClient
+async def test_search_takes_a_page_without_a_snippet(
+    searxng: FakeSearxng, searxng_client: SearxngClient
 ) -> None:
-    tavily.status = 432
+    searxng.results = [{"title": "Page", "url": "https://example.ch/page", "score": 1.5}]
+
+    found = await WebSearchService(searxng=searxng_client).search_web(query="SNB")
+
+    assert [(page.title, page.snippet) for page in found.results] == [("Page", "")]
+
+
+async def test_search_fails_with_an_upstream_error(
+    searxng: FakeSearxng, searxng_client: SearxngClient
+) -> None:
+    searxng.status = 429
 
     with pytest.raises(UpstreamError, match="Web search failed"):
-        await WebSearchService(tavily=tavily_client).search_web(query="SNB")
+        await WebSearchService(searxng=searxng_client).search_web(query="SNB")
 
 
 def test_trim_keeps_short_text_on_one_line() -> None:
@@ -51,7 +60,7 @@ def test_trim_cuts_long_text_at_a_word() -> None:
     assert snippet.endswith("Zins…")
 
 
-def test_no_client_without_a_key() -> None:
-    settings = get_settings().model_copy(update={"tavily_api_key": SecretStr("")})
+def test_no_client_without_an_address() -> None:
+    settings = get_settings().model_copy(update={"searxng_url": ""})
 
-    assert create_tavily_client(settings=settings) is None
+    assert create_searxng_client(settings=settings) is None

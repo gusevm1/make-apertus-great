@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, FastAPI
 from app.clients.apertus import ApertusClient
 from app.clients.banking import BankingClient
 from app.clients.ocr import OcrClient
-from app.clients.tavily import create_tavily_client
+from app.clients.searxng import create_searxng_client
 from app.core.auth import require_allowed_origin
 from app.core.config import get_settings
 from app.core.db import engine
@@ -29,13 +29,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.apertus = ApertusClient(settings=get_settings())
     app.state.banking = BankingClient(settings=get_settings())
     app.state.ocr = OcrClient(settings=get_settings())
-    app.state.tavily = create_tavily_client(settings=get_settings())
+    app.state.searxng = create_searxng_client(settings=get_settings())
     yield
     await app.state.apertus.close()
     await app.state.banking.close()
     await app.state.ocr.close()
-    if app.state.tavily is not None:
-        await app.state.tavily.close()
+    if app.state.searxng is not None:
+        await app.state.searxng.close()
     await engine.dispose()
 
 

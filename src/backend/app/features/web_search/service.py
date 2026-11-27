@@ -1,4 +1,4 @@
-from app.clients.tavily import TavilyClient
+from app.clients.searxng import SearxngClient
 from app.core.provenance import ResultSource
 from app.features.web_search.schemas import WebPage, WebSearch
 
@@ -8,12 +8,12 @@ SNIPPET_MAX_CHARS = 350
 
 
 class WebSearchService:
-    def __init__(self, tavily: TavilyClient) -> None:
-        self.tavily = tavily
+    def __init__(self, searxng: SearxngClient) -> None:
+        self.searxng = searxng
 
     async def search_web(self, query: str) -> WebSearch:
         """The best five pages for the query, each with a trimmed snippet."""
-        found = await self.tavily.search(query=query, max_results=MAX_RESULTS)
+        found = await self.searxng.search(query=query)
         best = sorted(found, key=lambda result: result.score, reverse=True)[:MAX_RESULTS]
         return WebSearch(
             results=[

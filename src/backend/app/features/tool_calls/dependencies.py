@@ -4,7 +4,7 @@ from typing import Annotated, Any
 from fastapi import Depends
 
 from app.clients.apertus import ApertusClientDep
-from app.clients.tavily import TavilyClientDep
+from app.clients.searxng import SearxngClientDep
 from app.core.auth import CurrentUserDep
 from app.core.db import SessionDep
 from app.core.tools import Tool
@@ -24,7 +24,7 @@ def get_tool_call_repo(session: SessionDep) -> ToolCallRepository:
 
 
 def get_tools(
-    tavily: TavilyClientDep,
+    searxng: SearxngClientDep,
     user: CurrentUserDep,
     accounts: AccountServiceDep,
     bank_data: BankDataServiceDep,
@@ -33,11 +33,11 @@ def get_tools(
     return [
         *account_tools.get_tools(service=accounts, token=user.token),
         *bank_data_tools.get_tools(service=bank_data, token=user.token),
-        # Web search sends the question outside the bank, so it only exists when a key is set.
+        # Web search sends the query outside the bank, so it needs SearXNG's address to exist.
         *(
             []
-            if tavily is None
-            else web_search_tools.get_tools(service=WebSearchService(tavily=tavily))
+            if searxng is None
+            else web_search_tools.get_tools(service=WebSearchService(searxng=searxng))
         ),
     ]
 

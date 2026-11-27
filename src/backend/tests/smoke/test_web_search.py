@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
 from app.main import app
-from tests.conftest import FakeApertus, FakeTavily
+from tests.conftest import FakeApertus, FakeSearxng
 from tests.factories import make_conversation
 
 SEARCH_TOOL = "search_web"
@@ -21,19 +21,19 @@ def _search(query: str) -> str:
 
 
 async def test_turn_searches_the_web_and_cites_the_page(
-    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus, tavily: FakeTavily
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus, searxng: FakeSearxng
 ) -> None:
     conversation = await make_conversation(session=session)
     url = f"/api/conversations/{conversation.id}"
     apertus.decisions = [_search(query="SNB Leitzins aktuell")]
-    tavily.results = [SNB_PAGE]
+    searxng.results = [SNB_PAGE]
 
     reply = await client.post(
         f"{url}/messages", json={"content": "Wie hoch ist der SNB-Leitzins aktuell?"}
     )
 
     assert reply.status_code == 201
-    assert tavily.requests == [{"query": "SNB Leitzins aktuell", "max_results": 5}]
+    assert searxng.requests == [{"q": "SNB Leitzins aktuell", "format": "json"}]
     sources = reply.json()["provenance"]["sources"]
     assert [(source["title"], source["url"]) for source in sources] == [
         (SNB_PAGE["title"], SNB_PAGE["url"])
@@ -51,12 +51,12 @@ async def test_turn_searches_the_web_and_cites_the_page(
 
 
 async def test_failed_search_goes_back_to_the_model(
-    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus, tavily: FakeTavily
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus, searxng: FakeSearxng
 ) -> None:
     conversation = await make_conversation(session=session)
     url = f"/api/conversations/{conversation.id}"
     apertus.decisions = [_search(query="SNB Leitzins")]
-    tavily.status = 500
+    searxng.status = 500
 
     reply = await client.post(f"{url}/messages", json={"content": "SNB-Leitzins?"})
 
@@ -66,11 +66,11 @@ async def test_failed_search_goes_back_to_the_model(
     assert call["error"] == "Web search failed: HTTPStatusError"
 
 
-async def test_without_a_key_search_is_not_offered(
+async def test_without_an_address_search_is_not_offered(
     client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus
 ) -> None:
     conversation = await make_conversation(session=session)
-    app.state.tavily = None
+    app.state.searxng = None
 
     reply = await client.post(
         f"/api/conversations/{conversation.id}/messages", json={"content": "SNB-Leitzins?"}

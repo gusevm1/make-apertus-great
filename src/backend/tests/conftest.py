@@ -29,8 +29,7 @@ os.environ |= {
     "APERTUS_MAX_RETRIES": "0",
     "BANKING_API_URL": "http://banking.invalid/api",
     "OCR_URL": "http://ocr.invalid",
-    "TAVILY_BASE_URL": "http://tavily.invalid",
-    "TAVILY_API_KEY": "test",
+    "SEARXNG_URL": "http://searxng.invalid",
 }
 
 # Tests truncate every table, so they only ever run against the test DB.
@@ -43,7 +42,7 @@ os.environ["DATABASE_URL"] = test_database_url
 from app.clients.apertus import ApertusClient  # noqa: E402
 from app.clients.banking import BankingClient  # noqa: E402
 from app.clients.ocr import OcrClient  # noqa: E402
-from app.clients.tavily import TavilyClient  # noqa: E402
+from app.clients.searxng import SearxngClient  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import Base, engine, session_factory  # noqa: E402
 from app.main import app  # noqa: E402
@@ -98,31 +97,31 @@ def _fake_completion(body: dict[str, Any], content: str) -> httpx2.Response:
 
 
 @dataclass
-class FakeTavily:
-    """The fake Tavily API: `requests` is what it got, `status` fails it, `results` answer it."""
+class FakeSearxng:
+    """The fake SearXNG: `requests` is what it got, `status` fails it, `results` answer it."""
 
-    requests: list[dict[str, Any]] = field(default_factory=list)
+    requests: list[dict[str, str]] = field(default_factory=list)
     status: int = 200
     results: list[dict[str, Any]] = field(default_factory=list)
 
 
 @pytest.fixture
-def tavily() -> FakeTavily:
-    return FakeTavily()
+def searxng() -> FakeSearxng:
+    return FakeSearxng()
 
 
 @pytest.fixture
-def tavily_client(tavily: FakeTavily) -> TavilyClient:
-    """A Tavily client faked at the HTTP level."""
+def searxng_client(searxng: FakeSearxng) -> SearxngClient:
+    """A SearXNG client faked at the HTTP level."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
-        tavily.requests.append(json.loads(request.content))
-        if tavily.status != 200:
-            return httpx2.Response(tavily.status, json={"detail": {"error": "fake failure"}})
-        return httpx2.Response(200, json={"query": "", "results": tavily.results})
+        searxng.requests.append(dict(request.url.params))
+        if searxng.status != 200:
+            return httpx2.Response(searxng.status, text="fake failure")
+        return httpx2.Response(200, json={"query": "", "results": searxng.results})
 
     fake_http = httpx2.AsyncClient(transport=httpx2.MockTransport(handle))
-    return TavilyClient(settings=get_settings(), http_client=fake_http)
+    return SearxngClient(settings=get_settings(), http_client=fake_http)
 
 
 CUSTOMER_TOKEN = "customer-token"
@@ -210,9 +209,9 @@ def fake_ocr_client() -> OcrClient:
 
 @pytest.fixture
 async def client(
-    apertus: FakeApertus, tavily_client: TavilyClient
+    apertus: FakeApertus, searxng_client: SearxngClient
 ) -> AsyncIterator[httpx2.AsyncClient]:
-    """API client with the customer's token; Apertus, the bank, OCR and Tavily are faked."""
+    """API client with the customer's token; Apertus, the bank, OCR and SearXNG are faked."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
         body = json.loads(request.content)
@@ -229,7 +228,7 @@ async def client(
     app.state.apertus = ApertusClient(settings=get_settings(), http_client=fake_http)
     app.state.banking = fake_banking_client()
     app.state.ocr = fake_ocr_client()
-    app.state.tavily = tavily_client
+    app.state.searxng = searxng_client
     transport = httpx2.ASGITransport(app=app)
     async with httpx2.AsyncClient(
         transport=transport,
@@ -240,4 +239,4 @@ async def client(
     await app.state.apertus.close()
     await app.state.banking.close()
     await app.state.ocr.close()
-    await tavily_client.close()
+    await searxng_client.close()
