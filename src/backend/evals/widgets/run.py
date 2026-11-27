@@ -157,6 +157,10 @@ class Bench:
             )
         )
         run.page = path.name
+        await self.check(run=run, path=path)
+
+    async def check(self, run: Run, path: Path) -> None:
+        """Load the page in Chrome at every width and record what the bridge reports."""
         request = prompts.request(task=run.task)
         if run.revision is not None:
             request += " " + prompts.change(revision=run.revision)
@@ -287,6 +291,9 @@ def results_markdown(runs: list[Run], settings: Settings) -> str:
         "A run is clean when the page loads without a JavaScript error at 360 px and 1000 px, "
         "draws something, and shows only numbers from `DATA` or the request.",
         "",
+        "Clean says nothing about how the widget looks: a clean page can still overlap its labels "
+        "or show a list instead of a chart. Judge that in `results/index.html`.",
+        "",
         "| Variant | Model | Task | Clean | Seconds | Tokens out | Chars | 360 px | 1000 px |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
@@ -363,6 +370,9 @@ def main() -> int:
     )
     parser.add_argument("--tasks", nargs="+", choices=prompts.TASKS, default=prompts.TASKS)
     parser.add_argument("--parallel", type=int, default=3, help="Apertus calls at the same time")
+    parser.add_argument(
+        "--recheck", action="store_true", help="check the pages of the last run again, no Apertus"
+    )
     args = parser.parse_args()
     if "html_d3" in args.variants and not D3_PATH.exists():
         parser.error(f"put d3 v7 (d3.min.js) at {D3_PATH}, or leave out html_d3")
@@ -389,19 +399,35 @@ async def bench_all(args: argparse.Namespace, d3: str | None) -> int:
     try:
         data = await build_all(ledger=LedgerService(banking=banking), token=login.json()["token"])
         bench = Bench(apertus=apertus, data=data, d3=d3, parallel=args.parallel)
-        pairs = [(variant, model) for model in args.models for variant in args.variants]
-        results = await asyncio.gather(
-            *(run_pair(bench=bench, variant=v, model=m, tasks=args.tasks) for v, m in pairs)
-        )
+        if args.recheck:
+            runs = await recheck(bench=bench)
+        else:
+            pairs = [(variant, model) for model in args.models for variant in args.variants]
+            results = await asyncio.gather(
+                *(run_pair(bench=bench, variant=v, model=m, tasks=args.tasks) for v, m in pairs)
+            )
+            runs = [run for pair in results for run in pair]
     finally:
         await banking.close()
         await apertus.close()
-    runs = [run for pair in results for run in pair]
     (RESULTS / "runs.json").write_text(json.dumps([asdict(run) for run in runs], indent=1))
     (RESULTS / "index.html").write_text(gallery(runs=runs))
     RESULTS_MD.write_text(results_markdown(runs=runs, settings=settings))
     print(f"Wrote {RESULTS_MD} and {RESULTS / 'index.html'}")  # noqa: T201
     return 0
+
+
+async def recheck(bench: Bench) -> list[Run]:
+    saved = json.loads((RESULTS / "runs.json").read_text())
+    runs = [Run(**{**item, "renders": []}) for item in saved]
+    await asyncio.gather(
+        *(
+            bench.check(run=run, path=RESULTS / "pages" / run.page)
+            for run in runs
+            if run.page is not None
+        )
+    )
+    return runs
 
 
 def _variant(run: Run) -> prompts.Variant:

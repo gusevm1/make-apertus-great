@@ -45,6 +45,11 @@ def test_dates_years_and_request_numbers_are_skipped() -> None:
     assert missing_numbers(texts=texts, data=DATA, request="over the last 6 months") == []
 
 
+def test_numbers_inside_data_texts_count_as_found() -> None:
+    data = {"payee": "Depot 0418-2210.01", "note": "Restbetrag 3a 2026"}
+    assert missing_numbers(texts=["Depot 0418-2210.01", "3a"], data=data, request="") == []
+
+
 def test_broken_values_count_as_missing() -> None:
     assert missing_numbers(texts=["CHF NaN", "undefined"], data=DATA, request="") == [
         "NaN",

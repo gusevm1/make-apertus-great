@@ -176,12 +176,8 @@ def _data_numbers(value: Any) -> list[float]:
     if isinstance(value, list):
         return [number for item in value for number in _data_numbers(value=item)]
     if isinstance(value, str):
-        shown = _parse(token=value)
-        return (
-            [shown.value]
-            if shown is not None and shown.scale == 1.0 and not shown.is_percent
-            else []
-        )
+        # A number inside a DATA text, such as the account in "Depot 0418-2210.01", is DATA too.
+        return [number.value * number.scale for number in _numbers(text=value)]
     return []
 
 
