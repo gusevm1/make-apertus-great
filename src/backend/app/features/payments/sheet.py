@@ -34,20 +34,20 @@ PAYMENT_TYPES = {
 }
 
 
+# 1250 → "CHF 1'250.00", as the e-banking writes it.
 def money(amount: float, currency: str) -> str:
-    """1250 → "CHF 1'250.00", as the e-banking writes it."""
     return f"{currency} {amount:,.2f}".replace(",", "'")
 
 
+# 2026-12-01 → "01.12.2026".
 def day(value: str) -> str:
-    """2026-12-01 → "01.12.2026"."""
     return date.fromisoformat(value).strftime("%d.%m.%Y")
 
 
+# What a write sends; for a change or a delete, the item as it will be, changes marked.
 def lines(
     values: dict[str, Any], accounts: dict[str, dict[str, Any]], item: dict[str, Any] | None
 ) -> list[SheetLine]:
-    """What a write sends; for a change or a delete, the item as it will be, changes marked."""
     before = (
         {} if item is None else {field: value for field, value in item.items() if value is not None}
     )
@@ -76,6 +76,9 @@ def lines(
 
 
 def _text(field: str, value: Any, currency: str, accounts: dict[str, dict[str, Any]]) -> str:
+    # end_date "none" reaches the bank as null and removes the end date.
+    if field == "end_date" and value is None:
+        return "No end date"
     if field in ACCOUNT_FIELDS:
         return accounts[value]["name"] if value in accounts else str(value)
     if field == "amount":

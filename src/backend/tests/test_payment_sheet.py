@@ -5,8 +5,9 @@ import httpx2
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.features.payments.schemas import StandingOrderUpdateArgs
 from app.features.payments.sheet import lines
-from tests.conftest import ACCOUNTS, BANK_WRITES, PAYMENTS, FakeApertus
+from tests.conftest import ACCOUNTS, BANK_WRITES, PAYMENTS, STANDING_ORDERS, FakeApertus
 from tests.factories import make_conversation
 from tests.sse import sse_events
 from tests.test_payments_tools import PAYMENT, _answer, _decision, _stream
@@ -85,6 +86,20 @@ def test_change_sheet_marks_what_changes() -> None:
         "Was Privatkonto",
     )
     assert (by_label["Date"].value, by_label["Date"].detail) == ("15.01.2027", None)
+
+
+def test_removed_end_date_reads_in_words() -> None:
+    args = StandingOrderUpdateArgs.model_validate(
+        {"standing_order_id": "SO-RENT", "end_date": "none"}
+    )
+    order = {**STANDING_ORDERS[0], "end_date": "2027-06-30"}
+
+    shown = lines(
+        values=args.model_dump(mode="json", exclude_none=True), accounts=ACCOUNTS_BY_ID, item=order
+    )
+
+    (end_date,) = [line for line in shown if line.label == "End date"]
+    assert (end_date.value, end_date.detail) == ("No end date", "Was 30.06.2027")
 
 
 @pytest.mark.parametrize(

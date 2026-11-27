@@ -691,6 +691,8 @@ main,
 
 .facts dt {
   flex: none;
+  /* One column for the values, also with "Receiving account" at 440 px. */
+  width: 8.5rem;
   color: var(--color-text-muted);
 }
 
