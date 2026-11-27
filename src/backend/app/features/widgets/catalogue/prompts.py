@@ -79,6 +79,8 @@ def _kind(option: dict[str, Any]) -> str:
             return "fields"
         if items.get("$ref", "").endswith("/Stat"):
             return "stats"
+        if items.get("$ref", "").endswith("/ScenarioFigure"):
+            return "figures"
         return "components"
     if option.get("type") == "object":
         return "colors"

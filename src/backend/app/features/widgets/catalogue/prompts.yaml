@@ -18,6 +18,7 @@ kinds:
   fields: list of field names of the rows
   stats: "list of {{label, value: path into DATA, and optional trend, change and good_when as in kpi}}"
   trend: "{{data: path into DATA, x and y: field names of its rows}}"
+  figures: "list of {{label, field: field name of the case rows}}"
   components: list of components
   choice: "one of {values}"
   colors: "map from a label or series value of the chart's rows to a colour, one of {values}"
@@ -56,6 +57,14 @@ comparison:
 donut:
   description: The shares of a whole as a ring, with a legend of every part and its value, such as spending per payee; `total` is a total DATA already holds, and `colors` gives a part's label a colour.
   example: {"type": "donut", "data": "payees", "label": "label", "value": "total_chf", "total": "payees_total_chf"}
+forecast_chart:
+  description: >-
+    One series that runs from actual figures into a forecast, such as money left over per month and where it is heading. Use it only when DATA holds such a series: rows whose `kind` field says "actual" or "forecast", actual rows first. Actual is a solid line, forecast a dashed one; `low` and `high` name the fields of the forecast rows that hold its range, both or neither.
+  example: {"type": "forecast_chart", "title": "Left over per month", "data": "forecast", "x": "month", "y": "net_chf", "kind": "kind", "low": "low_chf", "high": "high_chf"}
+scenarios:
+  description: >-
+    Cases side by side that the customer switches between, such as rent today, 200 more and 400 more; DATA holds one row per case with its figures. `label` names the field that names each case, and each figure names a field of the case rows.
+  example: {"type": "scenarios", "title": "With a higher rent", "data": "rent_cases", "label": "case", "figures": [{"label": "Rent", "field": "rent_chf"}, {"label": "Left over per month", "field": "left_chf"}]}
 progress:
   description: A figure against a goal as a bar, such as savings towards a trip; both come from DATA.
   example: {"type": "progress", "label": "Japan trip 2027", "value": "goals[0].saved_chf", "goal": "goals[0].goal_chf", "goal_label": "Goal"}

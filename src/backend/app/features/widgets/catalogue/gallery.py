@@ -151,6 +151,19 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
                 "total": "payees_total_chf",
             },
         },
+        "forecast_chart": {
+            "title": "Left over per month",
+            "subtitle": "The last 12 months and where the trend leads",
+            "body": {
+                "type": "forecast_chart",
+                "data": "forecast",
+                "x": "month",
+                "y": "net_chf",
+                "kind": "kind",
+                "low": "low_chf",
+                "high": "high_chf",
+            },
+        },
         "callout": {
             "title": "Note",
             "body": {
@@ -202,6 +215,20 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
                 ],
             },
         }
+    if len(data["rent_cases"]) > 0:
+        raw["scenarios"] = {
+            "title": "With a higher rent",
+            "subtitle": "Left over per month on average",
+            "body": {
+                "type": "scenarios",
+                "data": "rent_cases",
+                "label": "case",
+                "figures": [
+                    {"label": "Rent", "field": "rent_chf"},
+                    {"label": "Left over per month", "field": "left_chf"},
+                ],
+            },
+        }
     return {name: WidgetSpec.model_validate(spec) for name, spec in raw.items()}
 
 
@@ -225,6 +252,10 @@ def write_gallery(data: dict[str, Any]) -> Path:
     if len(data["goals"]) == 0:
         sections.append(
             "<section><h2>progress</h2><p>Left out: DATA holds no savings goal.</p></section>"
+        )
+    if len(data["rent_cases"]) == 0:
+        sections.append(
+            "<section><h2>scenarios</h2><p>Left out: DATA holds no rent payment.</p></section>"
         )
     page = (
         '<!doctype html><meta charset="utf-8"><title>Widget catalogue</title><style>'
