@@ -107,6 +107,9 @@ counterparty_limit: "How many counterparties to list one by one. The rest is add
 sort: "The order of the listed movements: newest, oldest, or largest for the biggest amounts first, as in \"my largest payments\"."
 not_a_date: >-
   "{value}" is not a date. For a job start, set since_salary_start instead of the dates.
+periods_overlap: >-
+  The two periods share days, so their bookings would count twice. Let the later period start the
+  day after the earlier one ends.
 dates_or_salary_start: >-
   Give all four dates, first_from, first_to, second_from and second_to, or set since_salary_start.
 salary_since_history_start: >-

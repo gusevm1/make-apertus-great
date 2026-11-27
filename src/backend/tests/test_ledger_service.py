@@ -276,7 +276,7 @@ async def test_months_before_the_first_or_after_the_last_row_are_not_listed(
 ) -> None:
     filters = Filters(date_from=date(2026, 8, 1), date_to=date(2026, 12, 31), kind=["spending"])
 
-    sums = await ledger.sum_by_month(token=TOKEN, filters=filters)
+    sums = await ledger.sum_by_month(token=TOKEN, filters=filters, today=TODAY)
 
     assert [(month.month, month.count) for month in sums.months] == [("2026-10", 4)]
     assert sums.average_out_chf == sums.money_out_chf
@@ -305,7 +305,7 @@ async def test_three_tools_in_one_turn_read_the_bank_once(
     pages_read: list[str],
 ) -> None:
     await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs())
-    await ledger.sum_by_month(token=TOKEN, filters=Filters())
+    await ledger.sum_by_month(token=TOKEN, filters=Filters(), today=TODAY)
     await ledger.sum_by_counterparty(token=TOKEN, args=SumByCounterpartyArgs())
 
     assert pages_read == ["bookings offset=0", "card offset=0"]
@@ -345,7 +345,7 @@ async def test_an_empty_word_is_an_error_not_a_filter_that_matches_everything() 
 async def test_without_a_period_the_months_run_from_the_first_to_the_last_row(
     ledger: LedgerService,
 ) -> None:
-    sums = await ledger.sum_by_month(token=TOKEN, filters=Filters())
+    sums = await ledger.sum_by_month(token=TOKEN, filters=Filters(), today=TODAY)
 
     assert [month.month for month in sums.months] == ["2026-10"]
     assert sums.months[0].count == 6
@@ -358,7 +358,7 @@ async def test_purchases_on_an_open_statement_are_provisional_and_the_sums_say_h
     october = Filters(date_from=date(2026, 10, 1), date_to=date(2026, 10, 31))
 
     search = await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs(limit=20))
-    months = await ledger.sum_by_month(token=TOKEN, filters=october)
+    months = await ledger.sum_by_month(token=TOKEN, filters=october, today=TODAY)
 
     provisional = {row.id for row in search.rows if row.provisional}
     assert provisional == {"CTX-1", "CTX-2"}
@@ -449,7 +449,9 @@ async def test_sums_per_year_add_up_to_the_monthly_sums_of_the_period() -> None:
     years = await ledger.sum_by_group(
         token=TOKEN, args=SumByGroupArgs(group_by="year", date_from=first, date_to=last)
     )
-    months = await ledger.sum_by_month(token=TOKEN, filters=Filters(date_from=first, date_to=last))
+    months = await ledger.sum_by_month(
+        token=TOKEN, filters=Filters(date_from=first, date_to=last), today=TODAY
+    )
 
     assert [group.group for group in years.groups] == ["2025", "2026"]
     assert (years.money_out_chf, years.money_in_chf) == (months.money_out_chf, months.money_in_chf)
@@ -648,7 +650,7 @@ def _compare(first: tuple[str, str], second: tuple[str, str], **filters: Any) ->
 async def test_the_average_counts_a_month_without_a_match_as_zero() -> None:
     filters = Filters(date_from=date(2025, 1, 1), date_to=date(2025, 3, 31), text=["Hiltl"])
 
-    sums = await _half_years().sum_by_month(token=TOKEN, filters=filters)
+    sums = await _half_years().sum_by_month(token=TOKEN, filters=filters, today=TODAY)
 
     assert sums.money_out_chf == Decimal("-200.5")
     assert sums.average_out_chf == Decimal("-66.83")
@@ -671,7 +673,7 @@ async def test_the_average_counts_a_month_without_a_match_as_zero() -> None:
 async def test_two_periods_compare_by_their_sums_and_averages() -> None:
     args = _compare(first=("2025-01-01", "2025-06-30"), second=("2026-01-01", "2026-06-30"))
 
-    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args, today=TODAY)
 
     earlier, later = comparison.earlier, comparison.later
     assert (earlier.months, earlier.count, earlier.money_out_chf) == (6, 2, Decimal("-200.5"))
@@ -700,7 +702,7 @@ async def test_both_periods_take_the_same_filters() -> None:
         first=("2025-01-01", "2025-06-30"), second=("2026-01-01", "2026-06-30"), text="Hiltl"
     )
 
-    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args, today=TODAY)
 
     assert comparison.row_ids["later"] == ["BK-B1", "BK-B2", "BK-B3"]
     assert comparison.later.money_in_chf == Decimal(0)
@@ -709,7 +711,7 @@ async def test_both_periods_take_the_same_filters() -> None:
 async def test_the_periods_count_by_date_in_whatever_order_they_come() -> None:
     args = _compare(first=("2026-01-01", "2026-06-30"), second=("2025-01-01", "2025-06-30"))
 
-    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args, today=TODAY)
 
     assert (comparison.earlier.date_from, comparison.later.date_from) == (
         date(2025, 1, 1),
@@ -732,7 +734,7 @@ async def test_a_period_that_ends_before_it_starts_names_its_bounds() -> None:
 async def test_a_period_beyond_the_history_counts_only_the_months_it_covers() -> None:
     args = _compare(first=("2020-01-01", "2025-12-31"), second=("2026-01-01", "2026-12-31"))
 
-    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args, today=TODAY)
 
     earlier, later = comparison.earlier, comparison.later
     assert (earlier.date_from, earlier.months, earlier.average_out_chf) == (
@@ -751,7 +753,7 @@ async def test_a_period_beyond_the_history_counts_only_the_months_it_covers() ->
 async def test_a_period_outside_the_history_has_no_months_and_no_rows() -> None:
     args = _compare(first=("2019-01-01", "2019-12-31"), second=("2026-01-01", "2026-06-30"))
 
-    comparison = await _half_years().compare_periods(token=TOKEN, args=args)
+    comparison = await _half_years().compare_periods(token=TOKEN, args=args, today=TODAY)
 
     assert (comparison.earlier.months, comparison.earlier.count) == (0, 0)
     assert comparison.row_ids["earlier"] == []
@@ -882,7 +884,7 @@ def _career(bookings: list[dict] = CAREER) -> LedgerService:
 async def test_since_salary_start_splits_at_the_first_salary_of_todays_level() -> None:
     args = ComparePeriodsArgs.model_validate({"since_salary_start": True, "kind": "spending"})
 
-    comparison = await _career().compare_periods(token=TOKEN, args=args)
+    comparison = await _career().compare_periods(token=TOKEN, args=args, today=TODAY)
 
     assert comparison.salary_start == date(2025, 9, 25)
     assert (comparison.earlier.date_from, comparison.earlier.date_to) == (
@@ -916,14 +918,14 @@ async def test_a_salary_at_one_level_since_the_history_starts_has_nothing_to_com
     args = ComparePeriodsArgs.model_validate({"since_salary_start": True})
 
     with pytest.raises(BadRequestError, match="no earlier period"):
-        await _career(bookings=CAREER[3:]).compare_periods(token=TOKEN, args=args)
+        await _career(bookings=CAREER[3:]).compare_periods(token=TOKEN, args=args, today=TODAY)
 
 
 async def test_without_a_salary_the_customer_is_asked_when_the_job_started() -> None:
     args = ComparePeriodsArgs.model_validate({"since_salary_start": True})
 
     with pytest.raises(BadRequestError, match="No salary"):
-        await _career(bookings=[CAREER[1]]).compare_periods(token=TOKEN, args=args)
+        await _career(bookings=[CAREER[1]]).compare_periods(token=TOKEN, args=args, today=TODAY)
 
 
 async def test_without_dates_or_since_salary_start_all_four_dates_are_asked_for() -> None:
@@ -935,7 +937,9 @@ async def test_a_newest_month_with_only_a_bonus_so_far_keeps_the_split() -> None
     bonus = _booking("BK-S7", "salary", 800.0, booking_date="2025-12-05")
     args = ComparePeriodsArgs.model_validate({"since_salary_start": "true"})
 
-    comparison = await _career(bookings=[*CAREER, bonus]).compare_periods(token=TOKEN, args=args)
+    comparison = await _career(bookings=[*CAREER, bonus]).compare_periods(
+        token=TOKEN, args=args, today=TODAY
+    )
 
     assert comparison.salary_start == date(2025, 9, 25)
 
@@ -1041,3 +1045,43 @@ async def test_a_year_that_has_not_started_is_refused() -> None:
         await ledger.tax_year_summary(
             token=TOKEN, args=TaxYearArgs(year=2027), today=date(2026, 11, 26)
         )
+
+
+# Jana's first weeks: spending before her first salary on 22 December, and one payment this month.
+FIRST_WEEKS = [
+    _booking("BK-D1", "debit_card", -835.02, booking_date="2023-12-10"),
+    _booking("BK-D2", "salary", 1690.2, booking_date="2023-12-22"),
+    _booking("BK-D3", "debit_card", -100.0, booking_date="2026-11-20"),
+]
+
+
+async def test_a_period_covering_part_of_a_month_counts_its_days() -> None:
+    ledger = _fake_ledger(bookings=FIRST_WEEKS, purchases=[], statements=[], pages_read=[])
+    args = _compare(first=("2023-12-01", "2023-12-21"), second=("2023-12-22", "2026-11-30"))
+
+    comparison = await ledger.compare_periods(token=TOKEN, args=args, today=TODAY)
+
+    earlier, later = comparison.earlier, comparison.later
+    assert (earlier.months, earlier.money_out_chf) == (Decimal("0.68"), Decimal("-835.02"))
+    assert earlier.average_out_chf == (Decimal("-835.02") * 31 / 21).quantize(Decimal("0.01"))
+    # 22 to 31 December is 10/31, January 2024 to October 2026 is 34, November up to today 27/30.
+    assert (later.date_to, later.months) == (TODAY, Decimal("35.22"))
+    assert later.average_out_chf == Decimal("-2.84")
+    assert comparison.average_out_change_chf == Decimal("2.84") - Decimal("1232.65")
+
+
+async def test_the_current_month_counts_its_days_up_to_today() -> None:
+    ledger = _fake_ledger(bookings=FIRST_WEEKS, purchases=[], statements=[], pages_read=[])
+    filters = Filters(date_from=date(2026, 11, 1), date_to=date(2026, 11, 30))
+
+    sums = await ledger.sum_by_month(token=TOKEN, filters=filters, today=TODAY)
+
+    assert sums.average_out_chf == (Decimal("-100.0") * 30 / 27).quantize(Decimal("0.01"))
+    assert [month.month for month in sums.months] == ["2026-11"]
+
+
+async def test_two_periods_that_share_a_day_are_refused() -> None:
+    with pytest.raises(ValueError, match="share days"):
+        _compare(first=("2025-01-01", "2025-06-30"), second=("2025-06-30", "2025-12-31"))
+    with pytest.raises(ValueError, match="share days"):
+        _compare(first=("2025-03-01", "2025-12-31"), second=("2025-01-01", "2025-06-30"))

@@ -32,7 +32,7 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
         return await service.search_movements(token=token, args=args)
 
     async def sum_by_month(args: Filters) -> MonthSums:
-        return await service.sum_by_month(token=token, filters=args)
+        return await service.sum_by_month(token=token, filters=args, today=today)
 
     async def sum_by_counterparty(args: SumByCounterpartyArgs) -> CounterpartySums:
         return await service.sum_by_counterparty(token=token, args=args)
@@ -47,7 +47,7 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
         return await service.find_unusual_movements(token=token, filters=args, today=today)
 
     async def compare_periods(args: ComparePeriodsArgs) -> PeriodComparison:
-        return await service.compare_periods(token=token, args=args)
+        return await service.compare_periods(token=token, args=args, today=today)
 
     async def explain_balance_change(args: BalanceChangeArgs) -> BalanceChange:
         return await service.explain_balance_change(token=token, args=args)

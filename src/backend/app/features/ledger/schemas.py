@@ -140,6 +140,9 @@ class ComparePeriodsArgs(Selection):
                 raise ValueError(
                     f"{name}_from is after {name}_to. The period starts on {name}_from."
                 )
+        (_, earlier_to), (later_from, _) = sorted(self.periods())
+        if later_from <= earlier_to:
+            raise ValueError(PROMPTS["periods_overlap"])
         return self
 
     def periods(self) -> list[tuple[datetime.date, datetime.date]]:
@@ -271,7 +274,8 @@ class MonthSums(BaseModel):
 class PeriodSum(BaseModel):
     date_from: datetime.date
     date_to: datetime.date
-    months: int
+    # Full months count 1, a month covered in part its share of days, to two places.
+    months: Decimal
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal

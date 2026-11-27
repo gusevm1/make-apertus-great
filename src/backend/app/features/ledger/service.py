@@ -140,7 +140,7 @@ class LedgerService:
             row_ids=[row.id for row in rows],
         )
 
-    async def sum_by_month(self, token: str, filters: Filters) -> MonthSums:
+    async def sum_by_month(self, token: str, filters: Filters, today: date) -> MonthSums:
         """One sum per month of the period, a month without a match as 0."""
         rows = await self._matching(token=token, filters=filters)
         everything = await self.list_rows(token=token)
@@ -148,6 +148,12 @@ class LedgerService:
         months = _months(filters=filters, rows=everything)
         month_sums = [_month_sum(month=month, rows=by_month[month]) for month in months]
         out, received = _sums(rows=rows)
+        covered = _covered(
+            date_from=filters.date_from, date_to=filters.date_to, rows=everything, today=today
+        )
+        month_count = (
+            Decimal(0) if covered is None else _months_by_days(first=covered[0], last=covered[1])
+        )
         # min and max keep the earliest of equal months; money out is negative.
         by_out, by_in = attrgetter("money_out_chf"), attrgetter("money_in_chf")
         return MonthSums(
@@ -155,8 +161,8 @@ class LedgerService:
             money_out_chf=out,
             money_in_chf=received,
             **_provisional(rows=rows),
-            average_out_chf=_average(total=out, months=len(months)),
-            average_in_chf=_average(total=received, months=len(months)),
+            average_out_chf=_average(total=out, months=month_count),
+            average_in_chf=_average(total=received, months=month_count),
             month_most_out=None if out == 0 else min(month_sums, key=by_out),
             month_least_out=None if out == 0 else max(month_sums, key=by_out),
             month_most_in=None if received == 0 else max(month_sums, key=by_in),
@@ -165,7 +171,9 @@ class LedgerService:
             row_ids={month: [row.id for row in by_month[month]] for month in months},
         )
 
-    async def compare_periods(self, token: str, args: ComparePeriodsArgs) -> PeriodComparison:
+    async def compare_periods(
+        self, token: str, args: ComparePeriodsArgs, today: date
+    ) -> PeriodComparison:
         """Two periods under the same filters, and how much more the later one moved."""
         salary_start = None
         if args.since_salary_start:
@@ -181,8 +189,12 @@ class LedgerService:
         else:
             # The model passes the periods in the order the question names them, not by date.
             earlier, later = sorted(args.periods())
-        earlier_sum, earlier_ids = await self._period_sum(token=token, args=args, period=earlier)
-        later_sum, later_ids = await self._period_sum(token=token, args=args, period=later)
+        earlier_sum, earlier_ids = await self._period_sum(
+            token=token, args=args, period=earlier, today=today
+        )
+        later_sum, later_ids = await self._period_sum(
+            token=token, args=args, period=later, today=today
+        )
         out_change = abs(later_sum.money_out_chf) - abs(earlier_sum.money_out_chf)
         in_change = later_sum.money_in_chf - earlier_sum.money_in_chf
         average_out_change = abs(later_sum.average_out_chf) - abs(earlier_sum.average_out_chf)
@@ -454,21 +466,24 @@ class LedgerService:
         )
 
     async def _period_sum(
-        self, token: str, args: ComparePeriodsArgs, period: tuple[date, date]
+        self, token: str, args: ComparePeriodsArgs, period: tuple[date, date], today: date
     ) -> tuple[PeriodSum, list[str]]:
         covered = _covered(
-            date_from=period[0], date_to=period[1], rows=await self.list_rows(token=token)
+            date_from=period[0],
+            date_to=period[1],
+            rows=await self.list_rows(token=token),
+            today=today,
         )
         date_from, date_to = period if covered is None else covered
         shared = args.model_dump(exclude={*PERIOD_FIELDS, "since_salary_start"})
         filters = Filters(**shared, date_from=date_from, date_to=date_to)
         rows = [] if covered is None else await self._matching(token=token, filters=filters)
-        months = 0 if covered is None else _count_months(first=date_from, last=date_to)
+        months = Decimal(0) if covered is None else _months_by_days(first=date_from, last=date_to)
         out, received = _sums(rows=rows)
         period_sum = PeriodSum(
             date_from=date_from,
             date_to=date_to,
-            months=months,
+            months=months.quantize(CENT, rounding=ROUND_HALF_UP),
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
@@ -599,7 +614,7 @@ def _provisional(rows: Iterable[LedgerRow]) -> dict[str, Decimal]:
     return {"provisional_out_chf": out, "provisional_in_chf": received}
 
 
-def _average(total: Decimal, months: int) -> Decimal:
+def _average(total: Decimal, months: Decimal) -> Decimal:
     if months == 0:
         return Decimal(0)
     return (total / months).quantize(CENT, rounding=ROUND_HALF_UP)
@@ -724,8 +739,24 @@ def _salary_start(rows: list[LedgerRow]) -> LedgerRow:
     return by_month[months[start]][0]
 
 
+def _months_by_days(first: date, last: date) -> Decimal:
+    # A month the period covers in part counts its covered days divided by the days of that month.
+    count = Decimal(0)
+    month = _month(day=first)
+    while month <= _month(day=last):
+        month_first = _month_start(month=month)
+        month_last = _month_start(month=_shift(month=month, by=1)) - timedelta(days=1)
+        covered_days = (min(last, month_last) - max(first, month_first)).days + 1
+        count += Decimal(covered_days) / Decimal(month_last.day)
+        month = _shift(month=month, by=1)
+    return count
+
+
 def _covered(
-    date_from: date | None, date_to: date | None, rows: list[LedgerRow]
+    date_from: date | None,
+    date_to: date | None,
+    rows: list[LedgerRow],
+    today: date | None = None,
 ) -> tuple[date, date] | None:
     # The history covers whole months, so a period is cut to the months of the ledger's rows.
     if not rows:
@@ -736,6 +767,9 @@ def _covered(
     )
     first = first_month if date_from is None else max(date_from, first_month)
     last = last_month_end if date_to is None else min(date_to, last_month_end)
+    # An average counts the current month only up to today.
+    if today is not None:
+        last = min(last, today)
     return None if first > last else (first, last)
 
 
