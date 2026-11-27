@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from string import Formatter
 from typing import Any
+from urllib.parse import quote
 
 from pydantic import BaseModel
 
@@ -153,7 +154,10 @@ def _tool(read: Read, service: BankDataService, token: str) -> Tool[Any]:
 
     async def handler(args: BaseModel) -> BankData:
         values = args.model_dump(mode="json", by_alias=True, exclude_none=True)
-        path = read.path.format(**{field: values.pop(field) for field in in_path})
+        # Quoted, so an id the model made up cannot reach another path of the banking API.
+        path = read.path.format(
+            **{field: quote(str(values.pop(field)), safe="") for field in in_path}
+        )
         return await service.read(path=path, token=token, params=values)
 
     return Tool(
