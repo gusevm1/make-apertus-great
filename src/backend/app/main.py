@@ -14,6 +14,7 @@ from app.core.errors import register_error_handlers
 from app.features.context_entries.controller import router as context_entries_router
 from app.features.conversations.controller import router as conversations_router
 from app.features.documents.controller import router as documents_router
+from app.features.transaction_tags.controller import router as transaction_tags_router
 from app.features.transcriptions.controller import router as transcriptions_router
 
 public_router = APIRouter()
@@ -51,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(context_entries_router, prefix="/api")
     app.include_router(conversations_router, prefix="/api")
     app.include_router(documents_router, prefix="/api")
+    app.include_router(transaction_tags_router, prefix="/api")
     app.include_router(transcriptions_router, prefix="/api")
     return app
 
