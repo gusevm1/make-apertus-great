@@ -10,10 +10,12 @@ from app.features.conversations.prompts import chat_prompt
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import RequestMessageCreate
 from app.features.conversations.service import ConversationService, is_quoted
+from app.features.documents.repository import DocumentRepository
+from app.features.documents.service import DocumentService
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
 from app.features.tool_calls.service import ToolCallService
-from tests.conftest import TODAY
+from tests.conftest import TODAY, fake_banking_client, fake_ocr_client
 from tests.factories import make_conversation, make_message
 from tests.lookup_tool import LOOKUP
 
@@ -69,12 +71,18 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
             tools=[LOOKUP],
             today=TODAY,
         ),
+        documents=DocumentService(
+            documents=DocumentRepository(session=session),
+            banking=fake_banking_client(),
+            ocr=fake_ocr_client(),
+        ),
     )
 
     apertus.decisions = [CALL_A_TOOL, NO_TOOL]
     await service.create_message(
         conversation_id=conversation.id,
         data=RequestMessageCreate(content="Hi"),
+        owner_id=conversation.owner_id,
     )
     assert apertus.in_transaction == [False, False, False]
 
@@ -83,6 +91,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
     async for _ in service.stream_message(
         conversation_id=conversation.id,
         data=RequestMessageCreate(content="Hi"),
+        owner_id=conversation.owner_id,
     ):
         pass
     assert apertus.in_transaction == [False, False, False]

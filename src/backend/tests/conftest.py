@@ -28,6 +28,7 @@ os.environ |= {
     "LLM_NAME": FAKE_MODEL,
     "APERTUS_MAX_RETRIES": "0",
     "BANKING_API_URL": "http://banking.invalid/api",
+    "OCR_URL": "http://ocr.invalid",
     "TAVILY_BASE_URL": "http://tavily.invalid",
     "TAVILY_API_KEY": "test",
 }
@@ -41,6 +42,7 @@ os.environ["DATABASE_URL"] = test_database_url
 
 from app.clients.apertus import ApertusClient  # noqa: E402
 from app.clients.banking import BankingClient  # noqa: E402
+from app.clients.ocr import OcrClient  # noqa: E402
 from app.clients.tavily import TavilyClient  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import Base, engine, session_factory  # noqa: E402
@@ -154,6 +156,8 @@ def fake_banking_client() -> BankingClient:
             return httpx2.Response(401, json={"detail": "Not authenticated"})
         if request.url.path == "/api/customer":
             return httpx2.Response(200, json={"customer_id": CUSTOMER_ID})
+        if request.url.path == "/api/documents" and request.method == "POST":
+            return httpx2.Response(201, json={"id": "DOC-0001"})
         if request.url.path == "/api/accounts":
             return httpx2.Response(200, json={"items": ACCOUNTS})
         return httpx2.Response(404, json={"detail": "Not found"})
@@ -164,11 +168,26 @@ def fake_banking_client() -> BankingClient:
     return BankingClient(settings=get_settings(), http_client=fake_http)
 
 
+OCR_MARKDOWN = "## Lohnabrechnung November 2026\n\nNettolohn CHF 7'412.55"
+
+
+def fake_ocr_client() -> OcrClient:
+    """An OCR client faked at the HTTP level: every file reads as `OCR_MARKDOWN`."""
+
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={"filename": "file", "markdown": OCR_MARKDOWN})
+
+    fake_http = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(handle), base_url=get_settings().ocr_url
+    )
+    return OcrClient(settings=get_settings(), http_client=fake_http)
+
+
 @pytest.fixture
 async def client(
     apertus: FakeApertus, tavily_client: TavilyClient
 ) -> AsyncIterator[httpx2.AsyncClient]:
-    """API client with the customer's token; Apertus, the bank and Tavily are faked."""
+    """API client with the customer's token; Apertus, the bank, OCR and Tavily are faked."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
         body = json.loads(request.content)
@@ -184,6 +203,7 @@ async def client(
     fake_http = httpx2.AsyncClient(transport=httpx2.MockTransport(handle))
     app.state.apertus = ApertusClient(settings=get_settings(), http_client=fake_http)
     app.state.banking = fake_banking_client()
+    app.state.ocr = fake_ocr_client()
     app.state.tavily = tavily_client
     transport = httpx2.ASGITransport(app=app)
     async with httpx2.AsyncClient(
@@ -194,4 +214,5 @@ async def client(
         yield api
     await app.state.apertus.close()
     await app.state.banking.close()
+    await app.state.ocr.close()
     await tavily_client.close()
