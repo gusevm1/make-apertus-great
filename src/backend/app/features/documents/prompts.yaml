@@ -23,4 +23,4 @@ describe_document: |
 correct_fields: |
   These fields failed the check against the document:
   {failures}
-  Return the whole description again. For each field above, find the value in the document and copy the words around it exactly as they stand there, adding nothing, or leave the field out when the document does not state it.
+  A passage the server did not find in the document usually holds a word, a currency or a colon the document does not have there, or joins words from two places. Return the whole description again, with every field above. Give each its value, and set its passage to the value alone, copied character for character as the document writes it at one place: for an amount only its digits and separators, such as "440.00" or "5'230.40", without a currency; for a date the date as written, such as "30.11.2026" or "30. November 2026"; for a payee only the name, such as "Muster AG".
