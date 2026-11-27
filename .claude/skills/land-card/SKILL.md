@@ -39,10 +39,11 @@ git rebase origin/main
 - **Conflict:** keep both intents. Never drop another agent's change to make yours fit. If you cannot keep both, comment on their card and block yours.
 - **A generated file conflicts:** take theirs, then generate it again and commit the result. Never merge it by hand.
 - **Docs tables conflict:** keep both rows.
+- **Evals:** a rebase alone does not rerun the eval comparison. `build-card` step 5 says when it does.
 
 ## 4. Check again
 
-Run `.claude/skills/land-card/gates.sh` on the rebased branch, without a pipe: `| tail` returns the exit code of `tail` and hides a failure. Push only after its last line reads `GATES PASSED`; `GATES FAILED: <gate>` names what broke. If you changed prompts, tools or UI, repeat the matching check from `build-card` step 5. Red means you do not land.
+Run `.claude/skills/land-card/gates.sh` on the rebased branch, without a pipe: `| tail` returns the exit code of `tail` and hides a failure. Push only after its last line reads `GATES PASSED`; `GATES FAILED: <gate>` names what broke. If you changed UI, repeat the UI check from `build-card` step 5. Rerun the eval comparison only by the rule there. Red means you do not land.
 
 ## 5. Push
 
