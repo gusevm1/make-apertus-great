@@ -119,8 +119,8 @@ questions:
     rule: lukas
     documents: [P1_Lukas_Meier/Vorsorgeausweis_2026_Lukas_Meier.pdf]
     any_calls: true
-    answer: '(?=[\s\S]*(?<![\d''’,])38[''’,\s]?534(?:\.40?)?(?![\d]|[.,]\d))(?=[\s\S]*(?:partner\w*(?:[^.]|\.\d){0,60}(?:report|notif|regist)|(?:report|notif|regist)\w*(?:[^.]|\.\d){0,60}partner|in writing|schriftlich|gemeldet|Meldung))'
-    answer_not: '^(?![\s\S]*(?:only if|only when|provided|as long as|unless|nur,? wenn|sofern|falls|vorausgesetzt|not covered|nicht (?:abgesichert|versichert)|no claim|kein Anspruch|no report|keine Meldung))[\s\S]*\b(?:covered|abgesichert|versichert|entitled|receives?|would (?:get|receive)|erhält|Anspruch)\b'
+    answer: '(?=[\s\S]*(?<![\d''’,])38[''’,\s]?534(?:\.40?)?(?![\d]|[.,]\d))(?=[\s\S]*(?:partner\w*(?:[^.]|\.\d){0,60}(?:report|notif|regist)|(?:report|notif|regist)\w*(?:[^.]|\.\d){0,60}partner|in writing|schriftlich|(?:ge)?meld(?:en|et)|Meldung))'
+    answer_not: '^(?![\s\S]*(?:only if|only when|provided|as long as|unless|nur,? wenn|sofern|falls|vorausgesetzt))(?:\s*\**(?:yes|ja)\b|[\s\S]*\b(?:Sara|she|sie)(?:''s|’s| is| ist| would be| wäre| erhält| receives| gets| would (?:get|receive))\s+(?:fully |voll )?(?:covered|entitled|abgesichert|versichert|berechtigt|a partner|eine (?:Lebens)?partnerrente|CHF))'
   - question: Does the salary on this payslip match what I received on my account?
     customer: jana
     rule: jana
