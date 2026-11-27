@@ -32,3 +32,27 @@ def _row_line(ref: str, row: LedgerRow) -> str:
     return json.dumps(
         {key: value for key, value in fields.items() if value is not None}, ensure_ascii=False
     )
+
+
+def severity_prompt(
+    account_names: list[str],
+    transfer_texts: list[str],
+    totals: dict[str, str],
+    categories: list[str],
+) -> list[LLMMessage]:
+    """What Apertus sees of one customer, to rate the `categories` that have no severity yet."""
+    # Escaped, an account name or transfer text can neither close a block nor open a tag.
+    content = PROMPTS["severity_input"].format(
+        accounts=_escape(text="\n".join(account_names)),
+        transfers=_escape(text="\n".join(transfer_texts)),
+        totals="\n".join(f"{category}: {total}" for category, total in totals.items()),
+        categories="\n".join(categories),
+    )
+    return [
+        {"role": "system", "content": PROMPTS["severity_system"]},
+        {"role": "user", "content": content},
+    ]
+
+
+def _escape(text: str) -> str:
+    return text.replace("<", "&lt;").replace(">", "&gt;")

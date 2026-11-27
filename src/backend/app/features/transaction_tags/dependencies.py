@@ -5,12 +5,20 @@ from fastapi import Depends
 from app.clients.apertus import ApertusClientDep
 from app.core.db import SessionDep
 from app.features.ledger.dependencies import LedgerServiceDep
-from app.features.transaction_tags.repository import TransactionTagRepository
+from app.features.transaction_tags.repository import (
+    SeveritySettingRepository,
+    TransactionTagRepository,
+)
 from app.features.transaction_tags.service import TransactionTagService
+from app.features.transaction_tags.severity_service import SeverityService
 
 
 def get_transaction_tag_repo(session: SessionDep) -> TransactionTagRepository:
     return TransactionTagRepository(session=session)
+
+
+def get_severity_setting_repo(session: SessionDep) -> SeveritySettingRepository:
+    return SeveritySettingRepository(session=session)
 
 
 def get_transaction_tag_service(
@@ -22,3 +30,15 @@ def get_transaction_tag_service(
 
 
 TransactionTagServiceDep = Annotated[TransactionTagService, Depends(get_transaction_tag_service)]
+
+
+def get_severity_service(
+    tags: Annotated[TransactionTagRepository, Depends(get_transaction_tag_repo)],
+    severities: Annotated[SeveritySettingRepository, Depends(get_severity_setting_repo)],
+    ledger: LedgerServiceDep,
+    apertus: ApertusClientDep,
+) -> SeverityService:
+    return SeverityService(tags=tags, severities=severities, ledger=ledger, apertus=apertus)
+
+
+SeverityServiceDep = Annotated[SeverityService, Depends(get_severity_service)]

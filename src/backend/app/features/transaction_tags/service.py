@@ -11,7 +11,6 @@ from app.features.transaction_tags.schemas import (
     CATEGORIES,
     BatchCategories,
     Categorisation,
-    TransactionTag,
 )
 
 BATCH_SIZE = 50
@@ -25,9 +24,6 @@ class TransactionTagService:
         self.tags = tags
         self.ledger = ledger
         self.apertus = apertus
-
-    async def list_tags(self, owner_id: UUID, sort: str | None = None) -> list[TransactionTag]:
-        return await self.tags.list(sort=sort, owner_id=owner_id)
 
     async def create_categorisation(self, owner_id: UUID, token: str) -> Categorisation:
         """Give every untagged spending row a category: by rule for loans, else by Apertus."""
