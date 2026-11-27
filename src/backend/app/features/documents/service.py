@@ -23,7 +23,7 @@ class DocumentService:
     async def create_document(
         self, content: bytes, name: str | None, content_type: str | None, owner_id: UUID, token: str
     ) -> Document:
-        """Store the upload in the e-banking, read it once with OCR and keep its text."""
+        """Read the upload once with OCR, store it in the e-banking and keep its text."""
         if len(content) > DOCUMENT_MAX_BYTES:
             raise PayloadTooLargeError(DOCUMENT_TOO_LARGE_MESSAGE)
         if not content:
@@ -32,10 +32,11 @@ class DocumentService:
             # The OCR service picks its reader from the file extension.
             raise BadRequestError("The document needs a file name with its extension.")
         name = name[-NAME_MAX_LENGTH:]
+        # OCR first: a file it cannot read then leaves nothing behind in the e-banking.
+        markdown = await self.ocr.convert(content=content, filename=name)
         stored = await self.banking.upload_document(
             token=token, content=content, filename=name, content_type=content_type
         )
-        markdown = await self.ocr.convert(content=content, filename=name)
         return await self.documents.create(
             owner_id=owner_id, banking_document_id=stored["id"], name=name, markdown=markdown
         )

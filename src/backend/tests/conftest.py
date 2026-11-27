@@ -175,6 +175,8 @@ def fake_ocr_client() -> OcrClient:
     """An OCR client faked at the HTTP level: every file reads as `OCR_MARKDOWN`."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
+        if b".exe" in request.content:
+            return httpx2.Response(422, json={"detail": "Unsupported file type"})
         return httpx2.Response(200, json={"filename": "file", "markdown": OCR_MARKDOWN})
 
     fake_http = httpx2.AsyncClient(

@@ -4,7 +4,7 @@ import httpx2
 from fastapi import Depends, Request
 
 from app.core.config import Settings
-from app.core.errors import UpstreamError
+from app.core.errors import BadRequestError, UpstreamError
 
 
 class OcrClient:
@@ -25,6 +25,8 @@ class OcrClient:
             response = await self._http.post("/convert", files={"file": (filename, content)})
         except httpx2.HTTPError as exc:
             raise UpstreamError("The OCR service is unreachable") from exc
+        if response.is_client_error:
+            raise BadRequestError("The document could not be read. Use a PDF, an image or DOCX.")
         if response.is_error:
             raise UpstreamError(f"The OCR service returned {response.status_code}")
         return response.json()["markdown"]
