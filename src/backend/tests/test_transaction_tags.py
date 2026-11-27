@@ -80,6 +80,9 @@ def _bank_client(bookings_by_token: dict[str, tuple[str, list[dict[str, Any]]]])
             "/loan-transactions": {"items": LOAN_CHARGES if has_card else []},
             "/bookings": {"items": bookings, "total": len(bookings)},
             "/cards": {"items": [CARD] if has_card else []},
+            "/cards/CARD-VISA/statements": {
+                "items": [{"statement_id": "STMT-2026-10", "status": "closed"}]
+            },
             "/cards/CARD-VISA/transactions": {"items": PURCHASES, "total": len(PURCHASES)},
         }
         if path not in pages:
