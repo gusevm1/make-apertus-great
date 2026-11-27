@@ -198,7 +198,11 @@ class ToolCallService:
             for request in requests:
                 if len(calls) == MAX_TOOL_CALLS:
                     break
-                if request.tool == "" or _already_called(calls=calls, request=request):
+                if request.tool == "" or _already_called(
+                    calls=calls,
+                    request=request,
+                    builds_on_turn=self._builds_on_turn(name=request.tool),
+                ):
                     continue
                 call_id = uuid4()
                 title, icon = self._label(name=request.tool)
@@ -398,9 +402,13 @@ def _merge_identical(requests: list[ToolRequest]) -> list[ToolRequest]:
     return list(merged.values())
 
 
-def _already_called(calls: list[ToolCall], request: ToolRequest) -> bool:
+def _already_called(calls: list[ToolCall], request: ToolRequest, builds_on_turn: bool) -> bool:
     return any(
-        call.tool_name == request.tool and call.arguments == request.arguments for call in calls
+        call.tool_name == request.tool
+        and call.arguments == request.arguments
+        # A tool that builds on the turn can pass the second time, once the figures are there.
+        and not (builds_on_turn and call.error is not None)
+        for call in calls
     )
 
 

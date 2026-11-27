@@ -5,12 +5,13 @@ from typing import Any, cast
 from uuid import UUID
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.apertus import ApertusClient, LLMResult, LLMStream, Message, Model
 from app.core.errors import BadRequestError
 from app.core.streaming import ToolCallEvent, ToolResultEvent
+from app.core.tools import Tool, Turn
 from app.features.tool_calls import service as tool_call_service
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
@@ -94,6 +95,68 @@ async def test_expected_tool_errors_go_back_to_the_model(session: AsyncSession) 
     assert isinstance(feedback, str)
     assert "Send a town instead." in feedback
     assert "Query too short" in feedback
+
+
+class CollectArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class Collected(BaseModel):
+    count: int
+
+
+async def _collect(args: CollectArgs, turn: Turn) -> Collected:
+    if len(turn.results) == 0:
+        raise BadRequestError("Nothing to collect yet.")
+    return Collected(count=len(turn.results))
+
+
+# Builds on the turn's results, as build_widget does.
+COLLECT = Tool(
+    name="collect",
+    title="Collect",
+    icon="search",
+    description="Counts the turn's results.",
+    args_schema=CollectArgs,
+    turn_handler=_collect,
+)
+
+
+async def _errors(session: AsyncSession, decisions: list[ToolDecision]) -> list[str | None]:
+    conversation = await make_conversation(session=session)
+    message = await make_message(session=session, conversation_id=conversation.id)
+    service = ToolCallService(
+        tool_calls=ToolCallRepository(session=session),
+        apertus=cast(ApertusClient, RecordingApertus(decisions=decisions)),
+        tools=[LOOKUP, COLLECT],
+        today=TODAY,
+        confirmations=Confirmations(),
+    )
+    await service.create_answer(
+        conversation_id=conversation.id, message_id=message.id, messages=CHAT
+    )
+    calls = await service.list_tool_calls(conversation_id=conversation.id)
+    return [call.error for call in calls]
+
+
+def _lookup_and_collect(query: str) -> ToolDecision:
+    collect = ToolRequest(reason="Because.", tool="collect", arguments={})
+    return ToolDecision(plan="Look up, collect.", calls=[*_lookups(query).calls, collect])
+
+
+async def test_a_tool_that_builds_on_the_turn_runs_again_once_the_figures_are_there(
+    session: AsyncSession,
+) -> None:
+    decisions = [_lookup_and_collect("missing"), _lookup_and_collect("Zurich")]
+
+    errors = await _errors(session=session, decisions=decisions)
+
+    assert errors == [
+        "No page for 'missing'. Send a town instead.",
+        "Nothing to collect yet.",
+        None,
+        None,
+    ]
 
 
 async def test_unexpected_tool_errors_are_logged_and_hidden(
