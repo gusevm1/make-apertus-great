@@ -30,7 +30,7 @@ PERSONAS = ("lukas", "jana", "daniela", "marco")
 HELD_OUT_SHARE = 4  # one payee in four, per customer, is held out
 CATEGORISE_TIMEOUT_SECONDS = 900
 MAX_CATEGORISE_CALLS = 6
-UPSTREAM_FAILED = 502
+POLL_SECONDS = 5
 
 
 def split_of(persona: str, payee: str) -> str:
@@ -77,6 +77,24 @@ async def clear_tags(rows: list[dict[str, Any]], owner: Any, keep_corrections: b
     await engine.dispose()
 
 
+async def finished_run(
+    client: httpx.AsyncClient, base_url: str, headers: dict[str, str]
+) -> dict[str, Any]:
+    """Start a background categorisation and wait until it is done or failed."""
+    response = await client.post(f"{base_url}/api/categorisations", headers=headers, timeout=60)
+    response.raise_for_status()
+    run = response.json()
+    deadline = time.monotonic() + CATEGORISE_TIMEOUT_SECONDS
+    while run["status"] in ("queued", "running") and time.monotonic() < deadline:
+        await asyncio.sleep(POLL_SECONDS)
+        polled = await client.get(
+            f"{base_url}/api/categorisations/{run['id']}", headers=headers, timeout=60
+        )
+        polled.raise_for_status()
+        run = polled.json()
+    return run
+
+
 async def categorise_persona(
     client: httpx.AsyncClient,
     base_url: str,
@@ -95,20 +113,14 @@ async def categorise_persona(
         # Skipped rows stay untagged for the next call, as in the product, so call again.
         for attempt in range(1, MAX_CATEGORISE_CALLS + 1):
             started = time.monotonic()
-            response = await client.post(
-                f"{base_url}/api/categorisations",
-                headers=headers,
-                timeout=CATEGORISE_TIMEOUT_SECONDS,
-            )
-            if response.status_code == UPSTREAM_FAILED:
-                # Apertus answered no batch at all; the rows stay untagged for the next call.
-                print(f"  {persona} #{attempt}: Apertus unavailable", file=sys.stderr)  # noqa: T201
-                continue
-            response.raise_for_status()
-            counts = response.json()
+            run = await finished_run(client=client, base_url=base_url, headers=headers)
             elapsed = time.monotonic() - started
+            counts = {
+                key: run[key]
+                for key in ("status", "tagged_by_model", "tagged_by_correction", "skipped")
+            }
             print(f"  {persona} #{attempt}: {counts} in {elapsed:.0f} s", file=sys.stderr)  # noqa: T201
-            if counts["skipped"] == 0:
+            if run["status"] == "done" and run["skipped"] == 0:
                 break
     tags = await client.get(f"{base_url}/api/transaction-tags", headers=headers, timeout=120)
     tags.raise_for_status()
