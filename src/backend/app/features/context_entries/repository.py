@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 
 from app.core.repository import BaseRepository
 from app.features.context_entries.models import ContextEntryORM
@@ -23,13 +23,19 @@ class ContextEntryRepository(BaseRepository[ContextEntryORM, ContextEntry]):
         )
         return await self.session.scalar(stmt) or 0
 
-    async def replace(self, entry_id: UUID, fields: dict[str, Any]) -> ContextEntry:
-        """Store `fields` as a new entry and mark `entry_id` replaced by it, in one commit."""
-        old = await self.session.get_one(ContextEntryORM, entry_id)
+    async def replace(self, entry_id: UUID, fields: dict[str, Any]) -> ContextEntry | None:
         new = ContextEntryORM(**fields)
         self.session.add(new)
         await self.session.flush()
-        old.status = "replaced"
-        old.replaced_by_id = new.id
+        # The status check sits in the UPDATE, so of two parallel changes only one wins.
+        stmt = (
+            update(ContextEntryORM)
+            .where(ContextEntryORM.id == entry_id, ContextEntryORM.status == "active")
+            .values(status="replaced", replaced_by_id=new.id)
+            .returning(ContextEntryORM.id)
+        )
+        if await self.session.scalar(stmt) is None:
+            await self.session.rollback()
+            return None
         await self.session.commit()
         return self._to_schema(row=new)

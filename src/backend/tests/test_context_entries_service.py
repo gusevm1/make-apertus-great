@@ -50,6 +50,22 @@ async def test_patch_on_a_replaced_entry_answers_409(client: httpx2.AsyncClient)
     assert response.status_code == 409
 
 
+async def test_only_the_first_of_two_changes_to_one_entry_wins(session: AsyncSession) -> None:
+    repository = ContextEntryRepository(session=session)
+    old = await repository.create(
+        owner_id=DEMO_USER_ID, kind="fact", status="active", text="A", source="customer"
+    )
+    fields = {"owner_id": DEMO_USER_ID, "kind": "fact", "status": "active", "source": "customer"}
+
+    first = await repository.replace(entry_id=old.id, fields={**fields, "text": "B"})
+    second = await repository.replace(entry_id=old.id, fields={**fields, "text": "C"})
+
+    assert first is not None
+    assert second is None
+    active = await repository.list(owner_id=DEMO_USER_ID, status="active")
+    assert [entry.text for entry in active] == ["B"]
+
+
 async def test_delete_removes_the_entry_and_its_earlier_versions(
     client: httpx2.AsyncClient,
 ) -> None:

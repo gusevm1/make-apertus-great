@@ -49,7 +49,10 @@ class ContextEntryService:
             raise ConflictError(f"Only an active entry can be changed, this one is {entry.status}")
         fields = {name: getattr(entry, name) for name in COPIED_FIELDS}
         fields |= data.model_dump(exclude_unset=True)
-        return await self.entries.replace(entry_id=entry.id, fields={**fields, "status": "active"})
+        new = await self.entries.replace(entry_id=entry.id, fields={**fields, "status": "active"})
+        if new is None:
+            raise ConflictError("This entry was changed meanwhile, reload it")
+        return new
 
     async def delete_entry(self, entry_id: UUID) -> None:
         """Delete the entry and, through the FK cascade, its earlier versions."""
