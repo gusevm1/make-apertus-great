@@ -299,6 +299,7 @@ class ConversationService:
         checks = [
             self.figure_checks.check_figures(answer=content, sources=sources),
             self.figure_checks.check_dates(answer=content, results=results, texts=texts),
+            self.figure_checks.check_context(answer=content, results=results),
         ]
         return [check for check in checks if check is not None]
 

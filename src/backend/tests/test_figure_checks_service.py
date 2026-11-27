@@ -206,3 +206,119 @@ def test_a_date_written_with_non_breaking_hyphens_is_read() -> None:
 
     assert dates is not None and not dates.passed
     assert figures is not None and figures.detail == "1 of 1 found"
+
+
+check_context = FigureCheckService().check_context
+SEPTEMBER = {"month": "2026-09", "count": 40, "money_out_chf": -3210.4, "money_in_chf": 7800.0}
+OCTOBER = {"month": "2026-10", "count": 49, "money_out_chf": -2916.35, "money_in_chf": 7800.0}
+BY_MONTH = {
+    "count": 89,
+    "money_out_chf": -6126.75,
+    "money_in_chf": 15600.0,
+    "month_most_out": SEPTEMBER,
+    "months": [SEPTEMBER, OCTOBER],
+}
+MIGROS = {"count": 2, "money_out_chf": -430.05, "rows": [{"amount_chf": -413.77}]}
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "Im Oktober haben Sie CHF 3'210.40 ausgegeben.",
+        "Letzten Monat, im Oktober 2026, gaben Sie 3’210.40 Franken aus.",
+        "You spent CHF 3,210.40 in October.",
+        "- **October:** CHF 3210.40",
+    ],
+)
+def test_a_figure_of_another_month_than_the_named_one_fails(answer: str) -> None:
+    result = check_context(answer=answer, results=[BY_MONTH])
+
+    assert result is not None
+    assert (result.name, result.passed) == ("figures_in_context", False)
+    assert result.detail is not None and result.detail.startswith(
+        "0 of 1 fit; from another month: "
+    )
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "Im Oktober haben Sie CHF 2'916.35 ausgegeben.",
+        "In October 2026 you spent CHF 2,916.35.",
+        "- September: CHF 3'210.40\n- Oktober: CHF 2'916.35",
+        "Total spending was CHF 6'126.75 in October.",
+    ],
+)
+def test_a_figure_of_the_named_month_or_outside_any_month_row_passes(answer: str) -> None:
+    result = check_context(answer=answer, results=[BY_MONTH])
+
+    assert result is not None
+    assert result.passed, result.detail
+
+
+def test_a_written_year_must_match_the_month_rows_year() -> None:
+    result = check_context(answer="In October 2025 you spent CHF 2,916.35.", results=[BY_MONTH])
+
+    assert result is not None
+    assert not result.passed
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "You spent CHF 3,210.40.",
+        "Im September CHF 3'210.40, im Oktober CHF 2'916.35.",
+        "CHF 3'210.40 is more than in October and November.",
+    ],
+)
+def test_a_figure_without_one_named_month_is_not_judged_by_month(answer: str) -> None:
+    assert check_context(answer=answer, results=[BY_MONTH]) is None
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "Sie haben bei der Migros CHF -430.05 ausgegeben.",
+        "Migros: -430.05 CHF",
+        "Migros: CHF –430.05",
+        "You spent CHF −413.77 on your account.",
+    ],
+)
+def test_money_moved_written_with_a_minus_fails(answer: str) -> None:
+    result = check_context(answer=answer, results=[MIGROS])
+
+    assert result is not None
+    assert result.passed is False
+    assert result.detail is not None and "money moved written with a minus: " in result.detail
+
+
+@pytest.mark.parametrize(
+    ("answer", "result"),
+    [
+        ("Ihr Saldo beträgt CHF -212.10.", {"balance_chf": -212.1}),
+        ("Your spending changed by -12 %.", {"money_out_change_percent": -12.0}),
+        ("The account fell by CHF -500.00.", {"change_chf": -500.0, "money_out_chf": -500.0}),
+    ],
+)
+def test_a_minus_on_a_balance_or_a_change_passes(answer: str, result: dict) -> None:
+    checked = check_context(answer=answer, results=[result])
+
+    assert checked is not None
+    assert checked.passed, checked.detail
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "Bei der Migros:\n- CHF 430.05 insgesamt\n- CHF 413.77 auf dem Konto",
+        "You spent CHF 430.05 at Migros.",
+        "From 2026-10-01-430.05",
+    ],
+)
+def test_a_list_dash_or_no_minus_is_no_sign(answer: str) -> None:
+    assert check_context(answer=answer, results=[MIGROS]) is None
+
+
+def test_figures_no_result_holds_are_left_to_figures_found() -> None:
+    assert check_context(answer="Im Oktober CHF 39.90.", results=[BY_MONTH]) is None
+    assert check_context(answer="Im Oktober CHF 2'916.35.", results=[]) is None
