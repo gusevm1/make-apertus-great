@@ -59,8 +59,11 @@ An agent can die with its card In progress or In review. `board stale` lists eve
 A bug, a follow-up, a missing piece: don't do it inside your card. Add a card and carry on:
 
 ```
-board add --title "<what>" --size S --priority P1 --body "## Why
-<one sentence>
+board add --title "<what works afterwards>" --size S --priority P1 --body "## Why
+<one or two sentences: who needs this and what for>
+
+## What
+<two to five lines: what gets built, where it lives, its limits as numbers, what is left out>
 
 ## Acceptance criteria
 - [ ] <checkable>
@@ -80,6 +83,26 @@ after #<n>"
 Sizes are `S` and `M`, priorities `P0` to `P2`. A missing heading, a missing `--size` or `--priority`, or a value the board doesn't have stops `board add` before it creates anything. The message names what is missing: fix it and run it again.
 
 It lands in Backlog. The humans decide at the next boundary whether it gets built. `after #<n>` in the body keeps a card out of `board next` until card n is Done.
+
+## Writing a card
+
+Two readers use a card. The agent that builds it reads it first. Later, people open it to see what was built.
+
+- **Title.** What works afterwards, with the thing named. "Attach a document to a question", not "Documents".
+- **Why.** Who needs it and what for, in one or two sentences.
+- **What.** Two to five lines on what gets built. Name the endpoint, the tool, the table or the part of the page. Give limits as numbers. Say what is left out. Describe behaviour and place, not how to code it.
+- **Acceptance criteria.** Each one is something a reviewer can check.
+
+An example of What:
+
+```
+## What
+`POST /api/documents` reads the file once with the OCR service and stores its text.
+A message takes up to three document ids. Files over 10 MB are refused.
+The chat shows the names of the attached files. It shows no preview of them.
+```
+
+Keep the whole card under about 25 lines and apply the `unslop` skill to it. A sentence that would fit any card says nothing about this one, so cut it. When a card lands, `land-card` adds an `## Implemented` comment, so the card also records what was built.
 
 ## Talking to other agents and to humans
 
