@@ -1,7 +1,9 @@
 import json
+from datetime import date
 
 import pytest
 
+from app.core.provenance import Check
 from app.features.figure_checks.service import FigureCheckService
 
 RESULT = json.dumps({"total_chf": 2916.35, "count": 49, "balance": -212.1, "rate": 0.95})
@@ -208,7 +210,7 @@ def test_a_date_written_with_non_breaking_hyphens_is_read() -> None:
     assert figures is not None and figures.detail == "1 of 1 found"
 
 
-check_context = FigureCheckService().check_context
+TODAY = date(2026, 11, 27)
 SEPTEMBER = {"month": "2026-09", "count": 40, "money_out_chf": -3210.4, "money_in_chf": 7800.0}
 OCTOBER = {"month": "2026-10", "count": 49, "money_out_chf": -2916.35, "money_in_chf": 7800.0}
 BY_MONTH = {
@@ -218,25 +220,39 @@ BY_MONTH = {
     "month_most_out": SEPTEMBER,
     "months": [SEPTEMBER, OCTOBER],
 }
-MIGROS = {"count": 2, "money_out_chf": -430.05, "rows": [{"amount_chf": -413.77}]}
+SEPTEMBER_TO_OCTOBER = ({"date_from": "2026-09-01", "date_to": "2026-10-31"}, BY_MONTH)
+# What sum_spending returns: its period is only in the call's arguments.
+SPENDING = {"count": 3157, "spent_chf": "372391.31", "groups": [{"spent_chf": "372391.31"}]}
+MIGROS = {
+    "count": 2,
+    "money_out_chf": -430.05,
+    "rows": [
+        {"date": "2026-10-03", "amount_chf": -413.77},
+        {"date": "2026-10-09", "amount_chf": -16.28},
+    ],
+}
+
+
+def check_context(answer: str, calls: list[tuple[dict, dict]], today: date = TODAY) -> Check | None:
+    return FigureCheckService().check_context(answer=answer, calls=calls, today=today)
 
 
 @pytest.mark.parametrize(
     "answer",
     [
         "Im Oktober haben Sie CHF 3'210.40 ausgegeben.",
-        "Letzten Monat, im Oktober 2026, gaben Sie 3’210.40 Franken aus.",
+        "Letzten Monat gaben Sie 3’210.40 Franken aus.",
         "You spent CHF 3,210.40 in October.",
         "- **October:** CHF 3210.40",
     ],
 )
-def test_a_figure_of_another_month_than_the_named_one_fails(answer: str) -> None:
-    result = check_context(answer=answer, results=[BY_MONTH])
+def test_a_month_rows_figure_given_for_another_month_fails(answer: str) -> None:
+    result = check_context(answer=answer, calls=[SEPTEMBER_TO_OCTOBER])
 
     assert result is not None
     assert (result.name, result.passed) == ("figures_in_context", False)
     assert result.detail is not None and result.detail.startswith(
-        "0 of 1 fit; from another month: "
+        "0 of 1 fit; from another period: "
     )
 
 
@@ -245,19 +261,47 @@ def test_a_figure_of_another_month_than_the_named_one_fails(answer: str) -> None
     [
         "Im Oktober haben Sie CHF 2'916.35 ausgegeben.",
         "In October 2026 you spent CHF 2,916.35.",
+        "Last month you spent CHF 2’916.35.",
         "- September: CHF 3'210.40\n- Oktober: CHF 2'916.35",
-        "Total spending was CHF 6'126.75 in October.",
     ],
 )
-def test_a_figure_of_the_named_month_or_outside_any_month_row_passes(answer: str) -> None:
-    result = check_context(answer=answer, results=[BY_MONTH])
+def test_a_figure_of_the_named_month_passes(answer: str) -> None:
+    result = check_context(answer=answer, calls=[SEPTEMBER_TO_OCTOBER])
 
     assert result is not None
     assert result.passed, result.detail
 
 
-def test_a_written_year_must_match_the_month_rows_year() -> None:
-    result = check_context(answer="In October 2025 you spent CHF 2,916.35.", results=[BY_MONTH])
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "You spent a total of CHF 372,391.31 in the previous month (October 2026).",
+        "Your total spending last month amounted to **CHF 372,391.31**.",
+        "Im letzten Monat haben Sie CHF 372'391.31 ausgegeben.",
+    ],
+)
+def test_a_total_over_a_longer_period_given_for_one_month_fails(answer: str) -> None:
+    no_start = ({"date_to": "2026-10-31", "group_by": "category"}, SPENDING)
+
+    result = check_context(answer=answer, calls=[no_start])
+
+    assert result is not None
+    assert result.detail is not None and "from another period: 372" in result.detail
+
+
+def test_a_total_over_exactly_that_month_passes() -> None:
+    october = ({"date_from": "2026-10-01", "date_to": "2026-10-31"}, SPENDING)
+
+    result = check_context(answer="Last month you spent CHF 372,391.31.", calls=[october])
+
+    assert result is not None
+    assert result.passed
+
+
+def test_a_year_written_with_the_month_counts() -> None:
+    result = check_context(
+        answer="In October 2025 you spent CHF 2,916.35.", calls=[SEPTEMBER_TO_OCTOBER]
+    )
 
     assert result is not None
     assert not result.passed
@@ -266,13 +310,41 @@ def test_a_written_year_must_match_the_month_rows_year() -> None:
 @pytest.mark.parametrize(
     "answer",
     [
-        "You spent CHF 3,210.40.",
-        "Im September CHF 3'210.40, im Oktober CHF 2'916.35.",
-        "CHF 3'210.40 is more than in October and November.",
+        "You spent CHF 372,391.31.",
+        "Last month CHF 372,391.31, this month less.",
+        "Seit Januar 2026 zahlen Sie CHF 372'391.31.",
+        "From June 2026 to November 2026 you spent CHF 372,391.31.",
+        "Im Oktober waren es durchschnittlich CHF 372'391.31.",
+        "As of November 26 2026 you spent CHF 372,391.31.",
+        "Bis zum heutigen Datum im November 2026 haben Sie CHF 372'391.31 bezahlt.",
+        "This year, by October, you spent CHF 372,391.31.",
     ],
 )
-def test_a_figure_without_one_named_month_is_not_judged_by_month(answer: str) -> None:
-    assert check_context(answer=answer, results=[BY_MONTH]) is None
+def test_a_clause_without_one_month_as_its_period_is_not_judged(answer: str) -> None:
+    no_start = ({"date_to": "2026-10-31"}, SPENDING)
+
+    assert check_context(answer=answer, calls=[no_start]) is None
+
+
+def test_a_result_without_a_period_and_a_single_movement_are_not_judged() -> None:
+    no_dates = ({"group_by": "category"}, SPENDING)
+    september = ({"date_from": "2026-09-01"}, MIGROS)
+
+    assert check_context(answer="Im Oktober CHF 372'391.31.", calls=[no_dates]) is None
+    assert check_context(answer="Im Oktober CHF 413.77.", calls=[september]) is None
+
+
+def test_a_result_that_names_its_own_period_is_judged_by_it() -> None:
+    periods = {
+        "earlier": {"date_from": "2026-09-01", "date_to": "2026-09-30", "money_out_chf": -3210.4},
+        "later": {"date_from": "2026-10-01", "date_to": "2026-10-31", "money_out_chf": -2916.35},
+    }
+
+    right = check_context(answer="Im Oktober CHF 2'916.35.", calls=[({}, periods)])
+    wrong = check_context(answer="Im Oktober CHF 3'210.40.", calls=[({}, periods)])
+
+    assert right is not None and right.passed
+    assert wrong is not None and not wrong.passed
 
 
 @pytest.mark.parametrize(
@@ -280,28 +352,31 @@ def test_a_figure_without_one_named_month_is_not_judged_by_month(answer: str) ->
     [
         "Sie haben bei der Migros CHF -430.05 ausgegeben.",
         "Migros: -430.05 CHF",
-        "Migros: CHF –430.05",
-        "You spent CHF −413.77 on your account.",
+        "Migros: CHF −430.05",
+        "**Total spending at Coop**: CHF ‑2,354.67",
     ],
 )
-def test_money_moved_written_with_a_minus_fails(answer: str) -> None:
-    result = check_context(answer=answer, results=[MIGROS])
+def test_a_sum_written_with_a_minus_fails(answer: str) -> None:
+    coop = {"money_out_chf": -2354.67, "rows": [{"date": "2026-11-23", "amount_chf": -82.4}]}
+
+    result = check_context(answer=answer, calls=[({}, MIGROS), ({}, coop)])
 
     assert result is not None
     assert result.passed is False
-    assert result.detail is not None and "money moved written with a minus: " in result.detail
+    assert result.detail is not None and "a sum written with a minus: " in result.detail
 
 
 @pytest.mark.parametrize(
     ("answer", "result"),
     [
+        ("- CHF ‑413.77 at Migros", MIGROS),
         ("Ihr Saldo beträgt CHF -212.10.", {"balance_chf": -212.1}),
         ("Your spending changed by -12 %.", {"money_out_change_percent": -12.0}),
         ("The account fell by CHF -500.00.", {"change_chf": -500.0, "money_out_chf": -500.0}),
     ],
 )
-def test_a_minus_on_a_balance_or_a_change_passes(answer: str, result: dict) -> None:
-    checked = check_context(answer=answer, results=[result])
+def test_a_minus_on_a_movement_a_balance_or_a_change_passes(answer: str, result: dict) -> None:
+    checked = check_context(answer=answer, calls=[({}, result)])
 
     assert checked is not None
     assert checked.passed, checked.detail
@@ -312,13 +387,13 @@ def test_a_minus_on_a_balance_or_a_change_passes(answer: str, result: dict) -> N
     [
         "Bei der Migros:\n- CHF 430.05 insgesamt\n- CHF 413.77 auf dem Konto",
         "You spent CHF 430.05 at Migros.",
-        "From 2026-10-01-430.05",
+        "The total (money_out_chf – 430.05) is CHF 430.05.",
     ],
 )
-def test_a_list_dash_or_no_minus_is_no_sign(answer: str) -> None:
-    assert check_context(answer=answer, results=[MIGROS]) is None
+def test_a_list_dash_an_en_dash_or_no_minus_is_no_sign(answer: str) -> None:
+    assert check_context(answer=answer, calls=[({}, MIGROS)]) is None
 
 
 def test_figures_no_result_holds_are_left_to_figures_found() -> None:
-    assert check_context(answer="Im Oktober CHF 39.90.", results=[BY_MONTH]) is None
-    assert check_context(answer="Im Oktober CHF 2'916.35.", results=[]) is None
+    assert check_context(answer="Im Oktober CHF 39.90.", calls=[SEPTEMBER_TO_OCTOBER]) is None
+    assert check_context(answer="Im Oktober CHF 2'916.35.", calls=[]) is None

@@ -262,14 +262,15 @@ class ConversationService:
     ) -> tuple[str, Provenance]:
         # Earlier turns count too, so a follow-up may repeat a figure it was shown before.
         calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
-        results = [call.result for call in calls if call.result is not None]
+        outputs = [(call.arguments, call.result) for call in calls if call.result is not None]
+        results = [result for _, result in outputs]
         texts = [document.markdown for document in documents]
         texts += [message.content for message in history if message.role == "user"]
         # The newest tool results last, so they are the last a cut for the correction drops.
         sources = [*texts, *[json.dumps(result, ensure_ascii=False) for result in results]]
         # Only an answer built on this turn's tool results is held, so only it can be corrected.
         can_correct = any(call.message_id == history[-1].id for call in calls)
-        checks = self._checks(content=content, sources=sources, results=results, texts=texts)
+        checks = self._checks(content=content, sources=sources, outputs=outputs, texts=texts)
         figures = next((check for check in checks if check.name == "figures_found"), None)
         if not can_correct or figures is None or figures.passed:
             return content, provenance.model_copy(update={"checks": [*provenance.checks, *checks]})
@@ -280,7 +281,7 @@ class ConversationService:
         )
         draft = figures.model_copy(update={"name": DRAFT_CHECK})
         content = SwissSpelling().feed(text=corrected.content)
-        checks = self._checks(content=content, sources=sources, results=results, texts=texts)
+        checks = self._checks(content=content, sources=sources, outputs=outputs, texts=texts)
         return content, provenance.model_copy(
             update={
                 "latency_ms": provenance.latency_ms + corrected.latency_ms,
@@ -294,12 +295,19 @@ class ConversationService:
         return self.tool_calls.find_pointers(calls=turn, answer=content)
 
     def _checks(
-        self, content: str, sources: list[str], results: list[dict[str, Any]], texts: list[str]
+        self,
+        content: str,
+        sources: list[str],
+        outputs: list[tuple[dict[str, Any], dict[str, Any]]],
+        texts: list[str],
     ) -> list[Check]:
+        results = [result for _, result in outputs]
         checks = [
             self.figure_checks.check_figures(answer=content, sources=sources),
             self.figure_checks.check_dates(answer=content, results=results, texts=texts),
-            self.figure_checks.check_context(answer=content, results=results),
+            self.figure_checks.check_context(
+                answer=content, calls=outputs, today=self.tool_calls.today
+            ),
         ]
         return [check for check in checks if check is not None]
 

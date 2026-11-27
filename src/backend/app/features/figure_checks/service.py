@@ -1,5 +1,7 @@
 import re
+from calendar import monthrange
 from dataclasses import dataclass
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
@@ -66,20 +68,35 @@ _CURRENCY_BEFORE = re.compile(r"(?:CHF|Fr\.|EUR|USD|GBP|\u20ac|\$)\s*$")
 _CURRENCY_AFTER = re.compile(r"^\s*(?:CHF|Franken|francs?|EUR|USD|GBP)\b", re.IGNORECASE)
 # A month named in the answer, with the year when one follows it.
 _MONTH_NAMED = re.compile(rf"\b(?P<name>{_MONTHS})\b\.?(?:\s+(?P<year>\d{{4}})\b)?")
+_LAST_MONTH = re.compile(
+    r"\b(?:last|previous) month\b|\b(?:letzten|vergangenen|im vergangenen) Monat\b|\bVormonat",
+    re.IGNORECASE,
+)
+_THIS_MONTH = re.compile(r"\bthis month\b|\bdiesen Monat\b|\bdiesem Monat\b", re.IGNORECASE)
+# A span around a month, a year or an average per month: the month is not the figure's period.
+_SPAN_WORDS = re.compile(
+    rf"\b(?:seit|since|ab|from|bis|to|until|vor|before|nach|after)\s+(?:(?:the\s+)?"
+    rf"(?:end|start|Ende|Anfang)\s+(?:of\s+)?)?(?:{_MONTHS}|\d)"
+    r"|\b(?:zwischen|between|seit|since|bis|bisher|until|through|so far|to date|year|Jahr\w*"
+    r"|per month|pro Monat|monthly|monatlich|average)\b|Durchschnitt|durchschnittlich",
+    re.IGNORECASE,
+)
 # Where the words that belong to a figure end: a sentence end, a semicolon or a new line.
 _CLAUSE_END = re.compile(r"[.!?;]\s|\n")
 # A minus right before the number or after its currency; a list's "- CHF 430.05" is no sign.
-_MINUS_BEFORE = re.compile(r"(?<![\w.,])[-\u2212\u2011\u2013]\s?$|CHF\s?[-\u2212\u2011\u2013]\s?$")
-# Fields of money moved; the ledger writes money out as negative, the answer as spent.
-MOVED_KEYS = {
-    "amount_chf",
+# An en dash also separates a label from its figure, so it is no minus.
+_MINUS_BEFORE = re.compile(r"(?<![\w.,])[-\u2212\u2011]\s?$|CHF\s?[-\u2212\u2011]\s?$")
+# Sums of money moved, which the ledger signs negative when it went out; the answer says spent.
+SUM_KEYS = {
     "money_out_chf",
     "money_in_chf",
     "provisional_out_chf",
     "provisional_in_chf",
     "average_out_chf",
     "average_in_chf",
+    "spent_chf",
 }
+_MONTH_KEY = re.compile(r"\d{4}-\d{2}")
 
 
 @dataclass(frozen=True)
@@ -125,9 +142,18 @@ class FigureCheckService:
             detail += "; not matched: " + " | ".join(missing[:NOT_FOUND_LISTED])
         return Check(name="dates_match", passed=not missing, detail=detail)
 
-    def check_context(self, answer: str, results: list[Any]) -> Check | None:
-        """Whether a figure tied to a month or written with a minus fits the results holding it."""
-        leaves = [leaf for result in results for leaf in _leaves(value=result, key="", month=None)]
+    def check_context(
+        self, answer: str, calls: list[tuple[dict[str, Any], dict[str, Any]]], today: date
+    ) -> Check | None:
+        """Whether a figure tied to a month or written with a minus fits the results holding it.
+
+        `calls` are the arguments and the result of each tool call.
+        """
+        leaves = [
+            leaf
+            for arguments, result in calls
+            for leaf in _leaves(value=result, key="", period=_call_period(arguments=arguments))
+        ]
         blanked = _without_dates(text=answer)
         judged = 0
         flagged: dict[str, list[str]] = {}
@@ -136,7 +162,7 @@ class FigureCheckService:
             if not holding:
                 continue
             reasons = _context_reasons(
-                figure=figure, holding=holding, answer=answer, blanked=blanked
+                figure=figure, holding=holding, answer=answer, blanked=blanked, today=today
             )
             if reasons is None:
                 continue
@@ -290,80 +316,118 @@ def _has_row(line: str, rows: list[_Row]) -> bool:
     )
 
 
+# First and last day; None is open at that end.
+Period = tuple[date | None, date | None]
+Month = tuple[date, date]
+
+
 @dataclass(frozen=True)
 class _Leaf:
     key: str
     value: Decimal
-    month: str | None  # YYYY-MM of the month row it is in
+    period: Period | None  # None when the result does not say which period it covers
 
 
-def _leaves(value: Any, key: str, month: str | None) -> list[_Leaf]:
+def _call_period(arguments: dict[str, Any]) -> Period | None:
+    if arguments.get("date_from") is None and arguments.get("date_to") is None:
+        return None
+    try:
+        return _optional_date(value=arguments.get("date_from")), _optional_date(
+            value=arguments.get("date_to")
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_date(value: Any) -> date | None:
+    return None if value is None else date.fromisoformat(value)
+
+
+# The nearest of a month row, a single movement (no period) or a result's own dates wins.
+def _leaves(value: Any, key: str, period: Period | None) -> list[_Leaf]:
     if isinstance(value, dict):
-        own = value.get("month")
-        month = own if isinstance(own, str) and _MONTH_KEY.fullmatch(own) else month
+        period = _own_period(row=value, period=period)
         return [
             leaf
             for name, item in value.items()
-            for leaf in _leaves(value=item, key=name, month=month)
+            for leaf in _leaves(value=item, key=name, period=period)
         ]
     if isinstance(value, list):
-        return [leaf for item in value for leaf in _leaves(value=item, key=key, month=month)]
+        return [leaf for item in value for leaf in _leaves(value=item, key=key, period=period)]
     if isinstance(value, bool) or not isinstance(value, int | float | str):
         return []
     try:
-        return [_Leaf(key=key, value=Decimal(str(value)), month=month)]
+        return [_Leaf(key=key, value=Decimal(str(value)), period=period)]
     except InvalidOperation:
         return []
 
 
-_MONTH_KEY = re.compile(r"\d{4}-\d{2}")
+def _own_period(row: dict[str, Any], period: Period | None) -> Period | None:
+    month = row.get("month")
+    if isinstance(month, str) and _MONTH_KEY.fullmatch(month):
+        return _month_period(year=int(month[:4]), month=int(month[5:]))
+    if "date" in row:
+        return None
+    if "date_from" in row and "date_to" in row:
+        try:
+            return _optional_date(value=row["date_from"]), _optional_date(value=row["date_to"])
+        except (TypeError, ValueError):
+            return None
+    return period
+
+
+def _month_period(year: int, month: int) -> Month:
+    first = date(year, month, 1)
+    return first, date(year, month, monthrange(year, month)[1])
 
 
 # None when the answer gives no month or minus to judge the figure by.
 def _context_reasons(
-    figure: Figure, holding: list[_Leaf], answer: str, blanked: str
+    figure: Figure, holding: list[_Leaf], answer: str, blanked: str, today: date
 ) -> list[str] | None:
     reasons: list[str] = []
     is_judged = False
-    month = _named_month(figure=figure, answer=answer, blanked=blanked)
-    if month is not None:
+    month = _named_month(figure=figure, answer=answer, blanked=blanked, today=today)
+    # A result that says nothing about its period cannot tell the month apart.
+    if month is not None and all(leaf.period is not None for leaf in holding):
         is_judged = True
-        if _other_month_only(month=month, holding=holding):
-            reasons.append("from another month")
+        if not any(_within(period=leaf.period, month=month) for leaf in holding):
+            reasons.append("from another period")
     if _MINUS_BEFORE.search(answer[max(0, figure.start - CURRENCY_BEFORE_CHARS) : figure.start]):
         is_judged = True
-        if all(leaf.key in MOVED_KEYS for leaf in holding):
-            reasons.append("money moved written with a minus")
+        if all(leaf.key in SUM_KEYS for leaf in holding):
+            reasons.append("a sum written with a minus")
     return reasons if is_judged else None
 
 
-# The one month the figure's clause names, as (year or None, month); None for none or several.
-def _named_month(figure: Figure, answer: str, blanked: str) -> tuple[int | None, int] | None:
+# The one month the figure's clause names; None for none, several or a span around a month.
+def _named_month(figure: Figure, answer: str, blanked: str, today: date) -> Month | None:
     ends = [match.end() for match in _CLAUSE_END.finditer(blanked, 0, figure.start)]
     start = ends[-1] if ends else 0
     after = _CLAUSE_END.search(blanked, figure.start)
     clause = answer[start : len(answer) if after is None else after.start()]
-    named = {
-        (
-            None if match["year"] is None else int(match["year"]),
-            _MONTH_NUMBERS[match["name"].lower()[:3]],
-        )
-        for match in _MONTH_NAMED.finditer(clause)
-    }
-    if len({month for _, month in named}) != 1:
+    if _SPAN_WORDS.search(clause):
         return None
-    years = {year for year, _ in named if year is not None}
-    if len(years) > 1:
-        return None
-    return (next(iter(years), None), next(iter(named))[1])
+    days = [match.span() for match in _DAY_DATES.finditer(clause)]
+    months: set[Month] = set()
+    for match in _MONTH_NAMED.finditer(clause):
+        if any(first <= match.start() < last for first, last in days):
+            continue
+        number = _MONTH_NUMBERS[match["name"].lower()[:3]]
+        year = int(match["year"]) if match["year"] is not None else None
+        if year is None:
+            year = today.year if number <= today.month else today.year - 1
+        months.add(_month_period(year=year, month=number))
+    if _LAST_MONTH.search(clause):
+        last_day = today.replace(day=1) - timedelta(days=1)
+        months.add(_month_period(year=last_day.year, month=last_day.month))
+    if _THIS_MONTH.search(clause):
+        months.add(_month_period(year=today.year, month=today.month))
+    return next(iter(months)) if len(months) == 1 else None
 
 
-def _other_month_only(month: tuple[int | None, int], holding: list[_Leaf]) -> bool:
-    if any(leaf.month is None for leaf in holding):
+def _within(period: Period | None, month: Month) -> bool:
+    if period is None:
         return False
-    year, number = month
-    return not any(
-        int(leaf.month[5:7]) == number and (year is None or int(leaf.month[:4]) == year)
-        for leaf in holding
-        if leaf.month is not None
-    )
+    first, last = period
+    return first is not None and last is not None and month[0] <= first and last <= month[1]
