@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 from app.clients.apertus import Message as LLMMessage
@@ -85,7 +85,20 @@ def dated_prompt(messages: list[LLMMessage], today: date) -> list[LLMMessage]:
 
 
 def _today(today: date) -> str:
-    return PROMPTS["today"].format(weekday=f"{today:%A}", date=f"{today:%d.%m.%Y}")
+    # The model gets "last month" wrong, so the server works the periods out.
+    month_start = today.replace(day=1)
+    last_month_end = month_start - timedelta(days=1)
+    return PROMPTS["today"].format(
+        weekday=f"{today:%A}",
+        date=f"{today:%d.%m.%Y}",
+        today=today,
+        month_start=month_start,
+        last_month_start=last_month_end.replace(day=1),
+        last_month_end=last_month_end,
+        year_start=date(today.year, 1, 1),
+        last_year_start=date(today.year - 1, 1, 1),
+        last_year_end=date(today.year - 1, 12, 31),
+    )
 
 
 def _tool_line(tool: Tool[Any]) -> str:

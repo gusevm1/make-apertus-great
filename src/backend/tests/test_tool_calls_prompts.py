@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +8,7 @@ from app.features.conversations.prompts import chat_prompt
 from app.features.tool_calls.prompts import (
     TOOL_RESULT_MAX_CHARS,
     answer_prompt,
+    dated_prompt,
     decision_prompt,
     question_language,
 )
@@ -188,3 +191,13 @@ def test_question_language_skips_an_attached_document() -> None:
     )
 
     assert question_language(message={"role": "user", "content": content}) == "German"
+
+
+def test_the_server_works_out_last_month_and_last_year() -> None:
+    (system, _) = dated_prompt(
+        messages=[{"role": "system", "content": "s"}, {"role": "user", "content": "q"}],
+        today=date(2026, 1, 15),
+    )
+
+    assert "last month is 2025-12-01 to 2025-12-31" in str(system["content"])
+    assert "last year is 2025-01-01 to 2025-12-31" in str(system["content"])

@@ -1,4 +1,8 @@
-today: "Today is {weekday}, {date}, the date of the e-banking. No tool is needed to know the date."
+today: >-
+  Today is {weekday}, {date}, the date of the e-banking. No tool is needed to know the date.
+  As tool arguments: this month is {month_start} to {today}, last month is {last_month_start}
+  to {last_month_end}, this year is {year_start} to {today}, last year is {last_year_start}
+  to {last_year_end}.
 decision_system: |
   {today}
   You decide which tool calls are needed before the user's last message gets its answer.
