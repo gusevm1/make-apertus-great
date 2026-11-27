@@ -47,6 +47,8 @@ PASSAGE_NOT_IN_TEXT = "these words are not in the document"
 AMOUNT_NOT_IN_PASSAGE = "the amount is not in these words"
 DOCUMENT_NOT_READ = "no document of this name was given"
 PASSAGE_TOO_LONG = f"longer than {READ_PASSAGE_MAX_LENGTH} characters, quote fewer words"
+# A failure quotes the start of its passage, so five of them keep the check short.
+FAILURE_QUOTE_LENGTH = 80
 
 
 class DocumentService:
@@ -267,7 +269,8 @@ def checked_reading(
         else:
             passages.append(QuotedPassage(document=document.name, text=text))
             continue
-        failures.append(f'"{text}" from {passage.document}: {reason}')
+        quoted = _shortened(text=text, max_length=FAILURE_QUOTE_LENGTH)
+        failures.append(f'"{quoted}" from {passage.document}: {reason}')
     reading = DocumentReading(
         answer=_shortened(text=answer.answer, max_length=READ_ANSWER_MAX_LENGTH),
         passages=passages,
@@ -294,7 +297,7 @@ def _resolved(names: list[str], documents: list[Document]) -> list[Document]:
 
 
 def _named(name: str, documents: list[Document]) -> Document | None:
-    """The newest document with this file name, file name without extension, or title."""
+    # The newest document with this file name, file name without extension, or title.
     key = name.strip().casefold()
     for document in documents:
         keys = {document.name.casefold(), Path(document.name).stem.casefold()}

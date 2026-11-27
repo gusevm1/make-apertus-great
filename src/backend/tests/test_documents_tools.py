@@ -27,9 +27,15 @@ def _answer(*passages: tuple[str, str], answer: str = "Ja, auf Ende März.") -> 
     return json.dumps({"answer": answer, "passages": quoted})
 
 
-async def _store(session: AsyncSession, name: str, markdown: str, owner_id: UUID = OWNER) -> None:
+async def _store(
+    session: AsyncSession,
+    name: str,
+    markdown: str,
+    owner_id: UUID = OWNER,
+    title: str | None = None,
+) -> None:
     await DocumentRepository(session=session).create(
-        owner_id=owner_id, banking_document_id="DOC-1", name=name, markdown=markdown
+        owner_id=owner_id, banking_document_id="DOC-1", name=name, markdown=markdown, title=title
     )
 
 
@@ -141,6 +147,36 @@ async def test_a_corrected_passage_is_kept(session: AsyncSession) -> None:
     ]
     assert reading.provenance is not None
     assert reading.provenance.checks[0].passed is True
+
+
+async def test_a_document_is_found_by_its_title(session: AsyncSession) -> None:
+    await _store(
+        session=session, name="scan_0042.pdf", markdown=OCR_MARKDOWN, title="Lohnabrechnung Nov"
+    )
+    apertus = ScriptedApertus(session=session, answers=[])
+
+    reading = await _read(session=session, apertus=apertus, names=["lohnabrechnung nov"])
+
+    assert [text.name for text in reading.texts] == ["scan_0042.pdf"]
+
+
+async def test_passages_too_long_or_from_another_document_are_dropped(
+    session: AsyncSession,
+) -> None:
+    long_passage = CONTRACT[20:700]
+    await _store(session=session, name="Mietvertrag.pdf", markdown=CONTRACT)
+    answer = _answer(("Mietvertrag.pdf", long_passage), ("Kaufvertrag.pdf", NOTICE))
+    apertus = ScriptedApertus(session=session, answers=[answer, answer])
+
+    reading = await _read(session=session, apertus=apertus, names=["Mietvertrag.pdf"])
+
+    assert reading.passages == []
+    assert reading.provenance is not None
+    detail = reading.provenance.checks[0].detail
+    assert detail is not None
+    assert "from Mietvertrag.pdf: longer than 600 characters, quote fewer words" in detail
+    assert "from Kaufvertrag.pdf: no document of this name was given" in detail
+    assert len(detail) < 400
 
 
 async def test_a_reading_stays_under_the_tool_result_limit(session: AsyncSession) -> None:
