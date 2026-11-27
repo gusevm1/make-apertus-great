@@ -83,6 +83,8 @@ Clean says nothing about how the widget looks: a clean page can still overlap it
 | jinja | fast | monthly_spending + last_3 (rewrite) | no (first version broken) | 10.1 | 659 | 1526 | numbers of its own: 0 of 5 found; not found: 10'000, 2'000, 4'000, 6'000, 8'000 |  |
 | jinja | fast | monthly_spending + last_3 (edits) | no (first version broken) | 1.2 | 55 | 1506 | numbers of its own: 0 of 5 found; not found: 10'000, 2'000, 4'000, 6'000, 8'000 |  |
 
+On 8B, 4 of the 10 jinja failures (the rows with "not found: 10'000, 2'000, …") are axis tick labels typed into the template. The prompt asks for tick labels in `.tick` elements, but the template check refuses every typed number, so the two contradict each other. The 0 of 6 still stands, because the card refuses typed numbers.
+
 ## Summary
 
 Revisions count only where the first version was clean, so a broken first version doesn't count five times.
