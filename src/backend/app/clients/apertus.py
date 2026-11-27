@@ -153,6 +153,10 @@ class ApertusClient:
         self._log_content = settings.log_llm_content
         self._log = _call_logger(path=settings.llm_log_path)
 
+    def model_name(self, model: Model) -> str:
+        """The gateway's name for `model`."""
+        return self._models[model]
+
     async def close(self) -> None:
         await self._openai.close()
 
@@ -235,6 +239,7 @@ class ApertusClient:
         schema: type[T],
         model: Model,
         purpose: str,
+        timeout_seconds: float | None = None,
     ) -> LLMResult[T]:
         """Complete a chat and validate the answer against `schema`, retrying once on bad output."""
         json_schema = schema.model_json_schema()
@@ -253,6 +258,7 @@ class ApertusClient:
             attempt_messages = [*messages, Message(role="user", content=instruction)]
 
         last_error = ""
+        reason = ""
         for _ in range(STRUCTURED_MAX_ATTEMPTS):
             raw = await self._complete(
                 messages=attempt_messages,
@@ -260,11 +266,13 @@ class ApertusClient:
                 purpose=purpose,
                 temperature=STRUCTURED_TEMPERATURE,
                 response_format=response_format,
+                timeout_seconds=timeout_seconds,
             )
             try:
                 parsed = schema.model_validate_json(_strip_code_fences(text=raw.content))
             except ValidationError as exc:
                 last_error = str(exc)
+                reason = _first_error(exc=exc)
                 attempt_messages = [
                     *attempt_messages,
                     Message(role="assistant", content=raw.content),
@@ -278,7 +286,7 @@ class ApertusClient:
                 tokens_in=raw.tokens_in,
                 tokens_out=raw.tokens_out,
             )
-        raise UpstreamError(f"Model returned invalid {schema.__name__} twice")
+        raise UpstreamError(f"Model returned invalid {schema.__name__} twice, last: {reason}")
 
     async def _complete(
         self,
@@ -288,6 +296,7 @@ class ApertusClient:
         *,
         temperature: float | None = None,
         response_format: ResponseFormat | None = None,
+        timeout_seconds: float | None = None,
     ) -> LLMResult[str]:
         started = time.perf_counter()
         try:
@@ -296,6 +305,7 @@ class ApertusClient:
                 messages=_to_openai(messages=messages),
                 temperature=openai.omit if temperature is None else temperature,
                 response_format=openai.omit if response_format is None else response_format,
+                timeout=openai.omit if timeout_seconds is None else timeout_seconds,
             )
         except openai.APIError as exc:
             self._write_log(
@@ -352,6 +362,13 @@ class ApertusClient:
             entry["prompt"] = _loggable(messages=messages)
             entry["response"] = response
         self._log.info(json.dumps(entry, ensure_ascii=False))
+
+
+def _first_error(exc: ValidationError) -> str:
+    # Without the input, which holds the model's answer.
+    error = exc.errors(include_input=False, include_url=False)[0]
+    location = ".".join(str(part) for part in error["loc"])
+    return f"{location}: {error['msg']}" if location else error["msg"]
 
 
 def _upstream_error(exc: openai.APIError) -> UpstreamError:
