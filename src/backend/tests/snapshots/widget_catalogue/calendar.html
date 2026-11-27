@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; script-src &#39;unsafe-inline&#39; &#39;unsafe-eval&#39;; style-src &#39;unsafe-inline&#39;; img-src data:; font-src data:; form-action &#39;none&#39;; base-uri &#39;none&#39;">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spending</title>
+<style>/* The e-banking's tokens (src/frontend/src/tokens.css); the page is light, like the dashboard. */
+:root {
+  --primary: #2e6b66;
+  --primary-soft: #e7f0ef;
+  --background: #f2f3f3;
+  --surface: #ffffff;
+  --surface-muted: #f7f8f8;
+  --border: #e6e8e8;
+  --text: #12202a;
+  --muted: #5b6870;
+  /* tokens.css has no warning colour; amber keeps a note apart from --color-error. */
+  --warning: #9a5b00;
+  --warning-soft: #fbefd9;
+  /* A change that goes the good way, or not: tokens.css --color-credit and --color-error. */
+  --good: #1d7a45;
+  --bad: #b3261e;
+  /* A forecast's range, as the chart draws it (charts.ACCENT_LIGHT). */
+  --band: #cfe2df;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--surface); color: var(--text); font: 14px/1.5 var(--font); }
+.widget { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px; min-width: 0; }
+.widget-head h1 { font-size: 1rem; font-weight: 600; margin: 0; text-wrap: balance; }
+.widget-sub { margin: 2px 0 0; font-size: 0.8rem; color: var(--muted); }
+h2 { font-size: 0.85rem; font-weight: 600; margin: 0 0 6px; color: var(--muted); }
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.grid { display: grid; gap: 16px; min-width: 0; }
+.grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 560px) { .grid.cols-2, .grid.cols-3 { grid-template-columns: minmax(0, 1fr); } }
+.kpi { display: grid; gap: 2px; min-width: 0; }
+.kpi-label { font-size: 0.8rem; color: var(--muted); }
+.kpi-value { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi-compare { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.change { font-size: 0.8rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.change.good { color: var(--good); }
+.change.bad { color: var(--bad); }
+.change.neutral { color: var(--muted); }
+.trend { margin-top: 4px; }
+.trend .chart-area { width: 160px; max-width: 100%; }
+.trend .chart-area svg, .trend .chart-area .vega-embed { width: 160px; max-width: 100%; height: auto; }
+/* The verdict in words too, so good and bad don't rest on colour alone. */
+.verdict { display: inline-block; margin-left: 4px; padding: 0 6px; border: 1px solid currentColor; border-radius: 999px; font-size: 0.72rem; font-weight: 500; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 10px; }
+.stat { background: var(--surface-muted); border-radius: var(--radius-sm); padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.stat-label { font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
+.stat-value { font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.table-wrap, .list, .chart { min-width: 0; }
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
+th { font-weight: 500; font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+td.num, th.num { text-align: right; white-space: nowrap; overflow-wrap: normal; }
+td.date { white-space: nowrap; overflow-wrap: normal; }
+tfoot td { font-weight: 700; border-bottom: 0; }
+/* Narrow: a row becomes a card, first column and amounts on top, the rest below with its name. */
+@media (max-width: 560px) {
+  .table-wrap table, .table-wrap tbody, .table-wrap tfoot { display: block; }
+  .table-wrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .table-wrap tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-auto-flow: dense; column-gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .table-wrap tfoot tr { border-bottom: 0; }
+  .table-wrap td { grid-column: 1; padding: 0; border: 0; }
+  .table-wrap td.num { grid-column: 2; }
+  /* An empty amount cell keeps its slot, so a total sits in its own column's place. */
+  .table-wrap td:not(.num):empty { display: none; }
+  .table-wrap tbody td:not(:first-child):not(.num) { font-size: 0.82rem; color: var(--muted); }
+  .table-wrap tbody td:not(:first-child):not(.num)::before,
+  .table-wrap td.num ~ td.num::before { content: attr(data-label) ": " / ""; font-weight: 400; color: var(--muted); }
+}
+.cut-note { margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
+.list ul { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.list li:last-child { border-bottom: 0; }
+.item-main { display: grid; min-width: 0; }
+.item-label { overflow-wrap: anywhere; }
+.item-detail { font-size: 0.78rem; color: var(--muted); }
+.item-value { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.timeline ol { list-style: none; margin: 0; padding: 0; }
+.timeline li { display: grid; grid-template-columns: auto 12px minmax(0, 1fr) auto; align-items: baseline; column-gap: 10px; padding: 8px 0; }
+.tl-date { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--primary); align-self: center; box-shadow: 0 0 0 3px var(--primary-soft); }
+.progress { display: grid; gap: 6px; min-width: 0; }
+.progress-figures { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.progress-value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.progress-goal { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress-track { display: block; height: 10px; border-radius: 999px; background: var(--primary-soft); overflow: hidden; }
+.progress-fill { display: block; height: 100%; border-radius: 999px; background: var(--primary); }
+.callout { display: grid; gap: 2px; border-radius: var(--radius-sm); padding: 10px 12px; background: var(--primary-soft); border-left: 3px solid var(--primary); }
+.callout p { margin: 0; overflow-wrap: anywhere; }
+.callout.tone-warning { background: var(--warning-soft); border-left-color: var(--warning); }
+.donut { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; min-width: 0; }
+.chart-area.donut-area { width: 220px; max-width: 100%; flex: 0 0 auto; }
+.chart-area.donut-area svg, .chart-area.donut-area .vega-embed { width: 220px; max-width: 100%; }
+.donut-side { flex: 1 1 200px; min-width: 0; display: grid; gap: 8px; }
+.donut-total { margin: 0; display: flex; justify-content: space-between; gap: 12px; }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: baseline; gap: 8px; font-size: 0.85rem; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; align-self: center; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.scenarios { display: grid; gap: 10px; min-width: 0; }
+.cases { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.case-option { position: relative; }
+/* The radio stays a real radio, for arrow keys and screen readers; the label is the button. */
+.case-option input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.case-option span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font-weight: 500; }
+.case-option input:checked + span { background: var(--primary); border-color: var(--primary); color: var(--surface); }
+.case-option input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
+.case-shown { margin: 0; font-weight: 600; }
+/* A case's grid would otherwise override the hidden attribute. */
+.case[hidden] { display: none; }
+.forecast-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
+.forecast-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--primary); }
+.key.dashed { border-top-style: dashed; }
+.key.band { height: 10px; border: 0; border-radius: 2px; background: var(--band); }
+.key.spent, .key.over { width: 14px; height: 10px; border: 0; border-radius: 2px; background: var(--primary); }
+.key.over { background: var(--warning); }
+.key.budget { width: 0; height: 12px; border: 0; border-left: 3px solid var(--text); }
+.chart-area.calendar-area { overflow-x: auto; }
+.chart-area.calendar-area svg { width: auto; max-width: none; }
+.chart-area { width: 100%; min-width: 0; }
+.chart-area svg { display: block; width: 100%; height: auto; max-width: 720px; }
+.chart-area .vega-embed { display: block; width: 100%; }
+.chart-area .vega-embed summary { display: none; }
+[data-path] { cursor: pointer; }
+[data-selected="true"] { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+#vg-tooltip-element.vg-tooltip { font-family: var(--font); font-size: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 9px; box-shadow: 0 4px 14px rgb(18 32 42 / 0.12); }
+</style>
+</head>
+<body>
+<main class="widget" data-component="widget" data-form="live">
+  <header class="widget-head">
+    <h1>Spending</h1>
+    <p class="widget-sub">Sample</p>
+  </header>
+  <section class="chart" data-component="calendar" data-path="days" data-rows="{&#34;days[0]&#34;: {&#34;value&#34;: 84.2, &#34;label&#34;: &#34;30.10.2026&#34;, &#34;booking_ids&#34;: [&#34;BK-40&#34;]}, &#34;days[1]&#34;: {&#34;value&#34;: 12.5, &#34;label&#34;: &#34;02.11.2026&#34;, &#34;booking_ids&#34;: [&#34;BK-41&#34;, &#34;BK-42&#34;]}, &#34;days[2]&#34;: {&#34;value&#34;: 230.0, &#34;label&#34;: &#34;03.11.2026&#34;, &#34;booking_ids&#34;: []}}">
+  <div class="chart-area calendar-area" id="chart-1"></div>
+</section>
+</main>
+<script>(function () {
+  // Tells the page around the widget what was clicked, how tall the widget is and what failed.
+  function post(message) {
+    if (window.parent !== window) window.parent.postMessage(Object.assign({ source: "trustroom-widget" }, message), "*");
+  }
+
+  function parse(text) {
+    if (text === null || text === "") return null;
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      return text;
+    }
+  }
+
+  function select(element, extra) {
+    document.querySelectorAll("[data-selected]").forEach(function (other) { other.removeAttribute("data-selected"); });
+    element.setAttribute("data-selected", "true");
+    post(Object.assign({
+      type: "widget-select",
+      component: element.getAttribute("data-component"),
+      path: element.getAttribute("data-path"),
+      value: parse(element.getAttribute("data-value")),
+      values: parse(element.getAttribute("data-values")),
+      booking_ids: parse(element.getAttribute("data-booking-ids")) || [],
+    }, extra || {}));
+  }
+
+  document.addEventListener("click", function (event) {
+    // A live chart reports its own clicks, with the clicked row's values.
+    if (event.target.closest("[data-live]") !== null) return;
+    // Switching cases picks no part of the widget.
+    if (event.target.closest(".cases") !== null) return;
+    var mark = event.target.closest("[role='graphics-symbol'][aria-label]");
+    var element = event.target.closest("[data-path]");
+    if (element === null) return;
+    // A mark in a static chart ends its label with its row's path in brackets; the chart's
+    // data-rows map gives that row's figure and bookings.
+    var path = mark === null ? null : /\(([^()]*)\)$/.exec(mark.getAttribute("aria-label"));
+    if (path !== null && element.contains(mark)) {
+      var row = (parse(element.getAttribute("data-rows")) || {})[path[1]];
+      if (row === undefined) return;
+      select(element, { path: path[1], label: row.label, value: row.value, booking_ids: row.booking_ids });
+      return;
+    }
+    select(element);
+  });
+
+  // Scenarios: every case is already on the page; a radio only shows another one.
+  document.addEventListener("change", function (event) {
+    var choice = event.target;
+    if (choice.closest === undefined || choice.closest(".cases") === null) return;
+    var section = choice.closest(".scenarios");
+    section.querySelectorAll(".case").forEach(function (panel) {
+      panel.hidden = panel.getAttribute("data-case") !== choice.value;
+    });
+    height();
+  });
+
+  window.addEventListener("error", function (event) { post({ type: "widget-error", message: String(event.message) }); });
+
+  function height() { post({ type: "widget-height", height: document.documentElement.scrollHeight }); }
+  window.addEventListener("load", height);
+  if (window.ResizeObserver !== undefined) new ResizeObserver(height).observe(document.body);
+
+  // Live charts: our specs, drawn by the bundled Vega runtime.
+  window.trustroomCharts = function (payload) {
+    payload.charts.forEach(function (chart) {
+      var host = document.getElementById(chart.id);
+      host.setAttribute("data-live", "true");
+      window.vegaEmbed(host, chart.spec, {
+        renderer: "svg",
+        actions: false,
+        config: payload.config,
+        formatLocale: payload.locale,
+      }).then(function (result) {
+        result.view.addEventListener("click", function (event, item) {
+          if (item === null || item === undefined || item.datum === undefined || item.datum.path === undefined) return;
+          // A line or area is one shape for all its rows; only points, bars and labels name a row.
+          if (item.mark.marktype === "line" || item.mark.marktype === "area") return;
+          select(host.closest("[data-path]"), {
+            path: item.datum.path,
+            label: item.datum.label,
+            value: item.datum.y,
+            booking_ids: item.datum.booking_ids,
+          });
+        });
+        height();
+      }).catch(function (error) {
+        post({ type: "widget-error", message: String(error) });
+      });
+    });
+  };
+})();
+</script>
+
+<script></script>
+<script>window.trustroomCharts({"charts": [{"id": "chart-1", "spec": {"width": {"step": 15}, "height": {"step": 15}, "data": {"values": [{"key": "2026-10-30", "label": "30.10.2026", "y": 84.2, "shown": "CHF 84.20", "series": null, "path": "days[0]", "description": "30.10.2026, CHF 84.20 (days[0])", "booking_ids": ["BK-40"], "week": "2026-10-26", "weekday": "Fri"}, {"key": "2026-11-02", "label": "02.11.2026", "y": 12.5, "shown": "CHF 12.50", "series": null, "path": "days[1]", "description": "02.11.2026, CHF 12.50 (days[1])", "booking_ids": ["BK-41", "BK-42"], "week": "2026-11-02", "weekday": "Mon"}, {"key": "2026-11-03", "label": "03.11.2026", "y": 230.0, "shown": "CHF 230.00", "series": null, "path": "days[2]", "description": "03.11.2026, CHF 230.00 (days[2])", "booking_ids": [], "week": "2026-11-02", "weekday": "Tue"}]}, "layer": [{"data": {"values": [{"week": "2026-10-26", "weekday": "Fri"}, {"week": "2026-10-26", "weekday": "Sat"}, {"week": "2026-10-26", "weekday": "Sun"}, {"week": "2026-11-02", "weekday": "Mon"}, {"week": "2026-11-02", "weekday": "Tue"}]}, "mark": {"type": "rect", "cornerRadius": 2, "stroke": "#ffffff", "strokeWidth": 2, "color": "#f2f3f3", "aria": false}, "encoding": {"x": {"field": "week", "type": "ordinal", "sort": null, "scale": {"domain": ["2026-10-26", "2026-11-02"]}, "axis": {"orient": "top", "values": ["2026-10-26"], "labelExpr": "[\"Nov\"][indexof([\"2026-10-26\"], datum.value)]", "labelAlign": "left"}}, "y": {"field": "weekday", "type": "ordinal", "sort": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "scale": {"domain": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]}}}}, {"mark": {"type": "rect", "cornerRadius": 2, "stroke": "#ffffff", "strokeWidth": 2}, "encoding": {"x": {"field": "week", "type": "ordinal", "sort": null, "scale": {"domain": ["2026-10-26", "2026-11-02"]}, "axis": {"orient": "top", "values": ["2026-10-26"], "labelExpr": "[\"Nov\"][indexof([\"2026-10-26\"], datum.value)]", "labelAlign": "left"}}, "y": {"field": "weekday", "type": "ordinal", "sort": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "scale": {"domain": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]}}, "color": {"field": "y", "type": "quantitative", "scale": {"type": "sqrt", "range": ["#cfe2df", "#2e6b66"], "zero": true}, "legend": {"format": ",.0f", "orient": "bottom", "gradientLength": 120}}, "description": {"field": "description"}, "tooltip": [{"field": "label", "title": " "}, {"field": "shown", "title": "value"}]}}]}}], "config": {"background": null, "font": "Inter, system-ui, -apple-system, Segoe UI, sans-serif", "padding": {"left": 0, "right": 4, "top": 10, "bottom": 0}, "view": {"stroke": null}, "axis": {"labelColor": "#5b6870", "labelFontSize": 12, "labelPadding": 6, "domain": false, "ticks": false, "title": null, "gridColor": "#e6e8e8"}, "axisX": {"grid": false, "labelAngle": 0}, "axisY": {"tickCount": 4, "labelFontWeight": 500}, "legend": {"orient": "top", "direction": "horizontal", "title": null, "labelColor": "#12202a", "labelFontSize": 12, "symbolType": "circle"}}, "locale": {"decimal": ".", "thousands": "'", "grouping": [3], "currency": ["CHF ", ""]}});</script>
+
+</body>
+</html>

@@ -17,6 +17,8 @@ from app.features.widgets.catalogue.charts import (
     PALETTE,
     PERIOD_SERIES,
     SERIES,
+    STEP_DOWN,
+    WARNING,
     chart_spec,
     static_svg,
 )
@@ -26,10 +28,13 @@ from app.features.widgets.catalogue.schemas import (
     COMPONENTS,
     AreaChart,
     BarChart,
+    BudgetBars,
+    Calendar,
     ColourName,
     Comparison,
     ForecastChart,
     LineChart,
+    Waterfall,
     WidgetSpec,
 )
 from app.features.widgets.catalogue.values import display, resolve
@@ -39,7 +44,17 @@ CHROME = os.environ.get(
     "CHROME_PATH", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 )
 WIDTHS = (360, 440, 1000)
-CHARTS = ("bar_chart", "line_chart", "area_chart", "comparison", "donut", "forecast_chart")
+CHARTS = (
+    "bar_chart",
+    "line_chart",
+    "area_chart",
+    "comparison",
+    "donut",
+    "forecast_chart",
+    "budget_bars",
+    "waterfall",
+    "calendar",
+)
 # Sparklines in BODIES: the kpi's and the second stat's.
 TRENDS = 2
 DATA: dict[str, Any] = {
@@ -89,6 +104,32 @@ DATA: dict[str, Any] = {
         {"case": "Rent today", "rent_chf": 2800.0, "left_chf": 912.4},
         {"case": "200 more", "rent_chf": 3000.0, "left_chf": 712.4},
         {"case": "<b>400 more</b>", "rent_chf": 3200.0, "left_chf": 512.4},
+    ],
+    "budgets": [
+        {
+            "category": "Groceries",
+            "spent_chf": 612.4,
+            "budget_chf": 540.0,
+            "booking_ids": ["BK-20"],
+        },
+        {"category": "Restaurants", "spent_chf": 210.0, "budget_chf": 300.0},
+    ],
+    "flow": [
+        {"step": "Income", "start_chf": 0.0, "end_chf": 7200.0, "amount_chf": 7200.0},
+        {
+            "step": "Rent",
+            "start_chf": 7200.0,
+            "end_chf": 4400.0,
+            "amount_chf": -2800.0,
+            "booking_ids": ["BK-31"],
+        },
+        {"step": "Groceries", "start_chf": 4400.0, "end_chf": 3787.6, "amount_chf": -612.4},
+    ],
+    "left_chf": 3787.6,
+    "days": [
+        {"date": "2026-10-30", "total_chf": 84.2, "booking_ids": ["BK-40"]},
+        {"date": "2026-11-02", "total_chf": 12.5, "booking_ids": ["BK-41", "BK-42"]},
+        {"date": "2026-11-03", "total_chf": 230.0},
     ],
 }
 BODIES: dict[str, dict[str, Any]] = {
@@ -179,6 +220,24 @@ BODIES: dict[str, dict[str, Any]] = {
         "low": "low_chf",
         "high": "high_chf",
     },
+    "budget_bars": {
+        "type": "budget_bars",
+        "data": "budgets",
+        "label": "category",
+        "actual": "spent_chf",
+        "budget": "budget_chf",
+    },
+    "waterfall": {
+        "type": "waterfall",
+        "data": "flow",
+        "label": "step",
+        "start": "start_chf",
+        "end": "end_chf",
+        "amount": "amount_chf",
+        "total": "left_chf",
+        "total_label": "Left",
+    },
+    "calendar": {"type": "calendar", "data": "days", "date": "date", "value": "total_chf"},
     "scenarios": {
         "type": "scenarios",
         "data": "rent_cases",
@@ -667,7 +726,13 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
         + [
             {
                 "type": "stack",
-                "children": [BODIES[name] for name in (*CHARTS, "grid", "scenarios")],
+                "children": [
+                    {"type": "stack", "children": [BODIES[name] for name in CHARTS[:5]]},
+                    {
+                        "type": "stack",
+                        "children": [BODIES[name] for name in (*CHARTS[5:], "grid", "scenarios")],
+                    },
+                ],
             }
         ],
     }
@@ -1105,3 +1170,152 @@ def test_a_forecasts_axis_labels_stay_inside_the_widget(form: Form) -> None:
         "return Math.max(0,Math.round(worst));"
     )
     assert _at_widths(page=page, measure=measure) == sorted(f"{w}:0" for w in WIDTHS)
+
+
+def _chart(name: str, data: dict[str, Any] = DATA, live: bool = True) -> dict[str, Any]:
+    chart = spec(body=BODIES[name]).body
+    assert isinstance(chart, BudgetBars | Waterfall | Calendar)
+    return chart_spec(component=chart, data=data, live=live)
+
+
+def _svg(name: str) -> str:
+    return static_svg(spec=_chart(name=name, live=False))
+
+
+def test_budget_bars_name_a_row_over_its_budget_in_words_and_colour() -> None:
+    chart = _chart(name="budget_bars")
+    bars, budget, labels = chart["layer"]
+    assert bars["encoding"]["color"] == {
+        "condition": {"test": "datum.over", "value": WARNING},
+        "value": ACCENT,
+    }
+    assert budget["mark"]["type"] == "tick" and budget["encoding"]["x"]["field"] == "budget"
+    # Bars and budget markers share one scale, so a marker sits where its figure is.
+    assert (
+        bars["encoding"]["x"]["scale"] == budget["encoding"]["x"]["scale"] == {"domain": [0, 612.4]}
+    )
+    values = chart["data"]["values"]
+    assert [value["text"] for value in values] == ["612 · over", "210"]
+    assert [value["budget"] for value in values] == [540.0, 300.0]
+    svg = _svg(name="budget_bars")
+    assert WARNING in _fills(svg=svg, path="budgets[0]")
+    assert ACCENT not in _fills(svg=svg, path="budgets[0]")
+    assert ACCENT in _fills(svg=svg, path="budgets[1]")
+    assert "Groceries, CHF 612.40 of CHF 540.00 budget, over budget (budgets[0])" in svg
+    page = render(spec=spec(body=BODIES["budget_bars"]), data=DATA, form="static")
+    assert "Over budget</span>" in page
+
+
+def test_budget_bars_refuse_a_negative_or_missing_figure() -> None:
+    negative = {"budgets": [{**DATA["budgets"][0], "budget_chf": -1.0}]}
+    with pytest.raises(BadRequestError, match="negative"):
+        _chart(name="budget_bars", data=negative)
+    text = {"budgets": [{**DATA["budgets"][0], "spent_chf": "a lot"}]}
+    with pytest.raises(BadRequestError, match="not a number"):
+        _chart(name="budget_bars", data=text)
+
+
+def test_a_waterfall_draws_its_steps_and_a_total_from_zero() -> None:
+    chart = _chart(name="waterfall")
+    values = chart["data"]["values"]
+    assert [value["path"] for value in values] == ["flow[0]", "flow[1]", "flow[2]", "left_chf"]
+    assert [(value["start"], value["end"]) for value in values] == [
+        (0.0, 7200.0),
+        (7200.0, 4400.0),
+        (4400.0, 3787.6),
+        (0, 3787.6),
+    ]
+    # Each step's own figure from DATA, signed; the total as DATA holds it.
+    assert [value["text"] for value in values] == ["+7'200", "-2'800", "-612", "3'788"]
+    assert values[1]["booking_ids"] == ["BK-31"]
+    svg = _svg(name="waterfall")
+    assert ACCENT in _fills(svg=svg, path="flow[0]")
+    assert STEP_DOWN in _fills(svg=svg, path="flow[1]")
+    assert ACCENT not in _fills(svg=svg, path="left_chf")
+    assert STEP_DOWN not in _fills(svg=svg, path="left_chf")
+
+
+@pytest.mark.parametrize(
+    ("change", "error"),
+    [
+        ({1: {"start_chf": 7000.0, "amount_chf": -2600.0}}, "steps must join"),
+        ({1: {"amount_chf": -2700.0}}, "the step goes from"),
+    ],
+)
+def test_a_waterfall_refuses_steps_that_dont_join_or_add_up(
+    change: dict[int, dict[str, float]], error: str
+) -> None:
+    flow = [{**row, **change.get(index, {})} for index, row in enumerate(DATA["flow"])]
+    with pytest.raises(BadRequestError, match=error):
+        _chart(name="waterfall", data={**DATA, "flow": flow})
+
+
+def test_a_waterfall_total_must_be_where_the_last_step_ends() -> None:
+    with pytest.raises(BadRequestError, match="last step ends at"):
+        _chart(name="waterfall", data={**DATA, "left_chf": 3000.0})
+    with pytest.raises(BadRequestError, match="also a step's label"):
+        render(
+            spec=spec(body={**BODIES["waterfall"], "total_label": "Rent"}),
+            data=DATA,
+            form="static",
+        )
+    with pytest.raises(ValidationError, match="total_label needs total"):
+        Waterfall.model_validate({**BODIES["waterfall"], "total": None})
+
+
+def test_a_calendar_puts_each_day_in_its_week_and_weekday() -> None:
+    chart = _chart(name="calendar")
+    background, cells = chart["layer"]
+    values = chart["data"]["values"]
+    # 30 Oct 2026 is a Friday in the week of Monday 26 Oct; 2 Nov is a Monday.
+    assert [(value["week"], value["weekday"]) for value in values] == [
+        ("2026-10-26", "Fri"),
+        ("2026-11-02", "Mon"),
+        ("2026-11-02", "Tue"),
+    ]
+    # Every day of the span gets a quiet cell without a row of its own.
+    assert len(background["data"]["values"]) == 5
+    assert background["mark"]["aria"] is False
+    assert all("path" not in cell for cell in background["data"]["values"])
+    assert cells["encoding"]["x"]["scale"]["domain"] == ["2026-10-26", "2026-11-02"]
+    assert cells["encoding"]["color"]["field"] == "y"
+    assert "30.10.2026, CHF 84.20 (days[0])" in _svg(name="calendar")
+
+
+@pytest.mark.parametrize(
+    ("days", "error"),
+    [
+        ([{"date": "2026-11", "total_chf": 1.0}], "is not a day"),
+        ([{"date": "2026-11-02", "total_chf": -1.0}], "negative"),
+        ([{"date": "2026-11-02", "total_chf": 1.0}] * 2, "repeats date"),
+        (
+            [{"date": "2025-01-01", "total_chf": 1.0}, {"date": "2026-11-02", "total_chf": 1.0}],
+            "more than 371 days",
+        ),
+        ([], "no days"),
+    ],
+)
+def test_a_calendar_refuses_days_it_cannot_place(days: list[dict[str, Any]], error: str) -> None:
+    with pytest.raises(BadRequestError, match=error):
+        _chart(name="calendar", data={"days": days})
+
+
+def _live_row(path: str) -> str:
+    """A script expression for a live mark that belongs to the row at `path`."""
+    return (
+        "Array.from(document.querySelectorAll('.chart-area svg *')).filter(function(e){"
+        f"var d=e.__data__;return d&&d.mark&&d.datum&&d.datum.path==='{path}';}})[0]"
+    )
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_clicking_a_budget_bar_a_step_or_a_day_reports_its_row() -> None:
+    assert _clicks(body=BODIES["budget_bars"], targets=[_live_row(path="budgets[0]")]) == (
+        "budgets[0] BK-20"
+    )
+    assert _clicks(body=BODIES["waterfall"], targets=[_live_row(path="flow[1]")]) == "flow[1] BK-31"
+    assert _clicks(body=BODIES["calendar"], targets=[_live_row(path="days[1]")]) == (
+        "days[1] BK-41+BK-42"
+    )
+    day = "document.querySelector('.chart-area [aria-label$=\"(days[1])\"]')"
+    assert _clicks(body=BODIES["calendar"], targets=[day], form="static") == "days[1] BK-41+BK-42"
