@@ -13,8 +13,7 @@ NAME_MAX_LENGTH = 200
 # About 75k tokens, well inside the context the 70B model is given.
 DESCRIBE_MAX_CHARS = 300_000
 SUMMARY_MAX_LENGTH = 200
-# A description of about 1300 tokens takes 50 s on a quiet gateway, past 60 s under load.
-# Three attempts stay under the 300 s the page's proxy waits for an upload.
+# 1300 tokens of description take 50 s on a quiet gateway; three tries stay under nginx's 300 s.
 DESCRIBE_TIMEOUT_SECONDS = 90
 READ_DOCUMENTS_MAX = 3
 READ_FULL_TEXT_MAX_CHARS = 5_000
