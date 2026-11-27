@@ -92,6 +92,7 @@ Two readers use a card. The agent that builds it reads it first. Later, people o
 - **Why.** Who needs it and what for, in one or two sentences.
 - **What.** Two to five lines on what gets built. Name the endpoint, the tool, the table or the part of the page. Give limits as numbers. Say what is left out. Describe behaviour and place, not how to code it.
 - **Acceptance criteria.** Each one is something a reviewer can check.
+- **Owns.** The paths the card changes. A card names its own test files, such as `src/backend/tests/test_documents.py`, never the whole `src/backend/tests/`: `board next` would hold back every other card that adds a test, so `board add` refuses it.
 
 An example of What:
 
