@@ -75,7 +75,19 @@ If the second push is rejected, the branch moved while you were checking. Go bac
    Left out: <what the card names and this does not do, or none>
    Changed for others: <every contract or shared file other agents build on, or none>
    ```
-5. Stop your servers by port.
+
+5. Delete your branch, but only when step 2 printed `MERGED`. Deleting the head branch of a PR that GitHub still shows as open closes it unmerged, and CI then moves the card back to Ready. In that case leave the branch and name it in your report.
+
+   ```
+   branch=$(git branch --show-current)
+   git push origin --delete "$branch"
+   git switch --detach
+   git branch -d "$branch"
+   ```
+
+   If the push says `remote ref does not exist`, GitHub already deleted the branch: go on with the next line. The worktree folder stays.
+
+6. Stop your servers by port.
 
 ## Never
 
