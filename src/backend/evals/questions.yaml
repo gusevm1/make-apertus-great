@@ -1,0 +1,13 @@
+# One entry per question. `calls` lists the calls it needs; none at all means no tool may be called.
+# An argument is a regular expression the value must match in full, ignoring case.
+# A left-out argument counts as "", so a trailing `?` accepts the tool's default.
+# `not_called` names tools that must not be called.
+# `answer` is a regular expression the answer must contain, ignoring case.
+# `before` lists earlier messages of the same conversation; only the calls for the last one count.
+# `quote` is a passage of the reply to the last `before` message, quoted in the question.
+#
+# Example:
+# - question: How much money do I have?
+#   calls:
+#     - tool: list_accounts
+#   not_called: [search_web]
