@@ -20,6 +20,7 @@ CHROME = os.environ.get(
     "CHROME_PATH", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 )
 WIDTHS = (360, 440, 1000)
+CHARTS = ("bar_chart", "line_chart", "area_chart", "comparison", "donut")
 DATA: dict[str, Any] = {
     "months": [
         {"label": "2026-09", "total_chf": 17273.6, "booking_ids": ["BK-01", "BK-02"]},
@@ -40,6 +41,8 @@ DATA: dict[str, Any] = {
         {"due_date": "2026-12-01", "payee": "<b>Fitnesspark</b>", "amount_chf": 119.0},
     ],
     "payments_total_chf": 2919.0,
+    "months_total_chf": 27872.37,
+    "goals": [{"name": "Japan 2027", "saved_chf": 9000.0, "goal_chf": 12000.0}],
 }
 BODIES: dict[str, dict[str, Any]] = {
     "kpi": {
@@ -83,6 +86,41 @@ BODIES: dict[str, dict[str, Any]] = {
         "y": "total_chf",
         "series": "year",
     },
+    "timeline": {
+        "type": "timeline",
+        "rows": "payments",
+        "date": "due_date",
+        "label": "payee",
+        "value": "amount_chf",
+    },
+    "area_chart": {
+        "type": "area_chart",
+        "data": "years",
+        "x": "month",
+        "y": "total_chf",
+        "series": "year",
+    },
+    "comparison": {
+        "type": "comparison",
+        "data": "years",
+        "x": "month",
+        "y": "total_chf",
+        "series": "year",
+    },
+    "donut": {
+        "type": "donut",
+        "data": "months",
+        "label": "label",
+        "value": "total_chf",
+        "total": "months_total_chf",
+    },
+    "progress": {
+        "type": "progress",
+        "label": "Japan 2027",
+        "value": "goals[0].saved_chf",
+        "goal": "goals[0].goal_chf",
+    },
+    "callout": {"type": "callout", "title": "Note", "text": "Rent is due this week."},
     "stack": {
         "type": "stack",
         "children": [{"type": "kpi", "label": "Total", "value": "payments_total_chf"}],
@@ -203,6 +241,57 @@ def test_a_total_that_is_not_the_sum_of_its_column_is_refused() -> None:
         render(spec=spec(body=BODIES["table"]), data=wrong, form="static")
 
 
+def test_a_donut_refuses_a_negative_part_and_a_total_that_is_not_its_sum() -> None:
+    negative = {"months": [{"label": "2026-10", "total_chf": -5.0}], "months_total_chf": -5.0}
+    with pytest.raises(BadRequestError, match=r"months\[0\].total_chf is negative"):
+        render(spec=spec(body=BODIES["donut"]), data=negative, form="static")
+    with pytest.raises(BadRequestError, match="months_total_chf is 1.0, but the total_chf column"):
+        render(
+            spec=spec(body=BODIES["donut"]), data={**DATA, "months_total_chf": 1.0}, form="static"
+        )
+
+
+def test_a_donut_lists_every_part_with_its_bookings() -> None:
+    page = render(spec=spec(body=BODIES["donut"]), data=DATA, form="static")
+    assert page.count('data-component="donut-slice"') == 2
+    assert (
+        'data-path="months[1]" data-value="10598.77" data-booking-ids="[&#34;BK-03&#34;]"' in page
+    )
+    assert "CHF 27&#39;872.37" in page
+
+
+def test_progress_draws_a_capped_bar_and_writes_no_share() -> None:
+    page = render(spec=spec(body=BODIES["progress"]), data=DATA, form="static")
+    assert 'style="width: 75.0%"' in page
+    assert "CHF 9&#39;000.00" in page
+    assert "Goal CHF 12&#39;000.00" in page
+    body = re.search(r"<main.*</main>", page, re.DOTALL)
+    assert body is not None
+    assert "75" not in re.sub(r'style="[^"]*"', "", body.group(0))
+    above = {**DATA, "goals": [{"name": "x", "saved_chf": 37566.29, "goal_chf": 12000.0}]}
+    assert 'style="width: 100.0%"' in render(
+        spec=spec(body=BODIES["progress"]), data=above, form="static"
+    )
+    zero = {**DATA, "goals": [{"name": "x", "saved_chf": 1.0, "goal_chf": 0}]}
+    with pytest.raises(BadRequestError, match="a goal must be above zero"):
+        render(spec=spec(body=BODIES["progress"]), data=zero, form="static")
+
+
+def test_a_comparison_needs_its_period_field() -> None:
+    with pytest.raises(ValidationError):
+        spec(body={key: value for key, value in BODIES["comparison"].items() if key != "series"})
+
+
+def test_callout_and_timeline_text_is_escaped() -> None:
+    body = {"type": "callout", "title": '"Note"', "text": "</script><script>alert(1)</script>"}
+    page = render(spec=spec(body=body), data=DATA, form="live")
+    assert "</script><script>alert(1)" not in page
+    assert "&lt;/script&gt;&lt;script&gt;alert(1)" in page
+    timeline = render(spec=spec(body=BODIES["timeline"]), data=DATA, form="static")
+    assert "&lt;b&gt;Fitnesspark&lt;/b&gt;" in timeline
+    assert "01.12.2026" in timeline
+
+
 def test_counts_and_years_keep_plain_digits_and_only_whole_dates_are_dates() -> None:
     assert display(field="year", value=2026) == "2026"
     assert display(field="bookings", value=1234) == "1234"
@@ -304,8 +393,9 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
         "type": "stack",
         "children": [
             BODIES[name]
-            for name in ("kpi", "stat_row", "table", "list", "bar_chart", "line_chart", "grid")
-        ],
+            for name in ("kpi", "stat_row", "table", "list", "timeline", "progress", "callout")
+        ]
+        + [{"type": "stack", "children": [BODIES[name] for name in CHARTS]}],
     }
     page = render(spec=spec(body=body), data=DATA, form=form)
     probe = (
@@ -349,8 +439,9 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
         )
     seen = re.search(r'data-seen="([^"]*)"', result.stdout)
     assert seen is not None, result.stderr[-500:]
-    # Both charts drawn, by the browser (live) or as SVG from the server (static).
-    assert sorted(seen.group(1).split(",")) == sorted(f"{w}:false:2" for w in WIDTHS)
+    # Every chart drawn, by the browser (live) or as SVG from the server (static).
+    expected = sorted(f"{w}:false:{len(CHARTS)}" for w in WIDTHS)
+    assert sorted(seen.group(1).split(",")) == expected
 
 
 def _live_mark(kind: str) -> str:
@@ -416,6 +507,18 @@ def test_clicking_a_live_line_reports_only_its_points() -> None:
     # The line is one shape for all rows, so a click on it reports nothing.
     targets = [_live_mark(kind="line"), _live_mark(kind="symbol")]
     assert _clicks(body=BODIES["line_chart"], targets=targets) == "years[3] "
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_clicking_a_live_slice_or_comparison_bar_reports_its_row() -> None:
+    assert _clicks(body=BODIES["donut"], targets=[_live_mark(kind="arc")]) == "months[1] BK-03"
+    assert _clicks(body=BODIES["comparison"], targets=[_live_mark(kind="rect")]) == "years[3] "
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_clicking_a_live_area_reports_only_its_points() -> None:
+    targets = [_live_mark(kind="area"), _live_mark(kind="symbol")]
+    assert _clicks(body=BODIES["area_chart"], targets=targets) == "years[3] "
 
 
 @pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
