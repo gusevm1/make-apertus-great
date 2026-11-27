@@ -12,7 +12,7 @@ PROMPTS = load_prompts(prompts_py=__file__)
 
 
 class ListDocumentsArgs(BaseModel):
-    pass
+    text: str | None = Field(default=None, min_length=1, description=PROMPTS["list_documents_text"])
 
 
 class ReadDocumentArgs(BaseModel):
@@ -23,8 +23,12 @@ class ReadDocumentArgs(BaseModel):
 
 
 def get_tools(service: DocumentService, owner_id: UUID) -> list[Tool[Any]]:
-    async def list_documents(_: ListDocumentsArgs) -> DocumentList:
-        return await service.list_summaries(owner_id=owner_id)
+    async def list_documents(args: ListDocumentsArgs) -> DocumentList:
+        listing = await service.list_summaries(owner_id=owner_id, text=args.text)
+        if listing.left_out == 0:
+            return listing
+        note = PROMPTS["list_documents_left_out"].format(count=listing.left_out)
+        return listing.model_copy(update={"note": note})
 
     async def read_document(args: ReadDocumentArgs) -> DocumentReading:
         return await service.read_documents(

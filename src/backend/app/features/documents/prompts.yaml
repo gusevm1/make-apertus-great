@@ -29,9 +29,17 @@ list_documents: >-
   and the fields read from each, such as net pay or an amount due, each with the words it was read
   from. Use it whenever my question may concern a document of mine (a payslip, a contract, an
   invoice, an offer), and before read_document to learn the names. When you use a field, name the
-  document it comes from and take the figure as it is written; never calculate with it. The list
-  holds my newest documents; when left_out is above 0, that many older ones are not shown, so never
-  say a document does not exist: read_document still finds an older one by its name.
+  document it comes from and take the figure as it is written; never calculate with it. Without text
+  it returns my newest documents; when my question names an issuer, a kind or a topic, send it as
+  text to search all of them.
+list_documents_text: >-
+  Words to search the name, title, issuer and summary of my documents for, such as "Helsana" or
+  "Lohnabrechnung". A document holding any of the words matches. Leave it out to get my newest
+  documents.
+list_documents_left_out: >-
+  {count} older documents are not in this list. To find one, call list_documents again with text set
+  to a word its name, title, issuer or summary may hold. Until a search has been made, never say that
+  I have no such document.
 read_document: >-
   Reads up to three of my uploaded documents, named by file name or title as list_documents
   returns them, and returns their text, or for long ones an answer to the question with

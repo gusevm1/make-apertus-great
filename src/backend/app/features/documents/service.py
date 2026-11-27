@@ -211,9 +211,10 @@ class DocumentService:
         """The customer's documents, newest first."""
         return await self.documents.list(owner_id=owner_id)
 
-    async def list_summaries(self, owner_id: UUID) -> DocumentList:
-        """The newest documents and their fields that fit, at least one, for the chat."""
-        documents = await self.documents.list(owner_id=owner_id)
+    async def list_summaries(self, owner_id: UUID, text: str | None) -> DocumentList:
+        """The newest documents that fit, at least one, holding a word of `text` if given."""
+        words = [] if text is None else text.split()
+        documents = await self.documents.list_matching(owner_id=owner_id, words=words)
         summaries: list[DocumentSummary] = []
         used = 0
         for document in documents:

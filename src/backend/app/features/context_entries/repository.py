@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import case, func, or_, select, update
 
 from app.core.repository import BaseRepository
 from app.features.context_entries.models import ContextEntryORM
@@ -16,6 +16,19 @@ class ContextEntryRepository(BaseRepository[ContextEntryORM, ContextEntry]):
         stmt = select(ContextEntryORM).filter_by(id=entry_id, owner_id=owner_id)
         row = await self.session.scalar(stmt)
         return self._to_schema(row=row) if row is not None else None
+
+    # With words, only the entries holding one, those holding the most first; then newest first.
+    async def list_active(self, owner_id: UUID, words: list[str]) -> list[ContextEntry]:
+        stmt = select(ContextEntryORM).where(
+            ContextEntryORM.owner_id == owner_id, ContextEntryORM.status == "active"
+        )
+        if words:
+            matches = [ContextEntryORM.text.icontains(word, autoescape=True) for word in words]
+            first, *rest = [case((match, 1), else_=0) for match in matches]
+            hits = sum(rest, first)
+            stmt = stmt.where(or_(*matches)).order_by(hits.desc())
+        rows = await self.session.scalars(stmt.order_by(ContextEntryORM.created_at.desc()))
+        return [self._to_schema(row=row) for row in rows]
 
     async def count_active(self, owner_id: UUID) -> int:
         stmt = select(func.count()).where(

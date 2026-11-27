@@ -1,7 +1,7 @@
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.prompts import load_prompts
 from app.core.tools import Tool
@@ -12,12 +12,18 @@ PROMPTS = load_prompts(prompts_py=__file__)
 
 
 class ListContextEntriesArgs(BaseModel):
-    pass
+    text: str | None = Field(
+        default=None, min_length=1, description=PROMPTS["list_context_entries_text"]
+    )
 
 
 def get_tools(service: ContextEntryService, owner_id: UUID) -> list[Tool[Any]]:
-    async def list_context_entries(_: ListContextEntriesArgs) -> ContextEntryList:
-        return await service.list_summaries(owner_id=owner_id)
+    async def list_context_entries(args: ListContextEntriesArgs) -> ContextEntryList:
+        listing = await service.list_summaries(owner_id=owner_id, text=args.text)
+        if listing.left_out == 0:
+            return listing
+        note = PROMPTS["list_context_entries_left_out"].format(count=listing.left_out)
+        return listing.model_copy(update={"note": note})
 
     return [
         Tool(

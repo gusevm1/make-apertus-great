@@ -2,7 +2,13 @@ list_context_entries: >-
   Lists what I noted about myself in the TrustRoom: my goals (with an amount in CHF and a target date
   where I gave one), facts about my life and my preferences. Use it when my question touches my
   plans, my savings goals or my situation. Where an entry of mine disagrees with my bank profile or a
-  document, my entry counts; say that the figure comes from my own entry. The list holds only my newest
-  entries. When left_out is above 0, I have that many older entries you cannot see: then never answer
-  that I noted nothing about something; say that you see only my newest entries and that an older one
-  may hold it.
+  document, my entry counts; say that the figure comes from my own entry. Without text it returns my
+  newest entries; when my question names a topic, a place or a goal, send it as text to search all of
+  them.
+list_context_entries_text: >-
+  Words to search my entries for, such as "Norwegen" or "Ferien Auto". An entry holding any of the
+  words matches. Leave it out to get my newest entries.
+list_context_entries_left_out: >-
+  {count} older entries are not in this list. To find one, call list_context_entries again with
+  text set to a word it may hold. Until a search has been made, never say that I noted nothing about
+  something.

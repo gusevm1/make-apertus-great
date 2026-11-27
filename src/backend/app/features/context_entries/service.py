@@ -37,9 +37,10 @@ class ContextEntryService:
         """List the customer's entries with one status."""
         return await self.entries.list(sort=sort, owner_id=owner_id, status=status)
 
-    async def list_summaries(self, owner_id: UUID) -> ContextEntryList:
-        """The newest active entries that fit, at least one, for the chat."""
-        entries = await self.entries.list(owner_id=owner_id, status="active")
+    async def list_summaries(self, owner_id: UUID, text: str | None) -> ContextEntryList:
+        """The newest active entries that fit, at least one, holding a word of `text` if given."""
+        words = [] if text is None else text.split()
+        entries = await self.entries.list_active(owner_id=owner_id, words=words)
         summaries: list[ContextEntrySummary] = []
         used = 0
         for entry in entries:

@@ -149,3 +149,5 @@ class DocumentSummary(BaseModel):
 class DocumentList(BaseModel):
     documents: list[DocumentSummary]
     left_out: int
+    # What the model reads when items are left out: how to search for them.
+    note: str | None = None

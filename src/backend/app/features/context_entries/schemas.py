@@ -80,3 +80,5 @@ class ContextEntrySummary(BaseModel):
 class ContextEntryList(BaseModel):
     entries: list[ContextEntrySummary]
     left_out: int
+    # What the model reads when items are left out: how to search for them.
+    note: str | None = None
