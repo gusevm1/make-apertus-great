@@ -1,5 +1,7 @@
 import json
 from collections.abc import AsyncIterator
+from datetime import date
+from decimal import Decimal
 from typing import Any
 
 import httpx2
@@ -7,13 +9,26 @@ import pytest
 
 from app.clients.banking import BankingClient
 from app.core.config import get_settings
+from app.features.ledger.schemas import LedgerRow
 from app.features.transaction_tags import service as tag_service
+from app.features.transaction_tags.schemas import CATEGORIES
+from app.features.transaction_tags.severity import effective_severity, payee_key
 from app.main import app
 from tests.conftest import FakeApertus
 
 ACCOUNTS = [
-    {"account_id": "ACC-PRIV", "type": "current", "iban": "CH06 0888 8000 0044 1002 0"},
-    {"account_id": "ACC-TAX", "type": "savings", "iban": "CH14 0888 8000 0044 1113 7"},
+    {
+        "account_id": "ACC-PRIV",
+        "name": "Privatkonto",
+        "type": "current",
+        "iban": "CH06 0888 8000 0044 1002 0",
+    },
+    {
+        "account_id": "ACC-TAX",
+        "name": "Sparkonto Langfristig",
+        "type": "savings",
+        "iban": "CH14 0888 8000 0044 1113 7",
+    },
 ]
 CARD = {"card_id": "CARD-VISA", "type": "credit", "linked_account": "ACC-PRIV"}
 
@@ -60,6 +75,24 @@ PURCHASES = [
         "statement_id": "STMT-2026-10",
     }
 ]
+STANDING_ORDERS = [
+    {
+        "standing_order_id": "SO-LT",
+        "payee_name": "Sparkonto Langfristig",
+        "credit_account_id": "ACC-TAX",
+        "message": "Sparen langfristig / Japanreise",
+        "amount": 500.0,
+        "frequency": "monthly",
+    },
+    {
+        "standing_order_id": "SO-RENT",
+        "payee_name": "Immo AG",
+        "credit_account_id": None,
+        "message": "Miete",
+        "amount": 2100.0,
+        "frequency": "monthly",
+    },
+]
 LOAN_CHARGES = [{"booking_id": "BK-4", "loan_id": "LOAN-1", "type": "interest"}]
 ANNA_BOOKINGS = [_booking("BK-A1", -30.0, "Einkauf", counterparty_name="Coop")]
 
@@ -68,6 +101,8 @@ def _bank_client(bookings_by_token: dict[str, tuple[str, list[dict[str, Any]]]])
     """A bank with one customer per token; only the first customer has the card and the loan."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/system/info":
+            return httpx2.Response(200, json={"today": "2026-11-27"})
         token = request.headers.get("authorization", "").removeprefix("Bearer ")
         if token not in bookings_by_token:
             return httpx2.Response(401, json={"detail": "Not authenticated"})
@@ -77,6 +112,7 @@ def _bank_client(bookings_by_token: dict[str, tuple[str, list[dict[str, Any]]]])
         pages: dict[str, Any] = {
             "/customer": {"customer_id": customer_id},
             "/accounts": {"items": ACCOUNTS},
+            "/standing-orders": {"items": STANDING_ORDERS if has_card else []},
             "/loan-transactions": {"items": LOAN_CHARGES if has_card else []},
             "/bookings": {"items": bookings, "total": len(bookings)},
             "/cards": {"items": [CARD] if has_card else []},
@@ -105,6 +141,8 @@ def _rows_of(request_body: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 def _by_keyword(request_body: dict[str, Any]) -> str:
     """A fake Apertus that sorts a row by what its text says."""
+    if any("<categories>\n" in message["content"] for message in request_body["messages"]):
+        return _severity_reply(request_body=request_body)
     categories = {
         "Gartenmoebel": "shopping",
         "Einkauf": "groceries",
@@ -116,6 +154,39 @@ def _by_keyword(request_body: dict[str, Any]) -> str:
         keyword = next((word for word in categories if word in json.dumps(row)), None)
         answers.append({"ref": ref, "category": categories.get(keyword or "", "other")})
     return json.dumps({"rows": answers})
+
+
+SEVERITIES = {
+    "housing": "critical",
+    "groceries": "critical",
+    "restaurants": "minor",
+    "leisure_travel": "major",
+}
+
+
+def _severity_input(request_body: dict[str, Any]) -> str:
+    return next(m["content"] for m in request_body["messages"] if "<categories>\n" in m["content"])
+
+
+def _asked_categories(request_body: dict[str, Any]) -> list[str]:
+    content = _severity_input(request_body=request_body)
+    return content.split("<categories>\n")[1].split("\n</categories>")[0].splitlines()
+
+
+def _severity_reply(request_body: dict[str, Any]) -> str:
+    """A fake Apertus that rates the asked categories from `SEVERITIES`, else moderate."""
+    return json.dumps(
+        {
+            "categories": [
+                {
+                    "category": category,
+                    "severity": SEVERITIES.get(category, "moderate"),
+                    "reason": f"Reason for {category}",
+                }
+                for category in _asked_categories(request_body=request_body)
+            ]
+        }
+    )
 
 
 @pytest.fixture
@@ -298,3 +369,233 @@ async def test_a_customer_lists_only_their_own_tags(
 
     assert set(await _tags(api=lukas)) == {"BK-1", "BK-2", "BK-3", "BK-4", "CTX-1"}
     assert set(await _tags(api=anna)) == {"BK-A1"}
+
+
+def _migros(row_id: str, text: str = "Einkauf") -> dict[str, Any]:
+    return _booking(row_id, -15.0, text, counterparty_name="  MIGROS ")
+
+
+def test_payee_is_the_counterparty_else_the_text_in_one_spelling() -> None:
+    row = LedgerRow(
+        source="booking",
+        id="BK-1",
+        account_id="ACC-PRIV",
+        date=date(2026, 10, 30),
+        amount_chf=Decimal(-5),
+        text="  Kiosk   am Bahnhof",
+        kind="spending",
+    )
+
+    assert payee_key(row=row) == "kiosk am bahnhof"
+    assert payee_key(row=row.model_copy(update={"counterparty": " Net  Flix "})) == "net flix"
+
+
+def test_a_booking_override_beats_a_payee_override_beats_the_category_beats_the_default() -> None:
+    stored = {
+        ("booking", "booking:BK-1"): "negligible",
+        ("payee", "migros"): "major",
+        ("category", "groceries"): "moderate",
+    }
+
+    def severity(booking: str, payee: str | None, category: str = "groceries") -> tuple[str, str]:
+        return effective_severity(category=category, booking=booking, payee=payee, stored=stored)
+
+    assert severity("booking:BK-1", "migros") == ("negligible", "booking")
+    assert severity("booking:BK-2", "migros") == ("major", "payee")
+    assert severity("booking:BK-2", "coop") == ("moderate", "category")
+    assert severity("booking:BK-2", None) == ("moderate", "category")
+    assert severity("booking:BK-2", "coop", category="housing") == ("critical", "default")
+
+
+async def test_a_row_without_a_setting_has_the_default_severity(lukas: httpx2.AsyncClient) -> None:
+    await lukas.post("/api/categorisations")
+
+    tags = await _tags(api=lukas)
+
+    assert (tags["BK-3"]["severity"], tags["BK-3"]["severity_source"]) == ("critical", "default")
+    assert (tags["BK-2"]["severity"], tags["BK-2"]["severity_source"]) == ("moderate", "default")
+
+
+async def test_the_proposal_stores_one_unconfirmed_severity_per_category(
+    lukas: httpx2.AsyncClient, apertus: FakeApertus
+) -> None:
+    await lukas.post("/api/categorisations")
+    apertus.requests.clear()
+
+    response = await lukas.post("/api/severity-proposals")
+
+    assert response.status_code == 201
+    settings = {setting["key"]: setting for setting in response.json()}
+    assert set(settings) == set(CATEGORIES)
+    assert settings["housing"]["severity"] == "critical"
+    assert settings["restaurants"]["severity"] == "minor"
+    assert settings["restaurants"]["reason"] == "Reason for restaurants"
+    assert all(
+        setting["scope"] == "category"
+        and setting["set_by"] == "model"
+        and setting["model"] == "fake-smart"
+        and setting["confirmed"] is False
+        for setting in settings.values()
+    )
+    (request,) = apertus.requests
+    prompt = _severity_input(request_body=request)
+    assert "Sparkonto Langfristig" in prompt
+    assert "Sparen langfristig / Japanreise" in prompt
+    assert "Miete" not in prompt
+    assert "groceries: 212.1" in prompt
+    assert "restaurants: 29.5" in prompt
+    assert "shopping: 48.9" in prompt
+    listed = (await lukas.get("/api/severity-settings")).json()
+    assert {setting["key"] for setting in listed} == set(CATEGORIES)
+
+
+async def test_a_severity_outside_the_five_or_for_an_unknown_category_is_dropped(
+    lukas: httpx2.AsyncClient, apertus: FakeApertus
+) -> None:
+    def reply(request_body: dict[str, Any]) -> str:
+        answers = [
+            {"category": "housing", "severity": "critical", "reason": "Rent"},
+            {"category": "groceries", "severity": "vital", "reason": "Food"},
+            {"category": "pocket money", "severity": "minor", "reason": "Fun"},
+            {"category": "housing", "severity": "minor", "reason": "Again"},
+        ]
+        return json.dumps({"categories": answers})
+
+    apertus.reply = reply
+
+    response = await lukas.post("/api/severity-proposals")
+
+    assert [(setting["key"], setting["severity"]) for setting in response.json()] == [
+        ("housing", "critical")
+    ]
+
+
+async def test_a_proposal_is_not_repeated_once_stored(
+    lukas: httpx2.AsyncClient, apertus: FakeApertus
+) -> None:
+    await lukas.post("/api/severity-proposals")
+    apertus.requests.clear()
+
+    response = await lukas.post("/api/severity-proposals")
+
+    assert apertus.requests == []
+    assert len(response.json()) == len(CATEGORIES)
+
+
+async def test_a_proposal_only_asks_for_categories_without_a_setting(
+    lukas: httpx2.AsyncClient, apertus: FakeApertus
+) -> None:
+    await lukas.patch(
+        "/api/severity-settings",
+        json={"scope": "category", "key": "leisure_travel", "severity": "major"},
+    )
+
+    response = await lukas.post("/api/severity-proposals")
+
+    (request,) = apertus.requests
+    assert "leisure_travel" not in _asked_categories(request_body=request)
+    customer_setting = next(s for s in response.json() if s["key"] == "leisure_travel")
+    assert (customer_setting["set_by"], customer_setting["confirmed"]) == ("customer", True)
+
+
+async def test_a_customer_category_setting_beats_the_default(lukas: httpx2.AsyncClient) -> None:
+    await lukas.post("/api/categorisations")
+    await lukas.patch(
+        "/api/severity-settings",
+        json={"scope": "category", "key": "restaurants", "severity": "major"},
+    )
+
+    tags = await _tags(api=lukas)
+
+    assert (tags["CTX-1"]["severity"], tags["CTX-1"]["severity_source"]) == ("major", "category")
+    assert tags["BK-3"]["severity_source"] == "default"
+
+
+async def test_a_payee_override_applies_to_rows_tagged_after_it(
+    lukas: httpx2.AsyncClient,
+) -> None:
+    await lukas.post("/api/categorisations")
+    await lukas.patch(
+        "/api/severity-settings",
+        json={"scope": "payee", "key": "Migros", "severity": "negligible"},
+    )
+    app.state.banking = _bank_client(
+        bookings_by_token={"customer-token": ("CUST-001", [*LUKAS_BOOKINGS, _migros("BK-8")])}
+    )
+    await lukas.post("/api/categorisations")
+
+    tags = await _tags(api=lukas)
+
+    for row_id in ("BK-1", "BK-2", "BK-8"):
+        assert (tags[row_id]["severity"], tags[row_id]["severity_source"]) == (
+            "negligible",
+            "payee",
+        )
+    assert tags["BK-3"]["severity_source"] == "default"
+
+
+async def test_a_booking_override_beats_the_payee_override_over_the_api(
+    lukas: httpx2.AsyncClient,
+) -> None:
+    await lukas.post("/api/categorisations")
+    for scope, key, severity in [
+        ("category", "groceries", "moderate"),
+        ("payee", "migros", "negligible"),
+        ("booking", "booking:BK-1", "critical"),
+    ]:
+        response = await lukas.patch(
+            "/api/severity-settings", json={"scope": scope, "key": key, "severity": severity}
+        )
+        assert response.status_code == 200
+
+    tags = await _tags(api=lukas)
+
+    assert (tags["BK-1"]["severity"], tags["BK-1"]["severity_source"]) == ("critical", "booking")
+    assert (tags["BK-2"]["severity"], tags["BK-2"]["severity_source"]) == ("negligible", "payee")
+
+
+async def test_setting_the_same_key_twice_replaces_the_value(lukas: httpx2.AsyncClient) -> None:
+    body = {"scope": "payee", "key": "migros", "severity": "minor"}
+    await lukas.patch("/api/severity-settings", json=body)
+    await lukas.patch("/api/severity-settings", json=body | {"severity": "major"})
+
+    settings = (await lukas.get("/api/severity-settings")).json()
+
+    assert [
+        (setting["key"], setting["severity"], setting["confirmed"]) for setting in settings
+    ] == [("migros", "major", True)]
+
+
+async def test_an_override_for_an_unknown_category_or_a_foreign_booking_is_refused(
+    lukas: httpx2.AsyncClient,
+) -> None:
+    unknown_category = {"scope": "category", "key": "pocket money", "severity": "minor"}
+    foreign_booking = {"scope": "booking", "key": "booking:BK-A1", "severity": "minor"}
+    not_spending = {"scope": "booking", "key": "booking:BK-5", "severity": "minor"}
+    bad_severity = {"scope": "payee", "key": "migros", "severity": "vital"}
+
+    responses = [
+        await lukas.patch("/api/severity-settings", json=body)
+        for body in (unknown_category, foreign_booking, not_spending, bad_severity)
+    ]
+
+    assert [response.status_code for response in responses] == [400, 404, 404, 422]
+    assert responses[0].json()["error"] == "bad_request"
+    assert responses[1].json()["error"] == "not_found"
+    assert (await lukas.get("/api/severity-settings")).json() == []
+
+
+async def test_a_customer_sees_and_changes_only_their_own_severities(
+    lukas: httpx2.AsyncClient, anna: httpx2.AsyncClient
+) -> None:
+    await lukas.post("/api/categorisations")
+    await anna.post("/api/categorisations")
+    await lukas.patch(
+        "/api/severity-settings", json={"scope": "payee", "key": "coop", "severity": "critical"}
+    )
+
+    anna_settings = (await anna.get("/api/severity-settings")).json()
+    anna_tags = await _tags(api=anna)
+
+    assert anna_settings == []
+    assert anna_tags["BK-A1"]["severity_source"] == "default"
