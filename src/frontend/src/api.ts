@@ -8,13 +8,22 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   documents: DocumentRef[];
-  provenance: { model: string; latency_ms: number } | null;
+  provenance: {
+    model: string;
+    latency_ms: number;
+    sources: { id: string; title: string; url: string | null }[];
+  } | null;
 }
 
 export interface ToolCall {
   id: string;
   message_id: string;
   title: string;
+  round: number;
+  plan: string;
+  reason: string;
+  arguments: Record<string, unknown>;
+  result: Record<string, unknown> | null;
   error: string | null;
 }
 

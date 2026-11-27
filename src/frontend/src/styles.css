@@ -57,10 +57,35 @@ main {
 
 .msg footer,
 .document,
-.tool {
+.step {
   display: block;
   font-size: 12px;
   color: var(--color-text-muted);
+}
+
+.msg footer a {
+  display: block;
+  color: inherit;
+}
+
+.step summary {
+  cursor: pointer;
+}
+
+.step p,
+.step pre {
+  margin: 4px 0 4px 14px;
+}
+
+.step pre {
+  max-height: 240px;
+  padding: 8px;
+  overflow: auto;
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
 }
 
 form,

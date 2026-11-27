@@ -17,6 +17,7 @@ import {
 import { type HostContext, useHostContext } from "./host";
 import { canCaptureAudio } from "./lib/audioCapture";
 import { useStream } from "./lib/useStream";
+import { Trace } from "./Trace";
 import { useVoiceInput } from "./useVoiceInput";
 
 export function App() {
@@ -248,26 +249,32 @@ function Chat({ context }: { context: HostContext }) {
                 <footer>
                   {message.provenance.model},{" "}
                   {(message.provenance.latency_ms / 1000).toFixed(1)} s
+                  {message.provenance.sources.map(
+                    (source) =>
+                      // Only web addresses become links; the list comes from a search result.
+                      source.url?.startsWith("http") === true && (
+                        <a
+                          key={source.id}
+                          href={source.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {source.title}
+                        </a>
+                      ),
+                  )}
                 </footer>
               )}
             </article>
-            {toolCalls
-              .filter((call) => call.message_id === message.id)
-              .map((call) => (
-                <ToolLine key={call.id} title={call.title} error={call.error} />
-              ))}
+            <Trace
+              steps={toolCalls.filter((call) => call.message_id === message.id)}
+            />
           </Fragment>
         ))}
         {pending !== null && (
           <>
             <article className="msg user">{pending}</article>
-            {stream.toolCalls.map((call) => (
-              <ToolLine
-                key={call.id}
-                title={call.isRunning ? `${call.title}…` : call.title}
-                error={call.error}
-              />
-            ))}
+            <Trace steps={stream.toolCalls} />
             <article className="msg assistant">
               {stream.text === "" ? "Thinking…" : stream.text}
             </article>
@@ -356,15 +363,6 @@ function pageOf(context: HostContext) {
   if (title === "") return null;
   const account = context.account?.name.trim().slice(0, PAGE_TEXT_LENGTH);
   return { title, account_name: account === "" ? null : (account ?? null) };
-}
-
-function ToolLine({ title, error }: { title: string; error: string | null }) {
-  return (
-    <span className="tool">
-      {title}
-      {error !== null && " (failed)"}
-    </span>
-  );
 }
 
 function messageOf(error: unknown): string {
