@@ -70,6 +70,7 @@ class ToolCallService:
         self.apertus = apertus
         self.confirmations = confirmations
         self.tools = {tool.name: tool for tool in tools}
+        self.decision_schema = decision_schema(tools=tools)
         # The e-banking's date, which the demo data ends on; the server clock may differ.
         self.today = today
 
@@ -168,7 +169,7 @@ class ToolCallService:
                     tools=list(self.tools.values()),
                     today=self.today,
                 ),
-                schema=decision_schema(tools=list(self.tools.values())),
+                schema=self.decision_schema,
                 model=DECISION_MODEL,
                 purpose=DECISION_PURPOSE,
             )
