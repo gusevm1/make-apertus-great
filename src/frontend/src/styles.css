@@ -56,6 +56,7 @@ main {
 }
 
 .msg footer,
+.document,
 .tool {
   display: block;
   font-size: 12px;
@@ -79,7 +80,8 @@ select {
   border-radius: var(--radius-sm);
 }
 
-button {
+button,
+.button {
   padding: 8px 12px;
   font: inherit;
   color: var(--color-primary);
@@ -96,12 +98,50 @@ button[aria-pressed="true"] {
   background: var(--color-primary);
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled),
+.button:hover {
   color: var(--color-sidebar-text);
   background: var(--color-primary-hover);
 }
 
-button:disabled {
+.msg.user .document {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.attached {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.attached li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-sm);
+}
+
+.attached button {
+  padding: 0 4px;
+  border: none;
+  background: none;
+}
+
+.button:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+button:disabled,
+.button:has(input:disabled) {
   opacity: 0.5;
   cursor: default;
 }
@@ -111,4 +151,13 @@ select:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* Out of sight, but still reachable with the keyboard. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
 }

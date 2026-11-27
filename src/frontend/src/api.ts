@@ -1,7 +1,13 @@
+export interface DocumentRef {
+  id: string;
+  name: string;
+}
+
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  documents: DocumentRef[];
   provenance: { model: string; latency_ms: number } | null;
 }
 

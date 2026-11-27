@@ -1,7 +1,14 @@
-import { type FormEvent, Fragment, useEffect, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  Fragment,
+  useEffect,
+  useState,
+} from "react";
 import {
   api,
   type Conversation,
+  type DocumentRef,
   json,
   type Message,
   type ToolCall,
@@ -30,6 +37,8 @@ function Chat({ context }: { context: HostContext }) {
   const [pending, setPending] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isOpening, setIsOpening] = useState(false);
+  const [attached, setAttached] = useState<DocumentRef[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const stream = useStream<Message>();
   const voice = useVoiceInput({
     token,
@@ -72,7 +81,9 @@ function Chat({ context }: { context: HostContext }) {
     event.preventDefault();
     const content = question.trim();
     if (content === "" || stream.status === "streaming") return;
+    const documents = attached;
     setQuestion("");
+    setAttached([]);
     setPending(content);
     setLoadError(null);
     try {
@@ -92,10 +103,11 @@ function Chat({ context }: { context: HostContext }) {
       const path = `/api/conversations/${id}`;
       const reply = await stream.start(`${path}/messages?stream=true`, token, {
         content,
+        document_ids: documents.map((document) => document.id),
         page: pageOf(context),
       });
       if (reply === null) {
-        restoreQuestion(content);
+        restoreQuestion(content, documents);
         return;
       }
       // The reply is stored. A failed reload only costs the tool lines, never a second send.
@@ -107,15 +119,38 @@ function Chat({ context }: { context: HostContext }) {
       stream.reset();
     } catch (error) {
       setLoadError(messageOf(error));
-      restoreQuestion(content);
+      restoreQuestion(content, documents);
     } finally {
       setPending(null);
     }
   }
 
   // Puts a failed question back, unless the customer has typed or dictated a new one meanwhile.
-  function restoreQuestion(content: string) {
+  function restoreQuestion(content: string, documents: DocumentRef[]) {
     setQuestion((current) => (current === "" ? content : current));
+    setAttached((current) => (current.length === 0 ? documents : current));
+  }
+
+  async function handleAttach(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Cleared, so choosing the same file again fires the event again.
+    event.target.value = "";
+    if (file === undefined) return;
+    setLoadError(null);
+    setIsUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const document = await api<DocumentRef>("/api/documents", token, {
+        method: "POST",
+        body: form,
+      });
+      setAttached((current) => [...current, document]);
+    } catch (error) {
+      setLoadError(messageOf(error));
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   async function handleOpen(id: string) {
@@ -138,7 +173,11 @@ function Chat({ context }: { context: HostContext }) {
     stream.reset();
   }
 
-  const isBusy = stream.status === "streaming" || pending !== null || isOpening;
+  const isBusy =
+    stream.status === "streaming" ||
+    pending !== null ||
+    isOpening ||
+    isUploading;
   const account = context.account ? `, account ${context.account.name}` : "";
 
   return (
@@ -176,6 +215,11 @@ function Chat({ context }: { context: HostContext }) {
         {messages.map((message) => (
           <Fragment key={message.id}>
             <article className={`msg ${message.role}`}>
+              {message.documents.map((document) => (
+                <span key={document.id} className="document">
+                  {document.name}
+                </span>
+              ))}
               {message.content}
               {message.provenance !== null && (
                 <footer>
@@ -213,6 +257,28 @@ function Chat({ context }: { context: HostContext }) {
         )}
       </section>
 
+      {(attached.length > 0 || isUploading) && (
+        <ul className="attached">
+          {attached.map((document) => (
+            <li key={document.id}>
+              {document.name}
+              <button
+                type="button"
+                aria-label={`Remove ${document.name}`}
+                onClick={() =>
+                  setAttached((current) =>
+                    current.filter((other) => other.id !== document.id),
+                  )
+                }
+              >
+                ×
+              </button>
+            </li>
+          ))}
+          {isUploading && <li>Reading the document…</li>}
+        </ul>
+      )}
+
       <form onSubmit={handleSubmit}>
         <input
           value={question}
@@ -223,6 +289,16 @@ function Chat({ context }: { context: HostContext }) {
           aria-label="Your question"
           autoComplete="off"
         />
+        <label className="button">
+          Attach
+          <input
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx"
+            onChange={(event) => void handleAttach(event)}
+            disabled={isBusy || attached.length >= DOCUMENTS_PER_MESSAGE}
+            className="visually-hidden"
+          />
+        </label>
         {canCaptureAudio() && (
           <button
             type="button"
@@ -244,6 +320,8 @@ function Chat({ context }: { context: HostContext }) {
 }
 
 const TITLE_LENGTH = 60;
+// The backend takes at most three documents per message.
+const DOCUMENTS_PER_MESSAGE = 3;
 // The backend takes a page title of 1 to 200 characters.
 const PAGE_TEXT_LENGTH = 200;
 
