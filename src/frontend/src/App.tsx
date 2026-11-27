@@ -232,6 +232,19 @@ function Chat({
     // Runs once per customer: Chat is keyed by the customer, and the token only changes with them.
   }, []);
 
+  // Tags the customer's bookings in the background; nothing waits for it and nothing shows it.
+  useEffect(() => {
+    async function startCategorisation() {
+      try {
+        await api("/api/categorisations", token, { method: "POST" });
+      } catch {
+        // A failed start is retried at the next open.
+      }
+    }
+    void startCategorisation();
+    // Runs once per customer: Chat is keyed by the customer, and the token only changes with them.
+  }, []);
+
   function handleChatScroll() {
     const chat = chatRef.current;
     if (chat === null) return;
