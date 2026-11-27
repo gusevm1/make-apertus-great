@@ -29,6 +29,7 @@ GOLD_PATH = Path(__file__).with_name("categorisation_gold.jsonl")
 PERSONAS = ("lukas", "jana", "daniela", "marco")
 HELD_OUT_SHARE = 4  # one payee in four, per customer, is held out
 CATEGORISE_TIMEOUT_SECONDS = 900
+MAX_CATEGORISE_CALLS = 3
 
 
 def split_of(persona: str, payee: str) -> str:
@@ -82,18 +83,28 @@ async def categorise_persona(
     persona: str,
     rows: list[dict[str, Any]],
     keep_corrections: bool,
+    score_only: bool,
 ) -> dict[str, dict[str, Any]]:
     token, customer_id = await login(client=client, banking_url=banking_url, persona=persona)
-    await clear_tags(
-        rows=rows, owner=owner_id(customer_id=customer_id), keep_corrections=keep_corrections
-    )
     headers = {"Authorization": f"Bearer {token}"}
-    started = time.monotonic()
-    response = await client.post(
-        f"{base_url}/api/categorisations", headers=headers, timeout=CATEGORISE_TIMEOUT_SECONDS
-    )
-    response.raise_for_status()
-    print(f"  {persona}: {response.json()} in {time.monotonic() - started:.0f} s", file=sys.stderr)  # noqa: T201
+    if not score_only:
+        await clear_tags(
+            rows=rows, owner=owner_id(customer_id=customer_id), keep_corrections=keep_corrections
+        )
+        # Skipped rows stay untagged for the next call, as in the product, so call again.
+        for attempt in range(1, MAX_CATEGORISE_CALLS + 1):
+            started = time.monotonic()
+            response = await client.post(
+                f"{base_url}/api/categorisations",
+                headers=headers,
+                timeout=CATEGORISE_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+            counts = response.json()
+            elapsed = time.monotonic() - started
+            print(f"  {persona} #{attempt}: {counts} in {elapsed:.0f} s", file=sys.stderr)  # noqa: T201
+            if counts["skipped"] == 0:
+                break
     tags = await client.get(f"{base_url}/api/transaction-tags", headers=headers, timeout=120)
     tags.raise_for_status()
     return {f"{persona}:{tag['row_source']}:{tag['row_id']}": tag for tag in tags.json()}
@@ -144,6 +155,14 @@ def score(gold: list[dict[str, Any]], tags: dict[str, dict[str, Any]]) -> dict[s
         "review_catches_wrong": (
             sum(needs_review(tag) for _, tag in wrong) / len(wrong) if wrong else 1.0
         ),
+        "matrix": {
+            gold_category: dict(
+                Counter(
+                    tag["category"] for row, tag in model_rows if row["category"] == gold_category
+                )
+            )
+            for gold_category in sorted({row["category"] for row, _ in model_rows})
+        },
         "confusions": Counter(
             f"{row['category']} -> {tag['category']}" for row, tag in wrong
         ).most_common(15),
@@ -179,6 +198,8 @@ async def main() -> None:
     parser.add_argument("--banking-url", default=get_settings().banking_api_url)
     parser.add_argument("--split", choices=("tune", "heldout"), required=True)
     parser.add_argument("--keep-corrections", action="store_true")
+    # Scores the categories stored now, without categorising again.
+    parser.add_argument("--score-only", action="store_true")
     parser.add_argument("--label", default="run")
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
@@ -196,12 +217,15 @@ async def main() -> None:
                     persona=persona,
                     rows=rows,
                     keep_corrections=args.keep_corrections,
+                    score_only=args.score_only,
                 )
             )
     result = score(gold=gold, tags=tags)
     result["label"] = args.label
     result["split"] = args.split
-    summary = {key: value for key, value in result.items() if key != "wrong_examples"}
+    summary = {
+        key: value for key, value in result.items() if key not in ("wrong_examples", "matrix")
+    }
     print(json.dumps(summary, indent=1, ensure_ascii=False))  # noqa: T201
     if args.out is not None:
         args.out.write_text(json.dumps(result, indent=1, ensure_ascii=False))
