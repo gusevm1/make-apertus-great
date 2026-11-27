@@ -43,7 +43,7 @@ def _is_inference(request_body: dict[str, Any]) -> bool:
 def _japan_tag_reply(request_body: dict[str, Any]) -> str:
     """A fake Apertus that proposes one tag and files saving and Tokyo rows under it."""
     if _is_inference(request_body=request_body):
-        tag = {"name": "Japanreise", "description": "Trip to Japan in 2027"}
+        tag = {"name": "Japanreise", "description": "Sparen für die Japanreise 2027"}
         return json.dumps({"tags": [tag]})
     answers = []
     for ref, row in _assigned_rows(request_body=request_body).items():
@@ -98,7 +98,7 @@ async def test_inferred_tag_and_assignments_are_stored_unconfirmed_with_the_mode
     (tag,) = await _infer(api=lukas)
 
     assert tag["name"] == "Japanreise"
-    assert tag["description"] == "Trip to Japan in 2027"
+    assert tag["description"] == "Sparen für die Japanreise 2027"
     assert tag["set_by"] == "model"
     assert tag["model"] == "fake-smart"
     assert tag["confirmed"] is False
@@ -136,7 +136,7 @@ async def test_the_prompts_carry_the_goal_hints_and_only_the_candidate_rows(
     assert "Immo AG: Miete" not in text
     rows = _assigned_rows(request_body=assignment)
     assert sorted(row["text"] for row in rows.values()) == ["SUSHI TOKYO", "Sparen"]
-    assert "<tags>\nJapanreise: Trip to Japan in 2027\n</tags>" in _input_of(
+    assert '{"name": "Japanreise", "description": "Sparen für die Japanreise 2027"}' in _input_of(
         request_body=assignment
     )
 
@@ -473,12 +473,12 @@ def test_candidates_are_outgoing_own_transfers_and_spending_that_could_relate_to
         )  # fmt: skip
     )
     rows = [
-        _row("TRANSFER", "own_transfer", "-100"),
+        _row("TRANSFER", "own_transfer", "-100", text="Sparen Lina"),
         _row("INCOMING-LEG", "own_transfer", "100"),
         _row("NAME", "spending", "-5", text="Schwimmkurs Lina"),
         _row("CURRENCY", "spending", "-5", original_currency="JPY"),
         _row("CATEGORY", "spending", "-5"),
-        _row("OTHER", "spending", "-5"),
+        _row("OTHER", "spending", "-5", original_currency="CHF"),
         _row("CREDIT", "credit", "5", text="Unterhalt Lina"),
     ]
 

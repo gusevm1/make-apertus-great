@@ -377,7 +377,7 @@ def _candidate_rows(
         haystack = f"{row.text} {row.counterparty or ''}".casefold()
         if (
             categories.get((row.source, row.id)) in CANDIDATE_CATEGORIES
-            or row.original_currency is not None
+            or row.original_currency not in (None, "CHF")
             or any(word in haystack for word in words)
         ):
             candidates.append(row)

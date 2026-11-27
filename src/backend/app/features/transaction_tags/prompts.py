@@ -85,7 +85,10 @@ def assign_tags_prompt(
     tags: list[PersonalTag], rows: dict[str, LedgerRow], categories: dict[str, str]
 ) -> list[LLMMessage]:
     """The batch for Apertus; `rows` are the ledger rows by their batch-local ref."""
-    tag_lines = "\n".join(f"{tag.name}: {tag.description}" for tag in tags)
+    tag_lines = "\n".join(
+        json.dumps({"name": tag.name, "description": tag.description}, ensure_ascii=False)
+        for tag in tags
+    )
     row_lines = "\n".join(
         _assigned_row_line(ref=ref, row=row, category=categories.get(ref))
         for ref, row in rows.items()
