@@ -12,6 +12,8 @@ from app.features.accounts import tools as account_tools
 from app.features.accounts.dependencies import AccountServiceDep
 from app.features.bank_data import tools as bank_data_tools
 from app.features.bank_data.dependencies import BankDataServiceDep
+from app.features.documents import tools as document_tools
+from app.features.documents.dependencies import DocumentServiceDep
 from app.features.ledger import tools as ledger_tools
 from app.features.ledger.dependencies import LedgerServiceDep
 from app.features.tool_calls.confirmations import Confirmations
@@ -38,6 +40,7 @@ def get_tools(
     user: CurrentUserDep,
     accounts: AccountServiceDep,
     bank_data: BankDataServiceDep,
+    documents: DocumentServiceDep,
     ledger: LedgerServiceDep,
     today: Annotated[date, Depends(get_today)],
 ) -> list[Tool[Any]]:
@@ -45,6 +48,7 @@ def get_tools(
     return [
         *account_tools.get_tools(service=accounts, token=user.token),
         *bank_data_tools.get_tools(service=bank_data, token=user.token),
+        *document_tools.get_tools(service=documents, owner_id=user.id),
         *ledger_tools.get_tools(service=ledger, token=user.token, today=today),
         # Web search sends the query outside the bank, so it needs SearXNG's address to exist.
         *(

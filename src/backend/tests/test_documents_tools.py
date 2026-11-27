@@ -1,6 +1,8 @@
 import json
+from typing import Any
 from uuid import UUID, uuid4
 
+import httpx2
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +10,9 @@ from app.core.errors import BadRequestError
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.schemas import DocumentReading
 from app.features.documents.service import DocumentService
-from tests.conftest import OCR_MARKDOWN, fake_banking_client, fake_ocr_client
+from app.features.tool_calls.schemas import ToolDecision, ToolRequest
+from tests.conftest import OCR_MARKDOWN, FakeApertus, fake_banking_client, fake_ocr_client
+from tests.factories import make_conversation
 from tests.test_documents_service import ScriptedApertus
 
 OWNER = uuid4()
@@ -191,3 +195,21 @@ async def test_document_text_cannot_close_its_block(session: AsyncSession) -> No
     assert question.count("</document>") == 1
     assert question.count("<question>") == 1
     assert "&lt;/document&gt;" in question
+
+
+async def test_the_chat_reads_an_uploaded_document_by_its_name(
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus
+) -> None:
+    files = {"file": ("Lohnabrechnung.pdf", b"%PDF-1.7 fake", "application/pdf")}
+    assert (await client.post("/api/documents", files=files)).status_code == 201
+    arguments: dict[str, Any] = {"documents": ["Lohnabrechnung.pdf"], "question": "Nettolohn?"}
+    request = ToolRequest(reason="Needs the payslip.", tool="read_document", arguments=arguments)
+    apertus.decisions = [ToolDecision(plan="Read it.", calls=[request]).model_dump_json()]
+    conversation = await make_conversation(session=session)
+    url = f"/api/conversations/{conversation.id}"
+
+    assert (await client.post(f"{url}/messages", json={"content": "Hi"})).status_code == 201
+
+    (call,) = (await client.get(f"{url}/tool-calls")).json()
+    assert call["error"] is None
+    assert call["result"]["texts"][0]["text"] == OCR_MARKDOWN
