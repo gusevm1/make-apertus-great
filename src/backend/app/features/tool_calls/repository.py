@@ -1,5 +1,6 @@
 import builtins
 from typing import Any
+from uuid import UUID
 
 from app.core.repository import BaseRepository
 from app.features.tool_calls.models import ToolCallORM
@@ -16,3 +17,11 @@ class ToolCallRepository(BaseRepository[ToolCallORM, ToolCall]):
         # The figure correction calls Apertus next, which no open transaction may span.
         await self.session.commit()
         return calls
+
+    async def set_outcome(
+        self, call_id: UUID, result: dict[str, Any] | None, error: str | None
+    ) -> ToolCall:
+        row = await self.session.get_one(ToolCallORM, call_id)
+        row.result, row.error = result, error
+        await self.session.commit()
+        return self._to_schema(row=row)

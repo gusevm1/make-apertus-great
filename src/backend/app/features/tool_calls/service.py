@@ -217,19 +217,8 @@ class ToolCallService:
                         timeout_seconds=CONFIRMATION_TIMEOUT_SECONDS,
                     )
                 )
-                if refusal is not None:
-                    output, error = None, refusal
-                elif is_allowed:
-                    output, error = await self._run_tool(
-                        call_id=call_id,
-                        name=request.tool,
-                        arguments=request.arguments,
-                        turn=_turn(conversation_id=conversation_id, calls=calls),
-                    )
-                else:
-                    refused.add(request.tool)
-                    output, error = None, NOT_ALLOWED
-                call = await self.tool_calls.create(
+                # Stored before the tool runs, so what the tool stores can point to its call.
+                await self.tool_calls.create(
                     id=call_id,
                     conversation_id=conversation_id,
                     message_id=message_id,
@@ -241,11 +230,26 @@ class ToolCallService:
                     title=title,
                     icon=icon,
                     arguments=request.arguments,
-                    result=output,
-                    error=error,
+                    result=None,
+                    error=None,
                     provenance=Provenance(
                         model=result.model, latency_ms=result.latency_ms
                     ).model_dump(),
+                )
+                if refusal is not None:
+                    output, error = None, refusal
+                elif is_allowed:
+                    output, error = await self._run_tool(
+                        call_id=call_id,
+                        name=request.tool,
+                        arguments=request.arguments,
+                        turn=_turn(conversation_id=conversation_id, call_id=call_id, calls=calls),
+                    )
+                else:
+                    refused.add(request.tool)
+                    output, error = None, NOT_ALLOWED
+                call = await self.tool_calls.set_outcome(
+                    call_id=call_id, result=output, error=error
                 )
                 calls.append(call)
                 round_calls.append(call)
@@ -356,13 +360,13 @@ def _problems(exc: ValidationError) -> str:
     )
 
 
-def _turn(conversation_id: UUID, calls: list[ToolCall]) -> Turn:
+def _turn(conversation_id: UUID, call_id: UUID, calls: list[ToolCall]) -> Turn:
     results = [
         TurnResult(tool_call_id=call.id, tool_name=call.tool_name, result=call.result)
         for call in calls
         if call.result is not None
     ]
-    return Turn(conversation_id=conversation_id, results=results)
+    return Turn(conversation_id=conversation_id, call_id=call_id, results=results)
 
 
 def _merge_identical(requests: list[ToolRequest]) -> list[ToolRequest]:

@@ -16,6 +16,8 @@ class TurnResult:
 @dataclass(frozen=True)
 class Turn:
     conversation_id: UUID
+    # The call that runs now; its row is stored already, so what the tool stores may point to it.
+    call_id: UUID
     # The turn's earlier calls that returned a result, oldest first.
     results: list[TurnResult]
 
