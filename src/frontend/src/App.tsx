@@ -268,9 +268,15 @@ function Chat({ context }: { context: HostContext }) {
         onScroll={handleChatScroll}
       >
         {messages.length === 0 && pending === null && (
-          <p className="hint">
-            Ask about your finances, e.g. “How much money do I have?”
-          </p>
+          <>
+            <p className="ai-notice">
+              You are talking to an AI. It works with your own data only and
+              gives no investment advice.
+            </p>
+            <p className="hint">
+              Ask about your finances, e.g. “How much money do I have?”
+            </p>
+          </>
         )}
         {messages.map((message) => (
           <Fragment key={message.id}>

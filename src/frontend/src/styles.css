@@ -20,6 +20,15 @@ main {
   color: var(--color-text-muted);
 }
 
+.ai-notice {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
 .chat {
   display: flex;
   flex: 1;
