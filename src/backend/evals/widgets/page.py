@@ -139,7 +139,9 @@ def _scale(value: float, maximum: float, length: float) -> float:
 _TEMPLATES = ImmutableSandboxedEnvironment(autoescape=True, undefined=StrictUndefined)
 _TEMPLATES.filters["chf"] = _chf
 _TEMPLATES.filters["date"] = _date
+# Both forms, since models write scale(v, m, l) as often as v | scale(m, l).
 _TEMPLATES.globals["scale"] = _scale
+_TEMPLATES.filters["scale"] = _scale
 _TEMPLATE_CODE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
 _STYLE_OR_SCRIPT = re.compile(r"<(style|script)\b.*?</\1>", re.DOTALL | re.IGNORECASE)
 _TAG = re.compile(r"<[^>]*>")

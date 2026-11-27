@@ -62,6 +62,26 @@ Clean says nothing about how the widget looks: a clean page can still overlap it
 | shapes | fast | year_vs_year | no | 8.8 | – | – | Model returned invalid Scene twice |  |
 | shapes | fast | liquidity | no | 15.1 | – | – | Model returned invalid Scene twice |  |
 | shapes | fast | where_money_goes | no | 8.6 | – | – | Model returned invalid Scene twice |  |
+| jinja | smart | monthly_spending | no | 20.6 | 538 | 1425 | template error: too many values to unpack (expected 2) |  |
+| jinja | smart | upcoming_payments | no | 15.8 | 450 | 1214 | template error: 'm' is undefined |  |
+| jinja | smart | pricier_subscriptions | no | 15.6 | 438 | 1313 | template error: Encountered unknown tag 'end'. Jinja was looking for the following tags: 'endfor' or 'else'. The innermost block that needs to be closed is 'for |  |
+| jinja | smart | year_vs_year | no | 30.1 | 927 | 2693 | template error: expected token ',', got ':' |  |
+| jinja | smart | liquidity | no | 16.6 | 605 | 1688 | template error: 'm' is undefined |  |
+| jinja | smart | where_money_goes | no | 20.2 | 803 | 2307 | template error: 'max_total' is undefined |  |
+| jinja | smart | monthly_spending + red (rewrite) | no (first version broken) | 19.1 | 557 | 1482 | template error: too many values to unpack (expected 2) |  |
+| jinja | smart | monthly_spending + red (edits) | no (first version broken) | 1.7 | 42 | 1426 | template error: too many values to unpack (expected 2) |  |
+| jinja | smart | monthly_spending + last_3 (rewrite) | no (first version broken) | 17.5 | 495 | 1349 | template error: 'max' is undefined |  |
+| jinja | smart | monthly_spending + last_3 (edits) | no (first version broken) | 2.1 | – | – | edit matches 0 times: '{% for m in DATA.months %}' |  |
+| jinja | fast | monthly_spending | no | 10.0 | 656 | 1505 | numbers of its own: 0 of 5 found; not found: 10'000, 2'000, 4'000, 6'000, 8'000 |  |
+| jinja | fast | upcoming_payments | no | 6.7 | 439 | 1220 | template error: 'max_chf' is undefined |  |
+| jinja | fast | pricier_subscriptions | no | 9.9 | 621 | 1695 | template error: Invalid isoformat string: '1' |  |
+| jinja | fast | year_vs_year | no | 12.9 | 823 | 2298 | template error: 'loop' is undefined |  |
+| jinja | fast | liquidity | no | 7.6 | 499 | 1147 | template error: unsupported format string passed to StrictUndefined.__format__ |  |
+| jinja | fast | where_money_goes | no | 9.4 | 615 | 1440 | template error: 'enumerate' is undefined |  |
+| jinja | fast | monthly_spending + red (rewrite) | no (first version broken) | 11.2 | 774 | 1792 | numbers of its own: 0 of 5 found; not found: 10'000, 2'000, 4'000, 6'000, 8'000 |  |
+| jinja | fast | monthly_spending + red (edits) | no (first version broken) | 5.1 | – | – | Model returned invalid Edits twice |  |
+| jinja | fast | monthly_spending + last_3 (rewrite) | no (first version broken) | 10.1 | 659 | 1526 | numbers of its own: 0 of 5 found; not found: 10'000, 2'000, 4'000, 6'000, 8'000 |  |
+| jinja | fast | monthly_spending + last_3 (edits) | no (first version broken) | 1.2 | 55 | 1506 | numbers of its own: 0 of 5 found; not found: 10'000, 2'000, 4'000, 6'000, 8'000 |  |
 
 ## Summary
 
@@ -75,3 +95,5 @@ Revisions count only where the first version was clean, so a broken first versio
 | html_svg | fast | 1 of 6 (17%) | 7.2 | 4 of 4 (100%) | 2 of 2 |
 | html_d3 | fast | 3 of 6 (50%) | 4.2 | – | 1 of 2 |
 | shapes | fast | 0 of 6 (0%) | – | – | 0 of 0 |
+| jinja | smart | 0 of 6 (0%) | – | – | 0 of 2 |
+| jinja | fast | 0 of 6 (0%) | – | – | 0 of 2 |

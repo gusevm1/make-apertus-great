@@ -152,6 +152,9 @@ class Bench:
         return await self._timed(run=run, call=edit())
 
     async def render(self, run: Run, code: str) -> None:
+        path = RESULTS / "pages" / f"{run.variant}-{run.model}-{_slug(text=run.name)}.html"
+        # The model's code as it came, also when it fails, so a failure can be read afterwards.
+        path.with_suffix(".code.txt").write_text(code, encoding="utf-8")
         body = code
         try:
             if run.variant == "shapes":
@@ -166,7 +169,6 @@ class Bench:
         except TemplateRefusedError as error:
             run.failure = str(error)[:200]
             return
-        path = RESULTS / "pages" / f"{run.variant}-{run.model}-{_slug(text=run.name)}.html"
         path.write_text(
             page(
                 body=body,
