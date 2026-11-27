@@ -4,7 +4,10 @@ from app.core.errors import ConflictError, NotFoundError
 from app.features.context_entries.repository import ContextEntryRepository
 from app.features.context_entries.schemas import (
     ACTIVE_ENTRIES_MAX,
+    LIST_MAX_CHARS,
     ContextEntry,
+    ContextEntryList,
+    ContextEntrySummary,
     RequestContextEntryCreate,
     RequestContextEntryUpdate,
     Status,
@@ -33,6 +36,19 @@ class ContextEntryService:
     ) -> list[ContextEntry]:
         """List the customer's entries with one status."""
         return await self.entries.list(sort=sort, owner_id=owner_id, status=status)
+
+    async def list_summaries(self, owner_id: UUID) -> ContextEntryList:
+        """The newest active entries that fit, at least one, for the chat."""
+        entries = await self.entries.list(owner_id=owner_id, status="active")
+        summaries: list[ContextEntrySummary] = []
+        used = 0
+        for entry in entries:
+            summary = ContextEntrySummary.model_validate(entry, from_attributes=True)
+            used += len(summary.model_dump_json())
+            if used > LIST_MAX_CHARS and summaries:
+                break
+            summaries.append(summary)
+        return ContextEntryList(entries=summaries, left_out=len(entries) - len(summaries))
 
     async def get_entry(self, entry_id: UUID, owner_id: UUID) -> ContextEntry:
         """Return the customer's entry; someone else's counts as not found."""

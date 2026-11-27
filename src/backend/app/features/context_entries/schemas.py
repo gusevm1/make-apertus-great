@@ -11,6 +11,8 @@ Source = Literal["customer", "chat"]
 TEXT_MAX_LENGTH = 300
 ACTIVE_ENTRIES_MAX = 50
 AMOUNT_MAX = Decimal("9999999999.99")
+# The tool loop cuts a result at 6000 characters; the list stops earlier so its count fits.
+LIST_MAX_CHARS = 5_000
 
 
 class ContextEntry(BaseModel):
@@ -65,5 +67,16 @@ class ResponseContextEntry(BaseModel):
     created_at: datetime
 
 
+class ContextEntrySummary(BaseModel):
+    id: UUID
+    kind: Kind
+    text: str
+    amount_chf: Decimal | None
+    target_date: date | None
+    created_at: datetime
+
+
+# The newest entries that fit; `left_out` counts the older ones.
 class ContextEntryList(BaseModel):
-    entries: list[ContextEntry]
+    entries: list[ContextEntrySummary]
+    left_out: int

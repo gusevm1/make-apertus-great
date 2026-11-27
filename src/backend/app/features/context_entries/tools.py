@@ -17,7 +17,7 @@ class ListContextEntriesArgs(BaseModel):
 
 def get_tools(service: ContextEntryService, owner_id: UUID) -> list[Tool[Any]]:
     async def list_context_entries(_: ListContextEntriesArgs) -> ContextEntryList:
-        return ContextEntryList(entries=await service.list_entries(owner_id=owner_id))
+        return await service.list_summaries(owner_id=owner_id)
 
     return [
         Tool(

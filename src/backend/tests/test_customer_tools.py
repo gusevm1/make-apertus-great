@@ -6,7 +6,12 @@ import httpx2
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.features.context_entries.repository import ContextEntryRepository
-from app.features.context_entries.schemas import RequestContextEntryCreate
+from app.features.context_entries.schemas import (
+    ACTIVE_ENTRIES_MAX,
+    TEXT_MAX_LENGTH,
+    RequestContextEntryCreate,
+)
+from app.features.context_entries.service import ContextEntryService
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.schemas import LIST_MAX_CHARS
 from app.features.documents.service import DocumentService
@@ -94,3 +99,40 @@ async def test_the_oldest_documents_are_left_out_when_the_list_is_full(
     assert listing.left_out == 30 - len(listing.documents)
     assert sum(len(document.model_dump_json()) for document in listing.documents) <= LIST_MAX_CHARS
     assert listing.documents[0].name == "doc-29.pdf"
+
+
+async def _entry_service(session: AsyncSession, texts: list[str]) -> ContextEntryService:
+    repository = ContextEntryRepository(session=session)
+    for text in texts:
+        await repository.create(
+            data=RequestContextEntryCreate(kind="fact", text=text),
+            owner_id=DEMO_USER_ID,
+            status="active",
+            source="customer",
+        )
+    return ContextEntryService(entries=repository)
+
+
+async def test_the_oldest_entries_are_left_out_when_the_list_is_full(
+    session: AsyncSession,
+) -> None:
+    texts = [f"{number:02} " + "x" * (TEXT_MAX_LENGTH - 3) for number in range(ACTIVE_ENTRIES_MAX)]
+    service = await _entry_service(session=session, texts=texts)
+
+    listing = await service.list_summaries(owner_id=DEMO_USER_ID)
+
+    assert len(listing.model_dump_json()) < 6000
+    assert listing.left_out > 0
+    assert listing.left_out == ACTIVE_ENTRIES_MAX - len(listing.entries)
+    assert listing.entries[0].text.startswith(f"{ACTIVE_ENTRIES_MAX - 1:02} ")
+    for private in ("owner_id", "source_id", "replaced_by_id", "replaces_id"):
+        assert private not in listing.model_dump()["entries"][0]
+
+
+async def test_a_few_short_entries_all_come_back(session: AsyncSession) -> None:
+    service = await _entry_service(session=session, texts=["Rent is due monthly", "Likes trains"])
+
+    listing = await service.list_summaries(owner_id=DEMO_USER_ID)
+
+    assert [entry.text for entry in listing.entries] == ["Likes trains", "Rent is due monthly"]
+    assert listing.left_out == 0
