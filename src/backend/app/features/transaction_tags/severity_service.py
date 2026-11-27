@@ -5,6 +5,7 @@ from uuid import UUID
 from app.clients.apertus import ApertusClient, Model
 from app.core.errors import BadRequestError, NotFoundError
 from app.features.ledger.service import LedgerService
+from app.features.transaction_tags.goals import read_goal_hints
 from app.features.transaction_tags.prompts import severity_prompt
 from app.features.transaction_tags.repository import (
     SeveritySettingRepository,
@@ -26,7 +27,6 @@ from app.features.transaction_tags.severity import (
 )
 
 TOTALS_DAYS = 365
-MAX_GOAL_TEXTS = 20
 
 
 class SeverityService:
@@ -110,8 +110,7 @@ class SeverityService:
         )
 
     async def _propose(self, owner_id: UUID, token: str, missing: list[str]) -> None:
-        accounts = await self.ledger.read(path="/accounts", token=token)
-        orders = await self.ledger.read(path="/standing-orders", token=token)
+        account_names, transfers = await read_goal_hints(ledger=self.ledger, token=token)
         today = await self.ledger.get_today()
         rows = await self.ledger.list_rows(token=token)
         categories = await self.tags.list_categories(owner_id=owner_id)
@@ -122,15 +121,10 @@ class SeverityService:
             category = categories.get((row.source, row.id))
             if category is not None and row.kind == "spending" and row.date > since:
                 totals[category] = totals.get(category, Decimal(0)) - row.amount_chf
-        transfers = [
-            f"{order['payee_name']}: {order['message']}, CHF {order['amount']} {order['frequency']}"
-            for order in orders["items"]
-            if order.get("credit_account_id") is not None
-        ]
         result = await self.apertus.structured(
             messages=severity_prompt(
-                account_names=[account["name"] for account in accounts["items"]][:MAX_GOAL_TEXTS],
-                transfer_texts=transfers[:MAX_GOAL_TEXTS],
+                account_names=account_names,
+                transfer_texts=transfers,
                 totals={category: str(total) for category, total in sorted(totals.items())},
                 categories=missing,
             ),
