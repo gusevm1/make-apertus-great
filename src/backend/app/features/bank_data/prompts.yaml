@@ -1,0 +1,64 @@
+# One description per tool. Each tool reads one endpoint of the e-banking's API and returns what the
+# API returns, including its sums, so the model never has to add anything up.
+get_customer: >-
+  The customer's profile: name, address, age, civil status, employer, gross salary, health insurance,
+  savings goal and other facts about their life situation.
+get_asset_overview: >-
+  The customer's total assets and total liquidity in CHF, split into accounts, portfolio and other
+  groups, each with its value. Use it for "what am I worth" or "how much do I have in total".
+get_balance_preview: >-
+  How one account's balance will develop from today until a date, day by day, with every payment
+  that is already known (standing orders, pending payments). Use it for "will my account go negative"
+  or "how much is left after my bills".
+list_bookings: >-
+  Booked transactions on the customer's accounts, newest first: date, amount (negative means money
+  out), booking text, counterparty and transaction type. Always returns `total` (how many bookings
+  match), `sum_credit` and `sum_debit` over ALL matching bookings, even those not listed, so use
+  those sums and never add up rows yourself. Bookings carry no category; filter by `text` to find a
+  merchant or a purpose such as rent.
+list_payments: >-
+  Payments the customer entered: pending ones that are still due and completed ones, with payee,
+  amount, execution date and message. Returns `sum_chf` over all matching payments.
+list_upcoming_payments: >-
+  Everything that will leave the accounts in a period: pending payments and the next runs of
+  standing orders, each with due date, payee and amount. Returns `total_chf`. Use it for "what is due
+  in the next 30 days".
+list_payees: >-
+  The people and companies the customer has paid, with IBAN, first and last payment date and the
+  number of payments.
+list_standing_orders: >-
+  The customer's standing orders: payee, amount, frequency, day of execution and next execution date.
+list_cards: >-
+  The customer's debit and credit cards: product, masked number, monthly limit, linked account and
+  status.
+list_card_statements: >-
+  The monthly statements of one credit card: period, total and due date. Take the card id from
+  list_cards.
+list_card_transactions: >-
+  The purchases on one credit card: date, merchant, amount and original currency. Take the card id
+  from list_cards. Purchases with a debit card are bookings, not card transactions.
+get_portfolio: >-
+  The customer's securities portfolio: total value, invested amount and the allocation by asset
+  class, currency and region.
+list_portfolio_positions: >-
+  Every position in the portfolio: security, ISIN, quantity, price, value in CHF and profit or loss.
+get_portfolio_performance: >-
+  The portfolio's value over time for a period, as a series of points.
+list_portfolio_transactions: >-
+  Buys, sells and dividends in the portfolio, with date, security, quantity and amount.
+list_loans: >-
+  The customer's loans and mortgage tranches: product, balance, interest rate, fixed or SARON,
+  maturity date, next interest date and yearly interest. Returns `total_balance_chf`.
+list_loan_transactions: >-
+  Interest and amortisation payments on the loans, each with date, amount and the booking it belongs
+  to. Returns `sum_chf` over all matching payments, so "interest paid in 2025" is one call with
+  type interest and the year as period.
+get_fx_rates: >-
+  Monthly exchange rates against CHF for EUR, USD and GBP.
+
+date_from: "First day of the period, as YYYY-MM-DD."
+date_to: "Last day of the period, as YYYY-MM-DD."
+account_id: "An account id from list_accounts, such as ACC-PRIV."
+card_id: "A card id from list_cards."
+text: "Words to look for in the booking text and the counterparty, such as a merchant's name."
+limit: "How many rows to list. The sums always cover all matching rows."

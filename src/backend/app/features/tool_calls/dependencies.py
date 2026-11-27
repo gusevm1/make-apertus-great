@@ -11,6 +11,8 @@ from app.core.db import SessionDep
 from app.core.tools import Tool
 from app.features.accounts import tools as account_tools
 from app.features.accounts.dependencies import AccountServiceDep
+from app.features.bank_data import tools as bank_data_tools
+from app.features.bank_data.dependencies import BankDataServiceDep
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.service import ToolCallService
 from app.features.web_search import tools as web_search_tools
@@ -22,11 +24,15 @@ def get_tool_call_repo(session: SessionDep) -> ToolCallRepository:
 
 
 def get_tools(
-    tavily: TavilyClientDep, user: CurrentUserDep, accounts: AccountServiceDep
+    tavily: TavilyClientDep,
+    user: CurrentUserDep,
+    accounts: AccountServiceDep,
+    bank_data: BankDataServiceDep,
 ) -> list[Tool[Any]]:
     # A feature whose tools read the customer's bank data adds its service dependency here.
     return [
         *account_tools.get_tools(service=accounts, token=user.token),
+        *bank_data_tools.get_tools(service=bank_data, token=user.token),
         # Web search sends the question outside the bank, so it only exists when a key is set.
         *(
             []
