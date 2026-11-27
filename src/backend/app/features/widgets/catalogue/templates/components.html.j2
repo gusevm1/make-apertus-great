@@ -51,10 +51,53 @@
   </ul>
   {%- if n.cut_note is not none %}<p class="cut-note">{{ n.cut_note }}</p>{% endif %}
 </section>
-{%- elif n.type in ("bar_chart", "line_chart") -%}
+{%- elif n.type == "timeline" -%}
+<section class="timeline" data-component="timeline" data-path="{{ n.path }}">
+  {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
+  <ol>
+  {%- for i in n.entries %}
+    <li data-component="timeline-item" data-path="{{ i.path }}" data-values="{{ i.row_values }}" data-booking-ids="{{ i.booking_ids }}">
+      <span class="tl-date">{{ i.date }}</span>
+      <span class="tl-dot" aria-hidden="true"></span>
+      <span class="item-main"><span class="item-label">{{ i.label }}</span>{% if i.detail is not none %}<span class="item-detail">{{ i.detail }}</span>{% endif %}</span>
+      <span class="item-value">{{ i.value }}</span>
+    </li>
+  {%- endfor %}
+  </ol>
+  {%- if n.cut_note is not none %}<p class="cut-note">{{ n.cut_note }}</p>{% endif %}
+</section>
+{%- elif n.type == "progress" -%}
+<section class="progress" data-component="progress" data-path="{{ n.value.path }}" data-value="{{ n.value.raw }}" data-booking-ids="{{ n.value.booking_ids }}">
+  <span class="kpi-label">{{ n.label }}</span>
+  <span class="progress-figures"><span class="progress-value">{{ n.value.text }}</span>
+  <span class="progress-goal" data-component="progress-goal" data-path="{{ n.goal.path }}" data-value="{{ n.goal.raw }}" data-booking-ids="{{ n.goal.booking_ids }}">{{ n.goal_label }} {{ n.goal.text }}</span></span>
+  <span class="progress-track" role="img" aria-label="{{ n.label }}: {{ n.value.text }}, {{ n.goal_label }} {{ n.goal.text }}"><span class="progress-fill" style="width: {{ n.fill }}%"></span></span>
+</section>
+{%- elif n.type == "callout" -%}
+<aside class="callout tone-{{ n.tone }}" data-component="callout">
+  {%- if n.title is not none %}<strong>{{ n.title }}</strong>{% endif %}
+  <p>{{ n.text }}</p>
+</aside>
+{%- elif n.type in ("bar_chart", "line_chart", "area_chart", "comparison", "donut") -%}
 <section class="chart" data-component="{{ n.type }}" data-path="{{ n.path }}" data-rows="{{ n.rows }}">
   {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
+  {%- if n.legend is not none %}
+  <div class="donut">
+    <div class="chart-area donut-area" id="{{ n.id }}">{% if n.svg is not none %}{{ n.svg | safe }}{% endif %}</div>
+    <div class="donut-side">
+      {%- if n.total is not none %}
+      <p class="donut-total" data-component="donut-total" data-path="{{ n.total.path }}" data-value="{{ n.total.raw }}" data-booking-ids="{{ n.total.booking_ids }}"><span class="kpi-label">Total</span> <span class="stat-value">{{ n.total.text }}</span></p>
+      {%- endif %}
+      <ul class="legend">
+      {%- for e in n.legend %}
+        <li data-component="donut-slice" data-path="{{ e.path }}" data-value="{{ e.raw }}" data-booking-ids="{{ e.booking_ids }}"><span class="swatch" style="background: {{ e.colour }}"></span><span class="item-label">{{ e.label }}</span><span class="item-value">{{ e.text }}</span></li>
+      {%- endfor %}
+      </ul>
+    </div>
+  </div>
+  {%- else %}
   <div class="chart-area" id="{{ n.id }}">{% if n.svg is not none %}{{ n.svg | safe }}{% endif %}</div>
+  {%- endif %}
 </section>
 {%- elif n.type == "stack" -%}
 <div class="stack" data-component="stack">

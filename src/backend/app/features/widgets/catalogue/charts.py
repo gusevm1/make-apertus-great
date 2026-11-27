@@ -5,7 +5,13 @@ from typing import Any
 import vl_convert
 
 from app.core.errors import BadRequestError
-from app.features.widgets.catalogue.schemas import BarChart, LineChart
+from app.features.widgets.catalogue.schemas import (
+    AreaChart,
+    BarChart,
+    Chart,
+    Comparison,
+    Donut,
+)
 from app.features.widgets.catalogue.values import display, is_number, rows, short
 
 VEGA_LITE_VERSION = "5.21"
@@ -23,6 +29,21 @@ TEXT = "#12202a"
 MUTED = "#5b6870"
 GRID = "#e6e8e8"
 SERIES = [ACCENT, MUTED, "#9cc2be", "#7f9fb0", "#c2c8c8"]
+# Donut slices in order; past the ninth the colours repeat.
+SLICES = [
+    ACCENT,
+    ACCENT_MID,
+    "#9cc2be",
+    ACCENT_LIGHT,
+    "#7f9fb0",
+    "#a9bfca",
+    "#d0dde3",
+    "#e3e9ea",
+    "#c2c8c8",
+]
+DONUT_SIZE = 220
+DONUT_INNER = 66
+DONUT_OUTER = 104
 GLOBALS = "window.vegaEmbed = vegaEmbed; window.vega = vega; window.vegaLite = vegaLite;"
 LOCALE = {"decimal": ".", "thousands": "'", "grouping": [3], "currency": ["CHF ", ""]}
 THEME: dict[str, Any] = {
@@ -52,38 +73,39 @@ THEME: dict[str, Any] = {
 }
 
 
-def chart_spec(component: BarChart | LineChart, data: dict[str, Any], live: bool) -> dict[str, Any]:
+def chart_spec(component: Chart, data: dict[str, Any], live: bool) -> dict[str, Any]:
     """The Vega-Lite spec of a chart, with its rows taken from DATA; it computes no figure."""
-    fields = [component.x, component.y]
-    if isinstance(component, LineChart) and component.series is not None:
-        fields.append(component.series)
+    x_field, y_field, series_field = _fields(component=component)
+    fields = [x_field, y_field] + ([series_field] if series_field is not None else [])
     found = rows(path=component.data, data=data, fields=fields)
-    series = [None if len(fields) < 3 else str(row[fields[2]]) for row in found]
+    series = [None if series_field is None else str(row[series_field]) for row in found]
     seen: set[tuple[str | None, str]] = set()
     for index, row in enumerate(found):
-        key = (series[index], str(row[component.x]))
+        key = (series[index], str(row[x_field]))
         # Vega-Lite would draw the sum of two rows with one label, a figure DATA doesn't hold.
         if key in seen:
             raise BadRequestError(
-                f"{component.data}[{index}] repeats {component.x} {key[1]}: a chart shows one "
+                f"{component.data}[{index}] repeats {x_field} {key[1]}: a chart shows one "
                 "value per label"
             )
         seen.add(key)
-        if not is_number(value=row[component.y]):
-            raise BadRequestError(f"{component.data}[{index}].{component.y} is not a number")
-    shorts = [short(field=component.x, value=row[component.x]) for row in found]
+        if not is_number(value=row[y_field]):
+            raise BadRequestError(f"{component.data}[{index}].{y_field} is not a number")
+        if isinstance(component, Donut) and row[y_field] < 0:
+            raise BadRequestError(f"{component.data}[{index}].{y_field} is negative: no slice")
+    shorts = [short(field=x_field, value=row[x_field]) for row in found]
     # Two rows of one series with the same short label ("Oct" of two years) get the full one.
     is_unique = len(set(zip(series, shorts, strict=True))) == len(found)
     values = []
     for index, row in enumerate(found):
-        full = display(field=component.x, value=row[component.x])
-        shown = display(field=component.y, value=row[component.y])
+        full = display(field=x_field, value=row[x_field])
+        shown = display(field=y_field, value=row[y_field])
         path = f"{component.data}[{index}]"
         values.append(
             {
-                "key": str(row[component.x]),
+                "key": str(row[x_field]),
                 "label": shorts[index] if is_unique else full,
-                "y": row[component.y],
+                "y": row[y_field],
                 "shown": shown,
                 "series": series[index],
                 "path": path,
@@ -92,6 +114,8 @@ def chart_spec(component: BarChart | LineChart, data: dict[str, Any], live: bool
                 "booking_ids": row.get("booking_ids", []),
             }
         )
+    if isinstance(component, Donut):
+        return _donut(values=values)
     # A horizontal chart's labels sit beside the plot, so its static plot is narrower.
     labels_beside = isinstance(component, BarChart) and component.horizontal
     size: dict[str, Any] = (
@@ -101,7 +125,25 @@ def chart_spec(component: BarChart | LineChart, data: dict[str, Any], live: bool
     )
     if isinstance(component, BarChart):
         return {**size, **_bar(component=component, values=values)}
-    return {**size, **_line(values=values, has_series=len(fields) == 3)}
+    if isinstance(component, Comparison):
+        return {**size, **_comparison(values=values)}
+    has_series = series_field is not None
+    if isinstance(component, AreaChart):
+        return {**size, **_line(values=values, has_series=has_series, filled=True)}
+    return {**size, **_line(values=values, has_series=has_series, filled=False)}
+
+
+def slice_colour(index: int) -> str:
+    return SLICES[index % len(SLICES)]
+
+
+def _fields(component: Chart) -> tuple[str, str, str | None]:
+    """The chart's label, value and series fields."""
+    if isinstance(component, Donut):
+        return component.label, component.value, None
+    if isinstance(component, BarChart):
+        return component.x, component.y, None
+    return component.x, component.y, component.series
 
 
 def static_svg(spec: dict[str, Any]) -> str:
@@ -181,7 +223,7 @@ def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _line(values: list[dict[str, Any]], has_series: bool) -> dict[str, Any]:
+def _line(values: list[dict[str, Any]], has_series: bool, filled: bool) -> dict[str, Any]:
     encoding = {
         "x": {"field": "label", "type": "ordinal", "sort": None},
         "y": {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}},
@@ -196,14 +238,21 @@ def _line(values: list[dict[str, Any]], has_series: bool) -> dict[str, Any]:
     }
     if has_series:
         colour = {"field": "series", "type": "nominal", "scale": {"range": SERIES}}
+        line = {"type": "line", "interpolate": "monotone", "strokeWidth": 2.5}
+        # Areas overlap, never stack: a stacked area would draw sums DATA doesn't hold.
+        shape = (
+            {**line, "type": "area", "opacity": 0.22, "line": {"strokeWidth": 2.5}}
+            if filled
+            else line
+        )
+        if filled:
+            # The legend shows the series colour, not the areas' transparency.
+            colour = {**colour, "legend": {"symbolOpacity": 1}}
         return {
             "height": LINE_HEIGHT,
             "data": {"values": values},
             "encoding": {**encoding, "color": colour},
-            "layer": [
-                {"mark": {"type": "line", "interpolate": "monotone", "strokeWidth": 2.5}},
-                points,
-            ],
+            "layer": [{"mark": shape}, points],
         }
     gradient = {
         "gradient": "linear",
@@ -228,6 +277,62 @@ def _line(values: list[dict[str, Any]], has_series: bool) -> dict[str, Any]:
             },
             {**points, "mark": {**points["mark"], "color": ACCENT}},
         ],
+    }
+
+
+def _comparison(values: list[dict[str, Any]]) -> dict[str, Any]:
+    # Bars of each series side by side per label; `stack: None` keeps every bar one row's value.
+    return {
+        "height": BAR_HEIGHT,
+        "data": {"values": values},
+        "encoding": {
+            "x": {"field": "label", "type": "ordinal", "sort": None},
+            "xOffset": {"field": "series", "type": "nominal"},
+            "y": {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}},
+            "color": {"field": "series", "type": "nominal", "scale": {"range": SERIES}},
+            "description": {"field": "description"},
+        },
+        "layer": [
+            {
+                "mark": {"type": "bar", "cornerRadiusTopLeft": 5, "cornerRadiusTopRight": 5},
+                "encoding": {
+                    "tooltip": [*_tooltip(y_title="value"), {"field": "series", "title": " "}]
+                },
+            }
+        ],
+    }
+
+
+def _donut(values: list[dict[str, Any]]) -> dict[str, Any]:
+    ordered = [{**value, "order": index} for index, value in enumerate(values)]
+    return {
+        "width": DONUT_SIZE,
+        "height": DONUT_SIZE,
+        "data": {"values": ordered},
+        "mark": {
+            "type": "arc",
+            "innerRadius": DONUT_INNER,
+            "outerRadius": DONUT_OUTER,
+            "padAngle": 0.012,
+            "cornerRadius": 3,
+        },
+        "encoding": {
+            # The angle has to stack to go round; no sum is drawn or written.
+            "theta": {"field": "y", "type": "quantitative", "stack": True},
+            "order": {"field": "order", "type": "quantitative"},
+            "color": {
+                "field": "path",
+                "type": "nominal",
+                "sort": None,
+                "legend": None,
+                "scale": {
+                    "domain": [value["path"] for value in ordered],
+                    "range": [slice_colour(index=index) for index in range(len(ordered))],
+                },
+            },
+            "description": {"field": "description"},
+            "tooltip": _tooltip(y_title="value"),
+        },
     }
 
 

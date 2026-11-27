@@ -10,6 +10,7 @@ DataPath = Annotated[str, Field(strict=True, max_length=120, pattern=PATH_PATTER
 # The name of a field of the rows a path points to, such as "total_chf".
 FieldName = Annotated[str, Field(strict=True, max_length=60, pattern=FIELD_PATTERN)]
 Label = Annotated[str, Field(strict=True, min_length=1, max_length=80)]
+Note = Annotated[str, Field(strict=True, min_length=1, max_length=200)]
 
 
 class Component(BaseModel):
@@ -86,6 +87,58 @@ class LineChart(Component):
     series: FieldName | None = None
 
 
+class AreaChart(Component):
+    type: Literal["area_chart"]
+    title: Label | None = None
+    data: DataPath
+    x: FieldName
+    y: FieldName
+    series: FieldName | None = None
+
+
+class Comparison(Component):
+    type: Literal["comparison"]
+    title: Label | None = None
+    data: DataPath
+    x: FieldName
+    y: FieldName
+    series: FieldName
+
+
+class Donut(Component):
+    type: Literal["donut"]
+    title: Label | None = None
+    data: DataPath
+    label: FieldName
+    value: FieldName
+    total: DataPath | None = None
+
+
+class Timeline(Component):
+    type: Literal["timeline"]
+    title: Label | None = None
+    rows: DataPath
+    date: FieldName
+    label: FieldName
+    value: FieldName
+    detail: FieldName | None = None
+
+
+class Progress(Component):
+    type: Literal["progress"]
+    label: Label
+    value: DataPath
+    goal: DataPath
+    goal_label: Label | None = None
+
+
+class Callout(Component):
+    type: Literal["callout"]
+    title: Label | None = None
+    text: Note
+    tone: Literal["info", "warning"] = "info"
+
+
 class Stack(Component):
     type: Literal["stack"]
     children: list["Node"] = Field(min_length=1, max_length=8)
@@ -97,8 +150,22 @@ class Grid(Component):
     children: list["Node"] = Field(min_length=2, max_length=6)
 
 
+Chart = BarChart | LineChart | AreaChart | Comparison | Donut
 Node = Annotated[
-    Kpi | StatRow | Table | ItemList | BarChart | LineChart | Stack | Grid,
+    Kpi
+    | StatRow
+    | Table
+    | ItemList
+    | Timeline
+    | BarChart
+    | LineChart
+    | AreaChart
+    | Comparison
+    | Donut
+    | Progress
+    | Callout
+    | Stack
+    | Grid,
     Field(discriminator="type"),
 ]
 Stack.model_rebuild()
@@ -109,8 +176,14 @@ COMPONENTS: list[type[Component]] = [
     StatRow,
     Table,
     ItemList,
+    Timeline,
     BarChart,
     LineChart,
+    AreaChart,
+    Comparison,
+    Donut,
+    Progress,
+    Callout,
     Stack,
     Grid,
 ]

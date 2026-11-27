@@ -7,19 +7,29 @@ from typing import Any, Literal
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.core.errors import BadRequestError
-from app.features.widgets.catalogue.charts import LOCALE, THEME, chart_spec, runtime, static_svg
+from app.features.widgets.catalogue.charts import (
+    LOCALE,
+    THEME,
+    chart_spec,
+    runtime,
+    slice_colour,
+    static_svg,
+)
 from app.features.widgets.catalogue.schemas import (
     FIELD_PATTERN,
     PATH_PATTERN,
-    BarChart,
+    Callout,
+    Chart,
+    Donut,
     Grid,
     ItemList,
     Kpi,
-    LineChart,
     Node,
+    Progress,
     Stack,
     StatRow,
     Table,
+    Timeline,
     WidgetSpec,
 )
 from app.features.widgets.catalogue.values import (
@@ -117,6 +127,12 @@ def _view(
         return _table(node=node, data=data)
     if isinstance(node, ItemList):
         return _list(node=node, data=data)
+    if isinstance(node, Timeline):
+        return _timeline(node=node, data=data)
+    if isinstance(node, Progress):
+        return _progress(node=node, data=data)
+    if isinstance(node, Callout):
+        return {"type": node.type, "title": node.title, "text": node.text, "tone": node.tone}
     return _chart(node=node, data=data, form=form, charts=charts)
 
 
@@ -171,7 +187,13 @@ def _table(node: Table, data: dict[str, Any]) -> dict[str, Any]:
         return view | {"total": None}
     total = _figure(path=node.total, data=data)
     holder = node.total_column()
-    _check_total(node=node, found=found, column=holder, total=figure(path=node.total, data=data))
+    _check_sum(
+        total_path=node.total,
+        rows_path=node.rows,
+        column=holder,
+        cells=[row[holder] for row in found] if holder is not None else [],
+        total=figure(path=node.total, data=data),
+    )
     label_at = next((index for index, field in enumerate(node.columns) if field != holder), None)
     cells = [
         {
@@ -185,17 +207,16 @@ def _table(node: Table, data: dict[str, Any]) -> dict[str, Any]:
     return view | {"total": total | {"cells": cells}}
 
 
-def _check_total(
-    node: Table, found: list[dict[str, Any]], column: str | None, total: int | float
+def _check_sum(
+    total_path: str, rows_path: str, column: str | None, cells: list[Any], total: int | float
 ) -> None:
     """A total must be the sum of its column over all rows, not only those shown."""
-    cells = [row[column] for row in found] if column is not None else []
     if not all(is_number(value=cell) for cell in cells):
-        raise BadRequestError(f"{node.rows}: the {column} column holds no amounts for the total")
+        raise BadRequestError(f"{rows_path}: the {column} column holds no amounts for the total")
     column_sum = sum((Decimal(str(cell)) for cell in cells), Decimal(0))
     if abs(column_sum - Decimal(str(total))) > TOTAL_TOLERANCE:
         raise BadRequestError(
-            f"{node.total} is {total}, but the {column} column of {node.rows} adds up to "
+            f"{total_path} is {total}, but the {column} column of {rows_path} adds up to "
             f"{column_sum}"
         )
 
@@ -227,13 +248,57 @@ def _list(node: ItemList, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _timeline(node: Timeline, data: dict[str, Any]) -> dict[str, Any]:
+    fields = [node.date, node.label, node.value] + (
+        [node.detail] if node.detail is not None else []
+    )
+    found = rows(path=node.rows, data=data, fields=fields)
+    entries = [
+        _row(path=f"{node.rows}[{index}]", row=row)
+        | {
+            "date": display(field=node.date, value=row[node.date]),
+            "label": display(field=node.label, value=row[node.label]),
+            "value": display(field=node.value, value=row[node.value]),
+            "detail": None
+            if node.detail is None
+            else display(field=node.detail, value=row[node.detail]),
+        }
+        for index, row in enumerate(found[:TABLE_ROWS])
+    ]
+    return {
+        "type": node.type,
+        "title": node.title,
+        "path": node.rows,
+        "entries": entries,
+        "cut_note": _cut_note(count=len(found)),
+    }
+
+
+def _progress(node: Progress, data: dict[str, Any]) -> dict[str, Any]:
+    value = figure(path=node.value, data=data)
+    goal = figure(path=node.goal, data=data)
+    if goal <= 0:
+        raise BadRequestError(f"{node.goal} is {goal}: a goal must be above zero")
+    # The bar's length only; no share of the goal is written as a figure.
+    filled = min(max(Decimal(str(value)) / Decimal(str(goal)), Decimal(0)), Decimal(1))
+    return {
+        "type": node.type,
+        "label": node.label,
+        "value": _figure(path=node.value, data=data),
+        "goal": _figure(path=node.goal, data=data),
+        "goal_label": node.goal_label if node.goal_label is not None else "Goal",
+        "fill": f"{filled * 100:.1f}",
+    }
+
+
 def _chart(
-    node: BarChart | LineChart, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
+    node: Chart, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
 ) -> dict[str, Any]:
     chart_id = f"chart-{len(charts) + 1}"
     spec = chart_spec(component=node, data=data, live=form == "live")
     charts.append({"id": chart_id, "spec": spec})
     svg = static_svg(spec=spec) if form == "static" else None
+    values = spec["data"]["values"]
     # A clicked mark names its row; the bridge looks up the row's figure and bookings here.
     chart_rows = {
         value["path"]: {
@@ -241,16 +306,41 @@ def _chart(
             "label": value["label"],
             "booking_ids": value["booking_ids"],
         }
-        for value in spec["data"]["values"]
+        for value in values
     }
-    return {
+    view = {
         "type": node.type,
         "title": node.title,
         "path": node.data,
         "id": chart_id,
         "svg": svg,
         "rows": json.dumps(chart_rows, ensure_ascii=False),
+        "legend": None,
+        "total": None,
     }
+    if not isinstance(node, Donut):
+        return view
+    legend = [
+        {
+            "path": value["path"],
+            "raw": json.dumps(value["y"]),
+            "label": value["label"],
+            "text": value["shown"],
+            "booking_ids": json.dumps(value["booking_ids"]),
+            "colour": slice_colour(index=index),
+        }
+        for index, value in enumerate(values)
+    ]
+    if node.total is None:
+        return view | {"legend": legend}
+    _check_sum(
+        total_path=node.total,
+        rows_path=node.data,
+        column=node.value,
+        cells=[value["y"] for value in values],
+        total=figure(path=node.total, data=data),
+    )
+    return view | {"legend": legend, "total": _figure(path=node.total, data=data)}
 
 
 def _row(path: str, row: dict[str, Any]) -> dict[str, Any]:
