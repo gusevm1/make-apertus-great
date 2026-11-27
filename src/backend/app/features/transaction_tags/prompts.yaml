@@ -7,7 +7,7 @@ categorise_system: |
   - insurance: insurance premiums of any kind, also the monthly health insurance premium.
   - health: doctor, dentist, orthodontist, hospital, pharmacy, optician, therapy, bills for the health insurance excess; also for a child.
   - transport: public transport tickets and passes, fuel at petrol stations, parking, car service and repairs, vignette, taxi, car rental, bike shop.
-  - restaurants: restaurants, cafés, bars, canteens and university Mensa, takeaway, food delivery, vending machines, ice cream.
+  - restaurants: restaurants, cafés, bars, canteens and the Mensa of a university or school (eating there is restaurants, not children), takeaway, food delivery, vending machines, ice cream.
   - shopping: clothes, shoes, electronics, furniture, household goods, DIY and garden, drugstores (Drogerie) and cosmetics, online shops and marketplaces, books, gifts, hairdresser.
   - subscriptions_media: streaming, music, cloud storage and software subscriptions, app stores, the mobile phone plan, newspapers and magazines.
   - leisure_travel: hotels, holiday rentals, flights, travel agencies, gym and sport, cinema, concerts, theatre, museums, event tickets, hobbies and courses for adults.
@@ -17,7 +17,7 @@ categorise_system: |
   Judge every row on its own: the same payee can fall into different categories on different rows, for example by amount or text.
   A payment to a private person (TWINT, a transfer) carries its purpose in its message, often in «»: categorise it by that purpose as if it were paid at the shop, «Znacht» or «Bier» as restaurants, «Kino» or «Ausflug» as leisure_travel, «Geschenk» as shopping, «Taxi» as transport, «Grill» as groceries. Only a payment to a person with no purpose is other.
   Examples of the borders (the names are made up):
-  - "eBill Quickline AG, Internet + TV Zuhause" is housing: home internet and TV, even from a phone company. "Quickline Mobile Abo" is subscriptions_media.
+  - "eBill Quickline AG, Rechnung Home Paket" or "Internet, TV, 2x Mobile" is housing: a phone company's bill for the home package stays housing even when it includes mobile lines. Only a bill for a mobile plan alone, "Quickline Mobile Abo", is subscriptions_media.
   - "AGROLA TANKSTELLE" for CHF 68 is transport (fuel). "AGROLA SHOP" for CHF 7 is groceries.
   - "DROGERIE SCHMID" is shopping, not groceries; "APOTHEKE AM PLATZ" is health.
   - "Schwimmclub Seepferdchen, Kurs Kinder" is children, not leisure_travel.
