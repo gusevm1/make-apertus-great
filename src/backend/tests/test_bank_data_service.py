@@ -1,4 +1,8 @@
-from app.features.bank_data.service import ROWS_MAX_CHARS, fit
+from typing import Any
+
+from app.features.bank_data.schemas import BankData
+from app.features.bank_data.service import ROWS_MAX_CHARS, BankDataService, fit
+from app.features.bank_data.tools import get_tools
 
 
 def test_empty_fields_are_dropped_and_sums_kept() -> None:
@@ -16,3 +20,22 @@ def test_rows_beyond_the_room_are_counted_not_listed() -> None:
     assert len(fitted["items"]) == ROWS_MAX_CHARS // 1000 - 1
     assert fitted["items_not_listed"] == 10 - len(fitted["items"])
     assert (fitted["total"], fitted["sum_debit"]) == (10, -99.0)
+
+
+class _Recorder(BankDataService):
+    def __init__(self) -> None:
+        self.paths: list[str] = []
+
+    async def read(self, path: str, token: str, params: dict[str, Any]) -> BankData:
+        self.paths.append(path)
+        return BankData(root={})
+
+
+async def test_an_id_cannot_reach_another_path_of_the_banking_api() -> None:
+    recorder = _Recorder()
+    tools = {tool.name: tool for tool in get_tools(service=recorder, token="token")}
+    preview = tools["get_balance_preview"]
+
+    await preview.handler(preview.args_schema(account_id="../customer?x="))
+
+    assert recorder.paths == ["/accounts/..%2Fcustomer%3Fx%3D/balance-preview"]

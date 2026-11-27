@@ -64,6 +64,19 @@ async def test_an_id_the_bank_does_not_know_comes_back_as_an_error_to_correct(
     assert "The banking API refused the request" in call["error"]
 
 
+async def test_an_argument_the_tool_does_not_have_is_an_error_not_a_dropped_filter(
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus
+) -> None:
+    asked_before = len(BANKING_QUERIES)
+    apertus.decisions = [_decision(tool="list_bookings", month="2026-10")]
+
+    call = await _ask(client=client, session=session)
+
+    assert call["result"] is None
+    assert "month" in call["error"]
+    assert len(BANKING_QUERIES) == asked_before
+
+
 def test_no_tool_changes_the_bank() -> None:
     assert all(read.name.startswith(("get_", "list_")) for read in READS)
     assert not any("admin" in read.path or "auth" in read.path for read in READS)
