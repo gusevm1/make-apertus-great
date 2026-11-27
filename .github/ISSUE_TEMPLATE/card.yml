@@ -10,6 +10,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: Two to five lines. What gets built, where it lives, its limits as numbers, what is left out.
+    validations:
+      required: true
+  - type: textarea
     id: acceptance
     attributes:
       label: Acceptance criteria
