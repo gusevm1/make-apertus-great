@@ -34,12 +34,30 @@ table:
 list:
   description: A compact list for narrow spaces, one line per row with a label, an optional detail and a value.
   example: {"type": "list", "rows": "payments", "label": "payee", "detail": "due_date", "value": "amount_chf"}
+timeline:
+  description: Rows in date order along a line, such as payments that fall due; each with its date, a label, an optional detail and a value.
+  example: {"type": "timeline", "title": "Due next", "rows": "payments", "date": "due_date", "label": "payee", "detail": "description", "value": "amount_chf"}
 bar_chart:
   description: Bars for one value per label, such as spending per month. `horizontal` suits long labels such as payee names. `highlight` names one label to draw in the accent colour.
   example: {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf", "highlight": "2026-10"}
 line_chart:
   description: A line over labels in order, such as months; `series` draws one line per value of that field, such as one per year.
   example: {"type": "line_chart", "data": "years", "x": "month", "y": "total_chf", "series": "year"}
+area_chart:
+  description: A filled area over labels in order, such as spending per month; with `series`, one area per value of that field, drawn over each other.
+  example: {"type": "area_chart", "data": "months", "x": "label", "y": "total_chf"}
+comparison:
+  description: Bars of two or more periods side by side for each label, such as each month of this year next to last year; `series` names the period field.
+  example: {"type": "comparison", "title": "This year against last year", "data": "years", "x": "month", "y": "total_chf", "series": "year"}
+donut:
+  description: The shares of a whole as a ring, with a legend of every part and its value, such as spending per payee; `total` is a total DATA already holds.
+  example: {"type": "donut", "data": "payees", "label": "label", "value": "total_chf", "total": "payees_total_chf"}
+progress:
+  description: A figure against a goal as a bar, such as savings towards a trip; both come from DATA.
+  example: {"type": "progress", "label": "Japan trip 2027", "value": "goals[0].saved_chf", "goal": "goals[0].goal_chf", "goal_label": "Goal"}
+callout:
+  description: A short note in words, such as what stands out; it holds no figures. `tone` is warning for something to watch.
+  example: {"type": "callout", "text": "Rent and taxes are the largest payments this quarter.", "tone": "info"}
 stack:
   description: Components one below the other.
   example: {"type": "stack", "children": [{"type": "kpi", "label": "Total", "value": "months_total_chf"}, {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf"}]}

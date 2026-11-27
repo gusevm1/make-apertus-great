@@ -92,6 +92,77 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
                 "series": "year",
             },
         },
+        "timeline": {
+            "title": "Due in the next 30 days",
+            "body": {
+                "type": "timeline",
+                "rows": "payments",
+                "date": "due_date",
+                "label": "payee",
+                "detail": "description",
+                "value": "amount_chf",
+            },
+        },
+        "area_chart": {
+            "title": "Spending per month",
+            "subtitle": "This year against last year",
+            "body": {
+                "type": "area_chart",
+                "data": "years",
+                "x": "month",
+                "y": "total_chf",
+                "series": "year",
+            },
+        },
+        "comparison": {
+            "title": "This year against last year",
+            "body": {
+                "type": "comparison",
+                "data": "years",
+                "x": "month",
+                "y": "total_chf",
+                "series": "year",
+            },
+        },
+        "donut": {
+            "title": "Where the money goes",
+            "subtitle": "Last 3 months",
+            "body": {
+                "type": "donut",
+                "data": "payees",
+                "label": "label",
+                "value": "total_chf",
+                "total": "payees_total_chf",
+            },
+        },
+        "progress": {
+            "title": "Savings goal",
+            "body": {
+                "type": "stack",
+                "children": [
+                    {
+                        "type": "progress",
+                        "label": data["goals"][0]["name"],
+                        "value": "goals[0].saved_chf",
+                        "goal": "goals[0].goal_chf",
+                        "goal_label": "Goal",
+                    },
+                    {
+                        "type": "callout",
+                        "text": "The long-term savings account already holds more than the trip.",
+                    },
+                ],
+            },
+        },
+        "callout": {
+            "title": "Note",
+            "body": {
+                "type": "callout",
+                "title": "Large payments ahead",
+                "text": "Rent and the card bill fall due in the same week.",
+                "tone": "warning",
+            },
+        },
         "grid_stack": {
             "title": "Overview",
             "body": {
