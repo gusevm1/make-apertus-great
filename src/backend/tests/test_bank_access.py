@@ -10,7 +10,7 @@ MAY_CALL_THE_BANK = {"ledger", "documents"}
 
 
 def _imports_banking(source: Path) -> bool:
-    tree = ast.parse(source.read_text())
+    tree = ast.parse(source.read_text(encoding="utf-8"))
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module == "app.clients.banking":
             return True
