@@ -4,16 +4,22 @@ from typing import Any
 from uuid import uuid4
 
 import httpx2
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.apertus import ApertusClient
+from app.clients.banking import BankingClient
+from app.core.auth import owner_id
 from app.core.config import get_settings
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.schemas import DocumentDescription, ResponseDocument
+from app.features.documents.schemas import Document, DocumentDescription, ResponseDocument
 from app.features.documents.service import DocumentService
+from app.main import app
 from tests.conftest import (
+    CUSTOMER_ID,
     CUSTOMER_TOKEN,
     FAKE_USAGE,
+    TODAY,
     FakeApertus,
     fake_banking_client,
     fake_ocr_client,
@@ -204,3 +210,112 @@ async def test_an_upload_stands_without_a_description_when_apertus_fails(
     assert document["fields"] == []
     assert document["provenance"] is None
     assert (await client.get("/api/documents")).json() == [document]
+
+
+@dataclass
+class DeletingBank:
+    """The banking API faked at the HTTP level for deletes: notes each one, answers `status`."""
+
+    status: int = 204
+    deletes: list[httpx2.Request] = field(default_factory=list)
+
+    def client(self) -> BankingClient:
+        def handle(request: httpx2.Request) -> httpx2.Response:
+            if request.url.path == "/api/system/info":
+                return httpx2.Response(200, json={"today": TODAY.isoformat()})
+            if request.headers.get("authorization") != f"Bearer {CUSTOMER_TOKEN}":
+                return httpx2.Response(401, json={"detail": "Not authenticated"})
+            if request.url.path == "/api/customer":
+                return httpx2.Response(200, json={"customer_id": CUSTOMER_ID})
+            if request.method == "DELETE":
+                self.deletes.append(request)
+                return httpx2.Response(self.status, json={"detail": "Not found"})
+            return httpx2.Response(500)
+
+        fake_http = httpx2.AsyncClient(
+            transport=httpx2.MockTransport(handle), base_url=get_settings().banking_api_url
+        )
+        return BankingClient(settings=get_settings(), http_client=fake_http)
+
+
+@pytest.fixture
+def bank(client: httpx2.AsyncClient) -> DeletingBank:
+    bank = DeletingBank()
+    app.state.banking = bank.client()
+    return bank
+
+
+async def _stored(session: AsyncSession, customer_id: str = CUSTOMER_ID) -> Document:
+    return await DocumentRepository(session=session).create(
+        owner_id=owner_id(customer_id=customer_id),
+        banking_document_id="DOC-0007",
+        name="Lohnabrechnung.pdf",
+        markdown=PAYSLIP,
+    )
+
+
+async def test_a_deleted_document_is_gone_here_and_in_the_bank(
+    client: httpx2.AsyncClient, session: AsyncSession, bank: DeletingBank
+) -> None:
+    document = await _stored(session=session)
+
+    deleted = await client.delete(f"/api/documents/{document.id}")
+
+    assert deleted.status_code == 204
+    assert (await client.get("/api/documents")).json() == []
+    assert [(request.url.path, request.headers["authorization"]) for request in bank.deletes] == [
+        ("/api/documents/DOC-0007", f"Bearer {CUSTOMER_TOKEN}")
+    ]
+
+
+async def test_a_file_the_bank_no_longer_has_still_removes_our_row(
+    client: httpx2.AsyncClient, session: AsyncSession, bank: DeletingBank
+) -> None:
+    bank.status = 404
+    document = await _stored(session=session)
+
+    deleted = await client.delete(f"/api/documents/{document.id}")
+
+    assert deleted.status_code == 204
+    assert await DocumentRepository(session=session).get_by_id(entity_id=document.id) is None
+
+
+async def test_a_bank_failure_keeps_our_row(
+    client: httpx2.AsyncClient, session: AsyncSession, bank: DeletingBank
+) -> None:
+    bank.status = 500
+    document = await _stored(session=session)
+
+    deleted = await client.delete(f"/api/documents/{document.id}")
+
+    assert deleted.status_code == 502
+    assert await DocumentRepository(session=session).get_by_id(entity_id=document.id) is not None
+
+
+async def test_another_customers_document_is_not_deleted(
+    client: httpx2.AsyncClient, session: AsyncSession, bank: DeletingBank
+) -> None:
+    foreign = await _stored(session=session, customer_id="CUST-002")
+
+    deleted = await client.delete(f"/api/documents/{foreign.id}")
+
+    assert deleted.status_code == 404
+    assert bank.deletes == []
+    assert await DocumentRepository(session=session).get_by_id(entity_id=foreign.id) is not None
+
+
+async def test_messages_keep_a_deleted_documents_name_and_a_new_one_cannot_send_it(
+    client: httpx2.AsyncClient, session: AsyncSession
+) -> None:
+    document = await _stored(session=session)
+    conversation = (await client.post("/api/conversations", json={})).json()
+    url = f"/api/conversations/{conversation['id']}/messages"
+    question = {"content": "Wie hoch ist mein Nettolohn?", "document_ids": [str(document.id)]}
+    assert (await client.post(url, json=question)).status_code == 201
+    app.state.banking = DeletingBank().client()
+
+    assert (await client.delete(f"/api/documents/{document.id}")).status_code == 204
+
+    stored_question, _ = (await client.get(url)).json()
+    assert stored_question["documents"] == [{"id": str(document.id), "name": "Lohnabrechnung.pdf"}]
+    assert (await client.post(url, json=question)).status_code == 404

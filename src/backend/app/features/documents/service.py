@@ -142,6 +142,11 @@ class DocumentService:
         """The customer's documents, newest first."""
         return await self.documents.list(owner_id=owner_id)
 
+    async def delete_document(self, document: Document, token: str) -> None:
+        """Remove the file from the e-banking, then our row with its text and description."""
+        await self.banking.delete_document(token=token, document_id=document.banking_document_id)
+        await self.documents.delete(entity_id=document.id)
+
     async def get_documents(self, document_ids: list[UUID], owner_id: UUID) -> list[Document]:
         """The customer's documents in the given order; someone else's counts as not found."""
         if not document_ids:

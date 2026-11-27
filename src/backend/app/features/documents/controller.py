@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile
 
 from app.core.auth import CurrentUserDep, require_user
 from app.core.uploads import size_limited_route
-from app.features.documents.dependencies import DocumentServiceDep
+from app.features.documents.dependencies import DocumentServiceDep, OwnedDocumentDep
 from app.features.documents.schemas import (
     DOCUMENT_MAX_BYTES,
     DOCUMENT_TOO_LARGE_MESSAGE,
@@ -48,3 +48,11 @@ async def list_documents(
     """List your documents, newest first."""
     documents = await service.list_documents(owner_id=user.id)
     return [_document_response(document=document) for document in documents]
+
+
+@router.delete("/{document_id}", status_code=204)
+async def delete_document(
+    document: OwnedDocumentDep, user: CurrentUserDep, service: DocumentServiceDep
+) -> None:
+    """Delete a document from the e-banking and the TrustRoom; earlier messages keep its name."""
+    await service.delete_document(document=document, token=user.token)
