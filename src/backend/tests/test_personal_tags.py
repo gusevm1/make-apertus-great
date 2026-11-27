@@ -60,7 +60,7 @@ async def lukas(client: httpx2.AsyncClient, apertus: FakeApertus) -> httpx2.Asyn
             "anna-token": ("CUST-002", ANNA_BOOKINGS),
         }
     )
-    apertus.reply = _japan_tag_reply
+    apertus.structured_reply = _japan_tag_reply
     return client
 
 
@@ -155,7 +155,7 @@ async def test_unknown_refs_and_unknown_tag_names_are_not_stored(
         ]
         return json.dumps({"rows": answers})
 
-    apertus.reply = reply
+    apertus.structured_reply = reply
 
     (tag,) = await _infer(api=lukas)
 
@@ -171,7 +171,7 @@ async def test_at_most_ten_tags_are_inferred_and_names_are_cut_and_deduplicated(
         names = ["Tag", "tag", " ", *[f"Tag {number}" for number in range(12)]]
         return json.dumps({"tags": [{"name": name, "description": "A\nB"} for name in names]})
 
-    apertus.reply = reply
+    apertus.structured_reply = reply
 
     tags = await _infer(api=lukas)
 
@@ -201,7 +201,7 @@ async def test_rows_judged_without_a_tag_are_not_sent_again_but_new_rows_are(
         refs = _assigned_rows(request_body=request_body)
         return json.dumps({"rows": [{"ref": ref, "tags": []} for ref in refs]})
 
-    apertus.reply = reply
+    apertus.structured_reply = reply
     await _infer(api=lukas)
     apertus.requests.clear()
     new_transfer = {
@@ -232,10 +232,10 @@ async def test_a_failed_batch_leaves_its_rows_for_the_next_run(
             return _japan_tag_reply(request_body=request_body)
         return "not json"
 
-    apertus.reply = failing
+    apertus.structured_reply = failing
     response = await lukas.post("/api/personal-tag-inferences")
     assert response.status_code == 502
-    apertus.reply = _japan_tag_reply
+    apertus.structured_reply = _japan_tag_reply
     apertus.requests.clear()
 
     (tag,) = await _infer(api=lukas)
