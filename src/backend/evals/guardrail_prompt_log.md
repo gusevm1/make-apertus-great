@@ -33,6 +33,7 @@ Accuracy and harm on the tune split (172 messages in round 1, 239 in round 2). F
 | v14 | The system blocks other customers' data anyway; only sort the request | 85.5% / 27 | 90.7% / 18 | no |
 | v15 | Messages the customer received are ok | 83.1% / 30 | 90.1% / 17 | no: within noise |
 | v16 | List new_credit before product_choice | 82.0% / 35 | 90.7% / 16 | no: within noise on SMART, 7 new false pointers on FAST |
+| (v17) | Not used: the noise measurement ran as "v12null" in its place | | | |
 | v18 | Examples of new credit framed as a choice | 84.3% / 31 | 91.9% / 16 | yes: fixed the credit group on SMART |
 | v19 | Early repayment is a product choice | 86.0% / 28 | 91.9% / 15 | yes: round 1 final |
 | v20 | Unrelated tasks are off_topic | 87.2% / 26 | 91.9% / 17 | no: SMART language accuracy fell to 84% |
@@ -60,7 +61,7 @@ Ten round 1 held-out messages are translations of tune messages (L02, L12, J02, 
 
 ## Model
 
-The gate now runs on SMART. On the 239 tuning messages SMART gets 91.2% right with harm 26; FAST gets 86.2% with harm 39, and 3 invalid replies, which the gate turns into a plain answer. On the held-out sets the two are within one or two messages of each other. The extra latency, about 0.2 s, is small next to a 10 to 60 s answer.
+The gate now runs on SMART. On the 239 tuning messages SMART gets 91.2% right with harm 26; FAST gets 86.2% with harm 39, and 3 invalid replies, which the gate turns into a plain answer. On the held-out sets the two are within one or two messages of each other. The check takes about 0.2 s longer (median 413 ms against 201 ms when the two were probed for #64), small next to a 10 to 60 s answer.
 
 ## Persona feedback
 

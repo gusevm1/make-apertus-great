@@ -17,7 +17,7 @@ from app.core.config import get_settings
 from app.core.errors import UpstreamError
 from app.features.guardrails.prompts import check_prompt
 from app.features.guardrails.schemas import GuardrailCategory, GuardrailCheck
-from app.features.guardrails.service import CHECK_NAME
+from app.features.guardrails.service import CHECK_MODEL, CHECK_NAME
 from evals.run import TURN_TIMEOUT_SECONDS, EvalSettings, log_in
 
 GOLD_PATH = Path(__file__).with_name("guardrail_gold.yaml")
@@ -118,7 +118,7 @@ async def classify_direct(apertus: ApertusClient, model: Model, text: str) -> Ve
 
 
 async def classify_via_backend(client: httpx.AsyncClient, text: str) -> Verdict:
-    # Only a timeout or a 5xx is worth another full turn; a 4xx fails at once.
+    # A timeout, a 5xx reply or a reply without the check gets another turn; a 4xx fails at once.
     for _ in range(TURN_ATTEMPTS - 1):
         try:
             return await _turn(client=client, text=text)
@@ -179,7 +179,9 @@ def _percent(value: object) -> str:
 async def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--split", choices=["tune", "heldout", "all"], default="tune")
-    parser.add_argument("--model", choices=[model.value for model in Model], default="fast")
+    parser.add_argument(
+        "--model", choices=[model.value for model in Model], default=CHECK_MODEL.value
+    )
     parser.add_argument("--base-url", help="classify through a running backend instead")
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--out", type=Path, help="write the verdicts and scores as JSON")
