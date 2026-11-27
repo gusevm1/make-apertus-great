@@ -129,7 +129,7 @@ class SeverityService:
         ]
         result = await self.apertus.structured(
             messages=severity_prompt(
-                account_names=[account["name"] for account in accounts["items"]],
+                account_names=[account["name"] for account in accounts["items"]][:MAX_GOAL_TEXTS],
                 transfer_texts=transfers[:MAX_GOAL_TEXTS],
                 totals={category: str(total) for category, total in sorted(totals.items())},
                 categories=missing,
