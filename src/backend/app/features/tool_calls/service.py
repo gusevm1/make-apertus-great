@@ -86,8 +86,7 @@ class ToolCallService:
             can_ask=False,
         )
         calls = [step async for step in steps if isinstance(step, ToolCall)]
-        # Streamed, so the timeout counts the wait for the next chunk, not the whole answer,
-        # and a slow gateway no longer restarts a long answer every 60 seconds.
+        # Streamed, so the timeout counts the wait per chunk, not the whole answer.
         stream = self.apertus.stream_chat(
             messages=answer_prompt(
                 messages=dated_prompt(messages=messages, today=self.today), calls=calls
