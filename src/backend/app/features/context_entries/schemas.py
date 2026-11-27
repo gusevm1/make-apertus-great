@@ -40,12 +40,14 @@ class RequestContextEntryCreate(BaseModel):
 
 
 class RequestContextEntryUpdate(BaseModel):
+    # Only on a proposal: active confirms it, dismissed dismisses it.
+    status: Literal["active", "dismissed"] | None = None
     kind: Kind | None = None
     text: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX_LENGTH)
     amount_chf: Decimal | None = Field(default=None, ge=0, le=AMOUNT_MAX, decimal_places=2)
     target_date: date | None = None
 
-    @field_validator("kind", "text")
+    @field_validator("status", "kind", "text")
     @classmethod
     def _not_null(cls, value: str | None) -> str:
         if value is None:

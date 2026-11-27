@@ -52,3 +52,31 @@ class ContextEntryRepository(BaseRepository[ContextEntryORM, ContextEntry]):
             return None
         await self.session.commit()
         return self._to_schema(row=new)
+
+    async def answer_proposal(
+        self, entry_id: UUID, fields: dict[str, Any], replaces_id: UUID | None
+    ) -> ContextEntry | None:
+        # Both status checks sit in the UPDATEs, so a parallel change makes this one fail.
+        stmt = (
+            update(ContextEntryORM)
+            .where(ContextEntryORM.id == entry_id, ContextEntryORM.status == "proposed")
+            .values(**fields)
+            .returning(ContextEntryORM)
+        )
+        row = await self.session.scalar(stmt)
+        if row is None:
+            await self.session.rollback()
+            return None
+        entry = self._to_schema(row=row)
+        if replaces_id is not None:
+            replaced = (
+                update(ContextEntryORM)
+                .where(ContextEntryORM.id == replaces_id, ContextEntryORM.status == "active")
+                .values(status="replaced", replaced_by_id=entry_id)
+                .returning(ContextEntryORM.id)
+            )
+            if await self.session.scalar(replaced) is None:
+                await self.session.rollback()
+                return None
+        await self.session.commit()
+        return entry

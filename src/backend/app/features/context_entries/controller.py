@@ -47,7 +47,7 @@ async def list_context_entries(
 async def update_context_entry(
     body: RequestContextEntryUpdate, entry: OwnedContextEntryDep, service: ContextEntryServiceDep
 ) -> ResponseContextEntry:
-    """Change an active entry; returns the new entry, the old one is kept as replaced."""
+    """Change an active entry into a new one (the old one is kept), or answer a proposal."""
     updated = await service.update_entry(entry=entry, data=body)
     return _entry_response(entry=updated)
 

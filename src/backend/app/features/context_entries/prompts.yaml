@@ -12,3 +12,17 @@ list_context_entries_left_out: >-
   {count} older entries are not in this list. To find one, call list_context_entries again with
   text set to a word it may hold. Until a search has been made, never say that I noted nothing about
   something.
+propose_context_entry: >-
+  Proposes to remember one goal, fact or preference that I stated about myself in my last message,
+  such as "I want to save CHF 6'000 for Japan by 30 June 2027". Nothing is kept until I confirm the
+  proposal in the page, so tell me it waits for my confirmation. Use it only when I tell you about
+  my plans, my situation or my wishes, never for a question alone. Propose only what I said, in my
+  words and with my figures: never a figure computed or looked up from my bank data, my documents
+  or earlier results. At most one proposal per message.
+propose_context_entry_kind: "goal for something I want to reach, fact for something about me, preference for how I want things done."
+propose_context_entry_text: The entry in one sentence of at most 300 characters, in my language and close to my words.
+propose_context_entry_amount: The amount in CHF that I named for a goal, as a plain number. Leave it out when I named none.
+propose_context_entry_date: The date by which I want to reach a goal, as YYYY-MM-DD. Leave it out when I named none.
+propose_context_entry_replaces: >-
+  Only when this changes one of my entries, a few words of that entry as list_context_entries
+  returns it. Leave it out otherwise.
