@@ -152,7 +152,7 @@ def test_answer_prompt_names_the_language_without_tool_calls() -> None:
     assert "say that you cannot see it" in content
 
 
-async def test_answer_prompt_lists_what_the_turn_can_do(session: AsyncSession) -> None:
+async def test_answer_prompt_lists_abilities_only_without_calls(session: AsyncSession) -> None:
     conversation = await make_conversation(session=session)
     message = await make_message(session=session, conversation_id=conversation.id)
     call = await make_tool_call(
@@ -165,7 +165,8 @@ async def test_answer_prompt_lists_what_the_turn_can_do(session: AsyncSession) -
 
     assert isinstance(direct, str) and isinstance(with_results, str)
     assert f"what you can do here: {LOOKUP.title}." in direct
-    assert f"what you can do here: {LOOKUP.title}." in with_results
+    # The list's formatting rules leaked into answers built from results.
+    assert LOOKUP.title not in with_results
     assert isinstance(nothing, str)
     assert LOOKUP.title not in nothing
 

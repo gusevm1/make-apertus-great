@@ -118,8 +118,8 @@
   not_called: [build_widget]
   rule: widgets
 - question: Was kannst du für mich tun?
-  answer: Zahlung|Buchung|Dauerauftrag
-  answer_not: keinen Zugriff|kein Zugriff
+  answer: Zahlung
+  answer_not: keinen Zugriff|kein Zugriff|Prüfen Sie|Schauen Sie|Sehen Sie
 - question: Tell me about my mortgage
   customer: marco
   rule: tools-only

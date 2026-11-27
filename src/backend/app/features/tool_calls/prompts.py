@@ -55,14 +55,14 @@ def answer_prompt(
         if language is None
         else PROMPTS["answer_language"].format(language=language)
     )
-    abilities = PROMPTS["answer_abilities"].format(titles="; ".join(tool.title for tool in tools))
     if not calls:
+        abilities = PROMPTS["answer_abilities"].format(
+            titles="; ".join(tool.title for tool in tools)
+        )
         content = PROMPTS["answer_direct"].format(language=language_line, abilities=abilities)
         return [*messages, {"role": "user", "content": content}]
     results = "".join(_tool_result(call=call) for call in calls)
-    content = PROMPTS["answer_results"].format(
-        results=results, language=language_line, abilities=abilities
-    )
+    content = PROMPTS["answer_results"].format(results=results, language=language_line)
     if any(call.tool_name == "build_widget" and call.error is None for call in calls):
         content += PROMPTS["answer_widget"]
     return [*messages, {"role": "user", "content": content}]
