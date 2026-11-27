@@ -5,12 +5,14 @@ from fastapi import APIRouter, Depends, FastAPI
 
 from app.clients.apertus import ApertusClient
 from app.clients.banking import BankingClient
+from app.clients.ocr import OcrClient
 from app.clients.tavily import create_tavily_client
 from app.core.auth import require_allowed_origin
 from app.core.config import get_settings
 from app.core.db import engine
 from app.core.errors import register_error_handlers
 from app.features.conversations.controller import router as conversations_router
+from app.features.documents.controller import router as documents_router
 from app.features.transcriptions.controller import router as transcriptions_router
 
 public_router = APIRouter()
@@ -26,10 +28,12 @@ async def health() -> dict[str, str]:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.apertus = ApertusClient(settings=get_settings())
     app.state.banking = BankingClient(settings=get_settings())
+    app.state.ocr = OcrClient(settings=get_settings())
     app.state.tavily = create_tavily_client(settings=get_settings())
     yield
     await app.state.apertus.close()
     await app.state.banking.close()
+    await app.state.ocr.close()
     if app.state.tavily is not None:
         await app.state.tavily.close()
     await engine.dispose()
@@ -44,6 +48,7 @@ def create_app() -> FastAPI:
     register_error_handlers(app=app)
     app.include_router(public_router, prefix="/api")
     app.include_router(conversations_router, prefix="/api")
+    app.include_router(documents_router, prefix="/api")
     app.include_router(transcriptions_router, prefix="/api")
     return app
 
