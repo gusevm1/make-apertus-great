@@ -1,0 +1,197 @@
+import json
+import os
+from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
+from datetime import date
+from pathlib import Path
+from typing import Any
+
+import httpx2
+import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import Settings
+
+FAKE_REPLY = "Fake reply"
+FAKE_MODEL = "fake-smart"
+NO_TOOL_DECISION = '{"plan": "Nothing to look up.", "calls": []}'
+FAKE_USAGE = {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3}
+
+# Apertus is faked for now (no API key yet), so tests need no Apertus values in the environment.
+os.environ |= {
+    "LLM_BASE_URL": "http://apertus.invalid/v1",
+    "LLM_API_KEY": "test",
+    "LLM_NAME_FAST": "fake-fast",
+    "LLM_NAME": FAKE_MODEL,
+    "APERTUS_MAX_RETRIES": "0",
+    "BANKING_API_URL": "http://banking.invalid/api",
+    "TAVILY_BASE_URL": "http://tavily.invalid",
+    "TAVILY_API_KEY": "test",
+}
+
+# Tests truncate every table, so they only ever run against the test DB.
+# Set before app.core.db creates the engine.
+test_database_url = Settings().test_database_url  # pyright: ignore[reportCallIssue]
+if not test_database_url or test_database_url == os.environ.get("DATABASE_URL"):
+    raise RuntimeError("Set TEST_DATABASE_URL to a database other than DATABASE_URL")
+os.environ["DATABASE_URL"] = test_database_url
+
+from app.clients.apertus import ApertusClient  # noqa: E402
+from app.clients.banking import BankingClient  # noqa: E402
+from app.clients.tavily import TavilyClient  # noqa: E402
+from app.core.config import get_settings  # noqa: E402
+from app.core.db import Base, engine, session_factory  # noqa: E402
+from app.main import app  # noqa: E402
+
+
+@pytest.fixture(scope="session", autouse=True)
+def migrated_db() -> None:
+    command.upgrade(Config(Path(__file__).parents[1] / "alembic.ini"), "head")
+
+
+@pytest.fixture(autouse=True)
+async def clean_db() -> AsyncIterator[None]:
+    yield
+    tables = ", ".join(table.name for table in Base.metadata.sorted_tables)
+    async with engine.begin() as connection:
+        await connection.execute(text(f"TRUNCATE {tables} CASCADE"))
+
+
+@pytest.fixture
+async def session() -> AsyncIterator[AsyncSession]:
+    async with session_factory() as session:
+        yield session
+
+
+@dataclass
+class FakeApertus:
+    """The fake Apertus API: `requests` is what it got, `status` fails it, `decisions` script it."""
+
+    requests: list[dict[str, Any]] = field(default_factory=list)
+    status: int = 200
+    decisions: list[str] = field(default_factory=list)
+
+
+@pytest.fixture
+def apertus() -> FakeApertus:
+    return FakeApertus()
+
+
+def _fake_completion(body: dict[str, Any], content: str) -> httpx2.Response:
+    if body.get("stream"):
+        chunks: list[dict[str, Any]] = [
+            {"choices": [{"index": 0, "delta": {"content": word}}]} for word in ("Fake ", "reply")
+        ]
+        chunks.append({"choices": [], "usage": FAKE_USAGE})
+        events = "".join(f"data: {json.dumps(chunk)}\n\n" for chunk in chunks)
+        return httpx2.Response(
+            200, text=f"{events}data: [DONE]\n\n", headers={"content-type": "text/event-stream"}
+        )
+    message = {"role": "assistant", "content": content}
+    choice = {"index": 0, "finish_reason": "stop", "message": message}
+    return httpx2.Response(200, json={"choices": [choice], "usage": FAKE_USAGE})
+
+
+@dataclass
+class FakeTavily:
+    """The fake Tavily API: `requests` is what it got, `status` fails it, `results` answer it."""
+
+    requests: list[dict[str, Any]] = field(default_factory=list)
+    status: int = 200
+    results: list[dict[str, Any]] = field(default_factory=list)
+
+
+@pytest.fixture
+def tavily() -> FakeTavily:
+    return FakeTavily()
+
+
+@pytest.fixture
+def tavily_client(tavily: FakeTavily) -> TavilyClient:
+    """A Tavily client faked at the HTTP level."""
+
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        tavily.requests.append(json.loads(request.content))
+        if tavily.status != 200:
+            return httpx2.Response(tavily.status, json={"detail": {"error": "fake failure"}})
+        return httpx2.Response(200, json={"query": "", "results": tavily.results})
+
+    fake_http = httpx2.AsyncClient(transport=httpx2.MockTransport(handle))
+    return TavilyClient(settings=get_settings(), http_client=fake_http)
+
+
+CUSTOMER_TOKEN = "customer-token"
+CUSTOMER_ID = "CUST-001"
+TODAY = date(2026, 11, 27)
+ACCOUNTS = [
+    {
+        "account_id": "ACC-PRIV",
+        "name": "Privatkonto",
+        "type": "current",
+        "iban": "CH06 0888 8000 0044 1002 0",
+        "current_balance_chf": 9716.33,
+    },
+    {
+        "account_id": "ACC-TAX",
+        "name": "Sparkonto Steuern",
+        "type": "savings",
+        "iban": "CH14 0888 8000 0044 1113 7",
+        "current_balance_chf": 4638.04,
+    },
+]
+
+
+def fake_banking_client() -> BankingClient:
+    """A banking client faked at the HTTP level: one customer, known by `CUSTOMER_TOKEN`."""
+
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/system/info":
+            return httpx2.Response(200, json={"today": TODAY.isoformat()})
+        if request.headers.get("authorization") != f"Bearer {CUSTOMER_TOKEN}":
+            return httpx2.Response(401, json={"detail": "Not authenticated"})
+        if request.url.path == "/api/customer":
+            return httpx2.Response(200, json={"customer_id": CUSTOMER_ID})
+        if request.url.path == "/api/accounts":
+            return httpx2.Response(200, json={"items": ACCOUNTS})
+        return httpx2.Response(404, json={"detail": "Not found"})
+
+    fake_http = httpx2.AsyncClient(
+        transport=httpx2.MockTransport(handle), base_url=get_settings().banking_api_url
+    )
+    return BankingClient(settings=get_settings(), http_client=fake_http)
+
+
+@pytest.fixture
+async def client(
+    apertus: FakeApertus, tavily_client: TavilyClient
+) -> AsyncIterator[httpx2.AsyncClient]:
+    """API client with the customer's token; Apertus, the bank and Tavily are faked."""
+
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        body = json.loads(request.content)
+        apertus.requests.append(body)
+        if apertus.status != 200:
+            return httpx2.Response(apertus.status, json={"error": {"message": "fake failure"}})
+        # Only `structured` sets a temperature, which marks a tool decision request.
+        if "temperature" not in body:
+            return _fake_completion(body=body, content=FAKE_REPLY)
+        decision = apertus.decisions.pop(0) if apertus.decisions else NO_TOOL_DECISION
+        return _fake_completion(body=body, content=decision)
+
+    fake_http = httpx2.AsyncClient(transport=httpx2.MockTransport(handle))
+    app.state.apertus = ApertusClient(settings=get_settings(), http_client=fake_http)
+    app.state.banking = fake_banking_client()
+    app.state.tavily = tavily_client
+    transport = httpx2.ASGITransport(app=app)
+    async with httpx2.AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"Authorization": f"Bearer {CUSTOMER_TOKEN}"},
+    ) as api:
+        yield api
+    await app.state.apertus.close()
+    await app.state.banking.close()
+    await tavily_client.close()
