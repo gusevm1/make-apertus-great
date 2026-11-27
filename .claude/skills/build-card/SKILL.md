@@ -29,7 +29,7 @@ First look for earlier work on this card: `git fetch origin`, then `gh pr list -
   ```
 - **A branch exists:** continue on it with `git switch card-<n>-<words>`, then run `worktree-env.sh <n>`. If git says another worktree uses the branch, that attempt has ended, because only ended attempts are retried: `git worktree remove --force <its path>`, then switch.
 
-The script starts a banking API of your own for this card, so your widgets, uploads and resets touch nobody else's data, and writes `.env` in the worktree root with the model settings and your ports. It prints your ports. Use only those ports. Other servers on this machine belong to other agents and to the humans.
+The script starts a banking API of your own for this card, so your widgets, uploads and resets touch nobody else's data, creates two databases of your own (`trustroom_c<n>` and `trustroom_test_c<n>`), so your tests never empty another agent's tables, and writes `.env` in the worktree root with the model settings and your ports. It prints your ports. Use only those ports. Other servers on this machine belong to other agents and to the humans.
 
 ## 3. Read before you write
 
@@ -58,7 +58,7 @@ Then see it work, because passing tests are not proof:
 - **Prompts or tools:** run the evals if the repo has them, against your own port. Add questions for your tool. One run is noisy: compare which questions fail with a run of `origin/main`, and do not land with new failures. Only one card at a time changes prompts or tool descriptions, because such an edit changes the answers to unrelated questions.
 - **UI:** start your app, drive the page yourself with Playwright and system Chrome and look at the result, also at the 440 px width of the e-banking side panel. Check keyboard use, and the loading, error and empty states.
 
-Stop your servers when you are done: `lsof -tiTCP:<port> -sTCP:LISTEN | xargs kill`. Remove your banking API after the card has landed: `docker rm -f trustroom-api-c<n>`.
+Stop your servers when you are done: `lsof -tiTCP:<port> -sTCP:LISTEN | xargs kill`. Remove your banking API and your databases after the card has landed: `docker rm -f trustroom-api-c<n>`, then `docker exec src-db-1 dropdb -U trustroom --if-exists trustroom_c<n>` and the same for `trustroom_test_c<n>`.
 
 ## 6. Open the PR and get it reviewed
 
