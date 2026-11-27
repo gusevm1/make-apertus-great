@@ -3,7 +3,7 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 
-# Tests run against a real Postgres. --no-recreate leaves a running src-db-1 alone, whichever worktree made it.
+# Tests run against a real Postgres. --no-recreate keeps a running src-db-1; a db service change needs --force-recreate.
 (cd "$here" && docker compose up -d --wait --no-recreate db >/dev/null)
 
 cd "$here/backend"
