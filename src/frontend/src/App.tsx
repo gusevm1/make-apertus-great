@@ -41,7 +41,20 @@ export function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  // Opened by our own button, Back goes back in history, so no duplicate entry is left behind.
+  const isOpenedHere = useRef(false);
+
+  function openCenter() {
+    isOpenedHere.current = true;
+    location.hash = CATEGORIES_HASH;
+  }
+
   function closeCenter() {
+    if (isOpenedHere.current) {
+      isOpenedHere.current = false;
+      history.back();
+      return;
+    }
     history.replaceState(null, "", location.pathname + location.search);
     setIsCenter(false);
   }
@@ -57,9 +70,7 @@ export function App() {
         <Chat
           key={context.customer?.customer_id}
           context={context}
-          onOpenCategories={() => {
-            location.hash = CATEGORIES_HASH;
-          }}
+          onOpenCategories={openCenter}
         />
       </div>
       {isCenter && (

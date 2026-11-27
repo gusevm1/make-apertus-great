@@ -40,6 +40,7 @@ test("links a view of the TrustRoom itself in the same frame", () => {
   );
   expect(html("[x](#javascript:alert(1))")).not.toContain("<a");
   expect(html("[x](#Categories)")).not.toContain("<a");
+  expect(html("[x](#settings)")).not.toContain("<a");
 });
 
 test("shows a fenced block as text, HTML and markdown inside it untouched", () => {

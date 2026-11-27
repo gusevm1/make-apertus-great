@@ -66,6 +66,7 @@ interface PayeeGroup {
 }
 
 interface Loaded {
+  year: number;
   summaries: CategorySummary[];
   rows: TaggedRow[];
   tagsByRow: Map<string, string[]>;
@@ -88,7 +89,7 @@ export function CategoryCenter({
 }) {
   const thisYear = Number(today.slice(0, 4));
   const [year, setYear] = useState(thisYear);
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [stored, setStored] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -102,7 +103,7 @@ export function CategoryCenter({
       setError(null);
       try {
         const next = await loadCenter({ token, year });
-        if (isCurrent) setLoaded(next);
+        if (isCurrent) setStored(next);
       } catch (loadError) {
         if (isCurrent) setError(messageOf(loadError));
       }
@@ -133,7 +134,15 @@ export function CategoryCenter({
     setIsCategorising(true);
     setError(null);
     try {
-      await api("/api/categorisations", token, json({}));
+      const result = await api<{ tagged_by_model: number; skipped: number }>(
+        "/api/categorisations",
+        token,
+        json({}),
+      );
+      if (result.skipped > 0)
+        setError(
+          `Apertus could not sort ${bookings(result.skipped)}. Try again in a moment.`,
+        );
       setReloads((count) => count + 1);
     } catch (categoriseError) {
       setError(messageOf(categoriseError));
@@ -142,6 +151,8 @@ export function CategoryCenter({
     }
   }
 
+  // The previous year's figures never show under the new year's heading.
+  const loaded = stored?.year === year ? stored : null;
   const categorised =
     loaded?.summaries.filter((summary) => summary.category !== null) ?? [];
   const uncategorised = loaded?.summaries.find(
@@ -275,7 +286,8 @@ export function CategoryCenter({
           <ul className="payees">
             {groups.map((group, index) => (
               <PayeeReview
-                key={group.payee}
+                // A new usual category starts the payee's select over.
+                key={`${group.payee}:${group.usual}`}
                 group={group}
                 tagsByRow={loaded.tagsByRow}
                 isOpen={index === 0}
@@ -456,6 +468,21 @@ function PayeeReview({
                 <span className="amount">
                   {chf.format(Number(row.amount_chf))}
                 </span>
+                <button
+                  type="button"
+                  className="right"
+                  disabled={isBusy}
+                  aria-label={`${CATEGORY_NAMES[row.category]} is right for ${row.text} on ${formatDate(row.date)}`}
+                  onClick={() =>
+                    onCorrect(bookingKey, {
+                      scope: "booking",
+                      key: bookingKey,
+                      category: row.category,
+                    })
+                  }
+                >
+                  Right
+                </button>
               </li>
             );
           })}
@@ -518,6 +545,7 @@ async function loadCenter({
     }
   });
   return {
+    year,
     summaries,
     rows: rows.filter((row) => row.date.startsWith(String(year))),
     tagsByRow,

@@ -121,7 +121,8 @@ function listOf(list: List, key: number): ReactNode {
   );
 }
 
-const IN_PAGE_LINK = /^#[a-z-]+$/;
+// The TrustRoom views a chat answer may link to.
+const IN_PAGE_LINK = /^#categories$/;
 
 function inlineOf(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
