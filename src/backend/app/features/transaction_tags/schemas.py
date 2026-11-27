@@ -27,6 +27,8 @@ CERTAINTIES = get_args(Certainty)
 Severity = Literal["negligible", "minor", "moderate", "major", "critical"]
 SEVERITIES = get_args(Severity)
 RowSource = Literal["booking", "card_transaction"]
+CorrectionScope = Literal["payee", "booking"]
+CertaintyFilter = Literal["low", "medium", "high", "unknown"]
 SetBy = Literal["rule", "model", "customer"]
 SeverityScope = Literal["category", "payee", "booking"]
 SeveritySource = Literal["booking", "payee", "category", "default"]
@@ -75,6 +77,60 @@ class Categorisation(BaseModel):
 class RatedTransactionTag(TransactionTag):
     severity: str
     severity_source: SeveritySource
+    date: date
+    text: str
+    payee: str
+    amount_chf: Decimal
+    payee_mixed: bool  # the payee's unconfirmed rows sit in more than one category
+
+
+class RequestCategoryCorrectionCreate(BaseModel):
+    scope: CorrectionScope
+    key: str = Field(min_length=1)  # a payee name, or `<row_source>:<row_id>` for a booking
+    category: str = Field(json_schema_extra={"enum": list(CATEGORIES)})
+
+    @field_validator("category")
+    @classmethod
+    def known_category(cls, value: str) -> str:
+        if value not in CATEGORIES:
+            raise ValueError(f"Allowed: {', '.join(CATEGORIES)}")
+        return value
+
+
+class CategoryCorrectionResult(BaseModel):
+    scope: CorrectionScope
+    key: str
+    category: str
+    rows_changed: int
+
+
+class ResponseCategoryCorrection(BaseModel):
+    scope: CorrectionScope
+    key: str
+    category: str
+    rows_changed: int
+
+
+class CategorySummary(BaseModel):
+    category: str | None  # None: spending rows not categorised yet
+    total_chf: Decimal
+    row_count: int
+    high: int
+    medium: int
+    low: int
+    unknown: int
+    confirmed: int
+
+
+class ResponseCategorySummary(BaseModel):
+    category: str | None
+    total_chf: Decimal
+    row_count: int
+    high: int
+    medium: int
+    low: int
+    unknown: int
+    confirmed: int
 
 
 class SeveritySetting(BaseModel):
@@ -123,6 +179,11 @@ class ResponseTransactionTag(BaseModel):
     category_certainty: Certainty | None
     severity: str
     severity_source: SeveritySource
+    date: date
+    text: str
+    payee: str
+    amount_chf: Decimal
+    payee_mixed: bool
     created_at: datetime
     updated_at: datetime
 

@@ -15,6 +15,7 @@ from app.features.transaction_tags.schemas import (
     CATEGORIES,
     SEVERITIES,
     CategorySeverities,
+    CertaintyFilter,
     RatedTransactionTag,
     RequestSeverityUpdate,
     SeveritySetting,
@@ -46,24 +47,52 @@ class SeverityService:
         return await self.severities.list_for_owner(owner_id=owner_id)
 
     async def list_rated_tags(
-        self, owner_id: UUID, token: str, sort: str | None = None
+        self,
+        owner_id: UUID,
+        token: str,
+        sort: str | None = None,
+        category: str | None = None,
+        certainty: CertaintyFilter | None = None,
     ) -> list[RatedTransactionTag]:
-        """Your categorised rows with the severity each one has now."""
+        """Your categorised rows with their ledger fields and the severity each one has now."""
         tags = await self.tags.list(sort=sort, owner_id=owner_id)
         settings = await self.severities.list_for_owner(owner_id=owner_id)
         stored = {(setting.scope, setting.key): setting.severity for setting in settings}
         rows = {(row.source, row.id): row for row in await self.ledger.list_rows(token=token)}
+        present = [
+            (tag, rows[(tag.row_source, tag.row_id)])
+            for tag in tags
+            if (tag.row_source, tag.row_id) in rows
+        ]
+        categories_by_payee: dict[str, set[str]] = {}
+        for tag, row in present:
+            if not tag.category_confirmed:
+                categories_by_payee.setdefault(payee_key(row=row), set()).add(tag.category)
         rated = []
-        for tag in tags:
-            row = rows.get((tag.row_source, tag.row_id))
+        for tag, row in present:
+            tag_certainty = "unknown" if tag.category_certainty is None else tag.category_certainty
+            if category is not None and tag.category != category:
+                continue
+            if certainty is not None and (tag.category_confirmed or tag_certainty != certainty):
+                continue
+            payee = payee_key(row=row)
             severity, source = effective_severity(
                 category=tag.category,
                 booking=booking_key(row_source=tag.row_source, row_id=tag.row_id),
-                payee=None if row is None else payee_key(row=row),
+                payee=payee,
                 stored=stored,
             )
             rated.append(
-                RatedTransactionTag(**tag.model_dump(), severity=severity, severity_source=source)
+                RatedTransactionTag(
+                    **tag.model_dump(),
+                    severity=severity,
+                    severity_source=source,
+                    date=row.date,
+                    text=row.text,
+                    payee=payee,
+                    amount_chf=abs(row.amount_chf),
+                    payee_mixed=len(categories_by_payee.get(payee, set())) > 1,
+                )
             )
         return rated
 

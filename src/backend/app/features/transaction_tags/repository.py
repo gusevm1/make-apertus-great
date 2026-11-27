@@ -36,6 +36,11 @@ class TransactionTagRepository(BaseRepository[TransactionTagORM, TransactionTag]
         await self.session.commit()
         return keys
 
+    async def list_for_owner(self, owner_id: UUID) -> list[TransactionTag]:
+        tags = await self.list(owner_id=owner_id)
+        await self.session.commit()
+        return tags
+
     async def list_categories(self, owner_id: UUID) -> dict[tuple[str, str], str]:
         """The category of every tagged row, by (row_source, row_id)."""
         stmt = select(
@@ -45,6 +50,26 @@ class TransactionTagRepository(BaseRepository[TransactionTagORM, TransactionTag]
         categories = {(row.row_source, row.row_id): row.category for row in rows}
         await self.session.commit()
         return categories
+
+    async def upsert_categories(self, values: list[dict[str, object]]) -> int:
+        """Store the customer's category on these rows, tagged already or not; returns the count."""
+        if not values:
+            return 0
+        stmt = insert(TransactionTagORM).values(values)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["owner_id", "row_source", "row_id"],
+            set_={
+                "category": stmt.excluded.category,
+                "category_set_by": stmt.excluded.category_set_by,
+                "category_model": stmt.excluded.category_model,
+                "category_confirmed": stmt.excluded.category_confirmed,
+                "category_certainty": stmt.excluded.category_certainty,
+                "updated_at": func.now(),
+            },
+        ).returning(TransactionTagORM.id)
+        changed = len((await self.session.scalars(stmt)).all())
+        await self.session.commit()
+        return changed
 
     async def create_many(self, values: list[dict[str, object]]) -> int:
         """Store tags, keeping rows that are tagged already; returns how many are new."""
@@ -71,6 +96,18 @@ class CategoryCorrectionRepository(BaseRepository[CategoryCorrectionORM, Categor
         # Ends the read's transaction, so none stays open while Apertus works.
         await self.session.commit()
         return corrections
+
+    async def upsert(self, owner_id: UUID, payee: str, category: str) -> None:
+        stmt = (
+            insert(CategoryCorrectionORM)
+            .values(owner_id=owner_id, payee=payee, category=category)
+            .on_conflict_do_update(
+                index_elements=["owner_id", "payee"],
+                set_={"category": category, "updated_at": func.now()},
+            )
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()
 
 
 class SeveritySettingRepository(BaseRepository[SeveritySettingORM, SeveritySetting]):

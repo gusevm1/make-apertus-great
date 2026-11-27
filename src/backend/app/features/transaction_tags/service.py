@@ -1,8 +1,10 @@
 import asyncio
+from datetime import date
+from decimal import Decimal
 from uuid import UUID
 
 from app.clients.apertus import ApertusClient, Model
-from app.core.errors import UpstreamError
+from app.core.errors import NotFoundError, UpstreamError
 from app.features.ledger.schemas import LedgerRow
 from app.features.ledger.service import LedgerService
 from app.features.transaction_tags.prompts import categorise_prompt
@@ -16,10 +18,13 @@ from app.features.transaction_tags.schemas import (
     BatchCategories,
     Categorisation,
     CategoryCorrection,
+    CategoryCorrectionResult,
+    CategorySummary,
+    RequestCategoryCorrectionCreate,
     RowCategory,
     SetBy,
 )
-from app.features.transaction_tags.severity import payee_key
+from app.features.transaction_tags.severity import booking_key, normalise_payee, payee_key
 
 BATCH_SIZE = 50
 MAX_PARALLEL_BATCHES = 16
@@ -108,6 +113,62 @@ class TransactionTagService:
             skipped=len(by_model) - tagged_by_model,
         )
 
+    async def create_correction(
+        self, owner_id: UUID, token: str, data: RequestCategoryCorrectionCreate
+    ) -> CategoryCorrectionResult:
+        """Set the customer's category on all rows of a payee, also later ones, or one booking."""
+        spending = [
+            row for row in await self.ledger.list_rows(token=token) if row.kind == "spending"
+        ]
+        key = normalise_payee(name=data.key) if data.scope == "payee" else data.key
+        if data.scope == "payee":
+            rows = [row for row in spending if payee_key(row=row) == key]
+        else:
+            rows = [
+                row for row in spending if booking_key(row_source=row.source, row_id=row.id) == key
+            ]
+        if not rows:
+            raise NotFoundError(f"No spending {data.scope} '{data.key}'")
+        if data.scope == "payee":
+            await self.corrections.upsert(owner_id=owner_id, payee=key, category=data.category)
+        changed = await self.tags.upsert_categories(
+            values=[
+                _fixed_values(owner_id=owner_id, row=row, category=data.category, set_by="customer")
+                for row in rows
+            ]
+        )
+        return CategoryCorrectionResult(
+            scope=data.scope, key=key, category=data.category, rows_changed=changed
+        )
+
+    async def list_summaries(
+        self, owner_id: UUID, token: str, from_date: date | None, to_date: date | None
+    ) -> list[CategorySummary]:
+        """Per category in the period: what its spending rows add up to and how sure each one is."""
+        tags = {
+            (tag.row_source, tag.row_id): tag
+            for tag in await self.tags.list_for_owner(owner_id=owner_id)
+        }
+        summaries: dict[str | None, CategorySummary] = {}
+        for row in await self.ledger.list_rows(token=token):
+            if row.kind != "spending":
+                continue
+            if from_date is not None and row.date < from_date:
+                continue
+            if to_date is not None and row.date > to_date:
+                continue
+            tag = tags.get((row.source, row.id))
+            category = None if tag is None else tag.category
+            summary = summaries.setdefault(category, _empty_summary(category=category))
+            summary.total_chf -= row.amount_chf
+            summary.row_count += 1
+            if tag is None or tag.category_confirmed:
+                summary.confirmed += 0 if tag is None else 1
+                continue
+            certainty = "unknown" if tag.category_certainty is None else tag.category_certainty
+            setattr(summary, certainty, getattr(summary, certainty) + 1)
+        return sorted(summaries.values(), key=lambda summary: summary.total_chf, reverse=True)
+
     async def _categorise_batch(
         self,
         rows: list[LedgerRow],
@@ -163,3 +224,16 @@ def _model_values(
         "category_confirmed": False,
         "category_certainty": answer.certainty,
     }
+
+
+def _empty_summary(category: str | None) -> CategorySummary:
+    return CategorySummary(
+        category=category,
+        total_chf=Decimal(0),
+        row_count=0,
+        high=0,
+        medium=0,
+        low=0,
+        unknown=0,
+        confirmed=0,
+    )

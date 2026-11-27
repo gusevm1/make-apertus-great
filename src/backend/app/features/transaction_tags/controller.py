@@ -1,6 +1,8 @@
+from datetime import date
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.core.auth import CurrentUserDep, require_user
 from app.features.transaction_tags.dependencies import (
@@ -12,13 +14,19 @@ from app.features.transaction_tags.dependencies import (
 from app.features.transaction_tags.schemas import (
     AssignedRow,
     Categorisation,
+    CategoryCorrectionResult,
+    CategorySummary,
+    CertaintyFilter,
     PersonalTagSummary,
     RatedTransactionTag,
+    RequestCategoryCorrectionCreate,
     RequestPersonalTagAssignmentCreate,
     RequestPersonalTagCreate,
     RequestPersonalTagUpdate,
     RequestSeverityUpdate,
     ResponseCategorisation,
+    ResponseCategoryCorrection,
+    ResponseCategorySummary,
     ResponsePersonalTag,
     ResponsePersonalTagAssignment,
     ResponseSeveritySetting,
@@ -52,11 +60,48 @@ async def create_categorisation(
 
 @router.get("/transaction-tags", response_model=list[ResponseTransactionTag])
 async def list_transaction_tags(
-    user: CurrentUserDep, service: SeverityServiceDep, sort: str | None = None
+    user: CurrentUserDep,
+    service: SeverityServiceDep,
+    sort: str | None = None,
+    category: str | None = None,
+    certainty: CertaintyFilter | None = None,
 ) -> list[ResponseTransactionTag]:
-    """List your categorised rows with their severity, newest first by default."""
-    tags = await service.list_rated_tags(owner_id=user.id, token=user.token, sort=sort)
+    """List your categorised rows with their severity, filtered by category or certainty."""
+    tags = await service.list_rated_tags(
+        owner_id=user.id, token=user.token, sort=sort, category=category, certainty=certainty
+    )
     return [_tag_response(tag=tag) for tag in tags]
+
+
+@router.post("/category-corrections", response_model=ResponseCategoryCorrection, status_code=201)
+async def create_category_correction(
+    data: RequestCategoryCorrectionCreate, user: CurrentUserDep, service: TransactionTagServiceDep
+) -> ResponseCategoryCorrection:
+    """Set your category for every booking of a payee, or for one booking."""
+    result = await service.create_correction(owner_id=user.id, token=user.token, data=data)
+    return _correction_response(result=result)
+
+
+@router.get("/category-summaries", response_model=list[ResponseCategorySummary])
+async def list_category_summaries(
+    user: CurrentUserDep,
+    service: TransactionTagServiceDep,
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+) -> list[ResponseCategorySummary]:
+    """Sum your spending per category in a period, with how sure each category is."""
+    summaries = await service.list_summaries(
+        owner_id=user.id, token=user.token, from_date=from_date, to_date=to_date
+    )
+    return [_summary_response(summary=summary) for summary in summaries]
+
+
+def _correction_response(result: CategoryCorrectionResult) -> ResponseCategoryCorrection:
+    return ResponseCategoryCorrection.model_validate(result, from_attributes=True)
+
+
+def _summary_response(summary: CategorySummary) -> ResponseCategorySummary:
+    return ResponseCategorySummary.model_validate(summary, from_attributes=True)
 
 
 @router.post("/severity-proposals", response_model=list[ResponseSeveritySetting], status_code=201)
