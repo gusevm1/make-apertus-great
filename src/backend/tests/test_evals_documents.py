@@ -6,6 +6,7 @@ from evals.documents import (
     DOCUMENTS_PATH,
     SAMPLES_DIR,
     ExpectedDocument,
+    describe_line,
     load_catalogue,
     score_fields,
     upload,
@@ -23,14 +24,28 @@ REMINDER = ExpectedDocument(
 )
 
 
+DOCUMENT_ID = "6f1d3c1e-0000-4000-8000-000000000086"
+requests: list[str] = []
+
+
 def fake_backend(request: httpx.Request) -> httpx.Response:
     assert request.headers["Authorization"] == "Bearer token-daniela"
+    requests.append(f"{request.method} {request.url.path}")
+    if request.method == "DELETE":
+        return httpx.Response(204)
     fields = [
         {"name": "amount_due", "amount": 420.0, "passage": "Rechnungsbetrag 420.00"},
         {"name": "due_date", "date": "2026-11-30", "passage": "bis 30.11.2026"},
         {"name": "iban", "text": "CH9730888000012345678", "passage": "CH97 3088 8000 0123 4567 8"},
     ]
-    return httpx.Response(201, json={"kind": "reminder", "fields": fields})
+    checks = [{"name": "fields_in_text", "detail": 'dropped payee: "Zahlbar an": not in text'}]
+    body = {
+        "id": DOCUMENT_ID,
+        "kind": "reminder",
+        "fields": fields,
+        "provenance": {"checks": checks},
+    }
+    return httpx.Response(201, json=body)
 
 
 async def test_scores_right_wrong_and_missing_fields_of_a_faked_backend() -> None:
@@ -39,15 +54,17 @@ async def test_scores_right_wrong_and_missing_fields_of_a_faked_backend() -> Non
         response = await upload(
             client=client, token="token-daniela", path=SAMPLES_DIR / REMINDER.file
         )
-    verdicts = {
-        score.name: score.verdict for score in score_fields(expected=REMINDER, response=response)
-    }
+    scores = score_fields(expected=REMINDER, response=response)
+    verdicts = {score.name: score.verdict for score in scores}
     assert verdicts == {
         "amount_due": "wrong",
         "due_date": "right",
         "iban": "right",
         "payee": "missing",
     }
+    line = describe_line(expected=REMINDER, response=response, scores=scores)
+    assert "payee MISSING (dropped by fields_in_text)" in line
+    assert requests == ["POST /api/documents", f"DELETE /api/documents/{DOCUMENT_ID}"]
 
 
 def test_catalogue_names_all_13_pdfs_with_a_login_each() -> None:

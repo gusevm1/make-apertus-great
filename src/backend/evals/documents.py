@@ -84,6 +84,11 @@ def score_fields(expected: ExpectedDocument, response: dict[str, Any]) -> list[F
     return scores
 
 
+def _check_detail(response: dict[str, Any]) -> str:
+    checks = (response.get("provenance") or {}).get("checks", [])
+    return " ".join(check.get("detail") or "" for check in checks)
+
+
 def describe_line(
     expected: ExpectedDocument, response: dict[str, Any], scores: list[FieldScore]
 ) -> str:
@@ -97,6 +102,8 @@ def describe_line(
             parts.append(f"{score.name} right")
         elif score.verdict == "wrong":
             parts.append(f"{score.name} WRONG ({score.got})")
+        elif f"dropped {score.name}:" in _check_detail(response=response):
+            parts.append(f"{score.name} MISSING (dropped by fields_in_text)")
         else:
             parts.append(f"{score.name} MISSING")
     return f"{Path(expected.file).name[:55]:55}  " + ", ".join(parts)
@@ -109,13 +116,18 @@ async def _token(bank: httpx.AsyncClient, login: Login) -> str:
 
 
 async def upload(client: httpx.AsyncClient, token: str, path: Path) -> dict[str, Any]:
+    headers = {"Authorization": f"Bearer {token}"}
     response = await client.post(
         "/api/documents",
-        headers={"Authorization": f"Bearer {token}"},
+        headers=headers,
         files={"file": (path.name, await asyncio.to_thread(path.read_bytes), "application/pdf")},
     )
     response.raise_for_status()
-    return response.json()
+    document = response.json()
+    # The run leaves nothing behind in the demo accounts.
+    deleted = await client.delete(f"/api/documents/{document['id']}", headers=headers)
+    deleted.raise_for_status()
+    return document
 
 
 async def main() -> int:
