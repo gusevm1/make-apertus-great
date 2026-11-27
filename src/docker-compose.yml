@@ -1,0 +1,49 @@
+# `docker compose up -d db` starts only Postgres, for development.
+# The ti&m starter (e-banking :8090, banking API :8000, OCR :8002) runs from ../starter with its own compose file.
+# `docker compose --profile app up --build` runs the page and our backend on :3000 as well.
+# LLM_NAME, LLM_BASE_URL and LLM_API_KEY come from the .env in the repo root.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: trustroom
+      POSTGRES_PASSWORD: trustroom
+      POSTGRES_DB: trustroom
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./backend/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustroom"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  backend:
+    build: ./backend
+    profiles: [app]
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+asyncpg://trustroom:trustroom@db:5432/trustroom
+      APP_ORIGIN: http://localhost:${APP_PORT:-3000}
+      # The starter is its own compose project, so its services are reached through the host.
+      BANKING_API_URL: ${BANKING_API_URL:-http://host.docker.internal:8000/api}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    profiles: [app]
+    ports:
+      - "${APP_PORT:-3000}:80"
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
