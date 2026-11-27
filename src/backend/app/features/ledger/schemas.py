@@ -379,7 +379,7 @@ class BalanceChange(BaseModel):
 
 class YearEndBalance(BaseModel):
     account_id: str
-    # The day of the account's last booking of the year.
+    # The day of the account's last booking on or before 31 December.
     date: datetime.date
     balance_chf: Decimal
 

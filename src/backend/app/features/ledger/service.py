@@ -251,6 +251,8 @@ class LedgerService:
 
     async def tax_year_summary(self, token: str, args: TaxYearArgs, today: date) -> TaxYearSummary:
         """Mortgage interest, Pillar 3a payments and year-end values of one year."""
+        if args.year > today.year:
+            raise BadRequestError(PROMPTS["tax_year_ahead"].format(year=args.year, today=today))
         year_end = date(args.year, 12, 31)
         rows = await self.list_rows(token=token)
         in_year = [row for row in rows if row.date.year == args.year]
@@ -279,7 +281,9 @@ class LedgerService:
                 YearEndBalance(account_id=account_id, date=row.date, balance_chf=_balance(row=row))
                 for account_id, row in sorted(last_by_account.items())
             ],
-            portfolio_value_chf=await self._portfolio_value(token=token, day=year_end),
+            portfolio_value_chf=None
+            if today < year_end
+            else await self._portfolio_value(token=token, day=year_end),
             note=PROMPTS["tax_year_note"],
             row_ids={
                 "mortgage_interest": [row.id for row in interest],

@@ -1032,3 +1032,12 @@ async def test_a_year_that_is_not_over_runs_until_today_and_has_no_year_end_valu
     assert summary.pillar_3a_limit_chf == Decimal(7258)
     assert summary.portfolio_value_chf is None
     assert summary.year_end_balances[-1].balance_chf == Decimal("5632.5")
+
+
+async def test_a_year_that_has_not_started_is_refused() -> None:
+    ledger = _fake_ledger(bookings=TAX_YEAR, purchases=[], statements=[], pages_read=[])
+
+    with pytest.raises(BadRequestError, match="2027 has not started"):
+        await ledger.tax_year_summary(
+            token=TOKEN, args=TaxYearArgs(year=2027), today=date(2026, 11, 26)
+        )
