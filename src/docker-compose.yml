@@ -1,4 +1,4 @@
-# `docker compose up -d db` starts only Postgres, for development.
+# `docker compose up -d db` starts only Postgres, for development. Add `searxng` for web search.
 # The ti&m starter (e-banking :8090, banking API :8000, OCR :8002) runs from ../starter with its own compose file.
 # `docker compose --profile app up --build` runs the page and our backend on :3000 as well.
 # LLM_NAME, LLM_BASE_URL and LLM_API_KEY come from the .env in the repo root.
@@ -20,6 +20,17 @@ services:
       timeout: 3s
       retries: 15
 
+  # Web search. It sends each query to public search engines, so it is the one service that leaves the bank.
+  searxng:
+    image: searxng/searxng:2026.11.23-a7163d091
+    environment:
+      # SearXNG refuses to start without one. It signs SearXNG's own links, nothing of ours.
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-trustroom-local}
+    ports:
+      - "127.0.0.1:${SEARXNG_PORT:-8089}:8080"
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+
   backend:
     build: ./backend
     profiles: [app]
@@ -32,11 +43,15 @@ services:
       # The starter is its own compose project, so its services are reached through the host.
       BANKING_API_URL: ${BANKING_API_URL:-http://host.docker.internal:8000/api}
       OCR_URL: ${OCR_URL:-http://host.docker.internal:8002}
+      # `SEARXNG_URL= docker compose --profile app up` runs the stack without web search.
+      SEARXNG_URL: ${SEARXNG_URL-http://searxng:8080}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
+      searxng:
+        condition: service_started
 
   frontend:
     build: ./frontend

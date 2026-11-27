@@ -1,0 +1,11 @@
+# SearXNG runs the TrustRoom's web search. Whatever is not named here keeps SearXNG's default.
+use_default_settings: true
+
+search:
+  # The backend reads JSON, which SearXNG leaves off by default.
+  formats:
+    - html
+    - json
+
+# Every default search engine is on, and every page they find may come back.
+# To narrow that, switch engines off here: https://docs.searxng.org/admin/settings/settings_engines.html
