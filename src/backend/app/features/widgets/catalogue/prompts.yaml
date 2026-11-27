@@ -16,17 +16,18 @@ kinds:
   path: path into DATA
   field: field name of the rows
   fields: list of field names of the rows
-  stats: "list of {{label, value: path into DATA}}"
+  stats: "list of {{label, value: path into DATA, and optional trend, change and good_when as in kpi}}"
+  trend: "{{data: path into DATA, x and y: field names of its rows}}"
   components: list of components
   choice: "one of {values}"
   boolean: true or false
   text: text
 
 kpi:
-  description: One figure, large, with an optional second figure to compare it with.
-  example: {"type": "kpi", "label": "Spending in October", "value": "months[5].total_chf", "compare": "months[4].total_chf", "compare_label": "September"}
+  description: One figure, large, with an optional second figure to compare it with. `trend` adds a small line of the series the figure belongs to. `change` names a change figure DATA holds (never one you work out), and `good_when` says which way is good, down for spending and up for savings.
+  example: {"type": "kpi", "label": "Spending in October", "value": "months[5].total_chf", "compare": "months[4].total_chf", "compare_label": "September", "trend": {"data": "months", "x": "label", "y": "total_chf"}, "change": "months_change_chf", "good_when": "down"}
 stat_row:
-  description: Two to four small figures side by side, each with a label.
+  description: Two to four small figures side by side, each with a label, and each with the same optional trend and change as a kpi.
   example: {"type": "stat_row", "stats": [{"label": "Rent", "value": "payees[0].total_chf"}, {"label": "Taxes", "value": "payees[1].total_chf"}]}
 table:
   description: Rows of a list in DATA with the columns you choose, and an optional total that DATA already holds.

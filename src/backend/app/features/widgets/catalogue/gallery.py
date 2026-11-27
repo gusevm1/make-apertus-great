@@ -28,6 +28,9 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
                 "value": "months[5].total_chf",
                 "compare": "months[4].total_chf",
                 "compare_label": before_name,
+                "trend": {"data": "months", "x": "label", "y": "total_chf"},
+                "change": "months_change_chf",
+                "good_when": "down",
             },
         },
         "stat_row": {

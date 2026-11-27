@@ -30,9 +30,12 @@ async def lukas_data() -> dict[str, Any]:
         accounts = await ledger.read(path="/accounts", token=token)
     finally:
         await banking.close()
+    months = tasks["monthly_spending"]["months"]
     return {
-        "months": tasks["monthly_spending"]["months"],
+        "months": months,
         "months_total_chf": tasks["monthly_spending"]["total_chf"],
+        # The last month against the one before, computed here on the server for the gallery.
+        "months_change_chf": round(months[-1]["total_chf"] - months[-2]["total_chf"], 2),
         "payments": tasks["upcoming_payments"]["payments"],
         "payments_total_chf": tasks["upcoming_payments"]["total_chf"],
         "payees": tasks["where_money_goes"]["payees"],

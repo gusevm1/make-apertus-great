@@ -67,6 +67,8 @@ def _kind(option: dict[str, Any]) -> str:
         return "path"
     if option.get("pattern") == FIELD_PATTERN:
         return "field"
+    if option.get("$ref", "").endswith("/Trend"):
+        return "trend"
     if option.get("type") == "array":
         items = option["items"]
         if items.get("pattern") == FIELD_PATTERN:
