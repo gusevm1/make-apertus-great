@@ -28,6 +28,15 @@ shapes: |
   - Shapes are rect (x, y, width, height), circle (x, y, r), line (x, y, x2, y2), path (d) and text (x, y, text, font_size, anchor). Text is drawn at its baseline.
   - Copy every number in a text shape from DATA, formatted as above. Bar lengths and positions are yours to compute from DATA.
 
+jinja: |
+  {rules}
+  - Return only a Jinja template of an HTML fragment: an optional <style> and the markup, drawn with inline SVG (with a viewBox and width 100%). No <html>, <head> or <body> tags, no <script>, no Markdown, no explanation.
+  - The server renders the template with the variable `DATA`, the same object as window.DATA below, and the browser gets the result. Loop with {{% for m in DATA.months %}} and read fields as m.total_chf.
+  - Write every figure through a placeholder, such as {{{{ m.total_chf | chf }}}}. The server refuses a template whose text contains a number typed by you.
+  - The filter `chf` turns 1234.5 into "CHF 1'234.50", and `date` turns "2026-11-27" into "27.11.2026" and a month "2026-05" into "05.2026". The function scale(value, maximum, length) returns value / maximum * length, for bar lengths; find the maximum with DATA.months | map(attribute="total_chf") | max.
+  - Positions may be computed in expressions, such as y="{{{{ loop.index0 * 40 + 60 }}}}".
+  - Put axis tick labels inside elements with class "tick".
+
 generate: |
   The customer's request: {request}
 

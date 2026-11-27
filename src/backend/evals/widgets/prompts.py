@@ -7,7 +7,7 @@ from evals.widgets.page import preview
 
 PROMPTS = load_prompts(prompts_py=__file__)
 
-Variant = Literal["html_svg", "html_d3", "shapes"]
+Variant = Literal["html_svg", "html_d3", "shapes", "jinja"]
 Mode = Literal["rewrite", "edits"]
 TASKS = [name.removeprefix("task_") for name in PROMPTS if name.startswith("task_")]
 REVISIONS = [name.removeprefix("revision_") for name in PROMPTS if name.startswith("revision_")]

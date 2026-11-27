@@ -12,8 +12,10 @@ from evals.widgets.page import (
     Edits,
     Scene,
     Shape,
+    TemplateRefusedError,
     apply_edits,
     figure_problems,
+    fill_template,
     page,
     preview,
     render_scene,
@@ -109,3 +111,55 @@ def test_monthly_spending_is_positive_and_names_its_bookings() -> None:
         {"label": "2026-10", "total_chf": 30.0, "booking_ids": ["BK-1", "BK-2"]},
     ]
     assert result["total_chf"] == 30.0
+
+
+@pytest.mark.parametrize(
+    "template",
+    [
+        "{{ DATA.__class__ }}",
+        "{{ DATA.months._private }}",
+        "{{ DATA.months.__class__.__mro__ }}",
+        "{{ lipsum.__globals__ }}",
+        "{{ DATA.clear() }}",
+        "{{ DATA.months.append(1) }}",
+    ],
+)
+def test_sandbox_refuses_python_internals_and_changes(template: str) -> None:
+    data: dict[str, list[int]] = {"months": []}
+    with pytest.raises(TemplateRefusedError):
+        fill_template(template=template, data=data, request="")
+    assert data == {"months": []}
+
+
+def test_template_filters_format_the_swiss_way() -> None:
+    template = "<text>{{ 9752.52 | chf }} am {{ '2026-11-27' | date }}</text>"
+    assert fill_template(template=template, data={}, request="") == (
+        "<text>CHF 9'752.52 am 27.11.2026</text>"
+    )
+
+
+def test_failing_filter_is_a_refused_template() -> None:
+    assert fill_template(template="{{ '2026-05' | date }}", data={}, request="") == "05.2026"
+    with pytest.raises(TemplateRefusedError):
+        fill_template(template="{{ 'May' | date }}", data={}, request="")
+    with pytest.raises(TemplateRefusedError):
+        fill_template(template="{{ 'x' | chf }}", data={}, request="")
+
+
+def test_template_with_a_typed_number_is_refused() -> None:
+    template = '<svg viewBox="0 0 600 200"><text x="10">Total CHF 1234</text></svg>'
+    with pytest.raises(TemplateRefusedError, match="1234"):
+        fill_template(template=template, data={}, request="")
+
+
+def test_numbers_in_placeholders_markup_and_the_request_are_allowed() -> None:
+    template = (
+        '<style>text{font-size:14px}</style><svg viewBox="0 0 600 200">'
+        '{% for m in DATA.months %}<rect width="{{ scale(m.total_chf, 100, 500) }}"/>'
+        "<text>{{ m.total_chf | chf }}</text>{% endfor %}<text>Last 6 months</text></svg>"
+    )
+    rendered = fill_template(
+        template=template, data={"months": [{"total_chf": 50.0}]}, request="the last 6 months"
+    )
+    assert 'width="250.0"' in rendered
+    assert "CHF 50.00" in rendered

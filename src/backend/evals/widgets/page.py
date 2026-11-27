@@ -1,11 +1,15 @@
-"""Widget pages for the benchmark: assembly, the shapes variant, code edits and the figure check."""
+"""Widget pages for the benchmark: assembly, shapes, templates, code edits and the figure check."""
 
 import html
 import json
 import re
+from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
+from jinja2 import StrictUndefined, TemplateError
+from jinja2.sandbox import ImmutableSandboxedEnvironment
+from markupsafe import Markup
 from pydantic import BaseModel, Field
 
 from app.features.figure_checks.service import FigureCheckService
@@ -87,6 +91,59 @@ def render_scene(scene: Scene) -> str:
         f'<svg viewBox="0 0 {scene.width:g} {scene.height:g}" width="100%" role="img" '
         f'style="font-family:system-ui;display:block">{"".join(parts)}</svg>'
     )
+
+
+class TemplateRefusedError(Exception):
+    pass
+
+
+def fill_template(template: str, data: dict[str, Any], request: str) -> str:
+    """Render a model's Jinja template with DATA in the sandbox; refuse numbers it typed itself."""
+    typed = FigureCheckService().check_figures(
+        answer=template_text(template=template), sources=[request]
+    )
+    if typed is not None and not typed.passed:
+        raise TemplateRefusedError(f"numbers of its own: {typed.detail}")
+    try:
+        return _TEMPLATES.from_string(template).render(DATA=data)
+    # A filter or expression of the model's can fail with any of these on the wrong input.
+    except (TemplateError, ValueError, TypeError, ArithmeticError, LookupError) as error:
+        raise TemplateRefusedError(f"template error: {error}") from error
+
+
+def template_text(template: str) -> str:
+    """The template's visible text: without placeholders, tags, styles and scripts."""
+    text = _TEMPLATE_CODE.sub(" ", template)
+    return html.unescape(_TAG.sub(" ", _STYLE_OR_SCRIPT.sub(" ", text)))
+
+
+def _chf(value: float) -> Markup:
+    # Markup, so autoescape keeps the apostrophe of "CHF 1'234.50" as it is.
+    return Markup(f"CHF {value:,.2f}".replace(",", "'"))
+
+
+def _date(value: str) -> str:
+    text = str(value)[:10]
+    # DATA labels months as 2026-05; they show as 05.2026.
+    if _MONTH.fullmatch(text) is not None:
+        return f"{text[5:7]}.{text[:4]}"
+    return date.fromisoformat(text).strftime("%d.%m.%Y")
+
+
+def _scale(value: float, maximum: float, length: float) -> float:
+    return 0.0 if maximum == 0 else value / maximum * length
+
+
+# Immutable: a template can't change DATA, read attributes starting with _ or reach Python
+# internals. Strict: a misspelt field fails instead of drawing nothing.
+_TEMPLATES = ImmutableSandboxedEnvironment(autoescape=True, undefined=StrictUndefined)
+_TEMPLATES.filters["chf"] = _chf
+_TEMPLATES.filters["date"] = _date
+_TEMPLATES.globals["scale"] = _scale
+_TEMPLATE_CODE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
+_STYLE_OR_SCRIPT = re.compile(r"<(style|script)\b.*?</\1>", re.DOTALL | re.IGNORECASE)
+_TAG = re.compile(r"<[^>]*>")
+_MONTH = re.compile(r"\d{4}-\d{2}")
 
 
 def apply_edits(code: str, edits: Edits) -> str:

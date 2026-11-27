@@ -30,8 +30,10 @@ from evals.widgets.page import (
     EditError,
     Edits,
     Scene,
+    TemplateRefusedError,
     apply_edits,
     figure_problems,
+    fill_template,
     page,
     render_scene,
     strip_fence,
@@ -41,7 +43,7 @@ HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 RESULTS_MD = HERE / "results.md"
 D3_PATH = HERE / "vendor" / "d3.v7.min.js"
-VARIANTS: list[prompts.Variant] = ["html_svg", "html_d3", "shapes"]
+VARIANTS: list[prompts.Variant] = ["html_svg", "html_d3", "shapes", "jinja"]
 MODES: list[prompts.Mode] = ["rewrite", "edits"]
 REVISED_TASK = "monthly_spending"
 WIDTHS = (360, 1000)
@@ -150,14 +152,19 @@ class Bench:
         return await self._timed(run=run, call=edit())
 
     async def render(self, run: Run, code: str) -> None:
+        body = code
         try:
-            body = (
-                render_scene(scene=Scene.model_validate_json(code))
-                if run.variant == "shapes"
-                else code
-            )
+            if run.variant == "shapes":
+                body = render_scene(scene=Scene.model_validate_json(code))
+            if run.variant == "jinja":
+                body = fill_template(
+                    template=code, data=self.data[run.task], request=_request(run=run)
+                )
         except ValidationError as error:
             run.failure = f"invalid shapes: {error.error_count()} errors"
+            return
+        except TemplateRefusedError as error:
+            run.failure = str(error)[:200]
             return
         path = RESULTS / "pages" / f"{run.variant}-{run.model}-{_slug(text=run.name)}.html"
         path.write_text(
@@ -173,9 +180,7 @@ class Bench:
 
     async def check(self, run: Run, path: Path, data: dict[str, Any]) -> None:
         """Load the page in Chrome at every width and record what the bridge reports."""
-        request = prompts.request(task=run.task)
-        if run.revision is not None:
-            request += " " + prompts.change(revision=run.revision)
+        request = _request(run=run)
         run.renders = list(
             await asyncio.gather(
                 *(
@@ -485,6 +490,14 @@ async def recheck(bench: Bench) -> list[Run]:
         if run.revision is not None:
             run.base_is_clean = firsts[(run.variant, run.model)].is_clean
     return runs
+
+
+def _request(run: Run) -> str:
+    """The customer's words behind a run; numbers in them may appear on the page."""
+    request = prompts.request(task=run.task)
+    if run.revision is not None:
+        request += " " + prompts.change(revision=run.revision)
+    return request
 
 
 def _render_cell(render: Render, limit: int | None) -> str:
