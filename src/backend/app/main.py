@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.core.db import engine
 from app.core.errors import register_error_handlers
 from app.features.bank_data.controller import router as bank_data_router
+from app.features.budgets.controller import router as budgets_router
 from app.features.context_entries.controller import router as context_entries_router
 from app.features.conversations.controller import router as conversations_router
 from app.features.documents.controller import router as documents_router
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     register_error_handlers(app=app)
     app.include_router(public_router, prefix="/api")
     app.include_router(bank_data_router, prefix="/api")
+    app.include_router(budgets_router, prefix="/api")
     app.include_router(context_entries_router, prefix="/api")
     app.include_router(conversations_router, prefix="/api")
     app.include_router(documents_router, prefix="/api")

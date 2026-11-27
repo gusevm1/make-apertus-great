@@ -1,0 +1,10 @@
+compare_budgets: >-
+  My monthly budgets per spending category compared with what I spent in one calendar month. Each
+  row of `budgets` has `budget_chf`, `spent_chf`, `left_chf` (negative when over) and `over`; the
+  result's own `budget_chf`, `spent_chf`, `left_chf` and `over` are the totals of the budgeted
+  categories. `unbudgeted` lists the categories I spent on without a budget, with `spent_chf`.
+  `days_elapsed` is the day of the month today, null for a month that has ended. These figures are
+  final: use them as they are and never add rows yourself. Use it for "how much of my restaurant
+  budget is left", "am I over budget" and "how is my budget this month". When `budgets` is empty I
+  have set no budget yet: say so, and that budgets are set per category.
+month: "The calendar month as YYYY-MM. Leave it out for the current month."
