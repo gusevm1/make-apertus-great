@@ -61,12 +61,15 @@ SHARED = (
 # ponytail: silence on the card and its PR, not proof the agent is gone; land-card checks the claim again before it pushes
 STALE_MINUTES = 90
 CARD_TEMPLATE = (
-    "## Why\n<one sentence>\n\n## Acceptance criteria\n- [ ] <something a reviewer can check>\n\n"
+    "## Why\n<one or two sentences: who needs this and what for>\n\n"
+    "## What\n<two to five lines: what gets built, where it lives, its limits as numbers,"
+    " what is left out>\n\n"
+    "## Acceptance criteria\n- [ ] <something a reviewer can check>\n\n"
     "## Owns\n<the paths this card may change>\n\n"
     "## Check\n<the command or the steps that prove it works>\n\n"
     "## Demo-path step\n<the step of docs/demo-path.md this serves, or none>\n"
 )
-CARD_SECTIONS = ("Why", "Acceptance criteria", "Owns", "Check", "Demo-path step")
+CARD_SECTIONS = ("Why", "What", "Acceptance criteria", "Owns", "Check", "Demo-path step")
 
 
 def gh(*args: str, stdin: str | None = None) -> str:
@@ -918,16 +921,18 @@ def demo() -> None:
     real_gh, real_load_fields = globals()["gh"], globals()["load_fields"]
     globals()["gh"] = lambda *args, stdin=None: calls.append(args) or ""
     globals()["load_fields"] = lambda: {"id": "p", "fields": fields}
-    full_body = "## Why\nx\n## Acceptance criteria\n## Owns\n## Check\n## Demo-path step\nnone"
+    full_body = (
+        "## Why\nx\n## What\ny\n## Acceptance criteria\n## Owns\n## Check\n## Demo-path step\nnone"
+    )
     refusals = {
         "S, M": argparse.Namespace(title="x", body=full_body, priority="P1", size="XS"),
         "## Owns, ## Check, --priority": argparse.Namespace(
             title="x",
-            body="## Why\nOwns and Check\n## Acceptance criteria\n## Demo-path step",
+            body="## Why\nOwns and Check\n## What\n## Acceptance criteria\n## Demo-path step",
             priority=None,
             size="S",
         ),
-        "## Acceptance criteria, ## Owns, ## Check, ## Demo-path step, --size": (
+        "## What, ## Acceptance criteria, ## Owns, ## Check, ## Demo-path step, --size": (
             argparse.Namespace(title="x", body="## Why", priority="P1", size=None)
         ),
     }
