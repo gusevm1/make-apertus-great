@@ -16,6 +16,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 QUESTIONS_PATH = Path(__file__).with_name("questions.yaml")
 GUARDRAILS_PATH = Path(__file__).with_name("guardrails.yaml")
 FIGURES_PATH = Path(__file__).with_name("figures.yaml")
+DOCUMENTS_PATH = Path(__file__).resolve().parents[3] / "starter/resources/Demodaten/Dokumente"
 TURN_TIMEOUT_SECONDS = 180
 DEFAULT_MIN_PASS_RATE = 0.9
 
@@ -54,6 +55,8 @@ class Question(BaseModel):
     quote: str | None = None
     # The demo login the question runs as; None is the eval customer from the settings.
     customer: str | None = None
+    # Sample documents under DOCUMENTS_PATH, uploaded and attached to `question`.
+    documents: list[str] = Field(default_factory=list)
 
 
 class ActualCall(BaseModel):
@@ -150,12 +153,24 @@ async def ask(client: httpx.AsyncClient, question: Question) -> tuple[list[str],
     if conversation.status_code != 201:
         return [f"no conversation: {conversation.status_code} {conversation.text[:200]}"], ""
     path = f"/api/conversations/{conversation.json()['id']}"
+    document_ids: list[str] = []
     try:
+        for name in question.documents:
+            file = DOCUMENTS_PATH / name
+            upload = await client.post(
+                "/api/documents", files={"file": (file.name, file.read_bytes(), "application/pdf")}
+            )
+            if upload.status_code != 201:
+                return [f"upload of {name} failed: {upload.status_code} {upload.text[:200]}"], ""
+            document_ids.append(upload.json()["id"])
         quotes: list[dict[str, Any]] = []
-        for index, content in enumerate([*question.before, question.question]):
+        messages = [*question.before, question.question]
+        for index, content in enumerate(messages):
             earlier = await client.get(f"{path}/tool-calls")
+            attached = document_ids if index == len(messages) - 1 else []
             reply = await client.post(
-                f"{path}/messages", json={"content": content, "quotes": quotes}
+                f"{path}/messages",
+                json={"content": content, "quotes": quotes, "document_ids": attached},
             )
             if reply.status_code != 201:
                 return [f"turn failed: {reply.status_code} {reply.text[:200]}"], ""
@@ -173,6 +188,8 @@ async def ask(client: httpx.AsyncClient, question: Question) -> tuple[list[str],
         return problems, describe(calls=calls)
     finally:
         await client.delete(path)
+        for document_id in document_ids:
+            await client.delete(f"/api/documents/{document_id}")
 
 
 async def run_question(client: httpx.AsyncClient, question: Question) -> tuple[bool, str]:
