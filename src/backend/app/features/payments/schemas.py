@@ -40,13 +40,6 @@ def _check_recipient(credit_account_id: str | None, payee: list[str | None], is_
         )
 
 
-class Address(Args):
-    street: str
-    zip: str
-    city: str
-    country: str = Field(description=PROMPTS["country"])
-
-
 class PaymentCreateArgs(Args):
     payment_type: Literal["domestic", "qr_bill", "international", "account_transfer"] = Field(
         description=PROMPTS["payment_type"]
@@ -55,7 +48,6 @@ class PaymentCreateArgs(Args):
     credit_account_id: str | None = Field(default=None, description=PROMPTS["credit_account_id"])
     payee_name: str | None = Field(default=None, description=PROMPTS["payee_name"])
     payee_iban: str | None = Field(default=None, description=PROMPTS["payee_iban"])
-    payee_address: Address | None = None
     amount: float = Field(gt=0)
     currency: Currency
     execution_date: date = Field(description=PROMPTS["execution_date"])
@@ -79,14 +71,13 @@ class PaymentArgs(Args):
 class PaymentUpdateArgs(Change, PaymentArgs):
     debit_account_id: str | None = Field(default=None, description=PROMPTS["debit_account_id"])
     credit_account_id: str | None = Field(default=None, description=PROMPTS["credit_account_id"])
-    payee_name: str | None = None
-    payee_iban: str | None = None
-    payee_address: Address | None = None
+    payee_name: str | None = Field(default=None, description=PROMPTS["payee_name"])
+    payee_iban: str | None = Field(default=None, description=PROMPTS["payee_iban"])
     amount: float | None = Field(default=None, gt=0)
     currency: Currency | None = None
     execution_date: date | None = Field(default=None, description=PROMPTS["execution_date"])
     message: str | None = Field(default=None, max_length=MESSAGE_MAX_CHARS)
-    reference: str | None = None
+    reference: str | None = Field(default=None, description=PROMPTS["reference"])
 
 
 class StandingOrderCreateArgs(Args):
@@ -117,8 +108,8 @@ class StandingOrderArgs(Args):
 
 
 class StandingOrderUpdateArgs(Change, StandingOrderArgs):
-    payee_name: str | None = None
-    payee_iban: str | None = None
+    payee_name: str | None = Field(default=None, description=PROMPTS["payee_name"])
+    payee_iban: str | None = Field(default=None, description=PROMPTS["payee_iban"])
     amount: float | None = Field(default=None, gt=0)
     frequency: Frequency | None = None
     day: int | None = Field(default=None, ge=1, le=31, description=PROMPTS["day"])

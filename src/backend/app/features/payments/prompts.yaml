@@ -1,36 +1,18 @@
 # One description per tool. Each tool changes the bank, so the customer sees its arguments and
 # allows or refuses the call first. Use them only when the customer asks for that change.
-create_payment: >-
-  Prepares a one-off payment or a transfer between the customer's own accounts. It becomes a pending
-  payment in the e-banking. Take the account from list_accounts and the payee's name and IBAN from
-  list_payees. When the customer names a role instead of a name, such as "my landlord", call
-  list_payees without text and pick the payee that fits. Use it only when the customer asks to pay
-  or transfer money.
-update_payment: >-
-  Changes a pending payment: amount, date, account, payee or message. Take the payment id from
-  list_payments with status pending. Send only the fields that change.
-delete_payment: >-
-  Deletes a pending payment so that it is not paid. Take the payment id from list_payments with
-  status pending.
-create_standing_order: >-
-  Sets up a standing order that pays the same amount on a schedule, to a payee or to one of the
-  customer's own accounts. Take the account from list_accounts and the payee's name and IBAN from
-  list_payees. Use it only when the customer asks for a recurring payment.
-update_standing_order: >-
-  Changes a standing order: amount, frequency, day, end date, payee or message. Take the id from
-  list_standing_orders. Send only the fields that change.
-delete_standing_order: >-
-  Deletes a standing order so that it pays no more. Take the id from list_standing_orders.
-payment_type: >-
-  domestic for a Swiss IBAN, international for a foreign one, qr_bill when the customer pays a QR
-  bill, account_transfer between the customer's own accounts.
-debit_account_id: "The account the money leaves, an account id from list_accounts, such as ACC-PRIV."
-credit_account_id: "Only between own accounts: the account id from list_accounts that receives it."
-payee_name: "Not for own accounts: the payee's name as list_payees gives it."
-payee_iban: "Not for own accounts: the payee's IBAN exactly as list_payees gives it."
-execution_date: "The day it is paid, today or later."
-reference: "The reference number of a QR bill, if the customer gives one."
-country: "The two-letter country code, such as CH."
-payment_id: "A pending payment's id from list_payments, such as PAY-0079."
-standing_order_id: "A standing order's id from list_standing_orders, such as SO-RENT."
-day: "The day of the month it is paid, 1 to 31."
+create_payment: Prepares a one-off payment, or a transfer between own accounts.
+update_payment: Changes a pending payment. Send only the fields that change.
+delete_payment: Deletes a pending payment so that it is not paid.
+create_standing_order: Sets up a standing order to a payee or an own account.
+update_standing_order: Changes a standing order. Send only the fields that change.
+delete_standing_order: Deletes a standing order so that it pays no more.
+payment_type: "domestic: Swiss IBAN, international: foreign IBAN, account_transfer: own accounts."
+debit_account_id: "From list_accounts, such as ACC-PRIV."
+credit_account_id: "Own accounts only: the receiving account from list_accounts."
+payee_name: "As list_payees gives it."
+payee_iban: "As list_payees gives it."
+execution_date: "Today or later."
+reference: "A QR bill's reference number."
+payment_id: "From list_payments with status pending."
+standing_order_id: "From list_standing_orders."
+day: "Day of the month."
