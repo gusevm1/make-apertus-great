@@ -59,7 +59,11 @@ def test_tool_choice_runs_as_every_customer_and_the_rest_as_written() -> None:
     tool_choice = [item.question for item in planned if item.criterion == OUTPUT]
     figures = [item.question for item in planned if item.criterion == TRACEABILITY]
     guardrails = [item.question for item in planned if item.criterion == GUARDRAILS]
-    assert len(tool_choice) == 4 * len(load_questions(path=QUESTIONS_PATH))
+    # A question that names its customer runs as that customer only.
+    assert len(tool_choice) == sum(
+        len(CUSTOMERS) if question.customer is None else 1
+        for question in load_questions(path=QUESTIONS_PATH)
+    )
     assert {question.customer for question in tool_choice} == set(CUSTOMERS)
     assert figures == load_questions(path=FIGURES_PATH)
     assert all(question.customer is None for question in guardrails)
