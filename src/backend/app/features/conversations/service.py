@@ -255,7 +255,7 @@ def _pointer_text(guardrail: Guardrail) -> str:
 def _guarded(answer: tuple[str, Provenance], guardrail: Guardrail) -> tuple[str, Provenance]:
     """The answer followed by the server's pointer, with the guardrail check in its provenance."""
     content, provenance = answer
-    checks = [*provenance.checks, *guardrail.provenance.checks]
+    checks = [*guardrail.provenance.checks, *provenance.checks]
     return content + _pointer_text(guardrail=guardrail), provenance.model_copy(
         update={"checks": checks}
     )

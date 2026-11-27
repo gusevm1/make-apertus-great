@@ -18,6 +18,11 @@ from tests.sse import sse_events
 
 GUARDRAIL_OK = {"name": "guardrail", "passed": True, "detail": "ok"}
 
+
+def _check(reply: httpx2.Response, name: str) -> dict[str, Any]:
+    return next(check for check in reply.json()["provenance"]["checks"] if check["name"] == name)
+
+
 pytestmark = pytest.mark.usefixtures("lookup_tool")
 PAGES = ["https://example.ch/Zurich", "https://example.ch/shared"]
 
@@ -49,8 +54,8 @@ async def test_message_uses_a_tool_then_gets_its_reply(
     assert provenance["model"] == FAKE_MODEL
     assert [source["id"] for source in provenance["sources"]] == PAGES
     assert provenance["checks"] == [
-        {"name": "tool_calls_valid", "passed": True, "detail": "1 of 1"},
         GUARDRAIL_OK,
+        {"name": "tool_calls_valid", "passed": True, "detail": "1 of 1"},
     ]
 
     messages = (await client.get(f"{url}/messages")).json()
@@ -134,8 +139,8 @@ async def test_wrong_tool_call_goes_back_to_the_model_as_an_error(
     assert reply.status_code == 201
     assert reply.json()["provenance"]["sources"] == []
     assert reply.json()["provenance"]["checks"] == [
-        {"name": "tool_calls_valid", "passed": False, "detail": "0 of 3"},
         GUARDRAIL_OK,
+        {"name": "tool_calls_valid", "passed": False, "detail": "0 of 3"},
     ]
     calls = (await client.get(f"{url}/tool-calls")).json()
     assert [call["result"] for call in calls] == [None, None, None]
@@ -205,7 +210,7 @@ async def test_one_decision_runs_all_its_calls_and_identical_ones_once(
     reply = await client.post(f"{url}/messages", json={"content": "Genf, Basel und Mumbai?"})
 
     assert reply.status_code == 201
-    assert reply.json()["provenance"]["checks"][0]["detail"] == "2 of 2"
+    assert _check(reply=reply, name="tool_calls_valid")["detail"] == "2 of 2"
     calls = (await client.get(f"{url}/tool-calls")).json()
     assert [call["result"]["text"] for call in calls] == ["Page about Zurich", "Page about Mumbai"]
     assert [call["reason"] for call in calls] == ["Genf; Basel", "Mumbai"]
@@ -228,7 +233,7 @@ async def test_a_failed_call_in_a_batch_leaves_the_other_results(
     reply = await client.post(f"{url}/messages", json={"content": "Zurich, missing, Bern?"})
 
     assert reply.status_code == 201
-    assert reply.json()["provenance"]["checks"][0]["detail"] == "2 of 3"
+    assert _check(reply=reply, name="tool_calls_valid")["detail"] == "2 of 3"
     zurich, missing, bern = (await client.get(f"{url}/tool-calls")).json()
     assert zurich["result"]["text"] == "Page about Zurich"
     assert missing["result"] is None
