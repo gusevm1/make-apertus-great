@@ -32,6 +32,9 @@ LABEL_FIELDS = {"title", "subtitle", "label", "compare_label", "goal_label", "te
 # Tool results write amounts as decimal strings; the catalogue draws numbers only.
 AMOUNT_SUFFIXES = ("_chf", "_percent", "_per_month")
 _DECIMAL = re.compile(r"^-?\d+(\.\d+)?$")
+# A list named only "items" or "rows" is named after its tool, such as "upcoming_payments".
+GENERIC_KEYS = {"items", "rows"}
+TOOL_VERBS = ("list_", "get_", "search_", "find_")
 
 
 class WidgetService:
@@ -158,7 +161,11 @@ def widget_data(results: list[TurnResult]) -> dict[str, Any]:
         for key, value in content.items():
             if re.fullmatch(FIELD_PATTERN, key) is None:
                 continue
-            name = _free_name(data=data, wanted=key, prefix=result.tool_name)
+            name = _free_name(
+                data=data,
+                wanted=_key_name(key=key, tool_name=result.tool_name),
+                prefix=result.tool_name,
+            )
             data[name] = _numbers(value=value, key=key)
             _attach_bookings(rows=data[name], row_ids=row_ids if isinstance(row_ids, dict) else {})
     for key in list(data):
@@ -187,6 +194,14 @@ def _labels(value: Any, key: str = "") -> list[str]:
     if isinstance(value, list):
         return [label for item in value for label in _labels(value=item, key=key)]
     return [value] if key in LABEL_FIELDS and isinstance(value, str) else []
+
+
+def _key_name(key: str, tool_name: str) -> str:
+    if key not in GENERIC_KEYS:
+        return key
+    for verb in TOOL_VERBS:
+        tool_name = tool_name.removeprefix(verb)
+    return tool_name
 
 
 def _free_name(data: dict[str, Any], wanted: str, prefix: str) -> str:

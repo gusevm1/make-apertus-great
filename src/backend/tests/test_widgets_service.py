@@ -236,7 +236,7 @@ def test_widget_data_gives_rows_numbers_bookings_and_flat_lists() -> None:
         "sum_by_month_months",
         "recurring",
         "recurring_price_changes",
-        "rows",
+        "movements",
     }
     assert data["months"][1] == {
         "month": "2026-10",
@@ -245,8 +245,8 @@ def test_widget_data_gives_rows_numbers_bookings_and_flat_lists() -> None:
     }
     assert data["recurring"] == [{"payee": "Netflix", "last_paid_chf": 21.9}]
     assert data["recurring_price_changes"] == [{"parent": "Netflix", "new_price": 21.9}]
-    assert data["rows"][0]["booking_ids"] == ["BK-07"]
-    assert data["rows"][0]["amount_chf"] == -12.5
+    assert data["movements"][0]["booking_ids"] == ["BK-07"]
+    assert data["movements"][0]["amount_chf"] == -12.5
     # The stored tool results stay as they were.
     assert MONTHS_RESULT["months"][0]["money_out_chf"] == "17273.60"
 
