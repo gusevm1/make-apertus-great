@@ -25,7 +25,7 @@ Then one line: is `docs/demo-path.md` working end to end right now? If you can't
 
 ## 2. Retro: what to change
 
-Look for what repeated: the same review blocker in several PRs, the same question in several Blocked cards, cards that came back from review, cards that were too large. Propose at most three changes, each as a concrete edit to `CLAUDE.md` or a skill, because that is the only way the agents will work differently next sprint. Ask the humans for theirs. Each accepted change becomes a P0 card.
+Look for what repeated: the same review blocker in several PRs, the same question in several Blocked cards, cards that came back from review, cards that were too large. Propose at most three changes, each as a concrete edit to `CLAUDE.md` or a skill, because that is the only way the agents will work differently next sprint. Ask the humans for theirs. Each accepted change becomes a P0 card. A line on the decisions list (#47) that every card has to follow is a rule: propose it as an edit to `CLAUDE.md`.
 
 ## 3. Planning: the next sprint
 
@@ -43,6 +43,8 @@ Only after a human has confirmed the list:
 - Answers to Blocked cards: `board answer <n> "<the answer>"`. It posts the answer, clears the assignees and moves the card to Ready.
 - Each committed card: `board set <n> --sprint S<k> --priority P<x>`, `board move <n> ready`, and `gh issue edit <n> --add-assignee <login>` for the owner the humans named. A card left unassigned is taken by whichever agent is free.
 - Retro changes and new ideas from the meeting: `board add ...`.
+- Decisions from the meeting that bind more than one card: add them to #47 as the `scrum-board` skill says under "Decisions".
+- Prune #47. Put back the line of every comment that lost its line. Remove the line of a decision whose cards are all Done when no open card depends on it, and the line of one that is now in `CLAUDE.md`. The comments stay. Keep the list under 30 lines: a longer list means rules are waiting to move to `CLAUDE.md`.
 
 ## 5. Post the sprint log
 

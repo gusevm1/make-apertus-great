@@ -39,6 +39,8 @@ built, who is on it and how far it is. Every change belongs to a card.
   add cards to Backlog and never promote them.
 - **Stuck or need a decision:** block the card with the exact question and take the next one. Never
   wait, never guess a product decision.
+- **Decisions that bind more than one card** are listed in the pinned issue #47. Read its body before
+  building, and add to it as the `scrum-board` skill says under "Decisions".
 - **Building a card:** `build-card` takes it from claim to merged in its own worktree with its own
   banking API and ports, and `land-card` lands it on `main` after checking what others landed.
 - **One card at a time changes prompts or tool descriptions.** Such an edit changes answers to

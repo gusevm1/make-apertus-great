@@ -108,6 +108,26 @@ Keep the whole card under about 25 lines and apply the `unslop` skill to it. A s
 
 The card is the channel. Anything another agent or a human needs to know (an assumption, a contract you changed, a hand-over) goes in a comment on the card it concerns: `gh issue comment <n> --body "..."`. Don't edit someone else's branch and don't rewrite someone else's card.
 
+## Decisions
+
+Issue #47, labelled `decisions` and pinned, lists the decisions that bind more than one card. Its body is the list of those that still hold, one line each. Its comments say why.
+
+Add one when a choice reaches beyond your card: a contract other cards build on, the order cards must land in, an exception to a rule, or a human's answer that settles more than the card it was asked on. A choice only your card sees stays in your PR's assumptions.
+
+1. Comment on #47:
+   ```
+   ## <the decision in one sentence>
+   **Why:** <one or two sentences>
+   **Instead of:** <the alternative that lost>
+   **Cards:** #.., PR #..
+   **Decided:** <date>, <by whom or on which card>
+   ```
+2. Read the body again, add `- <decision> (#cards) <comment url>` under `## Live`, and save it with `gh issue edit 47 --body-file <file>`.
+
+To replace a decision, comment the new one, swap its line in the body, and change the first line of the old comment to `Superseded by <url>`. Never delete a comment.
+
+Two agents editing the body at once can lose a line. The comment is the record, so the sprint boundary puts a lost line back.
+
 ## What you never do
 
 - Move a card from Backlog to Ready, or change Priority or Sprint. That is the humans' sprint commitment. The one exception: a human in your session tells you to work on something now. Then add the card if it doesn't exist, `board move <n> ready`, and claim it.

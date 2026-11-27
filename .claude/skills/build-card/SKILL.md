@@ -36,8 +36,9 @@ The script starts a banking API of your own for this card, so your widgets, uplo
 1. `board show <n>`: the card and its comments. Comments hold review feedback and earlier attempts.
 2. The run issue, if you were given one: `gh issue view <run>`. Its Contracts section is fixed. Build against it. If your card cannot be built without changing a contract, comment on the run issue with the exact change and why, and go on with the smallest version that fits.
 3. `CLAUDE.md`, and `starter/docs/` for anything that touches the e-banking (panel context, widgets, OCR).
-4. The code your card touches, and one existing feature that already does something similar. Copy its shape.
-5. What landed recently in the files you will touch: `git log --oneline -8 origin/main -- <paths>`.
+4. The decisions list: `gh issue view 47`. A line that names your card, or the code your card touches, binds you. If your card can't follow it, block the card with the conflict.
+5. The code your card touches, and one existing feature that already does something similar. Copy its shape.
+6. What landed recently in the files you will touch: `git log --oneline -8 origin/main -- <paths>`.
 
 ## 4. Build
 
