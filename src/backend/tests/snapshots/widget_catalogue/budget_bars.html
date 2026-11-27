@@ -52,7 +52,7 @@ h2 { font-size: 0.85rem; font-weight: 600; margin: 0 0 6px; color: var(--muted);
 /* The verdict in words too, so good and bad don't rest on colour alone. */
 .verdict { display: inline-block; margin-left: 4px; padding: 0 6px; border: 1px solid currentColor; border-radius: 999px; font-size: 0.72rem; font-weight: 500; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 10px; }
-.stat { background: var(--surface-muted); border-radius: var(--radius-sm); padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.stat { background: var(--surface-muted); border-radius: var(--radius-sm); padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; min-width: 0; }
 .stat-label { font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
 .stat-value { font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .table-wrap, .list, .chart { min-width: 0; }
