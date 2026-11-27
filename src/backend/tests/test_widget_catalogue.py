@@ -288,8 +288,9 @@ def spec(body: dict[str, Any]) -> WidgetSpec:
 
 @pytest.mark.parametrize("name", list(BODIES))
 def test_each_component_renders_as_stored(name: str, monkeypatch: pytest.MonkeyPatch) -> None:
-    # Without the 900 KB Vega runtime, the live page is our own HTML and chart specs only.
+    # Without the 900 KB Vega runtime and 210 KB of fonts, the page is our HTML and chart specs.
     monkeypatch.setattr(render_module, "runtime", lambda: "")
+    monkeypatch.setattr(render_module, "font_faces", lambda: "")
     page = render(spec=spec(body=BODIES[name]), data=DATA, form="live")
     snapshot = SNAPSHOTS / f"{name}.html"
     if os.environ.get("UPDATE_SNAPSHOTS") == "1":

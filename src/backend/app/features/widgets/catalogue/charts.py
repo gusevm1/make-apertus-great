@@ -1,7 +1,9 @@
+import base64
 import json
 import re
 from datetime import date, timedelta
 from functools import cache
+from pathlib import Path
 from typing import Any
 
 import vl_convert
@@ -41,6 +43,9 @@ LABEL_LIMIT = 160
 # Half the width of a month label such as "Jan 2027", kept free right of a forecast's last point.
 LAST_LABEL_ROOM = 30
 FONT = "Inter, system-ui, -apple-system, Segoe UI, sans-serif"
+# Inter ships with the catalogue: vl-convert measures a label with the font the browser draws it in.
+FONTS = Path(__file__).with_name("fonts")
+FONT_WEIGHTS = {"Regular": 400, "Medium": 500, "SemiBold": 600, "Bold": 700}
 ACCENT = "#2e6b66"
 ACCENT_LIGHT = "#cfe2df"
 ACCENT_MID = "#5f9c95"
@@ -133,6 +138,9 @@ THEME: dict[str, Any] = {
         "symbolType": "circle",
     },
 }
+
+
+vl_convert.register_font_directory(str(FONTS))
 
 
 def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> dict[str, Any]:
@@ -389,6 +397,19 @@ def static_svg(spec: dict[str, Any]) -> str:
 def runtime() -> str:
     """Vega, Vega-Lite and Vega-Embed as one script, so a live page needs no network."""
     return vl_convert.javascript_bundle(snippet=GLOBALS, vl_version=VEGA_LITE_VERSION)
+
+
+@cache
+def font_faces() -> str:
+    """The fonts as CSS of data URLs, since a widget has no network to load a font from."""
+    faces = []
+    for name, weight in FONT_WEIGHTS.items():
+        data = base64.b64encode((FONTS / f"Inter-{name}.ttf").read_bytes()).decode()
+        faces.append(
+            f"@font-face{{font-family:Inter;font-weight:{weight};"
+            f"src:url(data:font/ttf;base64,{data})}}"
+        )
+    return "".join(faces)
 
 
 def _tooltip(y_title: str) -> list[dict[str, str]]:

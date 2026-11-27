@@ -11,6 +11,7 @@ from app.features.widgets.catalogue.charts import (
     LOCALE,
     THEME,
     chart_spec,
+    font_faces,
     runtime,
     static_svg,
 )
@@ -80,6 +81,7 @@ def render(spec: WidgetSpec, data: dict[str, Any], form: Form) -> str:
     return _env.get_template("page.html.j2").render(
         csp=CSP[form],
         css=_css,
+        fonts=font_faces(),
         bridge=_bridge,
         title=spec.title,
         subtitle=spec.subtitle,
