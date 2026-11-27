@@ -185,11 +185,24 @@ class ForecastChart(Component):
 class BudgetBars(Component):
     type: Literal["budget_bars"]
     title: Label | None = None
+    # A compare_budgets result's categories, drawn as they are: it computes no figure itself.
     data: DataPath
     # The field that names each row, such as a category.
     label: FieldName
-    actual: FieldName
+    spent: FieldName
     budget: FieldName
+    # What is left (negative when over) and whether the row is over, both as DATA has them.
+    left: FieldName
+    over: FieldName
+    # How far the month has run, for a today line; null in DATA for a closed month.
+    days_elapsed: DataPath | None = None
+    days_in_month: DataPath | None = None
+
+    @model_validator(mode="after")
+    def _days_come_together(self) -> Self:
+        if (self.days_elapsed is None) != (self.days_in_month is None):
+            raise ValueError("a today line needs both days_elapsed and days_in_month")
+        return self
 
 
 class Waterfall(Component):
@@ -273,17 +286,7 @@ class Grid(Component):
     children: list["Node"] = Field(min_length=2, max_length=6)
 
 
-Chart = (
-    BarChart
-    | LineChart
-    | AreaChart
-    | Comparison
-    | Donut
-    | ForecastChart
-    | BudgetBars
-    | Waterfall
-    | Calendar
-)
+Chart = BarChart | LineChart | AreaChart | Comparison | Donut | ForecastChart | Waterfall | Calendar
 Node = Annotated[
     Kpi
     | StatRow

@@ -45,6 +45,7 @@ from app.features.widgets.catalogue.values import (
     is_date,
     is_number,
     last_field,
+    resolve,
     row_label,
     rows,
 )
@@ -146,6 +147,8 @@ def _view(
         return _entries(node=node, data=data)
     if isinstance(node, Progress):
         return _progress(node=node, data=data)
+    if isinstance(node, BudgetBars):
+        return _budget_bars(node=node, data=data)
     if isinstance(node, Scenarios):
         groups.append(f"cases-{len(groups) + 1}")
         return _scenarios(node=node, data=data, form=form, group=groups[-1])
@@ -351,6 +354,64 @@ def _progress(node: Progress, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _budget_bars(node: BudgetBars, data: dict[str, Any]) -> dict[str, Any]:
+    found = rows(
+        path=node.data,
+        data=data,
+        fields=[node.label, node.spent, node.budget, node.left, node.over],
+    )
+    view_rows = []
+    for index, row in enumerate(found):
+        path = f"{node.data}[{index}]"
+        for field in (node.spent, node.budget, node.left):
+            if not is_number(value=row[field]):
+                raise BadRequestError(f"{path}.{field} is not a number")
+        if not isinstance(row[node.over], bool):
+            raise BadRequestError(f"{path}.{node.over} is not true or false")
+        if row[node.budget] <= 0:
+            raise BadRequestError(f"{path}.{node.budget} is {row[node.budget]}: no budget to fill")
+        is_over = row[node.over]
+        # "CHF x left" or "CHF x over" from DATA's own `left`, negative when over.
+        left = display(field=node.left, value=abs(row[node.left]))
+        spent = display(field=node.spent, value=row[node.spent])
+        budget = display(field=node.budget, value=row[node.budget])
+        # The bar's length only; no share of the budget is written as a figure.
+        share = Decimal(str(row[node.spent])) / Decimal(str(row[node.budget]))
+        view_rows.append(
+            _row(path=path, row=row)
+            | {
+                "name": display(field=node.label, value=row[node.label]),
+                "over": is_over,
+                "status": f"{left} {'over' if is_over else 'left'}",
+                "spent": f"{spent} of {budget}",
+                "fill": f"{min(max(share, Decimal(0)), Decimal(1)) * 100:.1f}",
+            }
+        )
+    return {
+        "type": node.type,
+        "title": node.title,
+        "path": node.data,
+        "rows": view_rows,
+        "today": _today(node=node, data=data),
+    }
+
+
+def _today(node: BudgetBars, data: dict[str, Any]) -> dict[str, str] | None:
+    # A today line only while the month runs: DATA's days_elapsed is null for a closed month.
+    if node.days_elapsed is None or node.days_in_month is None:
+        return None
+    elapsed = resolve(path=node.days_elapsed, data=data)
+    if elapsed is None:
+        return None
+    total = figure(path=node.days_in_month, data=data)
+    if not is_number(value=elapsed) or not 0 <= elapsed <= total or total <= 0:
+        raise BadRequestError(
+            f"{node.days_elapsed} is {elapsed!r}: a day of the month's {total} days"
+        )
+    at = Decimal(str(elapsed)) / Decimal(str(total)) * 100
+    return {"at": f"{at:.1f}", "label": f"Day {elapsed} of {total}"}
+
+
 def _scenarios(node: Scenarios, data: dict[str, Any], form: Form, group: str) -> dict[str, Any]:
     found = rows(
         path=node.data, data=data, fields=[node.label] + [item.field for item in node.figures]
@@ -419,7 +480,6 @@ def _chart(
         "legend": None,
         "total": None,
         "forecast_legend": None,
-        "budget_legend": isinstance(node, BudgetBars),
     }
     if isinstance(node, ForecastChart):
         return view | {"forecast_legend": {"range": node.low is not None}}

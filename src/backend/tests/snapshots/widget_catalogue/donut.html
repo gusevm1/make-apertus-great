@@ -123,9 +123,18 @@ tfoot td { font-weight: 700; border-bottom: 0; }
 .key { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--primary); }
 .key.dashed { border-top-style: dashed; }
 .key.band { height: 10px; border: 0; border-radius: 2px; background: var(--band); }
-.key.spent, .key.over { width: 14px; height: 10px; border: 0; border-radius: 2px; background: var(--primary); }
-.key.over { background: var(--warning); }
-.key.budget { width: 0; height: 12px; border: 0; border-left: 3px solid var(--text); }
+.key.today { width: 0; height: 12px; border: 0; border-left: 2px solid var(--text); vertical-align: middle; }
+/* A budget row as in the Budget view: name and what is left, spent of budget, a thin bar. */
+.budgets ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.budget { display: grid; gap: 4px; min-width: 0; }
+.budget-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.budget-status { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.budget.over .budget-status { color: var(--bad); }
+.budget-spent { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.budget-track { position: relative; display: block; height: 6px; border-radius: 999px; background: var(--primary-soft); }
+.budget-fill { display: block; height: 100%; border-radius: 999px; background: var(--primary); }
+.budget.over .budget-fill { background: var(--bad); }
+.budget-today { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text); }
 .chart-area.calendar-area { overflow-x: auto; }
 .chart-area.calendar-area svg { width: auto; max-width: none; }
 .chart-area { width: 100%; min-width: 0; }
@@ -153,8 +162,7 @@ tfoot td { font-weight: 700; border-bottom: 0; }
         <li data-component="donut-slice" data-path="months[1]" data-value="10598.77" data-booking-ids="[&#34;BK-03&#34;]"><span class="swatch" style="background: #5f9c95"></span><span class="item-label">Oct</span><span class="item-value">CHF 10&#39;598.77</span></li>
       </ul>
     </div>
-  </div>
-</section>
+  </div></section>
 </main>
 <script>(function () {
   // Tells the page around the widget what was clicked, how tall the widget is and what failed.

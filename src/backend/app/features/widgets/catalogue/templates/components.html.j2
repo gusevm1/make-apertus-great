@@ -85,6 +85,20 @@
   <span class="progress-goal" data-component="progress-goal" data-path="{{ n.goal.path }}" data-value="{{ n.goal.raw }}" data-booking-ids="{{ n.goal.booking_ids }}">{{ n.goal_label }} {{ n.goal.text }}</span></span>
   <span class="progress-track" role="img" aria-label="{{ n.label }}: {{ n.value.text }}, {{ n.goal_label }} {{ n.goal.text }}"><span class="progress-fill" style="width: {{ n.fill }}%"></span></span>
 </section>
+{%- elif n.type == "budget_bars" -%}
+<section class="budgets" data-component="budget_bars" data-path="{{ n.path }}">
+  {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
+  <ul>
+  {%- for r in n.rows %}
+    <li class="budget{% if r.over %} over{% endif %}" data-component="budget-row" data-path="{{ r.path }}" data-values="{{ r.row_values }}" data-booking-ids="{{ r.booking_ids }}">
+      <span class="budget-head"><span class="item-label">{{ r.name }}</span><span class="budget-status">{{ r.status }}</span></span>
+      <span class="budget-spent">{{ r.spent }}</span>
+      <span class="budget-track" role="img" aria-label="{{ r.name }}: {{ r.spent }}, {{ r.status }}{% if n.today is not none %}, {{ n.today.label }}{% endif %}"><span class="budget-fill" style="width: {{ r.fill }}%"></span>{% if n.today is not none %}<span class="budget-today" style="left: {{ n.today.at }}%"></span>{% endif %}</span>
+    </li>
+  {%- endfor %}
+  </ul>
+  {%- if n.today is not none %}<p class="cut-note"><i class="key today" aria-hidden="true"></i> {{ n.today.label }}</p>{% endif %}
+</section>
 {%- elif n.type == "callout" -%}
 <aside class="callout tone-{{ n.tone }}" data-component="callout">
   {%- if n.title is not none %}<strong>{{ n.title }}</strong>{% endif %}
@@ -127,7 +141,7 @@
   </div></div>
   {%- endif %}
 </section>
-{%- elif n.type in ("bar_chart", "line_chart", "area_chart", "comparison", "donut", "forecast_chart", "budget_bars", "waterfall", "calendar") -%}
+{%- elif n.type in ("bar_chart", "line_chart", "area_chart", "comparison", "donut", "forecast_chart", "waterfall", "calendar") -%}
 <section class="chart" data-component="{{ n.type }}" data-path="{{ n.path }}" data-rows="{{ n.rows }}">
   {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
   {%- if n.legend is not none %}
@@ -150,11 +164,7 @@
   {%- endif %}
   {%- if n.forecast_legend is not none %}
   <p class="forecast-legend"><span><i class="key solid" aria-hidden="true"></i>Actual</span><span><i class="key dashed" aria-hidden="true"></i>Forecast</span>{% if n.forecast_legend.range %}<span><i class="key band" aria-hidden="true"></i>Range</span>{% endif %}</p>
-  {%- endif %}
-  {%- if n.budget_legend %}
-  <p class="forecast-legend"><span><i class="key spent" aria-hidden="true"></i>Spent</span><span><i class="key budget" aria-hidden="true"></i>Budget</span><span><i class="key over" aria-hidden="true"></i>Over budget</span></p>
-  {%- endif %}
-</section>
+  {%- endif %}</section>
 {%- elif n.type == "stack" -%}
 <div class="stack" data-component="stack">
   {%- for child in n.children %}{{ node(child) }}{% endfor %}

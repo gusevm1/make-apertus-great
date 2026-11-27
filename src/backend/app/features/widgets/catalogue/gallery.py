@@ -165,14 +165,18 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
             },
         },
         "budget_bars": {
-            "title": "Against budget",
-            "subtitle": "Last 3 months; sample budgets for the gallery, the bank holds none",
+            "title": "Budgets this month",
+            "subtitle": "Made-up budgets in the shape compare_budgets returns",
             "body": {
                 "type": "budget_bars",
                 "data": "budgets",
-                "label": "payee",
-                "actual": "spent_chf",
+                "label": "category",
+                "spent": "spent_chf",
                 "budget": "budget_chf",
+                "left": "left_chf",
+                "over": "over",
+                "days_elapsed": "budget_days_elapsed",
+                "days_in_month": "budget_days_in_month",
             },
         },
         "waterfall": {

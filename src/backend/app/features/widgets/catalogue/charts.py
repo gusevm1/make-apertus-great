@@ -10,7 +10,6 @@ from app.core.errors import BadRequestError
 from app.features.widgets.catalogue.schemas import (
     AreaChart,
     BarChart,
-    BudgetBars,
     Calendar,
     Chart,
     Comparison,
@@ -91,13 +90,11 @@ PERIOD_SERIES = [
     PALETTE["blue_light"],
     PALETTE["amber_light"],
 ]
-# Over budget in the e-banking's warning colour (widget.css --warning); a falling waterfall step
-# in grey; the total in navy.
-WARNING = PALETTE["amber"]
+# A falling waterfall step in grey; the total in navy.
 STEP_DOWN = PALETTE["grey_light"]
-# A day of the calendar is one cell; a calendar shows at most 53 weeks.
+# A day of the calendar is one cell; a calendar shows at most 53 Monday-to-Sunday columns.
 CELL = 15
-MAX_DAYS = 371
+MAX_WEEKS = 53
 WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 # A day without a row, and the scale from a little spending to the most; a square-root scale,
 # so one large bill doesn't wash out every other day.
@@ -146,10 +143,6 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
     found = rows(path=component.data, data=data, fields=fields + extra)
     if isinstance(component, ForecastChart):
         _check_forecast(component=component, found=found)
-    if isinstance(component, BudgetBars | Waterfall | Calendar):
-        _check_figures(component=component, found=found, fields=[y_field, *extra])
-    if isinstance(component, Waterfall):
-        _check_steps(component=component, found=found)
     if isinstance(component, Calendar):
         _check_days(component=component, found=found)
     if isinstance(component, Donut) and len(found) > len(SLICES):
@@ -169,8 +162,11 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
         seen.add(key)
         if not is_number(value=row[y_field]):
             raise BadRequestError(f"{component.data}[{index}].{y_field} is not a number")
-        if isinstance(component, Donut) and row[y_field] < 0:
-            raise BadRequestError(f"{component.data}[{index}].{y_field} is negative: no slice")
+        # A slice, or a day's cell on one scale, has no negative size.
+        if isinstance(component, Donut | Calendar) and row[y_field] < 0:
+            raise BadRequestError(f"{component.data}[{index}].{y_field} is negative")
+    if isinstance(component, Waterfall):
+        _check_steps(component=component, found=found)
     shorts = [short(field=x_field, value=row[x_field]) for row in found]
     # Two rows of one series with the same short label ("Oct" of two years) get the full one.
     is_unique = len(set(zip(series, shorts, strict=True))) == len(found)
@@ -194,8 +190,6 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
             value |= _forecast_fields(
                 component=component, row=row, full=full, shown=shown, path=path
             )
-        if isinstance(component, BudgetBars):
-            value |= _budget_fields(component=component, row=row, full=full, path=path)
         if isinstance(component, Waterfall):
             value |= _step_fields(component=component, row=row, full=full, path=path)
         if isinstance(component, Calendar):
@@ -206,9 +200,7 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
     if isinstance(component, Calendar):
         return _calendar(values=values)
     # A horizontal chart's labels sit beside the plot, so its static plot is narrower.
-    labels_beside = isinstance(component, BudgetBars) or (
-        isinstance(component, BarChart) and component.horizontal
-    )
+    labels_beside = isinstance(component, BarChart) and component.horizontal
     size: dict[str, Any] = (
         {"width": "container", "autosize": {"type": "fit-x", "contains": "padding"}}
         if live
@@ -216,8 +208,6 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
     )
     if isinstance(component, ForecastChart):
         return {**size, **_forecast(values=values, has_range=component.low is not None)}
-    if isinstance(component, BudgetBars):
-        return {**size, **_budget(component=component, values=values)}
     if isinstance(component, Waterfall):
         return {**size, **_waterfall(component=component, values=values, data=data)}
     chosen = _chosen(component=component, values=values, has_series=series_field is not None)
@@ -274,8 +264,6 @@ def _series_scale(series: list[str | None], chosen: dict[str, str]) -> dict[str,
 def _fields(component: Chart | Trend) -> tuple[str, str, str | None]:
     if isinstance(component, Donut):
         return component.label, component.value, None
-    if isinstance(component, BudgetBars):
-        return component.label, component.actual, None
     if isinstance(component, Waterfall):
         return component.label, component.amount, None
     if isinstance(component, Calendar):
@@ -289,23 +277,9 @@ def _extra_fields(component: Chart | Trend) -> list[str]:
     # Fields a row needs beside its label, value and series.
     if isinstance(component, ForecastChart):
         return [component.kind]
-    if isinstance(component, BudgetBars):
-        return [component.budget]
     if isinstance(component, Waterfall):
         return [component.start, component.end]
     return []
-
-
-def _check_figures(
-    component: BudgetBars | Waterfall | Calendar, found: list[dict[str, Any]], fields: list[str]
-) -> None:
-    for index, row in enumerate(found):
-        for field in fields:
-            if not is_number(value=row[field]):
-                raise BadRequestError(f"{component.data}[{index}].{field} is not a number")
-            # A bar against a budget, or a day's cell on one scale, has no negative length.
-            if not isinstance(component, Waterfall) and row[field] < 0:
-                raise BadRequestError(f"{component.data}[{index}].{field} is negative")
 
 
 def _check_steps(component: Waterfall, found: list[dict[str, Any]]) -> None:
@@ -313,6 +287,9 @@ def _check_steps(component: Waterfall, found: list[dict[str, Any]]) -> None:
     for index, row in enumerate(found):
         where = f"{component.data}[{index}]"
         start, end = row[component.start], row[component.end]
+        for field in (component.start, component.end):
+            if not is_number(value=row[field]):
+                raise BadRequestError(f"{where}.{field} is not a number")
         if not agree(row[component.amount], end - start):
             raise BadRequestError(
                 f"{where}.{component.amount} is {row[component.amount]}, but the step goes from "
@@ -328,16 +305,27 @@ def _check_steps(component: Waterfall, found: list[dict[str, Any]]) -> None:
 def _check_days(component: Calendar, found: list[dict[str, Any]]) -> None:
     if len(found) == 0:
         raise BadRequestError(f"{component.data} has no days to show")
-    for index, row in enumerate(found):
-        if not is_date(value=row[component.date]) or len(row[component.date]) != len("2026-11-27"):
-            raise BadRequestError(
-                f"{component.data}[{index}].{component.date} is not a day: {row[component.date]!r}"
-            )
-    days = [date.fromisoformat(row[component.date]) for row in found]
-    if (max(days) - min(days)).days + 1 > MAX_DAYS:
+    days = [_day(component=component, index=index, row=row) for index, row in enumerate(found)]
+    first, last = min(days), max(days)
+    weeks = (last - timedelta(days=last.weekday())) - (first - timedelta(days=first.weekday()))
+    if weeks.days // 7 + 1 > MAX_WEEKS:
         raise BadRequestError(
-            f"{component.data} spans more than {MAX_DAYS} days; a calendar shows at most 53 weeks"
+            f"{component.data} spans {weeks.days // 7 + 1} weeks; a calendar shows at most "
+            f"{MAX_WEEKS}"
         )
+
+
+def _day(component: Calendar, index: int, row: dict[str, Any]) -> date:
+    value = row[component.date]
+    # A whole day such as "2026-11-27": no time, and one the calendar has ("2026-02-30" isn't).
+    try:
+        if not is_date(value=value) or len(value) != len("2026-11-27"):
+            raise ValueError
+        return date.fromisoformat(value)
+    except ValueError:
+        raise BadRequestError(
+            f"{component.data}[{index}].{component.date} is not a day: {value!r}"
+        ) from None
 
 
 def _check_forecast(component: ForecastChart, found: list[dict[str, Any]]) -> None:
@@ -666,27 +654,6 @@ def _forecast(values: list[dict[str, Any]], has_range: bool) -> dict[str, Any]:
     }
 
 
-def _budget_fields(
-    component: BudgetBars, row: dict[str, Any], full: str, path: str
-) -> dict[str, Any]:
-    actual, budget = row[component.actual], row[component.budget]
-    is_over = actual > budget
-    shown = display(field=component.actual, value=actual)
-    budget_shown = display(field=component.budget, value=budget)
-    status = "over budget" if is_over else "within budget"
-    return {
-        "budget": budget,
-        "budget_shown": budget_shown,
-        "over": is_over,
-        "status": status,
-        # The label sits after the bar or the budget marker, whichever reaches further.
-        "reach": max(actual, budget),
-        # Over budget is said in words too, not by colour alone.
-        "text": number(value=actual, decimals=0) + (" · over" if is_over else ""),
-        "description": f"{full}, {shown} of {budget_shown} budget, {status} ({path})",
-    }
-
-
 def _step_fields(component: Waterfall, row: dict[str, Any], full: str, path: str) -> dict[str, Any]:
     start, end, amount = row[component.start], row[component.end], row[component.amount]
     shown = display(field=component.amount, value=amount)
@@ -707,61 +674,6 @@ def _day_fields(day: str) -> dict[str, Any]:
     when = date.fromisoformat(day)
     monday = when - timedelta(days=when.weekday())
     return {"week": monday.isoformat(), "weekday": WEEKDAYS[when.weekday()]}
-
-
-def _budget(component: BudgetBars, values: list[dict[str, Any]]) -> dict[str, Any]:
-    # One scale for bars and budget markers, from zero to the furthest of either.
-    reach = max((value["reach"] for value in values), default=0)
-    scale = {"domain": [0, reach if reach > 0 else 1]}
-    amount = {"type": "quantitative", "stack": None, "axis": None, "scale": scale}
-    over = {"test": "datum.over"}
-    return {
-        "height": {"step": ROW_HEIGHT},
-        "padding": {"left": 0, "right": 96, "top": 4, "bottom": 0},
-        "data": {"values": values},
-        "encoding": {
-            "y": {
-                "field": "label",
-                "type": "ordinal",
-                "sort": None,
-                "axis": {"labelLimit": LABEL_LIMIT, "labelColor": TEXT},
-            },
-            "description": {"field": "description"},
-        },
-        "layer": [
-            {
-                "mark": {"type": "bar", "cornerRadiusEnd": 5, "height": {"band": 0.62}},
-                "encoding": {
-                    "x": {**amount, "field": "y"},
-                    "color": {"condition": {**over, "value": WARNING}, "value": ACCENT},
-                    "tooltip": [
-                        {"field": "label", "title": " "},
-                        {"field": "shown", "title": component.actual},
-                        {"field": "budget_shown", "title": component.budget},
-                        {"field": "status", "title": " "},
-                    ],
-                },
-            },
-            {
-                "mark": {"type": "tick", "thickness": 3, "size": ROW_HEIGHT - 6, "color": TEXT},
-                "encoding": {"x": {**amount, "field": "budget"}},
-            },
-            {
-                "mark": {
-                    "type": "text",
-                    "align": "left",
-                    "dx": 8,
-                    "fontSize": 12,
-                    "fontWeight": 600,
-                },
-                "encoding": {
-                    "x": {**amount, "field": "reach"},
-                    "text": {"field": "text"},
-                    "color": {"condition": {**over, "value": WARNING}, "value": MUTED},
-                },
-            },
-        ],
-    }
 
 
 def _waterfall(

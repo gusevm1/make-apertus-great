@@ -63,8 +63,8 @@ forecast_chart:
   example: {"type": "forecast_chart", "title": "Left over per month", "data": "forecast", "x": "month", "y": "net_chf", "kind": "kind", "low": "low_chf", "high": "high_chf"}
 budget_bars:
   description: >-
-    What was spent against a budget, one bar per row with the budget as a marker; a row over its budget is drawn and named as over. Use it only when DATA holds a budget for each row, beside what was spent.
-  example: {"type": "budget_bars", "title": "Against budget", "data": "budgets", "label": "category", "actual": "spent_chf", "budget": "budget_chf"}
+    Budgets as the compare_budgets tool returns them, one row per category: what is left or over, spent of budget, and a thin bar. `spent`, `budget`, `left` and `over` name fields of each row as DATA holds them; nothing is worked out. `days_elapsed` and `days_in_month` name the result's own fields and draw a today line while the month runs, both or neither.
+  example: {"type": "budget_bars", "title": "Budgets this month", "data": "budgets", "label": "category", "spent": "spent_chf", "budget": "budget_chf", "left": "left_chf", "over": "over", "days_elapsed": "days_elapsed", "days_in_month": "days_in_month"}
 waterfall:
   description: >-
     Steps from a starting figure through what was added and taken away, such as income, then spending groups, then what is left. Use it only when DATA holds the steps in order, each with its `start`, `end` and `amount`, every step starting where the one before ended. `total` names what is left, a figure DATA holds, drawn as a last bar from zero; `total_label` names that bar.

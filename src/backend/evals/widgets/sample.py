@@ -22,6 +22,9 @@ GOAL = re.compile(r"^(?P<name>.+?):\s*CHF\s*(?P<amount>[\d']+(?:\.\d+)?)$")
 RENT_CASES = [("Rent today", 0), ("200 more", 200), ("400 more", 400)]
 # Made-up budgets for the gallery, as a share of what was spent: the second one is overspent.
 BUDGET_SHARES = [1.15, 0.85, 1.1, 1.2]
+# The made-up month the sample budgets stand for: day 27 of 30, as on the demo's today.
+SAMPLE_DAYS_ELAPSED = 27
+SAMPLE_DAYS_IN_MONTH = 30
 # Spending groups named in the waterfall before the rest becomes one step.
 FLOW_GROUPS = 3
 
@@ -63,8 +66,12 @@ async def lukas_data() -> dict[str, Any]:
         "rent_cases": rent_cases(trend=trend, payments=payments),
         "days": days(rows=ledger_rows, months=[month["label"] for month in months[-3:]]),
         "budgets": sample_budgets(payees=tasks["where_money_goes"]["payees"]),
+        # The made-up budgets stand for a month that is still running.
+        "budget_days_elapsed": SAMPLE_DAYS_ELAPSED,
+        "budget_days_in_month": SAMPLE_DAYS_IN_MONTH,
         "flow": steps,
-        "flow_left_chf": steps[-1]["end_chf"] if len(steps) > 0 else 0.0,
+        # flow always starts with the income step, so it has a last step.
+        "flow_left_chf": steps[-1]["end_chf"],
     }
 
 
@@ -85,20 +92,25 @@ def days(rows: list[LedgerRow], months: list[str]) -> list[dict[str, Any]]:
 
 
 def sample_budgets(payees: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    # The bank holds no budgets: these are made up for the gallery, one of them overspent.
-    return [
-        {
-            "payee": payee["label"],
-            "spent_chf": payee["total_chf"],
-            "budget_chf": round(payee["total_chf"] * share / 50) * 50,
-            "booking_ids": payee["booking_ids"],
-        }
-        for payee, share in zip(
-            (payee for payee in payees if payee["label"] != "Other"),
-            BUDGET_SHARES,
-            strict=False,
+    # No budget is stored yet: these are made up for the gallery in compare_budgets' shape, with
+    # left and over computed here on the server, one row overspent.
+    found = []
+    for payee, share in zip(
+        (payee for payee in payees if payee["label"] != "Other"), BUDGET_SHARES, strict=False
+    ):
+        budget = round(payee["total_chf"] * share / 50) * 50
+        left = round(budget - payee["total_chf"], 2)
+        found.append(
+            {
+                "category": payee["label"],
+                "budget_chf": float(budget),
+                "spent_chf": payee["total_chf"],
+                "left_chf": left,
+                "over": left < 0,
+                "booking_ids": payee["booking_ids"],
+            }
         )
-    ]
+    return found
 
 
 def flow(rows: list[LedgerRow], month: str) -> list[dict[str, Any]]:

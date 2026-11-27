@@ -18,7 +18,7 @@ from app.features.widgets.catalogue.charts import (
     PERIOD_SERIES,
     SERIES,
     STEP_DOWN,
-    WARNING,
+    TEXT,
     chart_spec,
     static_svg,
 )
@@ -28,7 +28,6 @@ from app.features.widgets.catalogue.schemas import (
     COMPONENTS,
     AreaChart,
     BarChart,
-    BudgetBars,
     Calendar,
     ColourName,
     Comparison,
@@ -51,7 +50,6 @@ CHARTS = (
     "comparison",
     "donut",
     "forecast_chart",
-    "budget_bars",
     "waterfall",
     "calendar",
 )
@@ -105,15 +103,26 @@ DATA: dict[str, Any] = {
         {"case": "200 more", "rent_chf": 3000.0, "left_chf": 712.4},
         {"case": "<b>400 more</b>", "rent_chf": 3200.0, "left_chf": 512.4},
     ],
+    # A compare_budgets result: left is negative when over, and over is DATA's own.
     "budgets": [
         {
             "category": "Groceries",
             "spent_chf": 612.4,
             "budget_chf": 540.0,
+            "left_chf": -72.4,
+            "over": True,
             "booking_ids": ["BK-20"],
         },
-        {"category": "Restaurants", "spent_chf": 210.0, "budget_chf": 300.0},
+        {
+            "category": "<b>Restaurants</b>",
+            "spent_chf": 210.0,
+            "budget_chf": 300.0,
+            "left_chf": 90.0,
+            "over": False,
+        },
     ],
+    "days_elapsed": 27,
+    "days_in_month": 30,
     "flow": [
         {"step": "Income", "start_chf": 0.0, "end_chf": 7200.0, "amount_chf": 7200.0},
         {
@@ -224,8 +233,12 @@ BODIES: dict[str, dict[str, Any]] = {
         "type": "budget_bars",
         "data": "budgets",
         "label": "category",
-        "actual": "spent_chf",
+        "spent": "spent_chf",
         "budget": "budget_chf",
+        "left": "left_chf",
+        "over": "over",
+        "days_elapsed": "days_elapsed",
+        "days_in_month": "days_in_month",
     },
     "waterfall": {
         "type": "waterfall",
@@ -730,7 +743,10 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
                     {"type": "stack", "children": [BODIES[name] for name in CHARTS[:5]]},
                     {
                         "type": "stack",
-                        "children": [BODIES[name] for name in (*CHARTS[5:], "grid", "scenarios")],
+                        "children": [
+                            BODIES[name]
+                            for name in (*CHARTS[5:], "grid", "scenarios", "budget_bars")
+                        ],
                     },
                 ],
             }
@@ -1174,7 +1190,7 @@ def test_a_forecasts_axis_labels_stay_inside_the_widget(form: Form) -> None:
 
 def _chart(name: str, data: dict[str, Any] = DATA, live: bool = True) -> dict[str, Any]:
     chart = spec(body=BODIES[name]).body
-    assert isinstance(chart, BudgetBars | Waterfall | Calendar)
+    assert isinstance(chart, Waterfall | Calendar)
     return chart_spec(component=chart, data=data, live=live)
 
 
@@ -1182,37 +1198,71 @@ def _svg(name: str) -> str:
     return static_svg(spec=_chart(name=name, live=False))
 
 
-def test_budget_bars_name_a_row_over_its_budget_in_words_and_colour() -> None:
-    chart = _chart(name="budget_bars")
-    bars, budget, labels = chart["layer"]
-    assert bars["encoding"]["color"] == {
-        "condition": {"test": "datum.over", "value": WARNING},
-        "value": ACCENT,
-    }
-    assert budget["mark"]["type"] == "tick" and budget["encoding"]["x"]["field"] == "budget"
-    # Bars and budget markers share one scale, so a marker sits where its figure is.
-    assert (
-        bars["encoding"]["x"]["scale"] == budget["encoding"]["x"]["scale"] == {"domain": [0, 612.4]}
+def _bar_fills(svg: str, path: str) -> list[str]:
+    # The fills of the static bars (not their value labels) of the row at `path`.
+    tags = re.findall(r"<[^>]*\(" + re.escape(path) + r"\)\"[^>]*>", svg)
+    bars = [tag for tag in tags if 'aria-roledescription="bar"' in tag]
+    return [fill for tag in bars for fill in re.findall(r'fill="(#[0-9a-f]{6})"', tag)]
+
+
+def _budget_page(data: dict[str, Any] = DATA, **changes: Any) -> str:
+    return render(spec=spec(body={**BODIES["budget_bars"], **changes}), data=data, form="static")
+
+
+def _budget_rows(page: str) -> list[tuple[str, str, str, str]]:
+    # Each row's class, status, spent text and bar length, in order.
+    return re.findall(
+        r'<li class="(budget(?: over)?)".*?<span class="budget-status">([^<]*)</span>.*?'
+        r'<span class="budget-spent">([^<]*)</span>.*?class="budget-fill" style="width: ([\d.]+)%"',
+        page,
+        re.DOTALL,
     )
-    values = chart["data"]["values"]
-    assert [value["text"] for value in values] == ["612 · over", "210"]
-    assert [value["budget"] for value in values] == [540.0, 300.0]
-    svg = _svg(name="budget_bars")
-    assert WARNING in _fills(svg=svg, path="budgets[0]")
-    assert ACCENT not in _fills(svg=svg, path="budgets[0]")
-    assert ACCENT in _fills(svg=svg, path="budgets[1]")
-    assert "Groceries, CHF 612.40 of CHF 540.00 budget, over budget (budgets[0])" in svg
-    page = render(spec=spec(body=BODIES["budget_bars"]), data=DATA, form="static")
-    assert "Over budget</span>" in page
 
 
-def test_budget_bars_refuse_a_negative_or_missing_figure() -> None:
-    negative = {"budgets": [{**DATA["budgets"][0], "budget_chf": -1.0}]}
-    with pytest.raises(BadRequestError, match="negative"):
-        _chart(name="budget_bars", data=negative)
-    text = {"budgets": [{**DATA["budgets"][0], "spent_chf": "a lot"}]}
-    with pytest.raises(BadRequestError, match="not a number"):
-        _chart(name="budget_bars", data=text)
+def test_budget_bars_show_what_data_says_is_left_or_over() -> None:
+    page = _budget_page()
+    assert _budget_rows(page=page) == [
+        ("budget over", "CHF 72.40 over", "CHF 612.40 of CHF 540.00", "100.0"),
+        ("budget", "CHF 90.00 left", "CHF 210.00 of CHF 300.00", "70.0"),
+    ]
+    # Over budget in red and in words; the name is escaped.
+    assert ".budget.over .budget-fill { background: var(--bad); }" in page
+    assert "&lt;b&gt;Restaurants&lt;/b&gt;" in page and "<b>Restaurants</b>" not in page
+    assert 'data-path="budgets[0]"' in page and "BK-20" in page
+
+
+def test_budget_bars_take_over_from_data_and_compute_nothing() -> None:
+    # DATA says the row isn't over, so it isn't drawn over, whatever spent and budget say.
+    rows = [{**DATA["budgets"][0], "over": False, "left_chf": 5.0}]
+    page = _budget_page(data={**DATA, "budgets": rows})
+    assert _budget_rows(page=page) == [
+        ("budget", "CHF 5.00 left", "CHF 612.40 of CHF 540.00", "100.0")
+    ]
+
+
+def test_budget_bars_draw_the_today_line_only_while_the_month_runs() -> None:
+    running = _budget_page()
+    assert '<span class="budget-today" style="left: 90.0%"></span>' in running
+    assert "Day 27 of 30" in running
+    closed = _budget_page(data={**DATA, "days_elapsed": None})
+    assert 'class="budget-today"' not in closed and "Day 27" not in closed
+    without = _budget_page(days_elapsed=None, days_in_month=None)
+    assert 'class="budget-today"' not in without
+
+
+def test_budget_bars_refuse_what_they_cannot_draw_truthfully() -> None:
+    for change, error in [
+        ({"spent_chf": "a lot"}, "not a number"),
+        ({"over": "yes"}, "not true or false"),
+        ({"budget_chf": 0.0}, "no budget to fill"),
+    ]:
+        rows = [{**DATA["budgets"][0], **change}]
+        with pytest.raises(BadRequestError, match=error):
+            _budget_page(data={**DATA, "budgets": rows})
+    with pytest.raises(BadRequestError, match="a day of the month"):
+        _budget_page(data={**DATA, "days_elapsed": 31})
+    with pytest.raises(ValidationError, match="both days_elapsed and days_in_month"):
+        spec(body={**BODIES["budget_bars"], "days_in_month": None})
 
 
 def test_a_waterfall_draws_its_steps_and_a_total_from_zero() -> None:
@@ -1229,10 +1279,10 @@ def test_a_waterfall_draws_its_steps_and_a_total_from_zero() -> None:
     assert [value["text"] for value in values] == ["+7'200", "-2'800", "-612", "3'788"]
     assert values[1]["booking_ids"] == ["BK-31"]
     svg = _svg(name="waterfall")
-    assert ACCENT in _fills(svg=svg, path="flow[0]")
-    assert STEP_DOWN in _fills(svg=svg, path="flow[1]")
-    assert ACCENT not in _fills(svg=svg, path="left_chf")
-    assert STEP_DOWN not in _fills(svg=svg, path="left_chf")
+    assert _bar_fills(svg=svg, path="flow[0]") == [ACCENT]
+    assert _bar_fills(svg=svg, path="flow[1]") == [STEP_DOWN]
+    # The total in navy, apart from both kinds of step.
+    assert _bar_fills(svg=svg, path="left_chf") == [TEXT]
 
 
 @pytest.mark.parametrize(
@@ -1286,11 +1336,13 @@ def test_a_calendar_puts_each_day_in_its_week_and_weekday() -> None:
     ("days", "error"),
     [
         ([{"date": "2026-11", "total_chf": 1.0}], "is not a day"),
+        ([{"date": "2026-02-30", "total_chf": 1.0}], "is not a day"),
         ([{"date": "2026-11-02", "total_chf": -1.0}], "negative"),
         ([{"date": "2026-11-02", "total_chf": 1.0}] * 2, "repeats date"),
+        # 367 days from a Sunday to a Monday take 54 Monday-to-Sunday columns.
         (
-            [{"date": "2025-01-01", "total_chf": 1.0}, {"date": "2026-11-02", "total_chf": 1.0}],
-            "more than 371 days",
+            [{"date": "2025-11-02", "total_chf": 1.0}, {"date": "2026-11-02", "total_chf": 1.0}],
+            "54 weeks; a calendar shows at most 53",
         ),
         ([], "no days"),
     ],
@@ -1309,13 +1361,28 @@ def _live_row(path: str) -> str:
 
 
 @pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
-def test_clicking_a_budget_bar_a_step_or_a_day_reports_its_row() -> None:
-    assert _clicks(body=BODIES["budget_bars"], targets=[_live_row(path="budgets[0]")]) == (
-        "budgets[0] BK-20"
-    )
+def test_clicking_a_budget_row_a_step_or_a_day_reports_its_row() -> None:
+    budget = "document.querySelector('[data-path=\"budgets[0]\"]')"
+    for form in ("live", "static"):
+        assert _clicks(body=BODIES["budget_bars"], targets=[budget], form=form) == (
+            "budgets[0] BK-20"
+        )
     assert _clicks(body=BODIES["waterfall"], targets=[_live_row(path="flow[1]")]) == "flow[1] BK-31"
     assert _clicks(body=BODIES["calendar"], targets=[_live_row(path="days[1]")]) == (
         "days[1] BK-41+BK-42"
     )
     day = "document.querySelector('.chart-area [aria-label$=\"(days[1])\"]')"
     assert _clicks(body=BODIES["calendar"], targets=[day], form="static") == "days[1] BK-41+BK-42"
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_clicking_an_empty_day_reports_no_row() -> None:
+    live = (
+        "Array.from(document.querySelectorAll('.chart-area svg *')).filter(function(e){"
+        "var d=e.__data__;return d&&d.mark&&d.mark.marktype==='rect'&&d.mark.role==='mark'"
+        "&&d.datum&&d.datum.path===undefined;})[0]"
+    )
+    assert _clicks(body=BODIES["calendar"], targets=[live]) == ""
+    # Statically the click falls through to the calendar itself, which names no row.
+    static = "document.querySelector('.calendar-area g.layer_0_marks path')"
+    assert _clicks(body=BODIES["calendar"], targets=[static], form="static") == "days "
