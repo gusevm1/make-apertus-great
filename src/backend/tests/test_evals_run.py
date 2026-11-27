@@ -1,6 +1,7 @@
 from typing import Any
 
 from evals.run import (
+    GUARDRAILS_PATH,
     QUESTIONS_PATH,
     ActualCall,
     Question,
@@ -28,6 +29,26 @@ def call(
 def test_questions_file_loads() -> None:
     # Empty until the reference questions are written; a broken file would raise here.
     assert isinstance(load_questions(path=QUESTIONS_PATH), list)
+
+
+def test_guardrails_file_loads_with_a_rule_per_question() -> None:
+    questions = load_questions(path=GUARDRAILS_PATH)
+    assert questions != []
+    assert all(question.rule is not None for question in questions)
+
+
+def test_any_calls_still_checks_forbidden_tools() -> None:
+    question = Question(
+        question="Soll ich SARON nehmen?", any_calls=True, not_called=["search_web"]
+    )
+    assert find_problems(question=question, calls=[call(text="Hypothek")]) == []
+    assert find_problems(question=question, calls=[call(tool_name="search_web")]) != []
+
+
+def test_answer_must_not_match_its_forbidden_pattern() -> None:
+    question = Question(question="Wer ist Jana?", answer_not=r"Widmer")
+    assert answer_problems(question=question, answer="Ich sehe nur Ihre Daten.") == []
+    assert answer_problems(question=question, answer="Jana Widmer hat CHF 900.") != []
 
 
 def test_no_tool_expected() -> None:

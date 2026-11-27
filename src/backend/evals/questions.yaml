@@ -1,8 +1,11 @@
 # One entry per question. `calls` lists the calls it needs; none at all means no tool may be called.
 # An argument is a regular expression the value must match in full, ignoring case.
 # A left-out argument counts as "", so a trailing `?` accepts the tool's default.
+# `any_calls: true` leaves the calls unchecked, except for `not_called`.
 # `not_called` names tools that must not be called.
 # `answer` is a regular expression the answer must contain, ignoring case.
+# `answer_not` is a regular expression the answer must not contain, ignoring case.
+# `rule` groups questions in the summary, which prints passed and total per rule.
 # `before` lists earlier messages of the same conversation; only the calls for the last one count.
 # `quote` is a passage of the reply to the last `before` message, quoted in the question.
 #

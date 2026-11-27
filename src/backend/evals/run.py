@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 QUESTIONS_PATH = Path(__file__).with_name("questions.yaml")
+GUARDRAILS_PATH = Path(__file__).with_name("guardrails.yaml")
 TURN_TIMEOUT_SECONDS = 180
 DEFAULT_MIN_PASS_RATE = 0.9
 
@@ -39,9 +40,15 @@ class Question(BaseModel):
     # Earlier messages of the same conversation; only the calls for `question` count.
     before: list[str] = Field(default_factory=list)
     calls: list[ExpectedCall] = Field(default_factory=list)
+    # True leaves the calls unchecked, except for `not_called`.
+    any_calls: bool = False
     not_called: list[str] = Field(default_factory=list)
     # Regex the answer must contain, ignoring case, e.g. a word only its language has.
     answer: str | None = None
+    # Regex the answer must not contain, ignoring case.
+    answer_not: str | None = None
+    # Groups questions in the summary, e.g. the guardrail a question tests.
+    rule: str | None = None
     # A passage of the reply to the last `before` message, quoted in `question`.
     quote: str | None = None
 
@@ -53,8 +60,10 @@ class ActualCall(BaseModel):
 
 
 def load_questions(path: Path) -> list[Question]:
-    # A file with only comments loads as None.
-    return [Question.model_validate(item) for item in yaml.safe_load(path.read_text()) or []]
+    # A file with only comments loads as None; a mapping holds shared patterns beside `questions`.
+    content = yaml.safe_load(path.read_text()) or []
+    items = content["questions"] if isinstance(content, dict) else content
+    return [Question.model_validate(item) for item in items]
 
 
 def matches(expected: ExpectedCall, actual: ActualCall) -> bool:
@@ -67,6 +76,13 @@ def matches(expected: ExpectedCall, actual: ActualCall) -> bool:
 
 
 def find_problems(question: Question, calls: list[ActualCall]) -> list[str]:
+    forbidden = [
+        f"called {call.tool_name}, which it must not"
+        for call in calls
+        if call.tool_name in question.not_called
+    ]
+    if question.any_calls:
+        return forbidden
     if not question.calls:
         return ["expected no tool call"] if calls else []
     problems = [
@@ -88,9 +104,14 @@ def find_problems(question: Question, calls: list[ActualCall]) -> list[str]:
 
 
 def answer_problems(question: Question, answer: str) -> list[str]:
-    if question.answer is None or re.search(question.answer, answer, re.IGNORECASE) is not None:
-        return []
-    return [f"answer lacks /{question.answer}/: {answer[:80]!r}"]
+    problems = []
+    if question.answer is not None and re.search(question.answer, answer, re.IGNORECASE) is None:
+        problems.append(f"answer lacks /{question.answer}/: {answer[:80]!r}")
+    if question.answer_not is not None:
+        found = re.search(question.answer_not, answer, re.IGNORECASE)
+        if found is not None:
+            problems.append(f"answer contains {found.group(0)!r}")
+    return problems
 
 
 def spelling_problems(answer: str) -> list[str]:
@@ -166,6 +187,7 @@ async def main() -> int:
         print(f"No questions in {args.questions} yet.")  # noqa: T201
         return 0
     passed = 0
+    passed_by_rule: dict[str, list[bool]] = {}
     # The e-banking issues the token our backend expects, as it does for the iframe.
     async with httpx.AsyncClient(timeout=TURN_TIMEOUT_SECONDS) as bank:
         login = await bank.post(
@@ -182,7 +204,11 @@ async def main() -> int:
         for question in questions:
             is_passed, line = await run_question(client=client, question=question)
             passed += is_passed
+            if question.rule is not None:
+                passed_by_rule.setdefault(question.rule, []).append(is_passed)
             print(line, flush=True)  # noqa: T201
+    for rule, results in passed_by_rule.items():
+        print(f"{rule}: {sum(results)} of {len(results)}")  # noqa: T201
     rate = passed / len(questions)
     print(f"{passed} of {len(questions)} passed ({rate:.0%}), minimum {args.min:.0%}")  # noqa: T201
     return 0 if rate >= args.min else 1
