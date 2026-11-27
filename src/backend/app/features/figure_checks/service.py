@@ -79,16 +79,19 @@ class Figure:
 class FigureCheckService:
     def check_figures(self, answer: str, sources: list[str]) -> Check | None:
         """Whether every number in the answer is in the sources; None when it has none."""
-        figures = [figure for figure in _figures(text=answer) if not _is_count_or_year(figure)]
+        figures = _checked_figures(text=answer)
         if not figures:
             return None
-        values = {figure.value for source in sources for figure in _figures(text=source)}
-        missing = list(dict.fromkeys(f.text for f in figures if not _found(f, values=values)))
+        missing = _missing(figures=figures, sources=sources)
         found = len(figures) - len([f for f in figures if f.text in missing])
         detail = f"{found} of {len(figures)} found"
         if missing:
             detail += "; not found: " + ", ".join(missing[:NOT_FOUND_LISTED])
         return Check(name="figures_found", passed=not missing, detail=detail)
+
+    def missing_figures(self, answer: str, sources: list[str]) -> list[str]:
+        """The figures of the answer that no source holds, as the answer writes them."""
+        return _missing(figures=_checked_figures(text=answer), sources=sources)
 
     def check_dates(
         self, answer: str, results: list[dict[str, Any]], texts: list[str]
@@ -145,6 +148,15 @@ def _figures(text: str) -> list[Figure]:
             )
         )
     return figures
+
+
+def _checked_figures(text: str) -> list[Figure]:
+    return [figure for figure in _figures(text=text) if not _is_count_or_year(figure)]
+
+
+def _missing(figures: list[Figure], sources: list[str]) -> list[str]:
+    values = {figure.value for source in sources for figure in _figures(text=source)}
+    return list(dict.fromkeys(f.text for f in figures if not _found(f, values=values)))
 
 
 def _is_count_or_year(figure: Figure) -> bool:
