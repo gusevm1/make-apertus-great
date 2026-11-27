@@ -650,6 +650,7 @@ questions:
     call_sets:
       - [{tool: search_movements, arguments: {text: '.*(patrick|unterhalt).*', date_from: 2026-01-01}}]
       - [{tool: sum_by_month, arguments: {text: '.*(patrick|unterhalt).*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: '2026-01-01'}}]
     example: [{tool: sum_by_month, arguments: {text: [Unterhalt], date_from: 2026-01-01, date_to: 2026-11-27}}]
     figures:
       - {name: received, source: bookings, measure: in, text: [Unterhalt], date_from: 2026-01-01, date_to: 2026-11-27}
@@ -739,6 +740,7 @@ questions:
     call_sets:
       - [{tool: search_movements, arguments: {text: '.*(assura|krankenkasse|prämie).*', date_from: 2026-01-01}}]
       - [{tool: sum_by_month, arguments: {text: '.*(assura|krankenkasse|prämie).*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: '2026-01-01'}}]
     example: [{tool: search_movements, arguments: {text: [Assura], date_from: 2026-01-01, date_to: 2026-11-27}}]
     figures:
       - {name: paid, source: ledger, text: [Assura], date_from: 2026-01-01, date_to: 2026-11-27}
@@ -905,6 +907,7 @@ questions:
     call_sets:
       - [{tool: search_movements, arguments: {text: '.*simone.*', date_from: 2026-01-01}}]
       - [{tool: sum_by_month, arguments: {text: '.*simone.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: '2026-01-01'}}]
     example: [{tool: search_movements, arguments: {text: [Simone Baumann], date_from: 2026-01-01, date_to: 2026-11-27}}]
     figures:
       - {name: received, source: bookings, measure: in, text: [Simone Baumann], date_from: 2026-01-01, date_to: 2026-11-27}
@@ -939,6 +942,7 @@ questions:
     call_sets:
       - [{tool: search_movements, arguments: {text: '.*(helsana|krankenkasse|versicherung).*', date_from: 2026-01-01}}]
       - [{tool: sum_by_month, arguments: {text: '.*(helsana|krankenkasse|versicherung).*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: '2026-01-01'}}]
     example: [{tool: search_movements, arguments: {text: [Helsana], date_from: 2026-01-01, date_to: 2026-11-27}}]
     figures:
       - {name: paid, source: ledger, text: [Helsana], date_from: 2026-01-01, date_to: 2026-11-27}
