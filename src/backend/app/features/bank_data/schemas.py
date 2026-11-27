@@ -1,8 +1,8 @@
 from datetime import date
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
 
 from app.core.prompts import load_prompts
 
@@ -32,6 +32,17 @@ class Period(Args):
     date_to: date | None = Field(
         default=None, serialization_alias="to", description=PROMPTS["date_to"]
     )
+
+    @model_validator(mode="after")
+    def _in_order(self) -> Self:
+        # The bank answers a period that ends before it starts with no rows, which reads as "none".
+        if (
+            self.date_from is not None
+            and self.date_to is not None
+            and self.date_from > self.date_to
+        ):
+            raise ValueError("date_from is after date_to. The period starts on date_from.")
+        return self
 
 
 class BalancePreviewArgs(Args):

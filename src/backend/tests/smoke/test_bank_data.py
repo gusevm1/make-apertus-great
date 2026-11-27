@@ -77,6 +77,20 @@ async def test_an_argument_the_tool_does_not_have_is_an_error_not_a_dropped_filt
     assert len(BANKING_QUERIES) == asked_before
 
 
+async def test_a_period_that_ends_before_it_starts_is_an_error_not_an_empty_month(
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus
+) -> None:
+    asked_before = len(BANKING_QUERIES)
+    apertus.decisions = [
+        _decision(tool="list_bookings", date_from="2026-10-01", date_to="2026-09-30")
+    ]
+
+    call = await _ask(client=client, session=session)
+
+    assert "date_from is after date_to" in call["error"]
+    assert len(BANKING_QUERIES) == asked_before
+
+
 def test_no_tool_changes_the_bank() -> None:
     assert all(read.name.startswith(("get_", "list_")) for read in READS)
     assert not any("admin" in read.path or "auth" in read.path for read in READS)
