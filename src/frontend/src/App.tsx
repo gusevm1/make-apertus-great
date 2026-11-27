@@ -112,6 +112,7 @@ function Chat({ context }: { context: HostContext }) {
     setAttached([]);
     setPending(content);
     setLoadError(null);
+    let createdId: string | null = null;
     try {
       let id = conversationId;
       if (id === null) {
@@ -124,6 +125,7 @@ function Chat({ context }: { context: HostContext }) {
         );
         setConversations((current) => [created, ...current]);
         id = created.id;
+        createdId = id;
         setConversationId(id);
       }
       const path = `/api/conversations/${id}`;
@@ -133,6 +135,7 @@ function Chat({ context }: { context: HostContext }) {
         page: pageOf(context),
       });
       if (reply === null) {
+        if (createdId !== null) await discardEmptyChat(createdId);
         restoreQuestion(content, documents);
         return;
       }
@@ -145,10 +148,25 @@ function Chat({ context }: { context: HostContext }) {
       stream.reset();
     } catch (error) {
       setLoadError(messageOf(error));
+      if (createdId !== null) await discardEmptyChat(createdId);
       restoreQuestion(content, documents);
     } finally {
       setPending(null);
     }
+  }
+
+  // Drops a chat a failed first question left empty; a reply stored before the drop keeps it.
+  async function discardEmptyChat(id: string) {
+    const path = `/api/conversations/${id}`;
+    try {
+      const stored = await api<Message[]>(`${path}/messages`, token);
+      if (stored.length > 0) return;
+      await api(path, token, { method: "DELETE" });
+    } catch {
+      return;
+    }
+    setConversations((current) => current.filter((other) => other.id !== id));
+    setConversationId((current) => (current === id ? null : current));
   }
 
   // Puts a failed question back, unless the customer has typed or dictated a new one meanwhile.
