@@ -1,6 +1,5 @@
 import asyncio
 from collections.abc import AsyncIterator
-from contextlib import aclosing
 from dataclasses import replace
 from typing import Any, cast
 from uuid import UUID
@@ -226,13 +225,12 @@ async def test_arguments_of_a_call_that_is_not_editable_cannot_be_changed(
         events = service.stream_answer(
             conversation_id=conversation.id, message_id=message.id, messages=CHAT
         )
-        # The fake has no stream for the answer, so the turn ends with the call.
-        async with aclosing(events):
-            async for event in events:
-                if isinstance(event, ToolCallEvent):
-                    editable.append(event.is_editable)
-                if isinstance(event, ToolResultEvent):
-                    break
+        async for event in events:
+            if isinstance(event, ToolCallEvent):
+                editable.append(event.is_editable)
+            # The fake has no stream for the answer, so the turn ends with the call.
+            if isinstance(event, ToolResultEvent):
+                break
         return editable
 
     async with asyncio.timeout(5):

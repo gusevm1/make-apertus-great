@@ -49,7 +49,7 @@ async def _answer(
     client: httpx2.AsyncClient,
     searxng: FakeSearxng,
     is_allowed: bool,
-    arguments: dict[str, object] | None = None,
+    arguments: dict[str, str] | None = None,
 ) -> httpx2.Response:
     """Answers the search that waits, after checking that nothing was sent yet."""
     conversation_id, tool_call_id = await _waiting_call()
