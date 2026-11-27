@@ -17,7 +17,7 @@ Run `.claude/skills/land-card/gates.sh`. Fix failures before reviewing; there's 
 
 Start a subagent with only this context. Replace `<base>` with the branch the PR targets, for example `origin/main`. Don't pass your reasoning or a summary of what you intended; the reviewer judges the code, not your intent.
 
-> Review this diff for a hackathon project. Read `CLAUDE.md`, `docs/demo-path.md` (if it exists) and `.claude/skills/hackathon-review/checklist.md`, then review the output of `git diff <base>...HEAD` (plus uncommitted changes from `git diff`) against the checklist. Report findings in the format the checklist specifies. Only report problems inside the diff.
+> Review this diff for a hackathon project. Read `CLAUDE.md`, the body of issue #47 (`gh issue view 47`, the decisions that bind more than one card), `docs/demo-path.md` (if it exists) and `.claude/skills/hackathon-review/checklist.md`, then review the output of `git diff <base>...HEAD` (plus uncommitted changes from `git diff`) against the checklist. Report findings in the format the checklist specifies. Only report problems inside the diff.
 
 ## 3. Act on the findings
 

@@ -9,14 +9,14 @@ An agent that picks up a card can't ask anyone what was meant. So a card is read
 
 ## 1. Read
 
-`python3 .claude/skills/scrum-board/board.py show <n>` (or take the idea you were given), then `docs/demo-path.md` and the part of the code it touches. Read the code: most bad cards are wrong about what already exists.
+`python3 .claude/skills/scrum-board/board.py show <n>` (or take the idea you were given), then `docs/demo-path.md`, the decisions list (`gh issue view 47`) and the part of the code it touches. Read the code: most bad cards are wrong about what already exists.
 
 ## 2. Judge
 
 - **Ready:** the acceptance criteria are checkable, it fits one sprint (about 3 hours for one agent, review included), and nothing in it needs a human decision.
 - **Needs rework:** the intent is clear but the criteria are vague, missing or not checkable. Rewrite it.
 - **Too large:** it won't fit one sprint. Split it into cards that each work end to end and say which comes first (`after #<n>`).
-- **Needs the PO:** it depends on a choice only a human can make (scope, wording, which data, what the demo shows). Ask; don't guess.
+- **Needs the PO:** it depends on a choice only a human can make (scope, wording, which data, what the demo shows), or it contradicts a decision in #47. Ask; don't guess. For a contradiction, name the line of #47 and ask whether the card or the decision changes.
 
 A card that serves no step of the demo path is fine, but say so. The PO should know what they are spending a sprint on.
 

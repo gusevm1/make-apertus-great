@@ -96,7 +96,7 @@ after #<n>"
 - Two cards that change the same lines get an `after #<n>` between them.
 - Promote with `board move <n> ready` only what the run issue covers. That scope is the humans' decision, already taken. Anything else stays in Backlog for them.
 - Read the acceptance criteria before you promote a card, your own included. A card that leaves a decision to a human, or holds a criterion no agent can check (such as a pass rate that changes from run to run), stays in Backlog: its agent would block it within minutes.
-- A decision from a human that answers a Blocked card goes on the card with `board answer <n> "<the decision>"`. The card is then Ready for whoever is free.
+- A decision from a human that answers a Blocked card goes on the card with `board answer <n> "<the decision>"`. The card is then Ready for whoever is free. When the answer binds more than that card, also add it to #47 as `scrum-board` says under "Decisions".
 
 ## Several runs on one board
 

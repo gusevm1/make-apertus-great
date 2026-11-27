@@ -7,6 +7,7 @@ Each item says whether it's a **blocker** (must be fixed) or a **note** (worth m
 ## Scope (check first)
 
 - **Blocker:** changes unrelated to the task: drive-by refactors, "while I was at it" edits, a second feature. List the unrelated files.
+- **Blocker:** the diff breaks a decision listed in issue #47 and the PR body doesn't say so with the reason. Name the line of #47.
 - Litmus test for every finding: if the issue was already true on `main`, it's out of scope.
 
 ## Tests
