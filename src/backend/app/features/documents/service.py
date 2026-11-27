@@ -1,4 +1,5 @@
 import re
+import time
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -17,6 +18,7 @@ from app.features.documents.prompts import (
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.schemas import (
     DESCRIBE_MAX_CHARS,
+    DESCRIBE_TIMEOUT_SECONDS,
     DOCUMENT_MAX_BYTES,
     DOCUMENT_TOO_LARGE_MESSAGE,
     FIELD_NAMES,
@@ -97,16 +99,24 @@ class DocumentService:
     async def _describe(self, markdown: str) -> dict[str, Any]:
         text = markdown[:DESCRIBE_MAX_CHARS]
         messages = describe_prompt(markdown=text)
+        started = time.perf_counter()
         try:
             result = await self.apertus.structured(
                 messages=messages,
                 schema=DocumentDescription,
                 model=Model.SMART,
                 purpose="describe_document",
+                timeout_seconds=DESCRIBE_TIMEOUT_SECONDS,
             )
-        except UpstreamError:
-            # The upload stands without a description.
-            return {}
+        except UpstreamError as error:
+            # The upload stands without a description; its provenance says why.
+            check = Check(name="described", passed=False, detail=str(error))
+            provenance = Provenance(
+                model=self.apertus.model_name(model=Model.SMART),
+                latency_ms=round((time.perf_counter() - started) * 1000),
+                checks=[check],
+            )
+            return {"provenance": provenance.model_dump()}
         description = result.content
         fields, failures = checked_fields(description=description, text=text)
         latency_ms = result.latency_ms
@@ -145,6 +155,7 @@ class DocumentService:
                 schema=DocumentDescription,
                 model=Model.SMART,
                 purpose="describe_document_correction",
+                timeout_seconds=DESCRIBE_TIMEOUT_SECONDS,
             )
         except UpstreamError:
             return [], failures, 0

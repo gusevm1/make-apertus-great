@@ -12,7 +12,12 @@ from app.clients.banking import BankingClient
 from app.core.auth import owner_id
 from app.core.config import get_settings
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.schemas import Document, DocumentDescription, ResponseDocument
+from app.features.documents.schemas import (
+    DESCRIBE_TIMEOUT_SECONDS,
+    Document,
+    DocumentDescription,
+    ResponseDocument,
+)
 from app.features.documents.service import DocumentService
 from app.main import app
 from tests.conftest import (
@@ -70,11 +75,13 @@ class ScriptedApertus:
     status: int = 200
     requests: list[dict[str, Any]] = field(default_factory=list)
     in_transaction: list[bool] = field(default_factory=list)
+    read_timeouts: list[float] = field(default_factory=list)
 
     def client(self) -> ApertusClient:
         def handle(request: httpx2.Request) -> httpx2.Response:
             self.requests.append(json.loads(request.content))
             self.in_transaction.append(self.session.in_transaction())
+            self.read_timeouts.append(request.extensions["timeout"]["read"])
             if self.status != 200:
                 return httpx2.Response(self.status, json={"error": {"message": "fake failure"}})
             message = {"role": "assistant", "content": self.answers.pop(0)}
@@ -122,6 +129,29 @@ async def test_a_payslip_is_described_with_its_fields_and_passages(session: Asyn
     ]
     assert len(apertus.requests) == 1
     assert apertus.in_transaction == [False]
+    assert apertus.read_timeouts == [DESCRIBE_TIMEOUT_SECONDS]
+
+
+async def test_a_description_invalid_twice_names_its_error_in_the_provenance(
+    session: AsyncSession,
+) -> None:
+    unknown_kind = json.dumps({"kind": "letter", "summary": "Ein Brief."})
+    apertus = ScriptedApertus(session=session, answers=[unknown_kind, unknown_kind])
+
+    document = await _upload(session=session, apertus=apertus)
+
+    assert document.kind is None
+    assert document.provenance is not None
+    assert document.provenance.model == "fake-smart"
+    [check] = document.provenance.checks
+    assert check.name == "described"
+    assert check.passed is False
+    assert check.detail is not None
+    assert check.detail.startswith(
+        "Model returned invalid DocumentDescription twice, last: kind: Input should be"
+    )
+    assert "letter" not in check.detail
+    assert len(apertus.requests) == 2
 
 
 async def test_a_field_not_in_the_text_is_asked_for_once_and_then_dropped(
@@ -208,7 +238,9 @@ async def test_an_upload_stands_without_a_description_when_apertus_fails(
     assert document["kind"] is None
     assert document["summary"] is None
     assert document["fields"] == []
-    assert document["provenance"] is None
+    assert document["provenance"]["checks"] == [
+        {"name": "described", "passed": False, "detail": "Apertus returned 500"}
+    ]
     assert (await client.get("/api/documents")).json() == [document]
 
 
