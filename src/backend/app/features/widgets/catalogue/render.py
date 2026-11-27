@@ -36,6 +36,7 @@ from app.features.widgets.catalogue.values import (
     booking_ids,
     display,
     figure,
+    is_date,
     is_number,
     last_field,
     rows,
@@ -125,10 +126,8 @@ def _view(
         return {"type": node.type, "stats": stats}
     if isinstance(node, Table):
         return _table(node=node, data=data)
-    if isinstance(node, ItemList):
-        return _list(node=node, data=data)
-    if isinstance(node, Timeline):
-        return _timeline(node=node, data=data)
+    if isinstance(node, ItemList | Timeline):
+        return _entries(node=node, data=data)
     if isinstance(node, Progress):
         return _progress(node=node, data=data)
     if isinstance(node, Callout):
@@ -225,43 +224,25 @@ def _cut_note(count: int) -> str | None:
     return None if count <= TABLE_ROWS else f"First {TABLE_ROWS} of {count} rows"
 
 
-def _list(node: ItemList, data: dict[str, Any]) -> dict[str, Any]:
-    fields = [node.label, node.value] + ([node.detail] if node.detail is not None else [])
-    found = rows(path=node.rows, data=data, fields=fields)
-    items = [
-        _row(path=f"{node.rows}[{index}]", row=row)
-        | {
-            "label": display(field=node.label, value=row[node.label]),
-            "value": display(field=node.value, value=row[node.value]),
-            "detail": None
-            if node.detail is None
-            else display(field=node.detail, value=row[node.detail]),
-        }
-        for index, row in enumerate(found[:TABLE_ROWS])
-    ]
-    return {
-        "type": node.type,
-        "title": node.title,
-        "path": node.rows,
-        "entries": items,
-        "cut_note": _cut_note(count=len(found)),
-    }
-
-
-def _timeline(node: Timeline, data: dict[str, Any]) -> dict[str, Any]:
-    fields = [node.date, node.label, node.value] + (
-        [node.detail] if node.detail is not None else []
+def _entries(node: ItemList | Timeline, data: dict[str, Any]) -> dict[str, Any]:
+    dated = isinstance(node, Timeline)
+    fields = (
+        ([node.date] if isinstance(node, Timeline) else [])
+        + [node.label, node.value]
+        + ([node.detail] if node.detail is not None else [])
     )
     found = rows(path=node.rows, data=data, fields=fields)
+    if isinstance(node, Timeline):
+        _check_dates(node=node, found=found)
     entries = [
         _row(path=f"{node.rows}[{index}]", row=row)
         | {
-            "date": display(field=node.date, value=row[node.date]),
             "label": display(field=node.label, value=row[node.label]),
             "value": display(field=node.value, value=row[node.value]),
             "detail": None
             if node.detail is None
             else display(field=node.detail, value=row[node.detail]),
+            "date": display(field=fields[0], value=row[fields[0]]) if dated else None,
         }
         for index, row in enumerate(found[:TABLE_ROWS])
     ]
@@ -272,6 +253,21 @@ def _timeline(node: Timeline, data: dict[str, Any]) -> dict[str, Any]:
         "entries": entries,
         "cut_note": _cut_note(count=len(found)),
     }
+
+
+def _check_dates(node: Timeline, found: list[dict[str, Any]]) -> None:
+    # A timeline shows its rows in DATA's order; it doesn't sort them, so they must be in order.
+    previous = ""
+    for index, row in enumerate(found):
+        value = row[node.date]
+        if not is_date(value=value):
+            raise BadRequestError(f"{node.rows}[{index}].{node.date} is not a date: {value!r}")
+        if value < previous:
+            raise BadRequestError(
+                f"{node.rows}[{index}].{node.date} comes before the row above it: a timeline "
+                "needs its rows in date order"
+            )
+        previous = value
 
 
 def _progress(node: Progress, data: dict[str, Any]) -> dict[str, Any]:

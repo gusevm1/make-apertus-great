@@ -57,7 +57,7 @@ progress:
   example: {"type": "progress", "label": "Japan trip 2027", "value": "goals[0].saved_chf", "goal": "goals[0].goal_chf", "goal_label": "Goal"}
 callout:
   description: A short note in words, such as what stands out; it holds no figures. `tone` is warning for something to watch.
-  example: {"type": "callout", "text": "Rent and taxes are the largest payments this quarter.", "tone": "info"}
+  example: {"type": "callout", "text": "These figures cover card purchases by purchase date.", "tone": "info"}
 stack:
   description: Components one below the other.
   example: {"type": "stack", "children": [{"type": "kpi", "label": "Total", "value": "months_total_chf"}, {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf"}]}

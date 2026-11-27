@@ -135,31 +135,12 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
                 "total": "payees_total_chf",
             },
         },
-        "progress": {
-            "title": "Savings goal",
-            "body": {
-                "type": "stack",
-                "children": [
-                    {
-                        "type": "progress",
-                        "label": data["goals"][0]["name"],
-                        "value": "goals[0].saved_chf",
-                        "goal": "goals[0].goal_chf",
-                        "goal_label": "Goal",
-                    },
-                    {
-                        "type": "callout",
-                        "text": "The long-term savings account already holds more than the trip.",
-                    },
-                ],
-            },
-        },
         "callout": {
             "title": "Note",
             "body": {
                 "type": "callout",
-                "title": "Large payments ahead",
-                "text": "Rent and the card bill fall due in the same week.",
+                "title": "Before you pay",
+                "text": "A card bill stays provisional while its billing period is open.",
                 "tone": "warning",
             },
         },
@@ -185,6 +166,26 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
             },
         },
     }
+    if len(data["goals"]) > 0:
+        raw["progress"] = {
+            "title": "Savings goal",
+            "body": {
+                "type": "stack",
+                "children": [
+                    {
+                        "type": "progress",
+                        "label": data["goals"][0]["name"],
+                        "value": "goals[0].saved_chf",
+                        "goal": "goals[0].goal_chf",
+                        "goal_label": "Goal",
+                    },
+                    {
+                        "type": "callout",
+                        "text": "The goal is the savings goal the account has in the e-banking.",
+                    },
+                ],
+            },
+        }
     return {name: WidgetSpec.model_validate(spec) for name, spec in raw.items()}
 
 
@@ -204,6 +205,10 @@ def write_gallery(data: dict[str, Any]) -> Path:
         )
         sections.append(
             f'<section><h2>{html.escape(name)}</h2><div class="frames">{frames}</div></section>'
+        )
+    if len(data["goals"]) == 0:
+        sections.append(
+            "<section><h2>progress</h2><p>Left out: DATA holds no savings goal.</p></section>"
         )
     page = (
         '<!doctype html><meta charset="utf-8"><title>Widget catalogue</title><style>'

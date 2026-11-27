@@ -29,7 +29,7 @@ TEXT = "#12202a"
 MUTED = "#5b6870"
 GRID = "#e6e8e8"
 SERIES = [ACCENT, MUTED, "#9cc2be", "#7f9fb0", "#c2c8c8"]
-# Donut slices in order; past the ninth the colours repeat.
+# Donut slices in order; a donut has at most one part per colour.
 SLICES = [
     ACCENT,
     ACCENT_MID,
@@ -78,6 +78,10 @@ def chart_spec(component: Chart, data: dict[str, Any], live: bool) -> dict[str, 
     x_field, y_field, series_field = _fields(component=component)
     fields = [x_field, y_field] + ([series_field] if series_field is not None else [])
     found = rows(path=component.data, data=data, fields=fields)
+    if isinstance(component, Donut) and len(found) > len(SLICES):
+        raise BadRequestError(
+            f"{component.data} has {len(found)} parts; a donut shows at most {len(SLICES)}"
+        )
     series = [None if series_field is None else str(row[series_field]) for row in found]
     seen: set[tuple[str | None, str]] = set()
     for index, row in enumerate(found):
@@ -134,11 +138,10 @@ def chart_spec(component: Chart, data: dict[str, Any], live: bool) -> dict[str, 
 
 
 def slice_colour(index: int) -> str:
-    return SLICES[index % len(SLICES)]
+    return SLICES[index]
 
 
 def _fields(component: Chart) -> tuple[str, str, str | None]:
-    """The chart's label, value and series fields."""
     if isinstance(component, Donut):
         return component.label, component.value, None
     if isinstance(component, BarChart):

@@ -277,6 +277,22 @@ def test_progress_draws_a_capped_bar_and_writes_no_share() -> None:
         render(spec=spec(body=BODIES["progress"]), data=zero, form="static")
 
 
+def test_a_donut_shows_at_most_one_part_per_colour() -> None:
+    months = [{"label": f"2026-{index:02d}", "total_chf": 1.0} for index in range(1, 11)]
+    body = {"type": "donut", "data": "months", "label": "label", "value": "total_chf"}
+    with pytest.raises(BadRequestError, match="months has 10 parts; a donut shows at most 9"):
+        render(spec=spec(body=body), data={"months": months}, form="static")
+
+
+def test_a_timeline_needs_dates_in_order() -> None:
+    swapped = {**DATA, "payments": DATA["payments"][::-1]}
+    with pytest.raises(BadRequestError, match=r"payments\[1\].due_date comes before the row above"):
+        render(spec=spec(body=BODIES["timeline"]), data=swapped, form="static")
+    undated = {**DATA, "payments": [{**DATA["payments"][0], "due_date": "soon"}]}
+    with pytest.raises(BadRequestError, match=r"payments\[0\].due_date is not a date"):
+        render(spec=spec(body=BODIES["timeline"]), data=undated, form="static")
+
+
 def test_a_comparison_needs_its_period_field() -> None:
     with pytest.raises(ValidationError):
         spec(body={key: value for key, value in BODIES["comparison"].items() if key != "series"})
@@ -395,7 +411,7 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
             BODIES[name]
             for name in ("kpi", "stat_row", "table", "list", "timeline", "progress", "callout")
         ]
-        + [{"type": "stack", "children": [BODIES[name] for name in CHARTS]}],
+        + [{"type": "stack", "children": [BODIES[name] for name in (*CHARTS, "grid")]}],
     }
     page = render(spec=spec(body=body), data=DATA, form=form)
     probe = (

@@ -53,6 +53,10 @@ def is_number(value: Any) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
 
 
+def is_date(value: Any) -> bool:
+    return isinstance(value, str) and _DATE.match(value) is not None
+
+
 def figure(path: str, data: dict[str, Any]) -> int | float:
     """The number at a path; a figure can't be a text, a list or an object."""
     value = resolve(path=path, data=data)
