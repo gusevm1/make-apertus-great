@@ -20,14 +20,16 @@ _MONTHS = (
     "Jan(?:uary|uar)?|Feb(?:ruary|ruar)?|M(?:ar(?:ch)?|\u00e4rz|aerz)|Apr(?:il)?|Ma[iy]|Jun[ei]?"
     "|Jul[iy]?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|O[ck]t(?:ober)?|Nov(?:ember)?|De[cz](?:ember)?"
 )
+# The model also writes the hyphens of a date as the non-breaking or other Unicode hyphens.
+_HYPHEN = "[-\u2010\u2011\u2012\u2013]"
 # Dates are no figures: 2026-10-31, 31.10.2026, 31 October, 31. Oktober, October 31, October 2026.
 _DATES = re.compile(
-    rf"\b\d{{4}}-\d{{2}}-\d{{2}}\b|\b\d{{1,2}}\.\d{{1,2}}\.\d{{2,4}}\b"
+    rf"\b\d{{4}}{_HYPHEN}\d{{2}}{_HYPHEN}\d{{2}}\b|\b\d{{1,2}}\.\d{{1,2}}\.\d{{2,4}}\b"
     rf"|\b\d{{1,2}}\.?\s+(?:{_MONTHS})\b|\b(?:{_MONTHS})\b\.?\s+(?:\d{{4}}|\d{{1,2}})\b"
 )
 # Only dates with a day: 2026-12-15, 15.12.2026, 15 December, 15. Dezember, December 15.
 _DAY_DATES = re.compile(
-    rf"\b(?P<iso_year>\d{{4}})-(?P<iso_month>\d{{2}})-(?P<iso_day>\d{{2}})(?!\d)"
+    rf"\b(?P<iso_year>\d{{4}}){_HYPHEN}(?P<iso_month>\d{{2}}){_HYPHEN}(?P<iso_day>\d{{2}})(?!\d)"
     rf"|\b(?P<dot_day>\d{{1,2}})\.(?P<dot_month>\d{{1,2}})\.(?P<dot_year>\d{{2,4}})\b"
     rf"|\b(?P<day>\d{{1,2}})\.?\s+(?P<month>{_MONTHS})\b(?:\s+(?P<year>\d{{4}})\b)?"
     rf"|\b(?P<month_first>{_MONTHS})\.?\s+(?P<day_after>\d{{1,2}})\b(?:,?\s+(?P<year_after>\d{{4}})\b)?"

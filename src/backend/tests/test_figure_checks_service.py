@@ -196,3 +196,13 @@ def test_lines_without_a_date_add_no_failure() -> None:
 )
 def test_an_answer_without_a_line_of_one_amount_and_one_date_gets_no_check(answer: str) -> None:
     assert check_dates(answer=answer, results=[{"rows": [SWISSCOM]}], texts=[]) is None
+
+
+def test_a_date_written_with_non_breaking_hyphens_is_read() -> None:
+    answer = "- **Swisscom**: CHF 94.00 on 2026‑12‑15"
+
+    dates = check_dates(answer=answer, results=[{"rows": [SWISSCOM]}], texts=[])
+    figures = check(answer=answer, sources=[json.dumps(SWISSCOM)])
+
+    assert dates is not None and not dates.passed
+    assert figures is not None and figures.detail == "1 of 1 found"
