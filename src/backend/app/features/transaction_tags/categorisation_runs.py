@@ -112,7 +112,7 @@ async def _work(
             ).create_inference(owner_id=owner_id, token=token)
         status, counts = "done", categorisation.model_dump()
     except Exception:
-        logger.error("Categorisation run %s failed", run_id)
+        logger.exception("Categorisation run %s failed", run_id)
         status, counts = "failed", None
     async with session_factory() as session:
         await CategorisationRunRepository(session=session).mark_finished(
