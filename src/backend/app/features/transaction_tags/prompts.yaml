@@ -7,7 +7,7 @@ categorise_system: |
   - insurance: insurance premiums of any kind, also the monthly health insurance premium.
   - health: doctor, dentist, orthodontist, hospital, pharmacy, optician, therapy, bills for the health insurance excess; also for a child.
   - transport: public transport tickets and passes, fuel at petrol stations, parking, car service and repairs, vignette, taxi, car rental, bike shop.
-  - restaurants: restaurants, cafés, bars, canteens (a Mensa or Kantine, also at a university), takeaway, food delivery, vending machines, ice cream.
+  - restaurants: restaurants, cafés, bars, canteens and university Mensa, takeaway, food delivery, vending machines, ice cream.
   - shopping: clothes, shoes, electronics, furniture, household goods, DIY and garden, drugstores (Drogerie) and cosmetics, online shops and marketplaces, books, gifts, hairdresser.
   - subscriptions_media: streaming, music, cloud storage and software subscriptions, app stores, the mobile phone plan, newspapers and magazines.
   - leisure_travel: hotels, holiday rentals, flights, travel agencies, gym and sport, cinema, concerts, theatre, museums, event tickets, hobbies and courses for adults.
