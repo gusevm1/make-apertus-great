@@ -22,6 +22,8 @@ CHROME = os.environ.get(
 )
 WIDTHS = (360, 440, 1000)
 CHARTS = ("bar_chart", "line_chart", "area_chart", "comparison", "donut")
+# Sparklines in BODIES: the kpi's and the second stat's.
+TRENDS = 2
 DATA: dict[str, Any] = {
     "months": [
         {"label": "2026-09", "total_chf": 17273.6, "booking_ids": ["BK-01", "BK-02"]},
@@ -43,6 +45,8 @@ DATA: dict[str, Any] = {
     ],
     "payments_total_chf": 2919.0,
     "months_total_chf": 27872.37,
+    "months_change_chf": -6674.83,
+    "budget_change_chf": -120.5,
     "goals": [{"name": "Japan 2027", "saved_chf": 9000.0, "goal_chf": 12000.0}],
 }
 BODIES: dict[str, dict[str, Any]] = {
@@ -52,12 +56,21 @@ BODIES: dict[str, dict[str, Any]] = {
         "value": "months[1].total_chf",
         "compare": "months[0].total_chf",
         "compare_label": "September",
+        "trend": {"data": "months", "x": "label", "y": "total_chf"},
+        "change": "months_change_chf",
+        "good_when": "down",
     },
     "stat_row": {
         "type": "stat_row",
         "stats": [
             {"label": "September", "value": "months[0].total_chf"},
-            {"label": "October", "value": "months[1].total_chf"},
+            {
+                "label": "October",
+                "value": "months[1].total_chf",
+                "trend": {"data": "months", "x": "label", "y": "total_chf"},
+                "change": "months_change_chf",
+                "good_when": "down",
+            },
         ],
     },
     "table": {
@@ -172,6 +185,45 @@ def test_a_closing_script_in_a_title_and_a_quote_in_highlight_render_safely() ->
         assert "&lt;/script&gt;&lt;script&gt;alert(1)" in page
     live = render(spec=hostile, data=DATA, form="live")
     assert 'datum.key === \\"Oct \\\\\\"26\\"' in live
+
+
+@pytest.mark.parametrize(("good_when", "tone"), [("down", "change good"), ("up", "change bad")])
+def test_a_change_is_coloured_by_whether_it_goes_the_good_way(good_when: str, tone: str) -> None:
+    body = {
+        "type": "kpi",
+        "label": "Groceries",
+        "value": "months[1].total_chf",
+        "change": "budget_change_chf",
+        "good_when": good_when,
+    }
+    page = render(spec=spec(body=body), data=DATA, form="static")
+    change = re.search(r'<span class="change [^>]*>.*?</span></span>', page)
+    assert change is not None
+    assert f'class="{tone}"' in change.group(0)
+    assert "▼</span> CHF 120.50 less" in change.group(0)
+
+
+def test_no_change_is_neutral_and_a_change_needs_a_number_and_a_way() -> None:
+    body = {**BODIES["kpi"], "change": "zero_chf"}
+    page = render(spec=spec(body=body), data={**DATA, "zero_chf": 0}, form="static")
+    assert 'class="change neutral"' in page
+    assert "CHF 0.00 no change" in page
+    with pytest.raises(ValidationError, match="good_when"):
+        spec(body={"type": "kpi", "label": "X", "value": "months[1].total_chf", "change": "x"})
+    with pytest.raises(BadRequestError, match="not a number"):
+        render(spec=spec(body={**BODIES["kpi"], "change": "goals"}), data=DATA, form="static")
+
+
+def test_a_trend_draws_a_sparkline_in_both_forms() -> None:
+    static = render(spec=spec(body=BODIES["kpi"]), data=DATA, form="static")
+    trend = re.search(r'<div class="trend" .*?</div></div>', static, re.DOTALL)
+    assert trend is not None
+    assert "<svg" in trend.group(0)
+    assert 'data-path="months"' in trend.group(0)
+    assert "BK-03" in trend.group(0)
+    live = render(spec=spec(body=BODIES["kpi"]), data=DATA, form="live")
+    assert '"id": "chart-1"' in live
+    assert 'class="chart-area trend-area" id="chart-1"></div>' in live
 
 
 def test_the_total_sits_under_its_amount_column() -> None:
@@ -320,7 +372,12 @@ def test_counts_and_years_keep_plain_digits_and_only_whole_dates_are_dates() -> 
 
 def test_the_prompt_names_the_size_limits() -> None:
     prompt = catalogue_prompt()
-    assert "stats (list of {label, value: path into DATA}, 2 to 4 items)" in prompt
+    assert (
+        "stats (list of {label, value: path into DATA, and optional trend, change and good_when "
+        "as in kpi}, 2 to 4 items)"
+    ) in prompt
+    assert "trend ({data: path into DATA, x and y: field names of its rows}, optional)" in prompt
+    assert "good_when (one of up, down, optional)" in prompt
     assert "columns (list of field names of the rows, 1 to 5 items)" in prompt
     assert "label (text, at most 80 characters)" in prompt
 
@@ -419,9 +476,9 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
         "var r=document.documentElement;return (r.scrollWidth > r.clientWidth + 1)"
         "+':'+document.querySelectorAll('.chart-area svg').length;"
     )
-    # Every chart drawn, by the browser (live) or as SVG from the server (static).
+    # Every chart and sparkline drawn, by the browser (live) or as SVG from the server (static).
     assert _at_widths(page=page, measure=measure) == sorted(
-        f"{w}:false:{len(CHARTS)}" for w in WIDTHS
+        f"{w}:false:{len(CHARTS) + TRENDS}" for w in WIDTHS
     )
 
 
@@ -646,6 +703,15 @@ def test_clicking_a_live_slice_or_comparison_bar_reports_its_row() -> None:
 def test_clicking_a_live_area_reports_only_its_points() -> None:
     targets = [_live_mark(kind="area"), _live_mark(kind="symbol")]
     assert _clicks(body=BODIES["area_chart"], targets=targets) == "years[3] "
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_clicking_a_sparkline_point_reports_its_row_in_both_forms() -> None:
+    kpi = BODIES["kpi"]
+    live = _clicks(body=kpi, targets=[_live_mark(kind="symbol")])
+    assert live == "months[1] BK-03"
+    first = "document.querySelector('.trend [aria-label$=\"(months[0])\"]')"
+    assert _clicks(body=kpi, targets=[first], form="static") == "months[0] BK-01+BK-02"
 
 
 @pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
