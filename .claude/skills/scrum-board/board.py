@@ -58,6 +58,8 @@ SHARED = (
     ".gitignore",
     "CLAUDE.md",
 )
+# A folder every card adds files to. A card owns its own test files, never the folder.
+TESTS = "src/backend/tests"
 # ponytail: silence on the card and its PR, not proof the agent is gone; land-card checks the claim again before it pushes
 STALE_MINUTES = 90
 CARD_TEMPLATE = (
@@ -586,9 +588,11 @@ def add_problem(args: argparse.Namespace) -> str | None:
     present = {heading.lower() for heading in headings}
     missing = [f"## {section}" for section in CARD_SECTIONS if section.lower() not in present]
     missing += [f"--{flag}" for flag in ("priority", "size") if getattr(args, flag) is None]
-    if len(missing) == 0:
-        return None
-    return f"board add needs: {', '.join(missing)}. Body template:\n\n{CARD_TEMPLATE}"
+    if len(missing) > 0:
+        return f"board add needs: {', '.join(missing)}. Body template:\n\n{CARD_TEMPLATE}"
+    if TESTS in owned_paths(body=args.body):
+        return f"Owns names all of {TESTS}/: name the card's own test files instead."
+    return None
 
 
 def cmd_add(args: argparse.Namespace) -> None:
@@ -961,6 +965,12 @@ def demo() -> None:
         "## What, ## Acceptance criteria, ## Owns, ## Check, ## Demo-path step, --size": (
             argparse.Namespace(title="x", body="## Why", priority="P1", size=None)
         ),
+        f"Owns names all of {TESTS}/": argparse.Namespace(
+            title="x",
+            body=full_body.replace("## Owns", "## Owns\n`src/backend/tests/`"),
+            priority="P1",
+            size="S",
+        ),
     }
     try:
         for expected, args in refusals.items():
@@ -972,7 +982,9 @@ def demo() -> None:
     finally:
         globals()["gh"], globals()["load_fields"] = real_gh, real_load_fields
     assert calls == [], calls
-    assert add_problem(args=argparse.Namespace(body=full_body, priority="P1", size="S")) is None
+    for owns in ("", "src/backend/tests/test_x.py", "src/backend/tests/smoke/"):
+        body = full_body.replace("## Owns", f"## Owns\n{owns}")
+        assert add_problem(args=argparse.Namespace(body=body, priority="P1", size="S")) is None
     print("board.py demo: all checks pass")
 
 
