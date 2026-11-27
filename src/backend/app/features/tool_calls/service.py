@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import ValidationError
+from pydantic_core import ErrorDetails
 
 from app.clients.apertus import ApertusClient, Model
 from app.clients.apertus import Message as LLMMessage
@@ -377,9 +378,16 @@ class ToolCallService:
 
 def _problems(exc: ValidationError) -> str:
     return "; ".join(
-        f"{'.'.join(str(part) for part in problem['loc'])}: {problem['msg']}"
+        f"{'.'.join(str(part) for part in problem['loc'])}: {_problem(problem=problem)}"
         for problem in exc.errors()
     )
+
+
+def _problem(problem: ErrorDetails) -> str:
+    # Pydantic's "Extra inputs are not permitted" made Apertus send the same argument again.
+    if problem["type"] == "extra_forbidden":
+        return "This tool has no such argument. Send the call again without it"
+    return problem["msg"]
 
 
 def _turn(conversation_id: UUID, call_id: UUID, calls: list[ToolCall]) -> Turn:

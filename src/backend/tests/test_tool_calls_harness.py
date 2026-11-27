@@ -159,6 +159,19 @@ async def test_a_tool_that_builds_on_the_turn_runs_again_once_the_figures_are_th
     ]
 
 
+async def test_an_unknown_argument_is_named_as_one_to_leave_out(session: AsyncSession) -> None:
+    extra = ToolRequest(reason="Because.", tool="collect", arguments={"group_by": "month"})
+
+    errors = await _errors(
+        session=session, decisions=[ToolDecision(plan="Collect.", calls=[extra])]
+    )
+
+    assert errors == [
+        "Invalid arguments. group_by: This tool has no such argument. "
+        "Send the call again without it"
+    ]
+
+
 async def test_unexpected_tool_errors_are_logged_and_hidden(
     session: AsyncSession, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
