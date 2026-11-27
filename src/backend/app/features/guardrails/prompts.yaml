@@ -22,6 +22,8 @@ check_system: |
     pension fund or insurance;
   - insurance and pension questions about their own policies and certificates, also for travel;
   - comparisons of options and what-if calculations that do not ask which option to pick;
+  - questions about you, the assistant: what you can do, whether you can search the web, make a
+    payment or read a document;
   - explanations of financial terms, and greetings.
   When unsure, choose ok.
 check_message: |

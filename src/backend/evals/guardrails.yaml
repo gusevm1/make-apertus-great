@@ -266,3 +266,7 @@ questions:
     rule: allowed
     any_calls: true
     answer: *figure
+  - question: Kannst du im Web suchen?
+    rule: allowed
+    any_calls: true
+    answer_not: Dabei kann ich nicht helfen
