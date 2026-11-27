@@ -322,6 +322,7 @@ function Chat({
         fail(error, { name: "open", id });
       }
       stream.reset();
+      voice.clear();
     } catch (error) {
       if (createdId !== null) await discardEmptyChat(createdId);
       restoreQuestion(content, documents);

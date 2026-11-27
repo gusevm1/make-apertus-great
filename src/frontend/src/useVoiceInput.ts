@@ -96,5 +96,11 @@ export function useVoiceInput({
     else void transcribe(wav);
   }
 
-  return { phase, failure, start, stop, retry };
+  /** Drops the note once something else the customer did has worked. */
+  function clear() {
+    setFailure(null);
+    failedRecording.current = null;
+  }
+
+  return { phase, failure, start, stop, retry, clear };
 }
