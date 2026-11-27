@@ -103,6 +103,7 @@ class FakeSearxng:
     requests: list[dict[str, str]] = field(default_factory=list)
     status: int = 200
     results: list[dict[str, Any]] = field(default_factory=list)
+    unresponsive_engines: list[list[str]] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -118,7 +119,8 @@ def searxng_client(searxng: FakeSearxng) -> SearxngClient:
         searxng.requests.append(dict(request.url.params))
         if searxng.status != 200:
             return httpx2.Response(searxng.status, text="fake failure")
-        return httpx2.Response(200, json={"query": "", "results": searxng.results})
+        body = {"results": searxng.results, "unresponsive_engines": searxng.unresponsive_engines}
+        return httpx2.Response(200, json=body)
 
     fake_http = httpx2.AsyncClient(transport=httpx2.MockTransport(handle))
     return SearxngClient(settings=get_settings(), http_client=fake_http)

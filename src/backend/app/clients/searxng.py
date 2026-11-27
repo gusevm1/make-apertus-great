@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 
 import httpx2
 from fastapi import Depends, Request
@@ -20,6 +20,8 @@ class SearxngResult(BaseModel):
 
 class SearxngSearch(BaseModel):
     results: list[SearxngResult]
+    # The search engines that did not answer, each with its reason.
+    unresponsive_engines: list[Any] = []
 
 
 class SearxngClient:
@@ -37,9 +39,13 @@ class SearxngClient:
         try:
             response = await self._http.get(self._url, params={"q": query, "format": "json"})
             response.raise_for_status()
-            return SearxngSearch.model_validate_json(response.content).results
+            search = SearxngSearch.model_validate_json(response.content)
         except (httpx2.HTTPError, ValidationError) as exc:
             raise UpstreamError(f"Web search failed: {type(exc).__name__}") from exc
+        # SearXNG answers 200 without a page when the search engines block it.
+        if len(search.results) == 0 and len(search.unresponsive_engines) > 0:
+            raise UpstreamError("Web search failed: the search engines did not answer")
+        return search.results
 
 
 def create_searxng_client(settings: Settings) -> SearxngClient | None:

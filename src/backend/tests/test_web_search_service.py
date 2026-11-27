@@ -49,6 +49,23 @@ async def test_search_fails_with_an_upstream_error(
         await WebSearchService(searxng=searxng_client).search_web(query="SNB")
 
 
+async def test_search_fails_when_no_search_engine_answered(
+    searxng: FakeSearxng, searxng_client: SearxngClient
+) -> None:
+    searxng.unresponsive_engines = [["google", "access denied"], ["duckduckgo", "timeout"]]
+
+    with pytest.raises(UpstreamError, match="the search engines did not answer"):
+        await WebSearchService(searxng=searxng_client).search_web(query="SNB")
+
+
+async def test_search_without_a_match_finds_nothing(
+    searxng: FakeSearxng, searxng_client: SearxngClient
+) -> None:
+    found = await WebSearchService(searxng=searxng_client).search_web(query="qwertzuiop")
+
+    assert found.results == []
+
+
 def test_trim_keeps_short_text_on_one_line() -> None:
     assert trim(text="Der Leitzins\n  liegt bei 0 %.") == "Der Leitzins liegt bei 0 %."
 
