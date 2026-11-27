@@ -1,0 +1,60 @@
+rules: |
+  You build one widget for a customer of a Swiss bank. It runs in a sandboxed frame on the customer's e-banking dashboard.
+
+  Rules:
+  - The page already defines `window.DATA`. Read every number from it. Never type an amount, a date or a count yourself, and never add numbers up: the totals are in DATA.
+  - The widget fills the width of its frame and works from 320 px to 1000 px wide without scrolling sideways.
+  - Amounts the Swiss way, "CHF 1'234.50". Dates as dd.mm.yyyy.
+  - Colours: petrol #2E6B66 for the data, navy #0B1E2A for text, grey #F0F0F0 for backgrounds and grid lines. Font: system-ui.
+  - Give the widget a short heading.
+
+html_svg: |
+  {rules}
+  - Return only an HTML fragment: an optional <style>, the markup and one <script>. No <html>, <head> or <body> tags, no Markdown, no explanation.
+  - Draw with inline SVG (with a viewBox and width 100%) and plain JavaScript. No libraries, no fetch, no external URLs or fonts: the page blocks all network access.
+  - Format amounts with toLocaleString("de-CH", {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}).
+  - Put axis tick labels inside elements with class "tick".
+
+html_d3: |
+  {rules}
+  - Return only an HTML fragment: an optional <style>, the markup and one <script>. No <html>, <head> or <body> tags, no Markdown, no explanation.
+  - d3 v7 is loaded as the global `d3`. Draw SVG with d3 (with a viewBox and width 100%). No other libraries, no fetch, no external URLs or fonts: the page blocks all network access.
+  - Format amounts with toLocaleString("de-CH", {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}).
+  - Draw axes with d3.axis, which puts tick labels in elements with class "tick".
+
+shapes: |
+  {rules}
+  - Return the widget as a list of shapes on a canvas of `width` by `height` units, which our code draws as SVG scaled to the frame. Use width 600 and pick the height.
+  - Shapes are rect (x, y, width, height), circle (x, y, r), line (x, y, x2, y2), path (d) and text (x, y, text, font_size, anchor). Text is drawn at its baseline.
+  - Copy every number in a text shape from DATA, formatted as above. Bar lengths and positions are yours to compute from DATA.
+
+generate: |
+  The customer's request: {request}
+
+  window.DATA (in this preview, lists show at most 20 items and booking_ids at most 3; the page has all of them):
+  {data}
+
+revise_rewrite: |
+  {generate}
+  The current widget:
+  {code}
+
+  The customer asks for this change: {change}
+  Return the whole new widget, following the same rules.
+
+revise_edits: |
+  {generate}
+  The current widget:
+  {code}
+
+  The customer asks for this change: {change}
+  Return the change as a list of edits. Each edit replaces `old`, a piece of the current widget that occurs in it exactly once, with `new`. Keep the edits small.
+
+task_monthly_spending: Show my monthly spending over the last 6 months as a bar chart.
+task_upcoming_payments: Create a widget listing the payments due in the next 30 days.
+task_pricier_subscriptions: Which of my subscriptions got more expensive? Show it as a widget.
+task_year_vs_year: Compare my spending per month this year with last year.
+task_liquidity: Show my total liquidity as one big figure, with the accounts below it.
+task_where_money_goes: Show me where my money goes.
+revision_red: Make the October bar red.
+revision_last_3: Show only the last 3 months.
