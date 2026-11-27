@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 
 const HEADING = /^#{1,6}\s+(.*)$/;
 const ITEM = /^(\s*)(?:[-*+]|(\d+)[.)])\s+(.*)$/;
+const FENCE = /^\s*```/;
 // Code, http(s) link, bold, italic. A link to any other scheme stays text.
 const INLINE =
   /`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*(.+?)\*\*|__(.+?)__|(?<![\w*])\*(?![\s*])(.+?)(?<![\s*])\*(?![\w*])|(?<!\w)_(?![\s_])(.+?)(?<![\s_])_(?!\w)/g;
@@ -18,6 +19,7 @@ function blocksOf(text: string): ReactNode[] {
   const blocks: ReactNode[] = [];
   let paragraph: string[] = [];
   let list: List | null = null;
+  let code: string[] | null = null;
 
   function flushParagraph() {
     if (paragraph.length === 0) return;
@@ -40,12 +42,32 @@ function blocksOf(text: string): ReactNode[] {
     list = null;
   }
 
+  function flushCode() {
+    if (code === null) return;
+    blocks.push(
+      <pre key={blocks.length}>
+        <code>{code.join("\n")}</code>
+      </pre>,
+    );
+    code = null;
+  }
+
   // ponytail: one level of nesting, deeper items join that level
   for (const raw of text.split("\n")) {
     const line = raw.trimEnd();
+    const isFence = FENCE.test(line);
+    if (code !== null) {
+      if (isFence) flushCode();
+      else code.push(line);
+      continue;
+    }
     const heading = HEADING.exec(line);
     const item = ITEM.exec(line);
-    if (line === "") {
+    if (isFence) {
+      flushParagraph();
+      flushList();
+      code = [];
+    } else if (line === "") {
       // A blank line between items keeps the list together.
       flushParagraph();
     } else if (heading !== null) {
@@ -79,6 +101,8 @@ function blocksOf(text: string): ReactNode[] {
   }
   flushParagraph();
   flushList();
+  // A fence still open while the answer streams shows what has arrived.
+  flushCode();
   return blocks;
 }
 

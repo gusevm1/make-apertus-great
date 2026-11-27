@@ -34,6 +34,24 @@ test("links only web addresses and shows where they go", () => {
   expect(html("[click](javascript:alert(1))")).not.toContain("<a");
 });
 
+test("shows a fenced block as text, HTML and markdown inside it untouched", () => {
+  expect(
+    html(
+      "Here:\n```html\n<script>alert(1)</script>\n  **not bold**\n```\nDone.",
+    ),
+  ).toBe(
+    '<div class="markdown"><p>Here:</p>' +
+      "<pre><code>&lt;script&gt;alert(1)&lt;/script&gt;\n  **not bold**</code></pre>" +
+      "<p>Done.</p></div>",
+  );
+});
+
+test("shows a fence that is still streaming as code so far", () => {
+  expect(html("```\nlet x = 1")).toBe(
+    '<div class="markdown"><pre><code>let x = 1</code></pre></div>',
+  );
+});
+
 test("nests indented items under their category, across blank lines", () => {
   const answer =
     "* **Accounts** (CHF 58,699.68)  \n  - Privatkonto: CHF 9,716.33  \n  - Sparkonto Steuern: CHF 4,638.04  \n\n* **Pension** (CHF 55,899.65)  \n  - Vorsorgekonto Säule 3a: CHF 55,899.65";
