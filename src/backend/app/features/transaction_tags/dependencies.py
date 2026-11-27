@@ -88,9 +88,14 @@ OwnedPersonalTagDep = Annotated[PersonalTag, Depends(get_owned_personal_tag)]
 
 
 def get_spending_service(
-    ledger: LedgerServiceDep, severities: SeverityServiceDep, personal: PersonalTagServiceDep
+    session: SessionDep, ledger: LedgerServiceDep, severities: SeverityServiceDep
 ) -> SpendingService:
-    return SpendingService(ledger=ledger, severities=severities, personal=personal)
+    return SpendingService(
+        ledger=ledger,
+        severities=severities,
+        personal=PersonalTagRepository(session=session),
+        assignments=PersonalTagAssignmentRepository(session=session),
+    )
 
 
 SpendingServiceDep = Annotated[SpendingService, Depends(get_spending_service)]

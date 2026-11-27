@@ -5,6 +5,7 @@ from uuid import UUID
 from app.core.prompts import load_prompts
 from app.core.tools import Tool
 from app.features.figure_checks.service import FigureCheckService
+from app.features.transaction_tags.prompts import uncertain_pointer_line
 from app.features.transaction_tags.schemas import SpendingSums, SumSpendingArgs
 from app.features.transaction_tags.spending_service import SpendingService
 
@@ -35,7 +36,7 @@ def get_tools(
         count = (
             sums.uncertain_count if sums in used else sum(figure.uncertain_count for figure in used)
         )
-        return PROMPTS[f"uncertain_pointer_{sums.language}"].format(count=count)
+        return uncertain_pointer_line(count=count, language=sums.language)
 
     return [
         Tool(

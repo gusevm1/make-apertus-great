@@ -126,3 +126,8 @@ def _assigned_row_line(ref: str, row: LedgerRow, category: str | None) -> str:
     return json.dumps(
         {key: value for key, value in fields.items() if value is not None}, ensure_ascii=False
     )
+
+
+def uncertain_pointer_line(count: int, language: str) -> str:
+    """The line under an answer whose figure holds `count` bookings of uncertain category."""
+    return PROMPTS[f"uncertain_pointer_{language}"].format(count=count)

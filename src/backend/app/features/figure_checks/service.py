@@ -108,6 +108,14 @@ class FigureCheckService:
             detail += "; not matched: " + " | ".join(missing[:NOT_FOUND_LISTED])
         return Check(name="dates_match", passed=not missing, detail=detail)
 
+    def has_figure(self, answer: str, value: Decimal) -> bool:
+        """Whether the answer writes this value, rounded as the answer rounds it."""
+        return any(
+            _found(figure=figure, values={value})
+            for figure in _figures(text=answer)
+            if not _is_count_or_year(figure=figure)
+        )
+
 
 # (year or None when not written, month, day)
 DayDate = tuple[int | None, int, int]
@@ -121,14 +129,6 @@ class _Row:
     @classmethod
     def of(cls, text: str) -> "_Row":
         return cls(values={f.value for f in _figures(text=text)}, dates=_day_dates(text=text))
-
-    def has_figure(self, answer: str, value: Decimal) -> bool:
-        """Whether the answer writes this value, rounded as the answer rounds it."""
-        return any(
-            _found(figure, values={value})
-            for figure in _figures(text=answer)
-            if not _is_count_or_year(figure)
-        )
 
 
 def _figures(text: str) -> list[Figure]:

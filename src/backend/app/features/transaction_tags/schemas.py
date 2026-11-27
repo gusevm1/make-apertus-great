@@ -366,7 +366,10 @@ class SumSpendingArgs(BaseModel):
     date_to: date | None = Field(default=None, description=PROMPTS["date_to"])
     category: Category | None = Field(default=None, description=PROMPTS["category"])
     personal_tag: str | None = Field(
-        default=None, min_length=1, description=PROMPTS["personal_tag"]
+        default=None,
+        min_length=1,
+        max_length=TAG_NAME_MAX_LENGTH,
+        description=PROMPTS["personal_tag"],
     )
     severity: Severity | None = Field(default=None, description=PROMPTS["severity"])
     language: AnswerLanguage = Field(default="de", description=PROMPTS["language"])

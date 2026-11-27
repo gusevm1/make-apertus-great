@@ -5,7 +5,10 @@ from uuid import UUID
 from app.core.errors import BadRequestError
 from app.features.ledger.schemas import LedgerRow
 from app.features.ledger.service import LedgerService
-from app.features.transaction_tags.personal_tag_service import PersonalTagService
+from app.features.transaction_tags.repository import (
+    PersonalTagAssignmentRepository,
+    PersonalTagRepository,
+)
 from app.features.transaction_tags.schemas import (
     NO_PERSONAL_TAG,
     NOT_CATEGORISED,
@@ -21,11 +24,16 @@ UNCERTAIN = {"low", None}
 
 class SpendingService:
     def __init__(
-        self, ledger: LedgerService, severities: SeverityService, personal: PersonalTagService
+        self,
+        ledger: LedgerService,
+        severities: SeverityService,
+        personal: PersonalTagRepository,
+        assignments: PersonalTagAssignmentRepository,
     ) -> None:
         self.ledger = ledger
         self.severities = severities
         self.personal = personal
+        self.assignments = assignments
 
     async def sum_spending(self, owner_id: UUID, token: str, args: SumSpendingArgs) -> SpendingSums:
         """Spending in a period per category, personal tag or severity, with its uncertain rows."""
@@ -62,7 +70,7 @@ class SpendingService:
                         ):
                             saved[name].append(row)
         names = sorted(
-            set(grouped) | set(saved), key=lambda name: _spent(rows=grouped[name]), reverse=True
+            set(grouped) | set(saved), key=lambda name: (-_spent(rows=grouped[name]), name)
         )
         groups = [
             SpendingGroup(
@@ -89,7 +97,7 @@ class SpendingService:
     ) -> dict[tuple[str, str], list[str]]:
         if args.group_by != "personal_tag" and args.personal_tag is None:
             return {}
-        tags = await self.personal.list_tags(owner_id=owner_id, token=token)
+        tags = await self.personal.list_for_owner(owner_id=owner_id)
         if args.personal_tag is not None and not any(
             tag.name.casefold() == args.personal_tag.casefold() for tag in tags
         ):
@@ -97,10 +105,10 @@ class SpendingService:
             raise BadRequestError(
                 f"The customer has no personal tag '{args.personal_tag}'. Their tags: {known}."
             )
+        name_by_id = {tag.id: tag.name for tag in tags}
         names: dict[tuple[str, str], list[str]] = defaultdict(list)
-        for tag in tags:
-            for assigned in await self.personal.list_assigned_rows(tag=tag, token=token):
-                names[(assigned.row_source, assigned.row_id)].append(tag.name)
+        for assignment in await self.assignments.list_for_owner(owner_id=owner_id):
+            names[(assignment.row_source, assignment.row_id)].append(name_by_id[assignment.tag_id])
         return names
 
 
