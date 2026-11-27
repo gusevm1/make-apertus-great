@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
@@ -6,8 +7,13 @@ from app.clients.apertus import ApertusClient, Message, Model
 from app.clients.banking import BankingClient
 from app.clients.ocr import OcrClient
 from app.core.errors import BadRequestError, NotFoundError, PayloadTooLargeError, UpstreamError
-from app.core.provenance import Check, Provenance
-from app.features.documents.prompts import correction_message, describe_prompt
+from app.core.provenance import Check, Provenance, Source
+from app.features.documents.prompts import (
+    correction_message,
+    describe_prompt,
+    passages_correction_message,
+    read_prompt,
+)
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.schemas import (
     DESCRIBE_MAX_CHARS,
@@ -15,11 +21,20 @@ from app.features.documents.schemas import (
     DOCUMENT_TOO_LARGE_MESSAGE,
     FIELD_NAMES,
     NAME_MAX_LENGTH,
+    READ_ANSWER_MAX_LENGTH,
+    READ_FULL_TEXT_MAX_CHARS,
+    READ_MAX_CHARS,
+    READ_PASSAGE_MAX_LENGTH,
+    READ_PASSAGES_MAX,
     SUMMARY_MAX_LENGTH,
     DescribedField,
     Document,
     DocumentDescription,
     DocumentField,
+    DocumentReading,
+    DocumentText,
+    QuotedPassage,
+    ReaderAnswer,
 )
 
 # A table row in the OCR text reads "| Nettolohn | 8'742.35 |"; a passage may leave out the markup.
@@ -30,6 +45,8 @@ PASSAGE_MISSING = "it has no passage"
 VALUE_MISSING = "these words come without an amount, date or text"
 PASSAGE_NOT_IN_TEXT = "these words are not in the document"
 AMOUNT_NOT_IN_PASSAGE = "the amount is not in these words"
+DOCUMENT_NOT_READ = "no document of this name was given"
+PASSAGE_TOO_LONG = f"longer than {READ_PASSAGE_MAX_LENGTH} characters, quote fewer words"
 
 
 class DocumentService:
@@ -99,7 +116,7 @@ class DocumentService:
             "title": description.title,
             "issuer": description.issuer,
             "document_date": description.document_date,
-            "summary": _shortened(summary=description.summary),
+            "summary": _shortened(text=description.summary, max_length=SUMMARY_MAX_LENGTH),
             "fields": [field.model_dump(mode="json") for field in fields],
             "provenance": _provenance(
                 model=result.model, latency_ms=latency_ms, failures=failures
@@ -137,6 +154,53 @@ class DocumentService:
             if name not in passed
         }
         return corrected, dropped, result.latency_ms
+
+    async def read_documents(
+        self, names: list[str], question: str, owner_id: UUID
+    ) -> DocumentReading:
+        """Short documents in full, longer ones as the reader's answer with checked passages."""
+        # ponytail: loads every text of the customer; select by name once there are many
+        owned = await self.documents.list_by_owner(owner_id=owner_id)
+        documents = _resolved(names=names, documents=owned)
+        length = sum(len(document.markdown) for document in documents)
+        if length <= READ_FULL_TEXT_MAX_CHARS:
+            texts = [
+                DocumentText(name=document.name, title=document.title, text=document.markdown)
+                for document in documents
+            ]
+            return DocumentReading(texts=texts)
+        if length > READ_MAX_CHARS:
+            raise BadRequestError(
+                f"These documents have {length} characters together, more than the "
+                f"{READ_MAX_CHARS} that can be read at once. Ask about fewer documents."
+            )
+        messages = read_prompt(documents=documents, question=question)
+        result = await self.apertus.structured(
+            messages=messages, schema=ReaderAnswer, model=Model.SMART, purpose="read_document"
+        )
+        reading, failures = checked_reading(answer=result.content, documents=documents)
+        latency_ms = result.latency_ms
+        if failures:
+            corrected = await self.apertus.structured(
+                messages=[
+                    *messages,
+                    {"role": "assistant", "content": result.content.model_dump_json()},
+                    passages_correction_message(failures=failures),
+                ],
+                schema=ReaderAnswer,
+                model=Model.SMART,
+                purpose="read_document_correction",
+            )
+            reading, failures = checked_reading(answer=corrected.content, documents=documents)
+            latency_ms += corrected.latency_ms
+        detail = "; ".join(f"dropped {failure}" for failure in failures)
+        provenance = Provenance(
+            model=result.model,
+            latency_ms=latency_ms,
+            sources=[Source(id=str(document.id), title=document.name) for document in documents],
+            checks=[Check(name="quotes_in_text", passed=not failures, detail=detail or None)],
+        )
+        return reading.model_copy(update={"provenance": provenance})
 
     async def list_documents(self, owner_id: UUID) -> list[Document]:
         """The customer's documents, newest first."""
@@ -180,6 +244,69 @@ def checked_fields(
         failures.pop(name, None)
         passed.append(_kept(field=field, name=name, passage=passage))
     return passed, failures
+
+
+def checked_reading(
+    answer: ReaderAnswer, documents: list[Document]
+) -> tuple[DocumentReading, list[str]]:
+    passages: list[QuotedPassage] = []
+    failures: list[str] = []
+    for passage in answer.passages:
+        # Apertus saw the text with < and > escaped.
+        text = (passage.text or "").replace("&lt;", "<").replace("&gt;", ">")
+        squeezed = _squeezed(text=text)
+        if squeezed == "" or len(passages) == READ_PASSAGES_MAX:
+            continue
+        document = _named(name=passage.document or "", documents=documents)
+        if document is None:
+            reason = DOCUMENT_NOT_READ
+        elif len(text) > READ_PASSAGE_MAX_LENGTH:
+            reason = PASSAGE_TOO_LONG
+        elif not _in_text(squeezed=squeezed, text=document.markdown):
+            reason = PASSAGE_NOT_IN_TEXT
+        else:
+            passages.append(QuotedPassage(document=document.name, text=text))
+            continue
+        failures.append(f'"{text}" from {passage.document}: {reason}')
+    reading = DocumentReading(
+        answer=_shortened(text=answer.answer, max_length=READ_ANSWER_MAX_LENGTH),
+        passages=passages,
+    )
+    return reading, failures
+
+
+def _resolved(names: list[str], documents: list[Document]) -> list[Document]:
+    found: dict[UUID, Document] = {}
+    unknown: list[str] = []
+    for name in names:
+        document = _named(name=name, documents=documents)
+        if document is None:
+            unknown.append(name)
+            continue
+        found.setdefault(document.id, document)
+    if unknown:
+        listed = "; ".join(_listed(document=document) for document in documents) or "none"
+        raise BadRequestError(
+            f"Unknown document: {', '.join(unknown)}. "
+            f"Name it by file name or title. The customer's documents: {listed}"
+        )
+    return list(found.values())
+
+
+def _named(name: str, documents: list[Document]) -> Document | None:
+    """The newest document with this file name, file name without extension, or title."""
+    key = name.strip().casefold()
+    for document in documents:
+        keys = {document.name.casefold(), Path(document.name).stem.casefold()}
+        if document.title is not None:
+            keys.add(document.title.casefold())
+        if key in keys:
+            return document
+    return None
+
+
+def _listed(document: Document) -> str:
+    return document.name if document.title is None else f"{document.name} ({document.title})"
 
 
 def _failure(field: DescribedField, passage: str, text: str) -> str | None:
@@ -239,10 +366,10 @@ def _names(fields: list[DocumentField]) -> set[str]:
     return {field.name for field in fields}
 
 
-def _shortened(summary: str | None) -> str | None:
-    if summary is None or len(summary) <= SUMMARY_MAX_LENGTH:
-        return summary
-    return summary[: SUMMARY_MAX_LENGTH - 1].rstrip() + "…"
+def _shortened(text: str | None, max_length: int) -> str | None:
+    if text is None or len(text) <= max_length:
+        return text
+    return text[: max_length - 1].rstrip() + "…"
 
 
 def _provenance(model: str, latency_ms: int, failures: dict[str, str]) -> Provenance:

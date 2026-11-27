@@ -17,3 +17,9 @@ class DocumentRepository(BaseRepository[DocumentORM, Document]):
         )
         rows = await self.session.scalars(stmt)
         return [self._to_schema(row=row) for row in rows]
+
+    async def list_by_owner(self, owner_id: UUID) -> list[Document]:
+        documents = await self.list(owner_id=owner_id)
+        # Ends the read, so no transaction stays open during the model call that follows.
+        await self.session.commit()
+        return documents

@@ -13,6 +13,13 @@ NAME_MAX_LENGTH = 200
 # About 75k tokens, well inside the context the 70B model is given.
 DESCRIBE_MAX_CHARS = 300_000
 SUMMARY_MAX_LENGTH = 200
+READ_DOCUMENTS_MAX = 3
+READ_FULL_TEXT_MAX_CHARS = 5_000
+READ_MAX_CHARS = 300_000
+READ_ANSWER_MAX_LENGTH = 1_500
+READ_PASSAGES_MAX = 5
+# Five passages and the answer keep a reading under the tool loop's 6000 characters.
+READ_PASSAGE_MAX_LENGTH = 600
 
 DocumentKind = Literal[
     "payslip",
@@ -93,3 +100,33 @@ class ResponseDocument(BaseModel):
     fields: list[DocumentField]
     provenance: Provenance | None
     created_at: datetime
+
+
+# What the reader returns; all optional, so it never has to invent a value.
+class ReaderPassage(BaseModel):
+    document: str | None = None
+    text: str | None = None
+
+
+class ReaderAnswer(BaseModel):
+    answer: str | None = None
+    passages: list[ReaderPassage] = []
+
+
+class DocumentText(BaseModel):
+    name: str
+    title: str | None
+    text: str
+
+
+class QuotedPassage(BaseModel):
+    document: str
+    text: str
+
+
+# A short document comes back as `texts`; a long one as the reader's answer and passages.
+class DocumentReading(BaseModel):
+    texts: list[DocumentText] = []
+    answer: str | None = None
+    passages: list[QuotedPassage] = []
+    provenance: Provenance | None = None
