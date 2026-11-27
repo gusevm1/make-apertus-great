@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build && echo 'window.TRUSTROOM_CONFIG = { apiUrl: \"https://ebanking-apertus.vercel.app/api\", trustroomUrl: \"https://trustroom-apertus.vercel.app\" };' > dist/config.js",
+  "outputDirectory": "dist",
+  "git": { "deploymentEnabled": false },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://13.62.249.16:8000/api/:path*"
+    },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/config.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
+  ]
+}

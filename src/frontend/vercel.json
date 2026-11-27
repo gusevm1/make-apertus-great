@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npx vite build",
+  "outputDirectory": "dist",
+  "git": { "deploymentEnabled": false },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://13.62.249.16:8010/api/:path*"
+    },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}
