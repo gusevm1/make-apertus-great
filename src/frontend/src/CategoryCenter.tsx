@@ -28,6 +28,32 @@ const CERTAINTIES = [
 
 type CertaintyKey = (typeof CERTAINTIES)[number]["key"];
 
+interface CategorisationRun {
+  id: string;
+  status: "queued" | "running" | "done" | "failed";
+  skipped: number;
+}
+
+// A run works in the background for minutes, so the page asks for it again this often.
+const RUN_POLL_MS = 3000;
+
+async function finishedRun({
+  token,
+}: {
+  token: string;
+}): Promise<CategorisationRun> {
+  let run = await api<CategorisationRun>(
+    "/api/categorisations",
+    token,
+    json({}),
+  );
+  while (run.status === "queued" || run.status === "running") {
+    await new Promise((resolve) => setTimeout(resolve, RUN_POLL_MS));
+    run = await api<CategorisationRun>(`/api/categorisations/${run.id}`, token);
+  }
+  return run;
+}
+
 interface CategorySummary extends Record<CertaintyKey, number> {
   category: string | null;
   total_chf: string;
@@ -133,14 +159,12 @@ export function CategoryCenter({
     setIsCategorising(true);
     setError(null);
     try {
-      const result = await api<{ tagged_by_model: number; skipped: number }>(
-        "/api/categorisations",
-        token,
-        json({}),
-      );
-      if (result.skipped > 0)
+      const run = await finishedRun({ token });
+      if (run.status === "failed")
+        setError("The categorisation failed. Try again in a moment.");
+      else if (run.skipped > 0)
         setError(
-          `Apertus could not sort ${bookings(result.skipped)}. Try again in a moment.`,
+          `Apertus could not sort ${bookings(run.skipped)}. Try again in a moment.`,
         );
       setStored(await loadCenter({ token, year }));
     } catch (categoriseError) {

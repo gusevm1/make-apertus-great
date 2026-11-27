@@ -1,7 +1,7 @@
 """create categorisation runs
 
 Revision ID: 4b37627dffd8
-Revises: 8e8e6d79deda
+Revises: 08883f34ee26
 Create Date: 2026-11-27 20:00:23.113653
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "4b37627dffd8"
-down_revision: str | Sequence[str] | None = "8e8e6d79deda"
+down_revision: str | Sequence[str] | None = "08883f34ee26"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

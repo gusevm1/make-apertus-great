@@ -10,7 +10,7 @@ from app.main import app
 from tests.conftest import FakeApertus
 from tests.sse import sse_events
 from tests.test_category_certainty import _with_certainty
-from tests.test_transaction_tags import LUKAS_BOOKINGS, PURCHASES, _bank_client
+from tests.test_transaction_tags import LUKAS_BOOKINGS, PURCHASES, _bank_client, _categorise_only
 
 
 def _all_but_the_garden_furniture(request_body: dict[str, Any]) -> str:
@@ -21,12 +21,14 @@ def _all_but_the_garden_furniture(request_body: dict[str, Any]) -> str:
 
 
 @pytest.fixture
-async def lukas(client: httpx2.AsyncClient, apertus: FakeApertus) -> httpx2.AsyncClient:
+async def lukas(
+    client: httpx2.AsyncClient, apertus: FakeApertus, monkeypatch: pytest.MonkeyPatch
+) -> httpx2.AsyncClient:
     app.state.banking = _bank_client(
         bookings_by_token={"customer-token": ("CUST-001", LUKAS_BOOKINGS)}
     )
     apertus.structured_reply = _all_but_the_garden_furniture
-    assert (await client.post("/api/categorisations")).status_code == 201
+    assert (await _categorise_only(api=client, monkeypatch=monkeypatch))["status"] == "done"
     return client
 
 
