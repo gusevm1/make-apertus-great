@@ -4,8 +4,8 @@ import statistics
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
+from typing import NamedTuple
 
-from app.clients.banking import BankingClient
 from app.features.ledger.schemas import LedgerRow
 from app.features.ledger.service import LedgerService
 from app.features.recurring_payments.schemas import (
@@ -16,27 +16,38 @@ from app.features.recurring_payments.schemas import (
     RecurringPayments,
 )
 
-# Median gap in days that makes a cadence, and the months between two payments.
-CADENCES: dict[Cadence, tuple[int, int, int]] = {
-    "monthly": (26, 35, 1),
-    "quarterly": (80, 100, 3),
-    "yearly": (350, 380, 12),
+
+class Gap(NamedTuple):
+    shortest: int  # days between two payments, as a median
+    longest: int
+    months: int  # from one payment to the next
+
+
+CADENCES: dict[Cadence, Gap] = {
+    "monthly": Gap(shortest=26, longest=35, months=1),
+    "quarterly": Gap(shortest=80, longest=100, months=3),
+    "yearly": Gap(shortest=350, longest=380, months=12),
 }
 MIN_PAYMENTS = 3
+# Share of the gaps that must fit the cadence, so one skipped or doubled month still counts.
+MIN_REGULAR_SHARE = 2 / 3
+# A payment still runs until this many usual gaps have passed without it.
+ACTIVE_GAPS = 1.5
+# More amounts than this share of the payments (electricity) means there's no price to change.
+MAX_AMOUNT_SHARE = 1 / 3
+# A new price holds when one of this many following payments repeats it.
+PRICE_LOOKAHEAD = 2
 BILL_TYPES = {"ebill", "qr_bill", "direct_debit", "standing_order", "domestic", "international"}
 # Swiss banks write the instalment into the booking text, such as "Ratenvertrag RW-1, Rate 20/24".
 INSTALMENT = re.compile(r"Rate (\d+)/(\d+)")
 
 
 class RecurringPaymentService:
-    def __init__(self, ledger: LedgerService, banking: BankingClient) -> None:
+    def __init__(self, ledger: LedgerService) -> None:
         self.ledger = ledger
-        self.banking = banking
 
-    async def list_recurring(self, token: str) -> RecurringPayments:
+    async def list_recurring(self, token: str, today: date) -> RecurringPayments:
         """Payments that come back every month, quarter or year, and instalment plans."""
-        info = await self.banking.get(path="/system/info")
-        today = date.fromisoformat(info["today"])
         rows = await self.ledger.list_rows(token=token)
 
         by_plan: dict[tuple[str, str], list[tuple[LedgerRow, re.Match[str]]]] = defaultdict(list)
@@ -75,7 +86,7 @@ def _recurring(payee: str, rows: list[LedgerRow], today: date) -> RecurringPayme
         return None
     last = rows[-1]
     last_paid = -last.amount_chf
-    months = CADENCES[cadence][2]
+    months = CADENCES[cadence].months
     return RecurringPayment(
         payee=payee,
         cadence=cadence,
@@ -84,19 +95,18 @@ def _recurring(payee: str, rows: list[LedgerRow], today: date) -> RecurringPayme
         last_paid_chf=last_paid,
         paid_per_year_chf=last_paid * (12 // months),
         next_expected=_months_later(day=last.date, months=months),
-        active=(today - last.date).days <= median_gap * 1.5,
+        active=(today - last.date).days <= median_gap * ACTIVE_GAPS,
         price_changes=_price_changes(rows=rows, cadence=cadence),
         ids=[row.id for row in rows],
     )
 
 
 def _cadence(gaps: list[int], median_gap: float) -> Cadence | None:
-    for cadence, (shortest, longest, _) in CADENCES.items():
-        if not shortest <= median_gap <= longest:
+    for cadence, gap in CADENCES.items():
+        if not gap.shortest <= median_gap <= gap.longest:
             continue
-        # Two thirds of the gaps fit, so one skipped or doubled month still counts.
-        regular = sum(shortest <= gap <= longest for gap in gaps)
-        return cadence if regular * 3 >= len(gaps) * 2 else None
+        regular = sum(gap.shortest <= days <= gap.longest for days in gaps)
+        return cadence if regular >= len(gaps) * MIN_REGULAR_SHARE else None
     return None
 
 
@@ -108,8 +118,8 @@ def _price_changes(rows: list[LedgerRow], cadence: Cadence) -> list[PriceChange]
             return []
     else:
         runs = 1 + sum(price != before for before, price in zip(prices, prices[1:], strict=False))
-        # ponytail: a bill whose amount changes in most periods (electricity) has no price to rise.
-        if runs * 3 > len(prices):
+        # ponytail: a fixed share; tune MAX_AMOUNT_SHARE with evals if real bills slip through.
+        if runs > len(prices) * MAX_AMOUNT_SHARE:
             return []
     changes: list[PriceChange] = []
     in_force = 0  # the last payment at the price that holds
@@ -117,9 +127,8 @@ def _price_changes(rows: list[LedgerRow], cadence: Cadence) -> list[PriceChange]
         if prices[index] == prices[in_force]:
             in_force = index
             continue
-        # A price holds when one of the next two payments repeats it or none follows. A one-off
-        # amount between regular ones, such as a final tax bill, is no new price.
-        following = prices[index + 1 : index + 3]
+        # A one-off amount between regular ones, such as a final tax bill, is no new price.
+        following = prices[index + 1 : index + 1 + PRICE_LOOKAHEAD]
         if cadence != "yearly" and following and prices[index] not in following:
             continue
         changes.append(

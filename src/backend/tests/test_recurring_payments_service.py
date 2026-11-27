@@ -109,8 +109,6 @@ def _page(items: list[dict[str, Any]], request: httpx2.Request) -> httpx2.Respon
 async def found(bank: Bank) -> RecurringPayments:
     def handle(request: httpx2.Request) -> httpx2.Response:
         path = request.url.path.removeprefix("/api")
-        if path == "/system/info":
-            return httpx2.Response(200, json={"today": TODAY.isoformat()})
         if request.headers.get("authorization") != f"Bearer {TOKEN}":
             return httpx2.Response(401, json={"detail": "Not authenticated"})
         if path == "/accounts":
@@ -130,8 +128,8 @@ async def found(bank: Bank) -> RecurringPayments:
         transport=httpx2.MockTransport(handle), base_url=get_settings().banking_api_url
     )
     banking = BankingClient(settings=get_settings(), http_client=http)
-    service = RecurringPaymentService(ledger=LedgerService(banking=banking), banking=banking)
-    return await service.list_recurring(token=TOKEN)
+    service = RecurringPaymentService(ledger=LedgerService(banking=banking))
+    return await service.list_recurring(token=TOKEN, today=TODAY)
 
 
 def _by_payee(found: RecurringPayments) -> dict[str, Any]:
@@ -191,7 +189,7 @@ async def test_only_real_price_changes_are_listed(found: RecurringPayments) -> N
 
 
 async def test_a_payment_that_stopped_is_not_active(found: RecurringPayments) -> None:
-    # Old Gym stopped in June 2024, long before "today" from /system/info.
+    # Old Gym stopped in June 2024, long before today.
     assert not _by_payee(found=found)["Old Gym"].active
 
 
