@@ -45,7 +45,9 @@ def decision_prompt(
     return prompt
 
 
-def answer_prompt(messages: list[LLMMessage], calls: list[ToolCall]) -> list[LLMMessage]:
+def answer_prompt(
+    messages: list[LLMMessage], calls: list[ToolCall], tools: list[Tool[Any]]
+) -> list[LLMMessage]:
     # Named outright, because German results or an image otherwise pull the answer elsewhere.
     language = question_language(message=messages[-1])
     language_line = (
@@ -53,11 +55,14 @@ def answer_prompt(messages: list[LLMMessage], calls: list[ToolCall]) -> list[LLM
         if language is None
         else PROMPTS["answer_language"].format(language=language)
     )
+    abilities = PROMPTS["answer_abilities"].format(titles="; ".join(tool.title for tool in tools))
     if not calls:
-        content = PROMPTS["answer_direct"].format(language=language_line)
+        content = PROMPTS["answer_direct"].format(language=language_line, abilities=abilities)
         return [*messages, {"role": "user", "content": content}]
     results = "".join(_tool_result(call=call) for call in calls)
-    content = PROMPTS["answer_results"].format(results=results, language=language_line)
+    content = PROMPTS["answer_results"].format(
+        results=results, language=language_line, abilities=abilities
+    )
     if any(call.tool_name == "build_widget" and call.error is None for call in calls):
         content += PROMPTS["answer_widget"]
     return [*messages, {"role": "user", "content": content}]

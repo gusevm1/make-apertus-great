@@ -115,3 +115,6 @@
   any_calls: true
   not_called: [build_widget]
   rule: widgets
+- question: Was kannst du für mich tun?
+  answer: Zahlung|Buchung|Dauerauftrag
+  answer_not: keinen Zugriff|kein Zugriff
