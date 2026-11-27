@@ -6,7 +6,7 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 5.0,
+  "seconds": 2.9,
   "tokens_out": 54,
   "chars": 125,
   "failure": null,
@@ -41,9 +41,9 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 7.5,
-  "tokens_out": 79,
-  "chars": 178,
+  "seconds": 2.2,
+  "tokens_out": 76,
+  "chars": 186,
   "failure": null,
   "page": "catalogue_schema-smart-upcoming-payments.html",
   "renders": [
@@ -76,8 +76,8 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 14.9,
-  "tokens_out": 176,
+  "seconds": 8.0,
+  "tokens_out": 282,
   "chars": 141,
   "failure": null,
   "page": "catalogue_schema-smart-pricier-subscriptions.html",
@@ -102,7 +102,7 @@
    }
   ],
   "outcome": "fallback",
-  "last_error": "subscriptions[0].payee is a str, not a number"
+  "last_error": "subscriptions[0].last_paid_chf is a str, not a number"
  },
  {
   "variant": "catalogue_schema",
@@ -111,8 +111,8 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 363.1,
-  "tokens_out": 0,
+  "seconds": 361.4,
+  "tokens_out": null,
   "chars": 105,
   "failure": null,
   "page": "catalogue_schema-smart-year-vs-year.html",
@@ -136,7 +136,7 @@
     "height": 820
    }
   ],
-  "outcome": "fallback",
+  "outcome": "gateway_error",
   "last_error": "Apertus returned 502"
  },
  {
@@ -146,7 +146,7 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 17.8,
+  "seconds": 8.5,
   "tokens_out": 245,
   "chars": 465,
   "failure": null,
@@ -181,9 +181,9 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 7.4,
-  "tokens_out": 96,
-  "chars": 105,
+  "seconds": 4.1,
+  "tokens_out": 118,
+  "chars": 120,
   "failure": null,
   "page": "catalogue_schema-smart-where-money-goes.html",
   "renders": [
@@ -216,8 +216,8 @@
   "revision": "red",
   "mode": "rewrite",
   "base_is_clean": true,
-  "seconds": 30.6,
-  "tokens_out": 44,
+  "seconds": 2.8,
+  "tokens_out": 95,
   "chars": 125,
   "failure": null,
   "page": "catalogue_schema-smart-monthly-spending-red-rewrite.html",
@@ -241,8 +241,8 @@
     "height": 813
    }
   ],
-  "outcome": "first",
-  "last_error": null
+  "outcome": "repaired",
+  "last_error": "months_total_chf: DATA has no field months_total_chf; fields: unit, months, total_chf"
  },
  {
   "variant": "catalogue_schema",
@@ -251,7 +251,7 @@
   "revision": "red",
   "mode": "edits",
   "base_is_clean": true,
-  "seconds": 132.1,
+  "seconds": 2.9,
   "tokens_out": null,
   "chars": null,
   "failure": "edit matches 0 times: '{\"type\": \"bar_chart\", \"data\": \"months\", \"x\": \"label\", \"y\": \"'",
@@ -267,9 +267,9 @@
   "revision": "last_3",
   "mode": "rewrite",
   "base_is_clean": true,
-  "seconds": 48.7,
-  "tokens_out": 67,
-  "chars": 163,
+  "seconds": 1.7,
+  "tokens_out": 61,
+  "chars": 141,
   "failure": null,
   "page": "catalogue_schema-smart-monthly-spending-last-3-rewrite.html",
   "renders": [
@@ -302,9 +302,9 @@
   "revision": "last_3",
   "mode": "edits",
   "base_is_clean": true,
-  "seconds": 27.5,
+  "seconds": 0.6,
   "tokens_out": 32,
-  "chars": 135,
+  "chars": 177,
   "failure": "invalid spec: 1 errors",
   "page": null,
   "renders": [],
@@ -318,7 +318,7 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 0.8,
+  "seconds": 0.5,
   "tokens_out": 58,
   "chars": 142,
   "failure": null,
@@ -354,7 +354,7 @@
   "mode": null,
   "base_is_clean": null,
   "seconds": 361.5,
-  "tokens_out": 0,
+  "tokens_out": null,
   "chars": 120,
   "failure": null,
   "page": "catalogue_schema-fast-upcoming-payments.html",
@@ -378,7 +378,7 @@
     "height": 813
    }
   ],
-  "outcome": "fallback",
+  "outcome": "gateway_error",
   "last_error": "Apertus returned 502"
  },
  {
@@ -389,7 +389,7 @@
   "mode": null,
   "base_is_clean": null,
   "seconds": 361.5,
-  "tokens_out": 0,
+  "tokens_out": null,
   "chars": 141,
   "failure": null,
   "page": "catalogue_schema-fast-pricier-subscriptions.html",
@@ -413,7 +413,7 @@
     "height": 813
    }
   ],
-  "outcome": "fallback",
+  "outcome": "gateway_error",
   "last_error": "Apertus returned 502"
  },
  {
@@ -423,9 +423,9 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 1.0,
-  "tokens_out": 67,
-  "chars": 135,
+  "seconds": 0.6,
+  "tokens_out": 60,
+  "chars": 122,
   "failure": null,
   "page": "catalogue_schema-fast-year-vs-year.html",
   "renders": [
@@ -458,8 +458,8 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 0.6,
-  "tokens_out": 62,
+  "seconds": 0.5,
+  "tokens_out": 61,
   "chars": 142,
   "failure": null,
   "page": "catalogue_schema-fast-liquidity.html",
@@ -493,7 +493,7 @@
   "revision": null,
   "mode": null,
   "base_is_clean": null,
-  "seconds": 1.5,
+  "seconds": 1.0,
   "tokens_out": 141,
   "chars": 344,
   "failure": null,
@@ -528,8 +528,8 @@
   "revision": "red",
   "mode": "rewrite",
   "base_is_clean": true,
-  "seconds": 3.8,
-  "tokens_out": 59,
+  "seconds": 3.5,
+  "tokens_out": 71,
   "chars": 164,
   "failure": null,
   "page": "catalogue_schema-fast-monthly-spending-red-rewrite.html",
@@ -563,31 +563,12 @@
   "revision": "red",
   "mode": "edits",
   "base_is_clean": true,
-  "seconds": 8.2,
-  "tokens_out": 23,
-  "chars": 142,
-  "failure": null,
-  "page": "catalogue_schema-fast-monthly-spending-red-edits.html",
-  "renders": [
-   {
-    "width": 360,
-    "errors": [],
-    "drawn": true,
-    "figures": [],
-    "overflows": false,
-    "uses_canvas": false,
-    "height": 813
-   },
-   {
-    "width": 1000,
-    "errors": [],
-    "drawn": true,
-    "figures": [],
-    "overflows": false,
-    "uses_canvas": false,
-    "height": 813
-   }
-  ],
+  "seconds": 2.1,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "edit matches 0 times: ''",
+  "page": null,
+  "renders": [],
   "outcome": null,
   "last_error": null
  },
@@ -598,9 +579,9 @@
   "revision": "last_3",
   "mode": "rewrite",
   "base_is_clean": true,
-  "seconds": 6.7,
-  "tokens_out": 103,
-  "chars": 164,
+  "seconds": 2.9,
+  "tokens_out": 58,
+  "chars": 142,
   "failure": null,
   "page": "catalogue_schema-fast-monthly-spending-last-3-rewrite.html",
   "renders": [
@@ -623,8 +604,8 @@
     "height": 813
    }
   ],
-  "outcome": "repaired",
-  "last_error": "months[3] is not a list of rows"
+  "outcome": "first",
+  "last_error": null
  },
  {
   "variant": "catalogue_schema",
@@ -633,10 +614,10 @@
   "revision": "last_3",
   "mode": "edits",
   "base_is_clean": true,
-  "seconds": 7.3,
+  "seconds": 2.1,
   "tokens_out": null,
   "chars": null,
-  "failure": "Model returned invalid Edits twice",
+  "failure": "edit matches 0 times: 'data: \"months\"'",
   "page": null,
   "renders": [],
   "outcome": null,
