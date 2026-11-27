@@ -153,6 +153,16 @@ async def test_a_field_without_a_value_is_asked_for_again(session: AsyncSession)
     assert len(apertus.requests) == 2
 
 
+async def test_a_passage_that_cuts_a_number_short_fails(session: AsyncSession) -> None:
+    rounded = {**NET, "amount": 8742, "passage": "Nettolohn 8'742"}
+    apertus = ScriptedApertus(session=session, answers=[_payslip(rounded), _payslip(rounded)])
+
+    document = await _upload(session=session, apertus=apertus)
+
+    assert document.fields == []
+    assert len(apertus.requests) == 2
+
+
 async def test_a_corrected_field_is_kept(session: AsyncSession) -> None:
     wrong_amount = {**GROSS, "amount": 10296.23}
     apertus = ScriptedApertus(session=session, answers=[_payslip(wrong_amount), _payslip(GROSS)])

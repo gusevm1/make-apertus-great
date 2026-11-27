@@ -179,18 +179,29 @@ def checked_fields(
 
 
 def _failure(field: DescribedField, passage: str, text: str) -> str | None:
-    squeezed = _squeezed(text=passage)
+    # Apertus saw the text with < and > escaped.
+    squeezed = _squeezed(text=passage.replace("&lt;", "<").replace("&gt;", ">"))
     if squeezed == "":
         return PASSAGE_MISSING
     if not _has_value(field=field):
         reason = VALUE_MISSING
-    elif squeezed not in _squeezed(text=text):
+    elif not _in_text(squeezed=squeezed, text=text):
         reason = PASSAGE_NOT_IN_TEXT
     elif field.amount is not None and not _amount_in(amount=field.amount, passage=passage):
         reason = AMOUNT_NOT_IN_PASSAGE
     else:
         return None
     return f'"{passage}": {reason}'
+
+
+def _in_text(squeezed: str, text: str) -> bool:
+    """Whether the passage is in the text, and a number at either end is whole there."""
+    pattern = re.escape(squeezed)
+    if squeezed[0].isdigit():
+        pattern = r"(?<!\d)(?<!\d['.,])" + pattern
+    if squeezed[-1].isdigit():
+        pattern += r"(?!\d|['.,]\d)"
+    return re.search(pattern, _squeezed(text=text)) is not None
 
 
 def _has_value(field: DescribedField) -> bool:
