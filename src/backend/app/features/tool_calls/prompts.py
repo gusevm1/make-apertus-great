@@ -58,6 +58,8 @@ def answer_prompt(messages: list[LLMMessage], calls: list[ToolCall]) -> list[LLM
         return [*messages, {"role": "user", "content": content}]
     results = "".join(_tool_result(call=call) for call in calls)
     content = PROMPTS["answer_results"].format(results=results, language=language_line)
+    if any(call.tool_name == "build_widget" and call.error is None for call in calls):
+        content += PROMPTS["answer_widget"]
     return [*messages, {"role": "user", "content": content}]
 
 

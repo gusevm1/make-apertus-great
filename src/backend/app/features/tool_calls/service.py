@@ -172,7 +172,12 @@ class ToolCallService:
             decision.plan = SwissSpelling().feed(text=decision.plan)
             round_calls: list[ToolCall] = []
             # ponytail: one call after the other, asyncio.gather once a tool is slow
-            for request in _merge_identical(requests=decision.calls):
+            # A tool that builds on the turn's results runs after the calls that fetch them.
+            requests = sorted(
+                _merge_identical(requests=decision.calls),
+                key=lambda request: self._builds_on_turn(name=request.tool),
+            )
+            for request in requests:
                 if len(calls) == MAX_TOOL_CALLS:
                     break
                 if request.tool == "" or _already_called(calls=calls, request=request):
@@ -246,6 +251,10 @@ class ToolCallService:
         except ValidationError:
             return None
         return tool.confirmation
+
+    def _builds_on_turn(self, name: str) -> bool:
+        tool = self.tools.get(name)
+        return tool is not None and tool.turn_handler is not None
 
     def _label(self, name: str) -> tuple[str, str]:
         tool = self.tools.get(name)

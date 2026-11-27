@@ -16,11 +16,23 @@ const SAMPLE: Visual = {
   caption: "apertus-70b · 8.4 s · figures checked",
 };
 
-function html(visual: Visual | null) {
+function html(visual: Visual | null, isLoading = false) {
   return renderToStaticMarkup(
-    <Canvas visual={visual} isBusy={false} onAsk={() => undefined} />,
+    <Canvas
+      visual={visual}
+      isLoading={isLoading}
+      isBusy={false}
+      onAsk={() => undefined}
+    />,
   );
 }
+
+test("while a version loads it says so instead of the old widget", () => {
+  const output = html(SAMPLE, true);
+
+  expect(output).toContain("Loading the visual…");
+  expect(output).not.toContain("<iframe");
+});
 
 test("without a visual it offers questions to ask and no frame", () => {
   const output = html(null);

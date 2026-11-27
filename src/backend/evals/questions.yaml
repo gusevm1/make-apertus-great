@@ -106,3 +106,12 @@
     - tool: list_upcoming_payments
     - tool: build_widget
   rule: widgets
+- question: Zeig mir meine Ausgaben der letzten 6 Monate als Grafik
+  calls:
+    - tool: sum_by_month
+    - tool: build_widget
+  rule: widgets
+- question: Show me my bookings from last week
+  any_calls: true
+  not_called: [build_widget]
+  rule: widgets

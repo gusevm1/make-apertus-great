@@ -19,10 +19,12 @@ export const EXAMPLE_QUESTIONS = [
 
 export function Canvas({
   visual,
+  isLoading,
   isBusy,
   onAsk,
 }: {
   visual: Visual | null;
+  isLoading: boolean;
   isBusy: boolean;
   onAsk: (question: string) => void;
 }) {
@@ -37,6 +39,14 @@ export function Canvas({
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, []);
+
+  if (isLoading) {
+    return (
+      <section className="canvas" aria-label="Visual">
+        <p className="hint">Loading the visual…</p>
+      </section>
+    );
+  }
 
   if (visual === null) {
     return (

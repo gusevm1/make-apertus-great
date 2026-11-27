@@ -16,7 +16,6 @@ from app.features.widgets.catalogue.schemas import FIELD_PATTERN, WidgetSpec
 from app.features.widgets.prompts import repair_messages, spec_messages
 from app.features.widgets.repository import WidgetRepository, WidgetVersionRepository
 from app.features.widgets.schemas import (
-    PROMPTS,
     BuildWidgetArgs,
     BuiltWidget,
     Form,
@@ -66,11 +65,12 @@ class WidgetService:
             )
         data = widget_data(results=used)
         started = time.perf_counter()
-        spec, model, check = await self._spec(request=args.request, data=data)
+        spec, model, check = await self._spec(args=args, data=data)
         checks = [check]
+        # The request is the model's own words too, so only DATA counts as a source.
         figures = self.figure_checks.check_figures(
             answer="\n".join(_labels(value=spec.model_dump())),
-            sources=[json.dumps(data, ensure_ascii=False), args.request],
+            sources=[json.dumps(data, ensure_ascii=False)],
         )
         if figures is not None:
             checks.append(figures)
@@ -93,11 +93,7 @@ class WidgetService:
             },
         )
         return BuiltWidget(
-            widget_id=widget.id,
-            version_number=version.number,
-            title=widget.title,
-            note=PROMPTS["built_note"],
-            checks=checks,
+            widget_id=widget.id, version_number=version.number, title=widget.title, checks=checks
         )
 
     async def get_widget(self, widget_id: UUID, owner_id: UUID) -> Widget:
@@ -120,15 +116,15 @@ class WidgetService:
         return version, html
 
     async def _spec(
-        self, request: str, data: dict[str, Any]
+        self, args: BuildWidgetArgs, data: dict[str, Any]
     ) -> tuple[WidgetSpec, str | None, Check]:
-        messages = spec_messages(request=request, data=data)
+        messages = spec_messages(request=args.request, data=data)
         try:
             first = await self.apertus.structured(
                 messages=messages, schema=WidgetSpec, model=SPEC_MODEL, purpose=SPEC_PURPOSE
             )
         except UpstreamError as exc:
-            return _fallback(data=data, model=None, reason=exc.message)
+            return _fallback(data=data, title=args.title, reason=exc.message)
         error = await _drawing_error(spec=first.content, data=data)
         if error is None:
             return (
@@ -144,12 +140,12 @@ class WidgetService:
                 purpose=SPEC_PURPOSE,
             )
         except UpstreamError as exc:
-            return _fallback(data=data, model=first.model, reason=exc.message)
+            return _fallback(data=data, title=args.title, reason=exc.message)
         error = await _drawing_error(spec=second.content, data=data)
         if error is None:
             check = Check(name="widget_spec", passed=True, detail="after one repair")
             return second.content, second.model, check
-        return _fallback(data=data, model=second.model, reason=error)
+        return _fallback(data=data, title=args.title, reason=error)
 
 
 def widget_data(results: list[TurnResult]) -> dict[str, Any]:
@@ -182,10 +178,11 @@ async def _drawing_error(spec: WidgetSpec, data: dict[str, Any]) -> str | None:
 
 
 def _fallback(
-    data: dict[str, Any], model: str | None, reason: str
+    data: dict[str, Any], title: str, reason: str
 ) -> tuple[WidgetSpec, str | None, Check]:
+    # No model drew it, so no model is stored: the page says "plain widget".
     check = Check(name="widget_spec", passed=False, detail=f"plain widget instead: {reason}"[:300])
-    return fallback(data=data), model, check
+    return fallback(data=data).model_copy(update={"title": title}), None, check
 
 
 def _labels(value: Any, key: str = "") -> list[str]:

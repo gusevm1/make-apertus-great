@@ -34,6 +34,7 @@ from app.features.widgets.catalogue.schemas import (
     WidgetSpec,
 )
 from app.features.widgets.catalogue.values import (
+    MONTHS,
     booking_ids,
     display,
     figure,
@@ -202,7 +203,11 @@ def _kpi(
 
 def _named(label: str, row: str | None) -> str:
     # "September" already names the row "Sep 2026"; "October" on "Jan 2026" shows both.
-    if row is None or row in label or label.lower().startswith(row.split()[0].lower()):
+    if row is None or row.strip() == "" or re.search(rf"\b{re.escape(row)}\b", label):
+        return label
+    month = row.split()[0]
+    words = re.findall(r"[^\W\d_]+", label.lower())
+    if month in MONTHS and any(word.startswith(month.lower()) for word in words):
         return label
     return f"{label} · {row}"
 

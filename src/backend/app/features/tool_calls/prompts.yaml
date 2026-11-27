@@ -47,6 +47,7 @@ answer_results: |
   Only if a call failed and no other result covers it, say what you could not look up.
   Write only the answer for me: never mention the tools, their calls or the tags around their results.
   {language}
+answer_widget: "\nThe widget is drawn on the canvas beside this chat, where I see it now; it is not on the e-banking dashboard. Say so in one sentence, and never name its id."
 answer_direct: "Answer my message above. No tool looked anything up for it, so never state an account figure, such as an amount or a balance, that this conversation does not already show. If you need one, say that you cannot see it. {language}"
 answer_language: "My question is written in {language}, so write the whole answer in {language}, whatever the language of the results."
 answer_language_unknown: "Write the answer in the language of that question, whatever the language of the results."

@@ -16,7 +16,7 @@ from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
 from app.features.tool_calls.service import ToolCallService
 from app.features.widgets import tools as widget_tools
-from app.features.widgets.catalogue.render import render
+from app.features.widgets.catalogue.render import _named, render
 from app.features.widgets.catalogue.schemas import WidgetSpec
 from app.features.widgets.repository import WidgetRepository, WidgetVersionRepository
 from app.features.widgets.schemas import BuildWidgetArgs
@@ -98,6 +98,24 @@ MONTHS = Tool(
 )
 
 
+class PaymentsResult(BaseModel):
+    items: list[dict[str, Any]]
+
+
+async def _payments(args: MonthsArgs) -> PaymentsResult:
+    return PaymentsResult(items=[{"id": "SO-1", "payee": "Landlord", "amount_chf": "1850.00"}])
+
+
+PAYMENTS = Tool(
+    name="list_upcoming_payments",
+    title="List upcoming payments",
+    icon="calendar",
+    description="Payments due soon.",
+    args_schema=MonthsArgs,
+    handler=_payments,
+)
+
+
 def _service(session: AsyncSession, apertus: ScriptedApertus) -> WidgetService:
     return WidgetService(
         widgets=WidgetRepository(session=session),
@@ -158,6 +176,45 @@ async def test_a_turn_draws_and_keeps_a_widget_from_its_earlier_results(
     assert "17&#39;274" in html or "17'274" in html
 
 
+async def test_a_widget_listed_before_a_fetch_still_draws_that_fetch(
+    session: AsyncSession,
+) -> None:
+    conversation = await make_conversation(session=session)
+    message = await make_message(session=session, conversation_id=conversation.id)
+    calls = [
+        ToolRequest(reason="Months.", tool="sum_by_month", arguments={}),
+        ToolRequest(
+            reason="Draw.",
+            tool="build_widget",
+            arguments={"title": "Spending", "request": "Spending and payments as a chart"},
+        ),
+        ToolRequest(reason="Payments.", tool="list_upcoming_payments", arguments={}),
+    ]
+    apertus = ScriptedApertus(
+        decisions=[ToolDecision(plan="Fetch, then draw.", calls=calls)], specs=[GOOD_SPEC]
+    )
+    widgets = _service(session=session, apertus=apertus)
+    service = ToolCallService(
+        tool_calls=ToolCallRepository(session=session),
+        apertus=cast(ApertusClient, apertus),
+        tools=[MONTHS, PAYMENTS, *widget_tools.get_tools(service=widgets, owner_id=DEMO_USER_ID)],
+        today=TODAY,
+        confirmations=Confirmations(),
+    )
+
+    await service.create_answer(
+        conversation_id=conversation.id, message_id=message.id, messages=CHAT
+    )
+
+    *fetches, build = await service.list_tool_calls(conversation_id=conversation.id)
+    assert build.tool_name == "build_widget"
+    assert build.result is not None
+    widget = await widgets.get_widget(widget_id=build.result["widget_id"], owner_id=DEMO_USER_ID)
+    version, _ = await widgets.render_version(widget=widget, version_number=1, form="live")
+    assert version.data["upcoming_payments"][0]["payee"] == "Landlord"
+    assert version.tool_call_ids == [str(fetch.id) for fetch in fetches]
+
+
 async def test_a_path_that_does_not_resolve_goes_back_to_apertus_once(
     session: AsyncSession,
 ) -> None:
@@ -201,6 +258,8 @@ async def test_a_second_failure_keeps_a_plain_widget(
         form="static",
     )
     assert version.spec["body"]["type"] == "table"
+    assert version.spec["title"] == "Spending"
+    assert version.model is None
     assert version.checks[0].passed is False
     assert "CHF 10&#39;598.77" in html
 
@@ -263,6 +322,21 @@ def test_a_figure_shows_the_name_of_its_own_row() -> None:
     page = render(spec=spec, data=data, form="static")
 
     assert "October · Jan 2026" in page
+
+
+@pytest.mark.parametrize(
+    ("label", "row", "shown"),
+    [
+        ("September", "Sep 2026", "September"),
+        ("Seminar fees", "Sep 2026", "Seminar fees · Sep 2026"),
+        ("Cooperative", "Coop", "Cooperative · Coop"),
+        ("Paid to Coop", "Coop", "Paid to Coop"),
+        ("Spending", "  ", "Spending"),
+        (" ", "Sep 2026", "  · Sep 2026"),
+    ],
+)
+def test_a_label_names_its_row_once(label: str, row: str, shown: str) -> None:
+    assert _named(label=label, row=row) == shown
 
 
 def test_money_out_is_drawn_as_a_positive_amount() -> None:

@@ -16,7 +16,10 @@ def spec_messages(request: str, data: dict[str, Any]) -> list[Message]:
         request=request,
         rows=PREVIEW_ROWS,
         ids=PREVIEW_IDS,
-        data=json.dumps(_preview(value=data), ensure_ascii=False, indent=1),
+        # Written as JSON escapes, a bank text can neither close the data block nor open a tag.
+        data=json.dumps(_preview(value=data), ensure_ascii=False, indent=1)
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e"),
     )
     return [
         Message(role="system", content=PROMPTS["spec_system"].format(catalogue=catalogue_prompt())),

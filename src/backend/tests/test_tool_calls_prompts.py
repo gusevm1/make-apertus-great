@@ -68,6 +68,27 @@ async def test_answer_prompt_adds_results_and_cuts_long_ones(session: AsyncSessi
     assert "result cut off here" in content
 
 
+@pytest.mark.parametrize(("error", "says_canvas"), [(None, True), ("No figures.", False)])
+async def test_answer_prompt_says_where_a_built_widget_is(
+    session: AsyncSession, error: str | None, says_canvas: bool
+) -> None:
+    conversation = await make_conversation(session=session)
+    message = await make_message(session=session, conversation_id=conversation.id)
+    call = await make_tool_call(
+        session=session,
+        conversation_id=conversation.id,
+        message_id=message.id,
+        tool_name="build_widget",
+        result=None if error is not None else {"widget_id": "W-1"},
+        error=error,
+    )
+
+    content = answer_prompt(messages=CHAT, calls=[call])[2]["content"]
+
+    assert isinstance(content, str)
+    assert ("drawn on the canvas" in content) is says_canvas
+
+
 async def test_answer_prompt_cuts_long_errors(session: AsyncSession) -> None:
     conversation = await make_conversation(session=session)
     message = await make_message(session=session, conversation_id=conversation.id)

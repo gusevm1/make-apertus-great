@@ -114,6 +114,9 @@ function Chat({
   const [attached, setAttached] = useState<DocumentRef[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [visual, setVisual] = useState<Visual | null>(null);
+  const [isLoadingVisual, setIsLoadingVisual] = useState(false);
+  // Bumped by every widget fetch and chat switch, so a late fetch never draws on another chat.
+  const visualRequest = useRef(0);
   // In a narrow frame one view at a time; wider, the CSS shows both and ignores this.
   const [view, setView] = useState<View>("chat");
   const chatRef = useRef<HTMLElement>(null);
@@ -141,16 +144,29 @@ function Chat({
 
   // Draws a widget on the canvas; a narrow frame switches to it.
   async function showWidget(widget: { widgetId: string; version: number }) {
-    const version = await api<WidgetVersion>(
-      `/api/widgets/${widget.widgetId}/versions/${widget.version}?form=live`,
-      token,
-    );
-    setVisual({
-      title: version.title,
-      html: version.html,
-      caption: captionOf(version),
-    });
-    setView("visual");
+    const request = ++visualRequest.current;
+    setIsLoadingVisual(true);
+    try {
+      const version = await api<WidgetVersion>(
+        `/api/widgets/${widget.widgetId}/versions/${widget.version}?form=live`,
+        token,
+      );
+      if (request !== visualRequest.current) return;
+      setVisual({
+        title: version.title,
+        html: version.html,
+        caption: captionOf(version),
+      });
+      setView("visual");
+    } finally {
+      if (request === visualRequest.current) setIsLoadingVisual(false);
+    }
+  }
+
+  function clearVisual() {
+    visualRequest.current += 1;
+    setIsLoadingVisual(false);
+    setVisual(null);
   }
 
   async function handleOpenVisual(widget: {
@@ -333,7 +349,7 @@ function Chat({
     setIsOpening(true);
     try {
       await open(id);
-      setVisual(null);
+      clearVisual();
     } catch (error) {
       setLoadError(messageOf(error));
     } finally {
@@ -345,7 +361,7 @@ function Chat({
     setConversationId(null);
     setMessages([]);
     setToolCalls([]);
-    setVisual(null);
+    clearVisual();
     stream.reset();
   }
 
@@ -420,6 +436,7 @@ function Chat({
         <div className="canvas-pane">
           <Canvas
             visual={visual}
+            isLoading={isLoadingVisual}
             isBusy={isBusy}
             onAsk={(text) => void ask(text)}
           />
