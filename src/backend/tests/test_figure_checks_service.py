@@ -20,6 +20,13 @@ def test_figures_from_the_data_pass_in_swiss_and_english_writing() -> None:
     assert (result.passed, result.detail) == (True, "7 of 7 found")
 
 
+def test_a_comma_after_a_figure_ends_the_sentence_part() -> None:
+    result = check(answer="An e-bike for CHF 4,500, by April.", sources=["CHF 4500.00"])
+
+    assert result is not None
+    assert (result.passed, result.detail) == (True, "1 of 1 found")
+
+
 def test_a_plain_space_never_joins_two_numbers() -> None:
     result = check(answer="Rate 20 of 24, then 390 more.", sources=["20 24 390"])
 
