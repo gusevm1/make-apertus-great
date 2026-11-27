@@ -102,8 +102,7 @@ class ToolCallService:
         if stream.result is None:
             raise UpstreamError("Apertus stream ended without a result")
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
-        answer = SwissSpelling().feed(text=stream.result.content)
-        return answer + self._pointers(calls=calls, answer=answer), provenance
+        return SwissSpelling().feed(text=stream.result.content), provenance
 
     async def stream_answer(
         self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage]
@@ -137,11 +136,7 @@ class ToolCallService:
         if stream.result is None:
             raise UpstreamError("Apertus stream ended without a result")
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
-        answer = SwissSpelling().feed(text=stream.result.content)
-        pointers = self._pointers(calls=calls, answer=answer)
-        if pointers != "":
-            yield TokenEvent(text=pointers)
-        yield DoneEvent(result=(answer + pointers, provenance))
+        yield DoneEvent(result=(SwissSpelling().feed(text=stream.result.content), provenance))
 
     async def list_tool_calls(self, conversation_id: UUID) -> list[ToolCall]:
         """List the tool calls made in a conversation, oldest first."""
@@ -256,7 +251,7 @@ class ToolCallService:
                 break
             rounds.append((decision, round_calls))
 
-    def _pointers(self, calls: list[ToolCall], answer: str) -> str:
+    def find_pointers(self, calls: list[ToolCall], answer: str) -> str:
         """The lines the called tools add under this answer, each once."""
         lines: list[str] = []
         for call in calls:

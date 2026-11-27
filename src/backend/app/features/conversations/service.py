@@ -132,6 +132,9 @@ class ConversationService:
                     history=history,
                     documents=documents,
                 )
+                checked += await self._tool_pointers(
+                    conversation_id=conversation_id, message_id=history[-1].id, content=checked
+                )
                 content, provenance = _guarded(
                     content=checked, provenance=checked_provenance, guardrail=guardrail
                 )
@@ -183,8 +186,13 @@ class ConversationService:
                         history=history,
                         documents=documents,
                     )
+                    # Under the checked answer, so a correction cannot rewrite the server's line.
+                    pointers = await self._tool_pointers(
+                        conversation_id=conversation_id, message_id=history[-1].id, content=checked
+                    )
                     if is_held:
-                        yield TokenEvent(text=checked)
+                        yield TokenEvent(text=checked + pointers)
+                    checked += pointers
                     content, provenance = _guarded(
                         content=checked, provenance=checked_provenance, guardrail=guardrail
                     )
@@ -279,6 +287,11 @@ class ConversationService:
                 "checks": [*provenance.checks, draft, *checks],
             }
         )
+
+    async def _tool_pointers(self, conversation_id: UUID, message_id: UUID, content: str) -> str:
+        calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
+        turn = [call for call in calls if call.message_id == message_id]
+        return self.tool_calls.find_pointers(calls=turn, answer=content)
 
     def _checks(
         self, content: str, sources: list[str], results: list[dict[str, Any]], texts: list[str]

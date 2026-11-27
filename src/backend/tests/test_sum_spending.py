@@ -8,6 +8,7 @@ import pytest
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
 from app.main import app
 from tests.conftest import FakeApertus
+from tests.sse import sse_events
 from tests.test_category_certainty import _with_certainty
 from tests.test_transaction_tags import LUKAS_BOOKINGS, PURCHASES, _bank_client
 
@@ -171,3 +172,31 @@ async def test_an_unknown_personal_tag_names_the_ones_there_are(
 
     (call,) = (await lukas.get(f"{url}/tool-calls")).json()
     assert call["error"] == "The customer has no personal tag 'Mars'. Their tags: Lina."
+
+
+async def test_a_streamed_answer_shows_the_pointer_under_the_checked_answer(
+    lukas: httpx2.AsyncClient, apertus: FakeApertus
+) -> None:
+    request = ToolRequest(
+        reason="Sums.", tool="sum_spending", arguments={"group_by": "category", "language": "en"}
+    )
+    apertus.structured_reply = None
+    apertus.decisions = [ToolDecision(plan="Add it up.", calls=[request]).model_dump_json()]
+    apertus.reply = "You spent CHF 29.50 on restaurants."
+    conversation = (await lukas.post("/api/conversations", json={})).json()
+    url = f"/api/conversations/{conversation['id']}"
+
+    response = await lukas.post(
+        f"{url}/messages", params={"stream": "true"}, json={"content": "Restaurants?"}
+    )
+
+    tokens = "".join(
+        data["text"] for name, data in sse_events(response=response) if name == "token"
+    )
+    (stored,) = [m for m in (await lukas.get(f"{url}/messages")).json() if m["role"] == "assistant"]
+    expected = (
+        "You spent CHF 29.50 on restaurants.\n\n1 bookings in this figure may be in the wrong "
+        "category. Check them in the [category center](#categories)."
+    )
+    assert tokens == expected
+    assert stored["content"] == expected
