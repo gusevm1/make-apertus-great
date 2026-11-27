@@ -15,8 +15,10 @@ list_payments: >-
   amount, execution date and message. Returns `sum_chf` over all matching payments.
 list_upcoming_payments: >-
   Everything that will leave the accounts in a period: pending payments and the next runs of
-  standing orders, each with due date, payee and amount. Returns `total_chf`. Use it for "what is due
-  in the next 30 days".
+  standing orders, loan interest and amortisation, each with due date, payee and amount. Returns
+  `total_chf`. Use it for every question about what is due, next or upcoming, such as "what is due in
+  the next 30 days" or "how much mortgage interest is due in December". A row marked `provisional`
+  can still change: say so in the answer.
 list_payees: >-
   The people and companies the customer has paid, with IBAN, first and last payment date and the
   number of payments.
@@ -39,7 +41,9 @@ list_portfolio_transactions: >-
   Buys, sells and dividends in the portfolio, with date, security, quantity and amount.
 list_loans: >-
   The customer's loans and mortgage tranches: product, balance, interest rate, fixed or SARON,
-  maturity date, next interest date and yearly interest. Returns `total_balance_chf`.
+  maturity date, next interest date and yearly interest. Returns `total_balance_chf`. It has no
+  amount due on a date: for interest or amortisation that is due, next or upcoming, use
+  list_upcoming_payments.
 list_loan_transactions: >-
   Interest and amortisation payments on the loans, each with date, amount and the booking it belongs
   to. Returns `sum_chf` over all matching payments, so "interest paid in 2025" is one call with
