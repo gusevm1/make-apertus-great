@@ -140,3 +140,17 @@ async def test_an_answer_whose_figures_are_found_gets_no_second_round(
     assert _corrections(apertus=apertus) == []
     assert "figures_found_draft" not in _checks(reply=reply)
     assert _checks(reply=reply)["figures_found"]["passed"] is True
+
+
+async def test_an_answer_without_tool_calls_is_not_corrected(
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus
+) -> None:
+    conversation = await make_conversation(session=session)
+    url = f"/api/conversations/{conversation.id}/messages"
+    apertus.reply = INVENTED
+
+    reply = (await client.post(url, json={"content": "Hello"})).json()
+
+    assert _corrections(apertus=apertus) == []
+    assert reply["content"] == INVENTED
+    assert _checks(reply=reply)["figures_found"]["passed"] is False

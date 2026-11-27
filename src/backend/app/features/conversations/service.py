@@ -125,14 +125,12 @@ class ConversationService:
                     message_id=history[-1].id,
                     messages=messages,
                 )
-                # Nobody has seen the answer yet, so it can still be corrected.
                 checked, checked_provenance = await self._check_figures(
                     conversation_id=conversation_id,
                     content=answer,
                     provenance=answer_provenance,
                     history=history,
                     documents=documents,
-                    can_correct=True,
                 )
                 content, provenance = _guarded(
                     content=checked, provenance=checked_provenance, guardrail=guardrail
@@ -184,7 +182,6 @@ class ConversationService:
                         provenance=answer_provenance,
                         history=history,
                         documents=documents,
-                        can_correct=is_held,
                     )
                     if is_held:
                         yield TokenEvent(text=checked)
@@ -254,14 +251,16 @@ class ConversationService:
         provenance: Provenance,
         history: list[Message],
         documents: list[Document],
-        can_correct: bool,
     ) -> tuple[str, Provenance]:
         # Earlier turns count too, so a follow-up may repeat a figure it was shown before.
         calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
         results = [call.result for call in calls if call.result is not None]
         texts = [document.markdown for document in documents]
         texts += [message.content for message in history if message.role == "user"]
-        sources = [*[json.dumps(result, ensure_ascii=False) for result in results], *texts]
+        # The newest tool results last, so they are the last a cut for the correction drops.
+        sources = [*texts, *[json.dumps(result, ensure_ascii=False) for result in results]]
+        # Only an answer built on this turn's tool results is held, so only it can be corrected.
+        can_correct = any(call.message_id == history[-1].id for call in calls)
         checks = self._checks(content=content, sources=sources, results=results, texts=texts)
         figures = next((check for check in checks if check.name == "figures_found"), None)
         if not can_correct or figures is None or figures.passed:

@@ -4,7 +4,7 @@ from app.features.figure_corrections.prompts import correction_prompt
 
 CORRECTION_MODEL = Model.SMART
 CORRECTION_PURPOSE = "figure_correction"
-# The newest sources the correction sees; older turns' results drop out first.
+# How much of the sources the correction sees; the first sources drop out first.
 SOURCES_MAX_CHARS = 24000
 
 
@@ -21,7 +21,7 @@ class FigureCorrectionService:
             messages=correction_prompt(
                 answer=answer,
                 missing=missing,
-                data="\n".join(sources)[-SOURCES_MAX_CHARS:],
+                data="\n".join(last_sources(sources=sources, max_chars=SOURCES_MAX_CHARS)),
             ),
             model=CORRECTION_MODEL,
             purpose=CORRECTION_PURPOSE,
@@ -31,3 +31,15 @@ class FigureCorrectionService:
         if stream.result is None:
             raise UpstreamError("Apertus stream ended without a result")
         return stream.result
+
+
+# Whole sources only: a cut inside a tool result would leave broken JSON.
+def last_sources(sources: list[str], max_chars: int) -> list[str]:
+    kept: list[str] = []
+    total = 0
+    for source in reversed(sources):
+        if total + len(source) > max_chars:
+            break
+        kept.append(source)
+        total += len(source)
+    return kept[::-1]
