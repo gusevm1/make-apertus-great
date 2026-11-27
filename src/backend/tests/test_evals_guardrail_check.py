@@ -22,9 +22,9 @@ def item(label: str, language: str = "en") -> GoldItem:
     )
 
 
-def test_gold_set_covers_every_category_in_both_splits() -> None:
+def test_gold_set_covers_every_category_in_every_split() -> None:
     gold = load_gold(path=GOLD_PATH)
-    for split in ("tune", "heldout"):
+    for split in ("tune", "spent", "heldout"):
         labels = {entry.label.value for entry in gold if entry.split == split}
         assert labels == set(CATEGORIES)
     assert len({entry.id for entry in gold}) == len(gold)

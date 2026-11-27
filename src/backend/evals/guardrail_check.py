@@ -25,6 +25,8 @@ DECLINES = {GuardrailCategory.OTHER_CUSTOMER.value, GuardrailCategory.OFF_TOPIC.
 # The gate answers as if the message were ok when its check fails, so a failure scores as ok.
 FAILED = "failed"
 TURN_ATTEMPTS = 3
+# A spent held-out split is tuned on together with `tune` once its final score is reported.
+SPLITS = {"tune": "tune", "spent": "tune", "heldout": "heldout"}
 # From the persona feedback: a wrong decline throws the answer away and can read as an accusation;
 # a wrong pointer adds a line, a miss leaves one out.
 HARM_FALSE_DECLINE = 3
@@ -34,7 +36,7 @@ class GoldItem(BaseModel):
     id: str
     persona: str
     language: str
-    split: Literal["tune", "heldout"]
+    split: Literal["tune", "spent", "heldout"]
     label: GuardrailCategory
     text: str
     reason: str
@@ -170,7 +172,9 @@ async def main() -> int:
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--out", type=Path, help="write the verdicts and scores as JSON")
     args = parser.parse_args()
-    items = [item for item in load_gold(path=GOLD_PATH) if args.split in ("all", item.split)]
+    items = [
+        item for item in load_gold(path=GOLD_PATH) if args.split in ("all", SPLITS[item.split])
+    ]
     if args.base_url is not None:
         settings = EvalSettings()
         async with httpx.AsyncClient(timeout=TURN_TIMEOUT_SECONDS) as bank:
