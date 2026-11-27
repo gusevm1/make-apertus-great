@@ -133,3 +133,9 @@
         group_by: personal_tag
         personal_tag: ".*japan.*"
   not_called: [search_web]
+- question: How much of my restaurant budget is left this month?
+  calls:
+    - tool: compare_budgets
+      arguments:
+        month: "(2026-11)?"
+  not_called: [search_web]
