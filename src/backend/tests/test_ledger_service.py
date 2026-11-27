@@ -7,6 +7,8 @@ import pytest
 from app.clients.banking import BankingClient
 from app.core.config import get_settings
 from app.core.errors import BadRequestError
+from app.features.bank_data.service import BankDataService
+from app.features.bank_data.tools import get_tools
 from app.features.ledger import service as ledger_service
 from app.features.ledger.service import LedgerService
 
@@ -174,7 +176,13 @@ async def test_every_page_is_read_once(
 async def test_a_read_off_the_list_never_reaches_the_bank(
     ledger: LedgerService, pages_read: list[str]
 ) -> None:
-    for path in ["/admin/reset", "/auth/login", "/accounts/../bookings", "/cards/./transactions"]:
+    for path in [
+        "/admin/reset",
+        "/auth/login",
+        "/accounts/../bookings",
+        "/cards/./transactions",
+        "/accounts\n",
+    ]:
         with pytest.raises(BadRequestError, match="is not a read the bank data allows"):
             await ledger.read(path=path, token=TOKEN)
 
@@ -183,3 +191,17 @@ async def test_a_read_off_the_list_never_reaches_the_bank(
 
 async def test_a_read_on_the_list_answers_as_the_bank_does(ledger: LedgerService) -> None:
     assert await ledger.read(path="/accounts", token=TOKEN) == {"items": ACCOUNTS}
+
+
+async def test_an_id_of_dots_cannot_climb_to_another_path(
+    ledger: LedgerService, pages_read: list[str]
+) -> None:
+    tools = {
+        tool.name: tool for tool in get_tools(service=BankDataService(ledger=ledger), token=TOKEN)
+    }
+    preview = tools["get_balance_preview"]
+
+    with pytest.raises(BadRequestError, match="is not a read the bank data allows"):
+        await preview.handler(preview.args_schema(account_id=".."))
+
+    assert pages_read == []

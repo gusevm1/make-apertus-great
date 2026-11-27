@@ -35,7 +35,7 @@ READ_PATHS = [
 # A segment is quoted already; `.` and `..` survive quoting and would climb to another path.
 _SEGMENT = r"(?!\.\.?(?:/|$))[^/?#]+"
 _READ_PATTERNS = [
-    re.compile("^" + _SEGMENT.join(map(re.escape, path.split("{}"))) + "$") for path in READ_PATHS
+    re.compile(_SEGMENT.join(map(re.escape, path.split("{}")))) for path in READ_PATHS
 ]
 
 
@@ -45,7 +45,7 @@ class LedgerService:
 
     async def read(self, path: str, token: str, params: dict[str, Any] | None = None) -> Any:
         """One read from the banking API as the customer, only on a path of `READ_PATHS`."""
-        if not any(pattern.match(path) for pattern in _READ_PATTERNS):
+        if not any(pattern.fullmatch(path) for pattern in _READ_PATTERNS):
             raise BadRequestError(f"{path} is not a read the bank data allows")
         return await self.banking.get(path=path, token=token, params=params)
 

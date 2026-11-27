@@ -41,6 +41,7 @@ class Read:
 
 # Reads only. Anything that changes the bank (payments, standing orders, widgets) needs the
 # customer's confirmation in the page first, and /admin/reset is never a tool.
+# A new path also goes into the ledger's READ_PATHS, which is what may be read.
 READS = [
     Read(name="get_customer", title="Look at your profile", icon="user", path="/customer"),
     Read(
