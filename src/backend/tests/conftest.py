@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -86,6 +86,8 @@ class FakeApertus:
     reply: str = FAKE_REPLY
     guardrail_requests: list[dict[str, Any]] = field(default_factory=list)
     guardrails: list[str] = field(default_factory=list)
+    # Answers a structured request from its body; without it `decisions` answer.
+    structured_reply: Callable[[dict[str, Any]], str] | None = None
 
 
 @pytest.fixture
@@ -259,6 +261,8 @@ async def client(
         # Only `structured` sets a temperature, which marks a tool decision request.
         if "temperature" not in body:
             return _fake_completion(body=body, content=apertus.reply)
+        if apertus.structured_reply is not None:
+            return _fake_completion(body=body, content=apertus.structured_reply(body))
         decision = apertus.decisions.pop(0) if apertus.decisions else NO_TOOL_DECISION
         return _fake_completion(body=body, content=decision)
 
