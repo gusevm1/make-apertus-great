@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Icon } from "./Icon";
 
 /** A widget page from our renderer, shown in a sandboxed frame. */
 export interface Visual {
@@ -70,21 +71,27 @@ export function Canvas({
 
   if (visual === null) {
     return (
-      <section className="canvas empty" aria-label="Visual">
-        <h2>Ask for a chart and it appears here</h2>
-        <ul className="examples">
-          {EXAMPLE_QUESTIONS.map((question) => (
-            <li key={question}>
-              <button
-                type="button"
-                onClick={() => onAsk(question)}
-                disabled={isBusy}
-              >
-                {question}
-              </button>
-            </li>
-          ))}
-        </ul>
+      <section className="canvas" aria-label="Visual">
+        <div className="card">
+          <div className="card-head">
+            <h2>Ask for a chart and it appears here</h2>
+          </div>
+          <ul className="rows">
+            {EXAMPLE_QUESTIONS.map((question) => (
+              <li key={question}>
+                <button
+                  type="button"
+                  className="row"
+                  onClick={() => onAsk(question)}
+                  disabled={isBusy}
+                >
+                  <span className="row-main">{question}</span>
+                  <Icon name="chevronRight" size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
     );
   }

@@ -28,7 +28,9 @@ test("without a visual it offers questions to ask and no frame", () => {
 
   expect(output).toContain("Ask for a chart and it appears here");
   for (const question of EXAMPLE_QUESTIONS)
-    expect(output).toContain(`<button type="button">${question}</button>`);
+    expect(output).toContain(
+      `<button type="button" class="row"><span class="row-main">${question}</span>`,
+    );
   expect(output).not.toContain("<iframe");
 });
 

@@ -15,6 +15,7 @@ import {
   type ToolCall,
 } from "./api";
 import { type HostContext, useHostContext } from "./host";
+import { Canvas, type Selection, selectionText, type Visual } from "./Canvas";
 import { Confirmation } from "./Confirmation";
 import { ChatList, type ChatListProps, Home } from "./Home";
 import { Icon } from "./Icon";
@@ -47,6 +48,11 @@ function Chat({ context }: { context: HostContext }) {
   const [isOpening, setIsOpening] = useState(false);
   const [attached, setAttached] = useState<DocumentRef[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  // Filled once widgets exist (#25); until then the canvas shows its empty state.
+  const [visual] = useState<Visual | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  // In a narrow frame one view at a time; wider, the CSS shows both and ignores this.
+  const [view, setView] = useState<"chat" | "visual">("chat");
   const chatRef = useRef<HTMLElement>(null);
   const isFollowing = useRef(true);
   const lastScrollTop = useRef(0);
@@ -69,6 +75,10 @@ function Chat({ context }: { context: HostContext }) {
   }
 
   const isHome = conversationId === null && pending === null;
+
+  useEffect(() => {
+    if (visual !== null) setView("visual");
+  }, [visual]);
 
   // The chat follows new text until the customer scrolls up, and again once they are back down.
   // The home starts at its top.
@@ -264,92 +274,146 @@ function Chat({ context }: { context: HostContext }) {
   };
 
   return (
-    <div className="layout">
-      <aside className="sidebar">
-        <button type="button" onClick={handleNewChat} disabled={isBusy}>
-          <Icon name="plus" size={16} /> New chat
-        </button>
-        <ChatList {...chats} />
-      </aside>
+    <div className="trustroom">
+      <div
+        className="layout"
+        // A question waiting for the customer's answer always shows, even from the visual.
+        data-view={waitingCalls.length > 0 ? "chat" : view}
+        data-has-visual={visual !== null}
+      >
+        <div className="switch" role="group" aria-label="Show">
+          <button
+            type="button"
+            aria-pressed={view === "chat"}
+            onClick={() => setView("chat")}
+          >
+            Chat
+          </button>
+          <button
+            type="button"
+            aria-pressed={view === "visual"}
+            onClick={() => setView("visual")}
+          >
+            Visual
+          </button>
+        </div>
 
-      <main>
-        {!isHome && (
-          <header className="thread-bar">
-            <button
-              type="button"
-              className="icon back"
-              onClick={handleNewChat}
-              disabled={isBusy}
-              aria-label="All chats"
-            >
-              <Icon name="chevronLeft" />
-            </button>
-            <h1>{title ?? "Untitled chat"}</h1>
-          </header>
-        )}
+        <aside className="sidebar">
+          <button type="button" onClick={handleNewChat} disabled={isBusy}>
+            <Icon name="plus" size={16} /> New chat
+          </button>
+          <ChatList {...chats} />
+        </aside>
 
-        <section
-          ref={chatRef}
-          className="chat"
-          aria-live="polite"
-          onScroll={handleChatScroll}
-        >
-          {/* On the home the error goes first, where the customer still looks. */}
-          {isHome && errorNote}
-          {isHome && (
-            <Home
-              context={context}
-              chats={chats}
-              isBusy={isBusy}
-              onAsk={(text) => void ask(text)}
-            />
-          )}
-          {messages.map((message, index) =>
-            message.role === "user" ? (
-              <Question
-                key={message.id}
-                text={message.content}
-                documents={message.documents}
-              />
-            ) : (
-              <Answer
-                key={message.id}
-                // Tool calls are stored on the question they answer.
-                steps={toolCalls.filter(
-                  (call) => call.message_id === messages[index - 1]?.id,
-                )}
-                provenance={message.provenance}
-              >
-                <Markdown text={message.content} />
-              </Answer>
-            ),
-          )}
-          {pending !== null && (
-            <>
-              <Question text={pending} documents={pendingDocuments} />
-              <Answer steps={stream.toolCalls} provenance={null}>
-                {stream.text !== "" ? (
-                  <Markdown text={stream.text} />
-                ) : (
-                  waitingCalls.length === 0 && <p className="hint">Thinking…</p>
-                )}
-              </Answer>
-            </>
-          )}
-          {!isHome && errorNote}
-        </section>
-
-        {waitingCalls.map((toolCall) => (
-          <Confirmation
-            key={toolCall.id}
-            toolCall={toolCall}
-            onAnswer={(isAllowed) => handleConfirmation(toolCall.id, isAllowed)}
+        <div className="canvas-pane">
+          <Canvas
+            visual={visual}
+            isBusy={isBusy}
+            onAsk={(text) => {
+              setView("chat");
+              void ask(text);
+            }}
+            onSelect={setSelection}
           />
-        ))}
+        </div>
 
+        <main>
+          {!isHome && (
+            <header className="thread-bar">
+              <button
+                type="button"
+                className="icon back"
+                onClick={handleNewChat}
+                disabled={isBusy}
+                aria-label="All chats"
+              >
+                <Icon name="chevronLeft" />
+              </button>
+              <h1>{title ?? "Untitled chat"}</h1>
+            </header>
+          )}
+
+          <section
+            ref={chatRef}
+            className="chat"
+            aria-live="polite"
+            onScroll={handleChatScroll}
+          >
+            {/* On the home the error goes first, where the customer still looks. */}
+            {isHome && errorNote}
+            {isHome && (
+              <Home
+                context={context}
+                chats={chats}
+                isBusy={isBusy}
+                onAsk={(text) => void ask(text)}
+              />
+            )}
+            {messages.map((message, index) =>
+              message.role === "user" ? (
+                <Question
+                  key={message.id}
+                  text={message.content}
+                  documents={message.documents}
+                />
+              ) : (
+                <Answer
+                  key={message.id}
+                  // Tool calls are stored on the question they answer.
+                  steps={toolCalls.filter(
+                    (call) => call.message_id === messages[index - 1]?.id,
+                  )}
+                  provenance={message.provenance}
+                >
+                  <Markdown text={message.content} />
+                </Answer>
+              ),
+            )}
+            {pending !== null && (
+              <>
+                <Question text={pending} documents={pendingDocuments} />
+                <Answer steps={stream.toolCalls} provenance={null}>
+                  {stream.text !== "" ? (
+                    <Markdown text={stream.text} />
+                  ) : (
+                    waitingCalls.length === 0 && (
+                      <p className="hint">Thinking…</p>
+                    )
+                  )}
+                </Answer>
+              </>
+            )}
+            {!isHome && errorNote}
+          </section>
+
+          {waitingCalls.map((toolCall) => (
+            <Confirmation
+              key={toolCall.id}
+              toolCall={toolCall}
+              onAnswer={(isAllowed) =>
+                handleConfirmation(toolCall.id, isAllowed)
+              }
+            />
+          ))}
+        </main>
+
+        {/* Outside main, so the input stays at the bottom when the visual takes a narrow frame. */}
         <form className="composer" onSubmit={handleSubmit}>
-          {(attached.length > 0 || isUploading) && (
+          {(attached.length > 0 || isUploading || selection !== null) && (
             <ul className="attached">
+              {selection !== null && (
+                <li className="selection">
+                  <span>{selectionText(selection)}</span>
+                  <button
+                    type="button"
+                    className="icon"
+                    aria-label="Remove the selected part"
+                    onClick={() => setSelection(null)}
+                  >
+                    <Icon name="close" size={12} />
+                  </button>
+                </li>
+              )}
               {attached.map((document) => (
                 <li key={document.id}>
                   <Icon name="file" size={14} />
@@ -424,7 +488,7 @@ function Chat({ context }: { context: HostContext }) {
             </button>
           </div>
         </form>
-      </main>
+      </div>
     </div>
   );
 }

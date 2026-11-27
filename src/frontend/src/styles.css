@@ -57,16 +57,48 @@ summary:focus-visible,
   color: var(--color-text-muted);
 }
 
-/* Layout: one column in the panel; the chat list moves to the left in a wide page. */
-.layout {
-  display: flex;
+/* Layout: one column in the panel, where a switch picks the chat or the visual and the input stays
+   at the bottom of both. A wide page puts the chat list on the left, or, once there is a visual, the
+   visual on the left and the chat in a column beside it. */
+.trustroom {
   height: 100vh;
   container-type: inline-size;
 }
 
+.layout {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "switch" "pane" "composer";
+  height: 100%;
+}
+
+.switch {
+  grid-area: switch;
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+
+.switch button {
+  flex: 1;
+  min-height: 44px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+
+.switch button[aria-pressed="true"] {
+  color: var(--color-sidebar-text);
+  background: var(--color-primary);
+}
+
 .sidebar {
+  grid-area: sidebar;
   display: none;
-  flex: none;
   flex-direction: column;
   gap: 12px;
   width: 300px;
@@ -74,21 +106,69 @@ summary:focus-visible,
   overflow-y: auto;
 }
 
-main {
+main,
+.canvas-pane {
+  grid-area: pane;
   display: flex;
-  flex: 1;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+}
+
+.canvas-pane {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.composer {
+  grid-area: composer;
+}
+
+.layout[data-view="chat"] .canvas-pane,
+.layout[data-view="visual"] main {
+  display: none;
 }
 
 @container (min-width: 760px) {
+  .layout {
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-areas: "sidebar pane" "sidebar composer";
+  }
+
   .sidebar {
     display: flex;
+  }
+
+  .switch,
+  .layout[data-has-visual="false"] .canvas-pane,
+  .layout[data-has-visual="true"] .sidebar {
+    display: none;
+  }
+
+  .layout[data-view] main {
+    display: flex;
+  }
+
+  .layout[data-has-visual="true"] {
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-areas: "canvas pane" "canvas composer";
+  }
+
+  .layout[data-has-visual="true"] .canvas-pane {
+    grid-area: canvas;
+    display: flex;
+    padding-right: 0;
   }
 
   .thread-bar .back,
   .home-chats {
     display: none;
+  }
+
+  /* With the visual on the left, the chat list is behind the back button again. */
+  .layout[data-has-visual="true"] .thread-bar .back {
+    display: grid;
   }
 
   /* In a wide page the title sits on the chat's column instead of a bar across the page. */
@@ -209,6 +289,11 @@ main {
   text-align: left;
   background: none;
   border: 0;
+}
+
+/* A question that wraps keeps its arrow at full size. */
+.row > svg {
+  flex: none;
 }
 
 .row-main.single {
@@ -744,6 +829,45 @@ main {
   height: 8px;
   background: var(--color-error);
   border-radius: 50%;
+}
+
+/* Canvas: the widget page in a sandboxed frame, or questions that make one. */
+.canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.canvas > h2 {
+  font-size: 18px;
+}
+
+.canvas iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .canvas-pane {
+    animation: appear 180ms ease-out;
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.attached .selection {
+  font-weight: 600;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* Out of sight, but still reachable with the keyboard. */
