@@ -8,17 +8,17 @@ interface Props {
 
 /** Asks the customer before a tool call runs, and shows what it would send. */
 export function Confirmation({ toolCall, onAnswer }: Props) {
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [answer, setAnswer] = useState<boolean | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
 
   async function handleAnswer(isAllowed: boolean) {
-    setIsAnswered(true);
-    setError(null);
+    setAnswer(isAllowed);
+    setFailure(null);
     try {
       await onAnswer(isAllowed);
     } catch (error) {
-      setIsAnswered(false);
-      setError(
+      setAnswer(null);
+      setFailure(
         error instanceof Error ? error.message : "Something went wrong.",
       );
     }
@@ -29,28 +29,27 @@ export function Confirmation({ toolCall, onAnswer }: Props) {
       <strong>{toolCall.title}?</strong>
       {Object.entries(toolCall.arguments).map(([name, value]) => (
         <p key={name}>
-          {name}: {String(value)}
+          {name}: {typeof value === "string" ? value : JSON.stringify(value)}
         </p>
       ))}
       <p className="hint">{toolCall.confirmation}</p>
-      <div>
-        <button
-          type="button"
-          className="primary"
-          onClick={() => void handleAnswer(true)}
-          disabled={isAnswered}
-        >
-          Allow
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleAnswer(false)}
-          disabled={isAnswered}
-        >
-          Don’t allow
-        </button>
-      </div>
-      {error !== null && <p role="alert">{error}</p>}
+      {answer === null && (
+        <div>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => void handleAnswer(true)}
+          >
+            Allow
+          </button>
+          <button type="button" onClick={() => void handleAnswer(false)}>
+            Don’t allow
+          </button>
+        </div>
+      )}
+      {answer === true && <p className="hint">Allowed, one moment…</p>}
+      {answer === false && <p className="hint">Not allowed.</p>}
+      {failure !== null && <p role="alert">{failure}</p>}
     </article>
   );
 }
