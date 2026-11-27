@@ -37,6 +37,8 @@ VIEWS = {
 }
 VIEW_FIELDS = ["Title", "Assignees", "Status", "Priority", "Size", "Sprint", "Linked pull requests"]
 SPRINT_LOG_LABEL = "sprint-log"
+# On the board with no Status, never a card.
+DECISIONS_LABEL = "decisions"
 # A card its owner may claim again: a second attempt, or rework on an open PR.
 STARTED = ("In progress", "In review")
 CLOSING_REF = re.compile(
@@ -171,6 +173,10 @@ def load_fields() -> dict:
     return {"id": data["id"], "fields": fields}
 
 
+def is_card(labels: list[str]) -> bool:
+    return SPRINT_LOG_LABEL not in labels and DECISIONS_LABEL not in labels
+
+
 def load_cards() -> list[dict]:
     """Every issue of this repo that is on the board, with its board fields."""
     query = """query($owner:String!,$number:Int!,$cursor:String){repositoryOwner(login:$owner){... on ProjectV2Owner{projectV2(number:$number){
@@ -192,7 +198,7 @@ def load_cards() -> list[dict]:
             ):
                 continue
             labels = [label["name"] for label in issue["labels"]["nodes"]]
-            if SPRINT_LOG_LABEL in labels:
+            if not is_card(labels=labels):
                 continue
             values = {v["field"]["name"]: v["name"] for v in item["fieldValues"]["nodes"] if v}
             cards.append(
@@ -651,10 +657,13 @@ def cmd_ci(_: argparse.Namespace) -> None:
 
     if name == "issues":
         issue = event["issue"]
-        if any(label["name"] == SPRINT_LOG_LABEL for label in issue["labels"]):
+        labels = [label["name"] for label in issue["labels"]]
+        if SPRINT_LOG_LABEL in labels:
             return
         number = issue["number"]
         item = add_to_board(number=number)
+        if DECISIONS_LABEL in labels:
+            return
         if action == "closed" and issue["state_reason"] == "completed":
             set_field(item=item, number=number, field="Status", value="Done")
         elif action == "closed":
@@ -796,6 +805,16 @@ def cmd_setup(args: argparse.Namespace) -> None:
         "Sprint reports. Not a card.",
         "--force",
     )
+    gh(
+        "label",
+        "create",
+        DECISIONS_LABEL,
+        "--color",
+        "5319e7",
+        "--description",
+        "Decisions that bind more than one card. On the board, not a card.",
+        "--force",
+    )
     print(f"Board: project {settings['number']} of {settings['owner']}")
 
 
@@ -803,6 +822,9 @@ def demo() -> None:
     """Self-check of the pure rules: python3 board.py --demo"""
     assert closing_refs(body="Closes #12, fixes: #3 and after #4") == [12, 3]
     assert closing_refs(body=None) == []
+    assert is_card(labels=["bug"])
+    assert is_card(labels=[DECISIONS_LABEL]) is False
+    assert is_card(labels=[SPRINT_LOG_LABEL]) is False
 
     def pr_event(
         action: str, state: str = "open", merged: bool = False, draft: bool = False
