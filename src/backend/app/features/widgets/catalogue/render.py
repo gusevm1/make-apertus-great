@@ -27,9 +27,11 @@ from app.features.widgets.catalogue.schemas import (
     Node,
     Progress,
     Stack,
+    Stat,
     StatRow,
     Table,
     Timeline,
+    Trend,
     WidgetSpec,
 )
 from app.features.widgets.catalogue.values import (
@@ -120,9 +122,14 @@ def _view(
         columns = node.columns if isinstance(node, Grid) else None
         return {"type": node.type, "columns": columns, "children": children}
     if isinstance(node, Kpi):
-        return _kpi(node=node, data=data)
+        return _kpi(node=node, data=data, form=form, charts=charts)
     if isinstance(node, StatRow):
-        stats = [_figure(path=stat.value, data=data) | {"label": stat.label} for stat in node.stats]
+        stats = [
+            _figure(path=stat.value, data=data)
+            | {"label": stat.label}
+            | _trend_and_change(item=stat, data=data, form=form, charts=charts)
+            for stat in node.stats
+        ]
         return {"type": node.type, "stats": stats}
     if isinstance(node, Table):
         return _table(node=node, data=data)
@@ -145,8 +152,38 @@ def _figure(path: str, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _kpi(node: Kpi, data: dict[str, Any]) -> dict[str, Any]:
-    view = {"type": node.type, "label": node.label, **_figure(path=node.value, data=data)}
+def _trend_and_change(
+    item: Stat, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
+) -> dict[str, Any]:
+    trend = None
+    if item.trend is not None:
+        chart_id, svg, chart_rows, _ = _drawn(node=item.trend, data=data, form=form, charts=charts)
+        trend = {"id": chart_id, "svg": svg, "rows": chart_rows, "path": item.trend.data}
+    if item.change is None:
+        return {"trend": trend, "change": None}
+    value = figure(path=item.change, data=data)
+    # The sign gives the direction; the figure shown is DATA's own, without its sign.
+    direction = "up" if value > 0 else ("down" if value < 0 else None)
+    is_good = direction == item.good_when
+    change = _figure(path=item.change, data=data) | {
+        "direction": direction,
+        "tone": "neutral" if direction is None else ("good" if is_good else "bad"),
+        "text": display(field=last_field(path=item.change), value=abs(value)),
+        "word": {"up": "more", "down": "less", None: "no change"}[direction],
+        "verdict": None if direction is None else ("a good change" if is_good else "to watch"),
+    }
+    return {"trend": trend, "change": change}
+
+
+def _kpi(
+    node: Kpi, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
+) -> dict[str, Any]:
+    view = {
+        "type": node.type,
+        "label": node.label,
+        **_figure(path=node.value, data=data),
+        **_trend_and_change(item=node, data=data, form=form, charts=charts),
+    }
     if node.compare is None:
         return view | {"compare_text": None}
     compare = _figure(path=node.compare, data=data)
@@ -287,9 +324,9 @@ def _progress(node: Progress, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _chart(
-    node: Chart, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
-) -> dict[str, Any]:
+def _drawn(
+    node: Chart | Trend, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
+) -> tuple[str, str | None, str, list[dict[str, Any]]]:
     chart_id = f"chart-{len(charts) + 1}"
     spec = chart_spec(component=node, data=data, live=form == "live")
     charts.append({"id": chart_id, "spec": spec})
@@ -304,13 +341,20 @@ def _chart(
         }
         for value in values
     }
+    return chart_id, svg, json.dumps(chart_rows, ensure_ascii=False), values
+
+
+def _chart(
+    node: Chart, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
+) -> dict[str, Any]:
+    chart_id, svg, chart_rows, values = _drawn(node=node, data=data, form=form, charts=charts)
     view = {
         "type": node.type,
         "title": node.title,
         "path": node.data,
         "id": chart_id,
         "svg": svg,
-        "rows": json.dumps(chart_rows, ensure_ascii=False),
+        "rows": chart_rows,
         "legend": None,
         "total": None,
     }

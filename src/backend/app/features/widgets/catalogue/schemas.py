@@ -17,17 +17,32 @@ class Component(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class Kpi(Component):
-    type: Literal["kpi"]
-    label: Label
-    value: DataPath
-    compare: DataPath | None = None
-    compare_label: Label | None = None
+class Trend(Component):
+    data: DataPath
+    x: FieldName
+    y: FieldName
 
 
 class Stat(Component):
     label: Label
     value: DataPath
+    # A small line of the series the figure belongs to, such as the last months.
+    trend: Trend | None = None
+    # A change figure DATA holds; `good_when` says which way is good (down for spending).
+    change: DataPath | None = None
+    good_when: Literal["up", "down"] | None = None
+
+    @model_validator(mode="after")
+    def _change_says_which_way_is_good(self) -> Self:
+        if self.change is not None and self.good_when is None:
+            raise ValueError("a change needs good_when: up or down")
+        return self
+
+
+class Kpi(Stat):
+    type: Literal["kpi"]
+    compare: DataPath | None = None
+    compare_label: Label | None = None
 
 
 class StatRow(Component):

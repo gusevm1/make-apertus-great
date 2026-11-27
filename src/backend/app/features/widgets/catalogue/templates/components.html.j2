@@ -1,3 +1,12 @@
+{#- A figure's change (a figure DATA holds, coloured by whether it goes the good way) and trend. #}
+{% macro trend_and_change(n) -%}
+{%- if n.change is not none %}
+  <span class="change {{ n.change.tone }}" data-component="change" data-path="{{ n.change.path }}" data-value="{{ n.change.raw }}" data-booking-ids="{{ n.change.booking_ids }}"><span class="arrow" aria-hidden="true">{% if n.change.direction == "up" %}▲{% elif n.change.direction == "down" %}▼{% else %}–{% endif %}</span> {{ n.change.text }} {{ n.change.word }}{% if n.change.verdict is not none %}<span class="sr-only">, {{ n.change.verdict }}</span>{% endif %}</span>
+{%- endif %}
+{%- if n.trend is not none %}
+  <div class="trend" data-component="trend" data-path="{{ n.trend.path }}" data-rows="{{ n.trend.rows }}"><div class="chart-area trend-area" id="{{ n.trend.id }}">{% if n.trend.svg is not none %}{{ n.trend.svg | safe }}{% endif %}</div></div>
+{%- endif %}
+{%- endmacro %}
 {% macro node(n) -%}
 {%- if n.type == "kpi" -%}
 <section class="kpi" data-component="kpi" data-path="{{ n.path }}" data-value="{{ n.raw }}" data-booking-ids="{{ n.booking_ids }}">
@@ -6,6 +15,7 @@
   {%- if n.compare_text is not none %}
   <span class="kpi-compare" data-component="kpi-compare" data-path="{{ n.compare_path }}" data-value="{{ n.compare_raw }}" data-booking-ids="{{ n.compare_booking_ids }}">{{ n.compare_label }} {{ n.compare_text }}</span>
   {%- endif %}
+  {{- trend_and_change(n) }}
 </section>
 {%- elif n.type == "stat_row" -%}
 <section class="stats" data-component="stat_row">
@@ -13,6 +23,7 @@
   <div class="stat" data-component="stat" data-path="{{ s.path }}" data-value="{{ s.raw }}" data-booking-ids="{{ s.booking_ids }}">
     <span class="stat-label">{{ s.label }}</span>
     <span class="stat-value">{{ s.text }}</span>
+    {{- trend_and_change(s) }}
   </div>
   {%- endfor %}
 </section>

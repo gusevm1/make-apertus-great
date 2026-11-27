@@ -11,6 +11,7 @@ from app.features.widgets.catalogue.schemas import (
     Chart,
     Comparison,
     Donut,
+    Trend,
 )
 from app.features.widgets.catalogue.values import display, is_number, rows, short
 
@@ -41,6 +42,9 @@ SLICES = [
     "#e3e9ea",
     "#c2c8c8",
 ]
+# A sparkline has one size in both forms, beside a figure.
+SPARK_WIDTH = 160
+SPARK_HEIGHT = 40
 DONUT_SIZE = 220
 DONUT_INNER = 66
 DONUT_OUTER = 104
@@ -73,7 +77,7 @@ THEME: dict[str, Any] = {
 }
 
 
-def chart_spec(component: Chart, data: dict[str, Any], live: bool) -> dict[str, Any]:
+def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> dict[str, Any]:
     """The Vega-Lite spec of a chart, with its rows taken from DATA; it computes no figure."""
     x_field, y_field, series_field = _fields(component=component)
     fields = [x_field, y_field] + ([series_field] if series_field is not None else [])
@@ -120,6 +124,8 @@ def chart_spec(component: Chart, data: dict[str, Any], live: bool) -> dict[str, 
         )
     if isinstance(component, Donut):
         return _donut(values=values)
+    if isinstance(component, Trend):
+        return _sparkline(values=values)
     # A horizontal chart's labels sit beside the plot, so its static plot is narrower.
     labels_beside = isinstance(component, BarChart) and component.horizontal
     size: dict[str, Any] = (
@@ -141,10 +147,10 @@ def slice_colour(index: int) -> str:
     return SLICES[index]
 
 
-def _fields(component: Chart) -> tuple[str, str, str | None]:
+def _fields(component: Chart | Trend) -> tuple[str, str, str | None]:
     if isinstance(component, Donut):
         return component.label, component.value, None
-    if isinstance(component, BarChart):
+    if isinstance(component, BarChart | Trend):
         return component.x, component.y, None
     return component.x, component.y, component.series
 
@@ -279,6 +285,52 @@ def _line(values: list[dict[str, Any]], has_series: bool, filled: bool) -> dict[
                 }
             },
             {**points, "mark": {**points["mark"], "color": ACCENT}},
+        ],
+    }
+
+
+def _sparkline(values: list[dict[str, Any]]) -> dict[str, Any]:
+    # No axes; every point is a click target, only the last one is drawn.
+    marked = [{**value, "last": index == len(values) - 1} for index, value in enumerate(values)]
+    return {
+        "width": SPARK_WIDTH,
+        "height": SPARK_HEIGHT,
+        "padding": {"left": 2, "right": 6, "top": 6, "bottom": 6},
+        "data": {"values": marked},
+        "encoding": {
+            # No padding at the ends, so the line starts where the figure above it starts.
+            "x": {
+                "field": "key",
+                "type": "ordinal",
+                "sort": None,
+                "axis": None,
+                "scale": {"padding": 0},
+            },
+            "y": {
+                "field": "y",
+                "type": "quantitative",
+                "stack": None,
+                "axis": None,
+                "scale": {"zero": False},
+            },
+        },
+        "layer": [
+            {
+                "mark": {
+                    "type": "line",
+                    "interpolate": "monotone",
+                    "strokeWidth": 2,
+                    "color": ACCENT,
+                }
+            },
+            {
+                "mark": {"type": "point", "filled": True, "size": 40, "color": ACCENT},
+                "encoding": {
+                    "opacity": {"condition": {"test": "datum.last", "value": 1}, "value": 0},
+                    "description": {"field": "description"},
+                    "tooltip": _tooltip(y_title="value"),
+                },
+            },
         ],
     }
 
