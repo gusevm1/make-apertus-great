@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     # The e-banking's API, as this server reaches it. Never taken from the browser.
     banking_api_url: str = "http://localhost:8000/api"
     banking_timeout_seconds: float = 10
+    # The e-banking's OCR service, which turns an upload into Markdown.
+    ocr_url: str = "http://localhost:8002"
+    ocr_timeout_seconds: float = 300
 
     # Web search leaves the bank's environment, so it is off until a key is set.
     tavily_base_url: str = "https://api.tavily.com"

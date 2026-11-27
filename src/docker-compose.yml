@@ -31,6 +31,7 @@ services:
       APP_ORIGIN: http://localhost:${APP_PORT:-3000}
       # The starter is its own compose project, so its services are reached through the host.
       BANKING_API_URL: ${BANKING_API_URL:-http://host.docker.internal:8000/api}
+      OCR_URL: ${OCR_URL:-http://host.docker.internal:8002}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

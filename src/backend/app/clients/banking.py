@@ -27,6 +27,23 @@ class BankingClient:
             response = await self._http.get(path, params=params, headers=headers)
         except httpx2.HTTPError as exc:
             raise UpstreamError("The banking API is unreachable") from exc
+        return self._data(response=response)
+
+    async def upload_document(
+        self, token: str, content: bytes, filename: str, content_type: str | None
+    ) -> Any:
+        """Store a file in the customer's documents, inside the bank's environment."""
+        try:
+            response = await self._http.post(
+                "/documents",
+                files={"file": (filename, content, content_type or "application/octet-stream")},
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        except httpx2.HTTPError as exc:
+            raise UpstreamError("The banking API is unreachable") from exc
+        return self._data(response=response)
+
+    def _data(self, response: httpx2.Response) -> Any:
         if response.status_code == 401:
             raise UnauthorizedError("The e-banking session is missing or has ended")
         if response.is_error:
