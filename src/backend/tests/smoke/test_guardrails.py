@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.features.guardrails.prompts import PROMPTS
 from tests.conftest import ADVISOR_NAME, ADVISOR_PHONE, FAKE_REPLY, FakeApertus
 from tests.factories import make_conversation
+from tests.sse import sse_events
 
 ADVISOR_EN = PROMPTS["advisor_en"].format(name=ADVISOR_NAME, phone=ADVISOR_PHONE)
 ADVISOR_DE = PROMPTS["advisor_de"].format(name=ADVISOR_NAME, phone=ADVISOR_PHONE)
@@ -130,8 +131,7 @@ async def test_streamed_reply_is_the_stored_reply(
 
     response = await client.post(url, params={"stream": "true"}, json={"content": "Hi"})
 
-    blocks = [block.split("\n") for block in response.text.strip().split("\n\n")]
-    events = [(lines[0].removeprefix("event: "), json.loads(lines[1][6:])) for lines in blocks]
+    events = sse_events(response=response)
     streamed = "".join(data["text"] for name, data in events if name == "token")
     stored = (await client.get(url)).json()[-1]["content"]
     assert streamed == stored

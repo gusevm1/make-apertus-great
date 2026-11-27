@@ -123,7 +123,9 @@ class ConversationService:
                     history=history,
                     documents=documents,
                 )
-                content, provenance = _guarded(answer=(answer, checked), guardrail=guardrail)
+                content, provenance = _guarded(
+                    content=answer, provenance=checked, guardrail=guardrail
+                )
         except Exception:
             await self.messages.delete(entity_id=history[-1].id)
             raise
@@ -162,7 +164,9 @@ class ConversationService:
                         history=history,
                         documents=documents,
                     )
-                    content, provenance = _guarded(answer=(answer, checked), guardrail=guardrail)
+                    content, provenance = _guarded(
+                        content=answer, provenance=checked, guardrail=guardrail
+                    )
                 pointer = _pointer_text(guardrail=guardrail)
                 if pointer != "":
                     yield TokenEvent(text=pointer)
@@ -248,13 +252,10 @@ class ConversationService:
 
 
 def _pointer_text(guardrail: Guardrail) -> str:
-    """The server's pointer as it follows the answer, or nothing."""
     return "" if guardrail.pointer is None else f"\n\n{guardrail.pointer}"
 
 
-def _guarded(answer: tuple[str, Provenance], guardrail: Guardrail) -> tuple[str, Provenance]:
-    """The answer followed by the server's pointer, with the guardrail check in its provenance."""
-    content, provenance = answer
+def _guarded(content: str, provenance: Provenance, guardrail: Guardrail) -> tuple[str, Provenance]:
     checks = [*guardrail.provenance.checks, *provenance.checks]
     return content + _pointer_text(guardrail=guardrail), provenance.model_copy(
         update={"checks": checks}

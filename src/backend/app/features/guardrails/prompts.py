@@ -2,11 +2,9 @@ from typing import Literal
 
 from app.clients.apertus import Message as LLMMessage
 from app.core.prompts import load_prompts
-from app.features.guardrails.schemas import Advisor
+from app.features.guardrails.schemas import Advisor, Language
 
 PROMPTS = load_prompts(prompts_py=__file__)
-
-type Language = Literal["de", "en"]
 
 
 def check_prompt(text: str) -> list[LLMMessage]:

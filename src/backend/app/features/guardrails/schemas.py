@@ -8,6 +8,8 @@ from app.core.provenance import Provenance
 
 PROMPTS = load_prompts(prompts_py=__file__)
 
+type Language = Literal["de", "en"]
+
 
 class GuardrailCategory(StrEnum):
     PRODUCT_CHOICE = "product_choice"
@@ -21,7 +23,7 @@ class GuardrailCategory(StrEnum):
 
 class GuardrailCheck(BaseModel):
     category: GuardrailCategory = Field(description=PROMPTS["category"])
-    language: Literal["de", "en"] = Field(description=PROMPTS["language"])
+    language: Language = Field(description=PROMPTS["language"])
 
     @model_validator(mode="before")
     @classmethod

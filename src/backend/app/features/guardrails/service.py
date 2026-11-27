@@ -1,4 +1,3 @@
-import logging
 import time
 
 from app.clients.apertus import ApertusClient, Model
@@ -27,8 +26,6 @@ ADVISOR_CATEGORIES = {
     GuardrailCategory.TAX_ADVICE,
 }
 
-logger = logging.getLogger(__name__)
-
 
 class GuardrailService:
     def __init__(self, apertus: ApertusClient, ledger: LedgerService, token: str) -> None:
@@ -48,7 +45,6 @@ class GuardrailService:
             )
         except UpstreamError:
             # Without the check the turn answers as it would have before guardrails existed.
-            logger.exception("Guardrail check failed")
             return Guardrail(
                 category=GuardrailCategory.OK,
                 decline=None,
