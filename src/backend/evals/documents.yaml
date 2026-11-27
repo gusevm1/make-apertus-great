@@ -1,0 +1,74 @@
+# The 13 sample PDFs, each with the kind and the fields read from it by hand.
+# A field's value is an amount, a date or a text; a list accepts any of its values.
+# A text counts as right when it is in the answer, ignoring case and whitespace.
+# A field the document does not state (an end date of an open-ended lease) is left out.
+
+# Demo logins from starter/README.md, by the folder the PDF lies in.
+customers:
+  P1_Lukas_Meier: { username: lukas, password: lukas2026 }
+  P2_Jana_Widmer: { username: jana, password: jana2026 }
+  P3_Daniela_Ruegg: { username: daniela, password: daniela2026 }
+  P4_Marco_Baumann: { username: marco, password: marco2026 }
+
+documents:
+  - file: P1_Lukas_Meier/Lohnabrechnung_2026-11_Lukas_Meier.pdf
+    kind: payslip
+    fields:
+      month: 2026-11-01
+      gross_pay: 10269.23
+      net_pay: 8742.35
+  - file: P1_Lukas_Meier/Vorsorgeausweis_2026_Lukas_Meier.pdf
+    kind: pension_certificate
+  - file: P1_Lukas_Meier/Versicherungspolice_2027_Mythen_Lukas_Meier.pdf
+    kind: insurance_policy
+  - file: P1_Lukas_Meier/Reiseofferte_Japan_2027_Fernweh_Atelier.pdf
+    kind: offer
+
+  - file: P2_Jana_Widmer/Lohnabrechnung_2026-11_Jana_Widmer.pdf
+    kind: payslip
+    fields:
+      month: 2026-11-01
+      gross_pay: 6500.00
+      net_pay: 5718.75
+  - file: P2_Jana_Widmer/Mietvertrag_Wohnung_Moserstrasse22_Jana_Widmer.pdf
+    kind: contract
+    fields:
+      # Gross rent with service charges, or the net rent.
+      monthly_amount: [1390.00, 1240.00]
+      start_date: 2025-11-01
+      notice_period: 3 Monate
+  - file: P2_Jana_Widmer/Vorsorgeausweis_2026_Jana_Widmer.pdf
+    kind: pension_certificate
+
+  - file: P3_Daniela_Ruegg/Lohnabrechnung_2026-11_Daniela_Rueegg.pdf
+    kind: payslip
+    fields:
+      month: 2026-11-01
+      gross_pay: 3120.00
+      # "Nettolohn", or the payout with the child allowance.
+      net_pay: [2787.12, 3002.12]
+  - file: P3_Daniela_Ruegg/Mahnung_Zahnarzt_Lina_Daniela_Rueegg.pdf
+    kind: reminder
+    fields:
+      amount_due: 440.00
+      due_date: 2026-11-30
+      payee: Zahnarztpraxis Neuwiesen
+      iban: CH97 3088 8000 0123 4567 8
+      reference: 21 00000 00003 13947 14300 09017
+  - file: P3_Daniela_Ruegg/Ratenvertrag_Waschmaschine_Daniela_Rueegg.pdf
+    kind: contract
+    fields:
+      monthly_amount: 77.80
+      # The first instalment, or the day the contract was signed.
+      start_date: [2025-04-05, 2025-03-22]
+      end_date: 2027-03-05
+
+  - file: P4_Marco_Baumann/Hypothekarvertrag_HY-8820-0414_Baumann.pdf
+    kind: contract
+    fields:
+      # First signed 12.02.2019, the tranches start 01.04.2019; three tranches, no single end.
+      start_date: [2019-02-12, 2019-04-01]
+  - file: P4_Marco_Baumann/Verlaengerungsofferte_Festhypothek_0880-4471.02_Baumann.pdf
+    kind: offer
+  - file: P4_Marco_Baumann/Zinsausweis_Hypothek_2025_Baumann.pdf
+    kind: statement
