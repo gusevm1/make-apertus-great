@@ -157,6 +157,6 @@ class StandingOrderUpdateArgs(Change, StandingOrderArgs):
     message: str | None = Field(default=None, max_length=MESSAGE_MAX_CHARS)
 
     @field_serializer("end_date")
-    def _none_removes_the_end_date(self, end_date: date | str | None) -> date | None:
+    def _none_removes_the_end_date(self, end_date: date | Literal["none"] | None) -> date | None:
         # Only this spelling clears a field; a null the model sends is dropped before the bank.
         return None if end_date == "none" else end_date
