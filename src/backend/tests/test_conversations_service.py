@@ -6,10 +6,13 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.apertus import ApertusClient, LLMResult, LLMStream, Message, Model
+from app.features.context_entries.repository import ContextEntryRepository
+from app.features.context_entries.service import ContextEntryService
 from app.features.conversations.prompts import chat_prompt
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import RequestMessageCreate
 from app.features.conversations.service import ConversationService, is_quoted
+from app.features.customer_contexts.service import CustomerContextService
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
 from app.features.figure_checks.service import FigureCheckService
@@ -68,6 +71,12 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
     conversation = await make_conversation(session=session)
     await make_message(session=session, conversation_id=conversation.id)
     apertus = RecordingApertus(session=session)
+    documents = DocumentService(
+        documents=DocumentRepository(session=session),
+        banking=fake_banking_client(),
+        ocr=fake_ocr_client(),
+        apertus=cast(ApertusClient, apertus),
+    )
     service = ConversationService(
         conversations=ConversationRepository(session=session),
         messages=MessageRepository(session=session),
@@ -78,17 +87,16 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
             today=TODAY,
             confirmations=Confirmations(),
         ),
-        documents=DocumentService(
-            documents=DocumentRepository(session=session),
-            banking=fake_banking_client(),
-            ocr=fake_ocr_client(),
-            apertus=cast(ApertusClient, apertus),
-        ),
+        documents=documents,
         figure_checks=FigureCheckService(),
         guardrails=GuardrailService(
             apertus=cast(ApertusClient, apertus),
             ledger=LedgerService(banking=fake_banking_client()),
             token=CUSTOMER_TOKEN,
+        ),
+        customer_contexts=CustomerContextService(
+            documents=documents,
+            context_entries=ContextEntryService(entries=ContextEntryRepository(session=session)),
         ),
     )
 
@@ -97,6 +105,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
         conversation_id=conversation.id,
         data=RequestMessageCreate(content="Hi"),
         owner_id=conversation.owner_id,
+        profile={},
     )
     assert apertus.in_transaction == [False, False, False, False]
 
@@ -106,6 +115,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
         conversation_id=conversation.id,
         data=RequestMessageCreate(content="Hi"),
         owner_id=conversation.owner_id,
+        profile={},
     ):
         pass
     assert apertus.in_transaction == [False, False, False, False]
