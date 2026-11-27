@@ -1,5 +1,9 @@
+import json
 from collections import Counter
 from typing import Any
+from uuid import uuid4
+
+import httpx
 
 from evals.run import (
     DOCUMENTS_PATH,
@@ -10,6 +14,7 @@ from evals.run import (
     EvalSettings,
     Question,
     answer_problems,
+    ask,
     find_problems,
     load_questions,
     password_for,
@@ -225,3 +230,64 @@ def test_each_customer_logs_in_with_the_demo_password() -> None:
 
     assert password_for(customer="lukas", settings=settings) == "secret"
     assert password_for(customer="jana", settings=settings) == "jana2026"
+
+
+def fake_backend_that_proposes_the_japan_goal() -> httpx.MockTransport:
+    tool_calls: list[dict[str, Any]] = []
+    proposals: dict[str, dict[str, Any]] = {}
+    arguments = {"kind": "goal", "amount_chf": 6000, "target_date": "2027-06-30"}
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        path, method = request.url.path, request.method
+        if method == "POST" and path == "/api/conversations":
+            return httpx.Response(201, json={"id": "c1"})
+        if method == "POST" and path.endswith("/messages"):
+            call_id = str(uuid4())
+            is_duplicate = proposals != {}
+            if not is_duplicate:
+                proposals[str(uuid4())] = {"source_id": call_id}
+            error = "This proposal waits for the customer already." if is_duplicate else None
+            tool_calls.append(
+                {
+                    "id": call_id,
+                    "tool_name": "propose_context_entry",
+                    "arguments": arguments,
+                    "error": error,
+                }
+            )
+            reply = {"id": "m1", "content": "Shall I keep this goal?", "provenance": None}
+            return httpx.Response(201, json=reply)
+        if method == "GET" and path.endswith("/tool-calls"):
+            return httpx.Response(200, json=tool_calls)
+        if method == "DELETE" and path == "/api/conversations/c1":
+            # The real backend empties source_id when the conversation goes.
+            for entry in proposals.values():
+                entry["source_id"] = None
+            tool_calls.clear()
+            return httpx.Response(204)
+        if method == "GET" and path == "/api/context-entries":
+            assert request.url.params["status"] == "proposed"
+            entries = [{"id": key, **entry} for key, entry in proposals.items()]
+            return httpx.Response(200, content=json.dumps(entries))
+        if method == "DELETE" and path.startswith("/api/context-entries/"):
+            del proposals[path.rsplit("/", 1)[1]]
+            return httpx.Response(204)
+        raise AssertionError(f"unexpected {method} {path}")
+
+    return httpx.MockTransport(handle)
+
+
+async def test_two_runs_in_a_row_both_pass_the_japan_goal() -> None:
+    (japan,) = [
+        question
+        for question in load_questions(path=QUESTIONS_PATH)
+        if question.question.startswith("I want to save CHF 6'000 for Japan")
+    ]
+    transport = fake_backend_that_proposes_the_japan_goal()
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://backend") as client:
+        first = await ask(client=client, question=japan)
+        second = await ask(client=client, question=japan)
+
+    assert first.problems == []
+    assert second.problems == []
