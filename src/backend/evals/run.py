@@ -76,16 +76,16 @@ def matches(expected: ExpectedCall, actual: ActualCall) -> bool:
 
 
 def find_problems(question: Question, calls: list[ActualCall]) -> list[str]:
-    forbidden = [
+    problems = [
         f"called {call.tool_name}, which it must not"
         for call in calls
         if call.tool_name in question.not_called
     ]
     if question.any_calls:
-        return forbidden
+        return problems
     if not question.calls:
         return ["expected no tool call"] if calls else []
-    problems = [
+    problems += [
         f"missing {expected.tool}({expected.arguments})"
         for expected in question.calls
         if not any(matches(expected=expected, actual=call) for call in calls)
@@ -93,7 +93,6 @@ def find_problems(question: Question, calls: list[ActualCall]) -> list[str]:
     expected_tools = {expected.tool for expected in question.calls}
     for call in calls:
         if call.tool_name in question.not_called:
-            problems.append(f"called {call.tool_name}, which it must not")
             continue
         is_unexpected = not any(
             matches(expected=expected, actual=call) for expected in question.calls
