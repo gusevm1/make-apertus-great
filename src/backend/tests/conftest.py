@@ -190,18 +190,41 @@ BANKING_QUERIES: list[str] = []
 BANK_WRITES: list[tuple[str, str, Any]] = []
 # A payment that was already paid, so the bank refuses to change it.
 COMPLETED_PAYMENT_ID = "PAY-0001"
+# The default dashboard comes second, so a test sees it chosen by `is_default`, not by order.
+DASHBOARDS = [
+    {"id": "DASH-02", "name": "Payments", "is_default": False, "widgets": []},
+    {"id": "DASH-01", "name": "Dashboard", "is_default": True, "widgets": []},
+]
+# The ids of the custom widgets on the fake bank's dashboards, as "DASH-01/W-0010".
+DASHBOARD_TILES: set[str] = set()
 
 
 @pytest.fixture(autouse=True)
 def no_bank_writes() -> None:
     BANK_WRITES.clear()
+    DASHBOARD_TILES.clear()
+
+
+def _fake_dashboard_write(method: str, path: str, body: dict[str, Any]) -> httpx2.Response:
+    """Adding and replacing a dashboard's widgets, answered the way the banking API does."""
+    dashboard_id, _, tile_id = path.removeprefix("/dashboards/").partition("/widgets")
+    if method == "POST":
+        tile_id = f"W-{10 + len(DASHBOARD_TILES):04d}"
+        DASHBOARD_TILES.add(f"{dashboard_id}/{tile_id}")
+        return httpx2.Response(201, json={"id": tile_id, **body})
+    tile_id = tile_id.removeprefix("/")
+    if f"{dashboard_id}/{tile_id}" not in DASHBOARD_TILES:
+        return httpx2.Response(404, json={"detail": "Widget not found"})
+    return httpx2.Response(200, json={"id": tile_id, **body})
 
 
 def _fake_bank_write(request: httpx2.Request) -> httpx2.Response:
-    """Payments and standing orders, answered the way the banking API does."""
+    """Payments, standing orders and dashboard widgets, answered the way the banking API does."""
     body: dict[str, Any] | None = json.loads(request.content) if request.content else None
     path = request.url.path.removeprefix("/api")
     BANK_WRITES.append((request.method, path, body))
+    if path.startswith("/dashboards/") and body is not None:
+        return _fake_dashboard_write(method=request.method, path=path, body=body)
     collection, _, item_id = path.removeprefix("/").partition("/")
     id_field = {"payments": "payment_id", "standing-orders": "standing_order_id"}.get(collection)
     if id_field is None:
@@ -245,6 +268,8 @@ def fake_banking_client() -> BankingClient:
             return httpx2.Response(200, json={"account_id": "ACC-PRIV", "points": []})
         if request.url.path == "/api/accounts":
             return httpx2.Response(200, json={"items": ACCOUNTS})
+        if request.url.path == "/api/dashboards":
+            return httpx2.Response(200, json={"items": DASHBOARDS})
         return httpx2.Response(404, json={"detail": "Not found"})
 
     fake_http = httpx2.AsyncClient(

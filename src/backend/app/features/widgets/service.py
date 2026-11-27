@@ -4,6 +4,7 @@ import json
 import re
 import time
 from typing import Any
+from urllib.parse import quote
 from uuid import UUID
 
 from app.clients.apertus import ApertusClient, Model
@@ -11,6 +12,8 @@ from app.core.errors import BadRequestError, NotFoundError, UpstreamError
 from app.core.provenance import Check
 from app.core.tools import TurnResult
 from app.features.figure_checks.service import FigureCheckService
+from app.features.ledger.service import LedgerService
+from app.features.payments.service import PaymentService
 from app.features.widgets.catalogue.render import fallback, render
 from app.features.widgets.catalogue.schemas import FIELD_PATTERN, WidgetSpec
 from app.features.widgets.prompts import repair_messages, spec_messages
@@ -34,6 +37,26 @@ _DECIMAL = re.compile(r"^-?\d+(\.\d+)?$")
 # A list named only "items" or "rows" is named after its tool, such as "upcoming_payments".
 GENERIC_KEYS = {"items", "rows"}
 TOOL_VERBS = ("list_", "get_", "search_", "find_")
+# The banking API's limits for an html widget (starter/docs/custom-widgets.md §4).
+DASHBOARD_HTML_MAX = 500_000
+TILE_HEIGHT_MIN = 80
+TILE_HEIGHT_MAX = 1200
+# ponytail: a fixed height per component on the one-column tile; the tile scrolls when the
+# widget is taller. Measure the static page in a browser if tiles look cut or empty.
+TILE_HEADER = 56
+TILE_GAP = 16
+TILE_CHART_HEIGHT = 300
+TILE_HEIGHTS = {
+    "kpi": 110,
+    "stat_row": 160,
+    "callout": 110,
+    "progress": 110,
+    "table": 360,
+    "list": 320,
+    "timeline": 320,
+    "donut": 360,
+    "scenarios": 360,
+}
 
 
 class WidgetService:
@@ -43,11 +66,15 @@ class WidgetService:
         versions: WidgetVersionRepository,
         apertus: ApertusClient,
         figure_checks: FigureCheckService,
+        ledger: LedgerService,
+        payments: PaymentService,
     ) -> None:
         self.widgets = widgets
         self.versions = versions
         self.apertus = apertus
         self.figure_checks = figure_checks
+        self.ledger = ledger
+        self.payments = payments
 
     async def build_widget(
         self,
@@ -115,6 +142,73 @@ class WidgetService:
         html = await asyncio.to_thread(render, spec, version.data, form)
         return version, html
 
+    async def publish(self, widget: Widget, dashboard_id: str | None, token: str) -> Widget:
+        """Put the widget's current version on the e-banking dashboard; call it after the click."""
+        version = await self.versions.get_number(widget_id=widget.id, number=widget.current_version)
+        if version is None:
+            raise NotFoundError(f"Widget {widget.id} has no version {widget.current_version}")
+        spec = WidgetSpec.model_validate(version.spec)
+        html = await asyncio.to_thread(render, spec, version.data, "static")
+        if len(html) > DASHBOARD_HTML_MAX:
+            raise BadRequestError(
+                f"This widget's page has {len(html):,} characters; the dashboard takes at most "
+                f"{DASHBOARD_HTML_MAX:,}."
+            )
+        target = dashboard_id if dashboard_id is not None else await self._default_dashboard(token)
+        tile = {
+            "title": widget.title,
+            "custom": {
+                "format": "html",
+                "html": html,
+                "height": _tile_height(component=spec.model_dump()["body"]),
+                "source": {"booking_ids": _booking_ids(value=version.data)},
+                "prompt": version.request,
+                "created_by": "TrustRoom",
+            },
+        }
+        tile_id = None
+        if widget.dashboard_widget_id is not None and widget.dashboard_id == target:
+            tile_id = await self._replace_tile(
+                dashboard_id=target, tile_id=widget.dashboard_widget_id, tile=tile, token=token
+            )
+        if tile_id is None:
+            created = await self.payments.write(
+                method="POST",
+                path=f"/dashboards/{quote(target, safe='')}/widgets",
+                token=token,
+                body={"type": "custom", **tile},
+            )
+            tile_id = str(created.root["id"])
+        updated = await self.widgets.set_publication(
+            widget_id=widget.id,
+            dashboard_id=target,
+            dashboard_widget_id=tile_id,
+            version_number=version.number,
+        )
+        if updated is None:
+            raise NotFoundError(f"Widget {widget.id} not found")
+        return updated
+
+    async def _default_dashboard(self, token: str) -> str:
+        dashboards = await self.ledger.read(path="/dashboards", token=token)
+        items = dashboards["items"]
+        if len(items) == 0:
+            raise NotFoundError("Your e-banking has no dashboard yet")
+        default = next((item for item in items if item["is_default"]), items[0])
+        return str(default["id"])
+
+    async def _replace_tile(
+        self, dashboard_id: str, tile_id: str, tile: dict[str, Any], token: str
+    ) -> str | None:
+        # None when the customer has removed that tile since.
+        path = f"/dashboards/{quote(dashboard_id, safe='')}/widgets/{quote(tile_id, safe='')}"
+        try:
+            await self.payments.write(method="PATCH", path=path, token=token, body=tile)
+        except BadRequestError:
+            # The bank answers 404 for a tile that is gone; a new one is added instead.
+            return None
+        return tile_id
+
     async def _spec(
         self, args: BuildWidgetArgs, data: dict[str, Any]
     ) -> tuple[WidgetSpec, str | None, Check]:
@@ -146,6 +240,31 @@ class WidgetService:
             check = Check(name="widget_spec", passed=True, detail="after one repair")
             return second.content, second.model, check
         return _fallback(data=data, title=args.title, reason=error)
+
+
+def _tile_height(component: dict[str, Any]) -> int:
+    children = component.get("children")
+    if isinstance(children, list):
+        # A dashboard tile is one column wide, so a grid stacks its children too.
+        inner = sum(_tile_height(component=child) for child in children)
+        return min(max(inner + TILE_GAP * len(children), TILE_HEIGHT_MIN), TILE_HEIGHT_MAX)
+    height = TILE_HEADER + TILE_HEIGHTS.get(component["type"], TILE_CHART_HEIGHT)
+    return min(max(height, TILE_HEIGHT_MIN), TILE_HEIGHT_MAX)
+
+
+def _booking_ids(value: Any) -> list[str]:
+    # Every booking id in DATA, once each, so the tile's "Show underlying transactions" has them.
+    found: list[str] = []
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "booking_ids" and isinstance(item, list):
+                found += [str(booking_id) for booking_id in item]
+            else:
+                found += _booking_ids(value=item)
+    if isinstance(value, list):
+        for item in value:
+            found += _booking_ids(value=item)
+    return list(dict.fromkeys(found))
 
 
 def widget_data(results: list[TurnResult]) -> dict[str, Any]:

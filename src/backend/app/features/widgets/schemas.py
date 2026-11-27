@@ -19,6 +19,9 @@ class Widget(BaseModel):
     conversation_id: UUID
     title: str
     current_version: int
+    dashboard_id: str | None
+    dashboard_widget_id: str | None
+    published_version: int | None
     created_at: datetime
 
 
@@ -61,4 +64,21 @@ class ResponseWidgetVersion(BaseModel):
     model: str | None
     latency_ms: int
     checks: list[Check]
+    # The version the customer's e-banking dashboard shows, or None.
+    published_version: int | None
     created_at: datetime
+
+
+class RequestWidgetPublicationCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # The dashboard the customer is on (the host's `dashboard_id`); None means the default one.
+    dashboard_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
+
+
+class ResponseWidgetPublication(BaseModel):
+    widget_id: UUID
+    version_number: int
+    # Set by every publication; typed like the widget's own columns, which start empty.
+    dashboard_id: str | None
+    dashboard_widget_id: str | None

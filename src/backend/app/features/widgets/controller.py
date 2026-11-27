@@ -1,8 +1,13 @@
 from fastapi import APIRouter, Depends
 
-from app.core.auth import require_user
+from app.core.auth import CurrentUserDep, require_user
 from app.features.widgets.dependencies import OwnedWidgetDep, WidgetServiceDep
-from app.features.widgets.schemas import Form, ResponseWidgetVersion
+from app.features.widgets.schemas import (
+    Form,
+    RequestWidgetPublicationCreate,
+    ResponseWidgetPublication,
+    ResponseWidgetVersion,
+)
 
 router = APIRouter(prefix="/widgets", tags=["widgets"], dependencies=[Depends(require_user)])
 
@@ -23,5 +28,25 @@ async def get_widget_version(
         model=version.model,
         latency_ms=version.latency_ms,
         checks=version.checks,
+        published_version=widget.published_version,
         created_at=version.created_at,
+    )
+
+
+@router.post("/{widget_id}/publications", response_model=ResponseWidgetPublication, status_code=201)
+async def create_widget_publication(
+    body: RequestWidgetPublicationCreate,
+    widget: OwnedWidgetDep,
+    user: CurrentUserDep,
+    service: WidgetServiceDep,
+) -> ResponseWidgetPublication:
+    """Put your widget's current version on your e-banking dashboard, replacing an older copy."""
+    published = await service.publish(
+        widget=widget, dashboard_id=body.dashboard_id, token=user.token
+    )
+    return ResponseWidgetPublication(
+        widget_id=published.id,
+        version_number=published.current_version,
+        dashboard_id=published.dashboard_id,
+        dashboard_widget_id=published.dashboard_widget_id,
     )

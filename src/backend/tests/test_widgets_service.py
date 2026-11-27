@@ -12,6 +12,8 @@ from app.clients.apertus import ApertusClient, LLMResult, LLMStream, Message, Mo
 from app.core.errors import BadRequestError, UpstreamError
 from app.core.tools import Tool, TurnResult
 from app.features.figure_checks.service import FigureCheckService
+from app.features.ledger.service import LedgerService
+from app.features.payments.service import PaymentService
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
@@ -22,7 +24,7 @@ from app.features.widgets.catalogue.schemas import WidgetSpec
 from app.features.widgets.repository import WidgetRepository, WidgetVersionRepository
 from app.features.widgets.schemas import BuildWidgetArgs
 from app.features.widgets.service import WidgetService, widget_data
-from tests.conftest import TODAY
+from tests.conftest import TODAY, fake_banking_client
 from tests.factories import DEMO_USER_ID, make_conversation, make_message
 
 CHAT: list[Message] = [
@@ -130,6 +132,8 @@ def _service(session: AsyncSession, apertus: ScriptedApertus) -> WidgetService:
         versions=WidgetVersionRepository(session=session),
         apertus=cast(ApertusClient, apertus),
         figure_checks=FigureCheckService(),
+        ledger=LedgerService(banking=fake_banking_client()),
+        payments=PaymentService(banking=fake_banking_client()),
     )
 
 

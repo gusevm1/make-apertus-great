@@ -17,6 +17,18 @@ class WidgetRepository(BaseRepository[WidgetORM, Widget]):
         row = await self.session.scalar(stmt)
         return self._to_schema(row=row) if row is not None else None
 
+    async def set_publication(
+        self, widget_id: UUID, dashboard_id: str, dashboard_widget_id: str, version_number: int
+    ) -> Widget | None:
+        row = await self.session.get(WidgetORM, widget_id)
+        if row is None:
+            return None
+        row.dashboard_id = dashboard_id
+        row.dashboard_widget_id = dashboard_widget_id
+        row.published_version = version_number
+        await self.session.commit()
+        return self._to_schema(row=row)
+
     async def create_with_version(
         self, widget: dict[str, Any], version: dict[str, Any]
     ) -> tuple[Widget, WidgetVersion]:

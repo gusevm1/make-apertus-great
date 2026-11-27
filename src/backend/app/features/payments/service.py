@@ -7,7 +7,8 @@ from app.features.payments.schemas import BankWrite
 
 type Method = Literal["POST", "PATCH", "DELETE"]
 
-# Every change the model's tools may make to the bank; `{}` is one segment.
+# Every change TrustRoom may make to the bank, each after the customer's click; `{}` is one
+# segment. The dashboard widgets are #26's "Put on dashboard", which no tool of the model calls.
 WRITES: list[tuple[Method, str]] = [
     ("POST", "/payments"),
     ("PATCH", "/payments/{}"),
@@ -15,6 +16,8 @@ WRITES: list[tuple[Method, str]] = [
     ("POST", "/standing-orders"),
     ("PATCH", "/standing-orders/{}"),
     ("DELETE", "/standing-orders/{}"),
+    ("POST", "/dashboards/{}/widgets"),
+    ("PATCH", "/dashboards/{}/widgets/{}"),
 ]
 # A segment is quoted already; `.` and `..` survive quoting and would climb to another path.
 _SEGMENT = r"(?!\.\.?(?:/|$))[^/?#]+"

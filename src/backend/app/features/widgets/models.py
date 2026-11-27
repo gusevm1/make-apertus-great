@@ -17,6 +17,10 @@ class WidgetORM(Base):
     )
     title: Mapped[str]
     current_version: Mapped[int]
+    # The copy on the e-banking dashboard (#26): where it is and which version it shows.
+    dashboard_id: Mapped[str | None]
+    dashboard_widget_id: Mapped[str | None]
+    published_version: Mapped[int | None]
 
 
 class WidgetVersionORM(Base):

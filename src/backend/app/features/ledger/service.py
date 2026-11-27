@@ -69,7 +69,8 @@ UNUSUAL_LISTED = 10
 # Planned or cash: neither is a charge the customer would want to check.
 NOT_CHECKED_TYPES = {"standing_order", "atm"}
 TENTH = Decimal("0.1")
-# Every path the model's tools may read; `{}` is one segment. Nothing here changes the bank.
+# Every path the model's tools, and the server for them, may read; `{}` is one segment.
+# Nothing here changes the bank. `/dashboards` finds the default one for a widget (#26).
 READ_PATHS = [
     "/customer",
     "/accounts",
@@ -90,6 +91,7 @@ READ_PATHS = [
     "/loans",
     "/loan-transactions",
     "/fx-rates",
+    "/dashboards",
 ]
 # A segment is quoted already; `.` and `..` survive quoting and would climb to another path.
 _SEGMENT = r"(?!\.\.?(?:/|$))[^/?#]+"
