@@ -49,7 +49,9 @@ def _document(document: Document) -> str:
     text = document.markdown[:DOCUMENT_MAX_CHARS].replace("<", "&lt;").replace(">", "&gt;")
     if len(document.markdown) > DOCUMENT_MAX_CHARS:
         text += PROMPTS["document_cut"]
-    return PROMPTS["document"].format(name=document.name.replace('"', "'"), text=text)
+    # The name comes from the upload: on one line, and unable to end the attribute or the tag.
+    name = _escaped(text=" ".join(document.name.split())).replace('"', "'")
+    return PROMPTS["document"].format(name=name, text=text)
 
 
 def _text(message: Message) -> str:
