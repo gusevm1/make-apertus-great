@@ -848,5 +848,6 @@ async def test_an_account_without_bookings_names_the_ones_there_are() -> None:
 
     with pytest.raises(BadRequestError, match="ACC-NOPE.*ACC-PRIV"):
         await ledger.explain_balance_change(
-            token=TOKEN, args=_balance_args("2026-10-01", "2026-10-31", account_id="ACC-NOPE")
+            token=TOKEN,
+            args=_balance_args(date_from="2026-10-01", date_to="2026-10-31", account_id="ACC-NOPE"),
         )
