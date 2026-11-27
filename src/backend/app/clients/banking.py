@@ -43,6 +43,18 @@ class BankingClient:
             raise UpstreamError("The banking API is unreachable") from exc
         return self._data(response=response)
 
+    async def delete_document(self, token: str, document_id: str) -> None:
+        """Remove a file from the customer's documents; one the bank lacks counts as removed."""
+        try:
+            response = await self._http.delete(
+                f"/documents/{document_id}", headers={"Authorization": f"Bearer {token}"}
+            )
+        except httpx2.HTTPError as exc:
+            raise UpstreamError("The banking API is unreachable") from exc
+        # After /admin/reset the bank has forgotten the file.
+        if response.status_code != 404 and response.is_error:
+            self._data(response=response)
+
     def _data(self, response: httpx2.Response) -> Any:
         if response.status_code == 401:
             raise UnauthorizedError("The e-banking session is missing or has ended")
