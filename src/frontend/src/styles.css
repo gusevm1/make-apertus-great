@@ -49,6 +49,30 @@ main {
   border: 1px solid var(--color-border);
 }
 
+.markdown > * {
+  margin: 0;
+}
+
+.markdown > * + * {
+  margin-top: 8px;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 20px;
+}
+
+.markdown code {
+  padding: 0 4px;
+  font-size: 13px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.markdown a {
+  color: var(--color-primary);
+}
+
 .msg.error {
   align-self: flex-start;
   color: var(--color-error);

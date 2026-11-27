@@ -146,7 +146,8 @@ The page is deliberately small: React, TypeScript and plain CSS, no component li
 - **API access** goes through `api()` in `src/api.ts`, which sends the customer's token. Streaming goes through `useStream`. Never parse SSE elsewhere.
 - **It has to work at 440 px,** the width of the side panel, and in the full page.
 - **Every API wait has three states:** loading, error and empty. Never a blank screen.
-- **Model output is untrusted text.** Render it as text, never as HTML.
+- **Model output is untrusted text.** Render it as text or through `Markdown` in `src/lib/markdown.tsx`,
+  never as HTML. Widget HTML runs only in a sandboxed iframe.
 - Components are named `function` declarations with destructured props. `async`/`await`, never `.then()` chains. No `any`.
 
 ## Scope

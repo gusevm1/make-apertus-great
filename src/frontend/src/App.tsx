@@ -17,6 +17,7 @@ import {
 import { type HostContext, useHostContext } from "./host";
 import { Confirmation } from "./Confirmation";
 import { canCaptureAudio } from "./lib/audioCapture";
+import { Markdown } from "./lib/markdown";
 import { useStream } from "./lib/useStream";
 import { Trace } from "./Trace";
 import { useVoiceInput } from "./useVoiceInput";
@@ -261,7 +262,11 @@ function Chat({ context }: { context: HostContext }) {
                   {document.name}
                 </span>
               ))}
-              {message.content}
+              {message.role === "assistant" ? (
+                <Markdown text={message.content} />
+              ) : (
+                message.content
+              )}
               {message.provenance !== null && (
                 <footer>
                   {message.provenance.model},{" "}
@@ -303,7 +308,11 @@ function Chat({ context }: { context: HostContext }) {
             ))}
             {waitingCalls.length === 0 && (
               <article className="msg assistant">
-                {stream.text === "" ? "Thinking…" : stream.text}
+                {stream.text === "" ? (
+                  "Thinking…"
+                ) : (
+                  <Markdown text={stream.text} />
+                )}
               </article>
             )}
           </>
