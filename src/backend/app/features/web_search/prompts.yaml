@@ -1,0 +1,9 @@
+search_web: >-
+  Searches the web and returns the best five pages with a snippet each.
+  Use it for what changes over time or what you may not know: current facts,
+  interest and exchange rates, prices, news, events,
+  and anything you are not sure about.
+  Do not use it for the user's own accounts, for definitions or explanations of
+  general terms (banking terms included, you know them), small talk, arithmetic,
+  today's date or weekday (the prompt states them), or what another tool answers.
+search_web_query: A short search query with the key terms, in the language that fits best.
