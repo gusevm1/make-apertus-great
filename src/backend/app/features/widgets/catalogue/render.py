@@ -1,5 +1,6 @@
 import json
 import re
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Literal
 
@@ -21,7 +22,14 @@ from app.features.widgets.catalogue.schemas import (
     Table,
     WidgetSpec,
 )
-from app.features.widgets.catalogue.values import booking_ids, display, last_field, resolve, rows
+from app.features.widgets.catalogue.values import (
+    booking_ids,
+    display,
+    figure,
+    is_number,
+    last_field,
+    rows,
+)
 
 Form = Literal["live", "static"]
 TEMPLATES = Path(__file__).with_name("templates")
@@ -34,6 +42,8 @@ CSP = {
     "live": f"default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; {_CSP_REST}",
 }
 TABLE_ROWS = 50
+# Half a Rappen: a total may differ from the sum of its rows by rounding only.
+TOTAL_TOLERANCE = Decimal("0.005")
 
 _env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape(["j2"]))
 _css = (TEMPLATES / "widget.css").read_text(encoding="utf-8")
@@ -111,7 +121,7 @@ def _view(
 
 
 def _figure(path: str, data: dict[str, Any]) -> dict[str, Any]:
-    value = resolve(path=path, data=data)
+    value = figure(path=path, data=data)
     return {
         "path": path,
         "raw": json.dumps(value),
@@ -161,6 +171,7 @@ def _table(node: Table, data: dict[str, Any]) -> dict[str, Any]:
         return view | {"total": None}
     total = _figure(path=node.total, data=data)
     holder = node.total_column()
+    _check_total(node=node, found=found, column=holder, total=figure(path=node.total, data=data))
     label_at = next((index for index, field in enumerate(node.columns) if field != holder), None)
     cells = [
         {
@@ -172,6 +183,21 @@ def _table(node: Table, data: dict[str, Any]) -> dict[str, Any]:
     if label_at is None:
         cells[0]["text"] = f"Total {total['text']}"
     return view | {"total": total | {"cells": cells}}
+
+
+def _check_total(
+    node: Table, found: list[dict[str, Any]], column: str | None, total: int | float
+) -> None:
+    """A total must be the sum of its column over all rows, not only those shown."""
+    cells = [row[column] for row in found] if column is not None else []
+    if not all(is_number(value=cell) for cell in cells):
+        raise BadRequestError(f"{node.rows}: the {column} column holds no amounts for the total")
+    column_sum = sum((Decimal(str(cell)) for cell in cells), Decimal(0))
+    if abs(column_sum - Decimal(str(total))) > TOTAL_TOLERANCE:
+        raise BadRequestError(
+            f"{node.total} is {total}, but the {column} column of {node.rows} adds up to "
+            f"{column_sum}"
+        )
 
 
 def _cut_note(count: int) -> str | None:
@@ -208,7 +234,23 @@ def _chart(
     spec = chart_spec(component=node, data=data, live=form == "live")
     charts.append({"id": chart_id, "spec": spec})
     svg = static_svg(spec=spec) if form == "static" else None
-    return {"type": node.type, "title": node.title, "path": node.data, "id": chart_id, "svg": svg}
+    # A clicked mark names its row; the bridge looks up the row's figure and bookings here.
+    chart_rows = {
+        value["path"]: {
+            "value": value["y"],
+            "label": value["label"],
+            "booking_ids": value["booking_ids"],
+        }
+        for value in spec["data"]["values"]
+    }
+    return {
+        "type": node.type,
+        "title": node.title,
+        "path": node.data,
+        "id": chart_id,
+        "svg": svg,
+        "rows": json.dumps(chart_rows, ensure_ascii=False),
+    }
 
 
 def _row(path: str, row: dict[str, Any]) -> dict[str, Any]:

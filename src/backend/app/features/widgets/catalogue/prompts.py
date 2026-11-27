@@ -6,7 +6,7 @@ from app.features.widgets.catalogue.schemas import COMPONENTS, FIELD_PATTERN, PA
 
 PROMPTS: dict[str, Any] = load_prompts(prompts_py=__file__)
 # Entries of prompts.yaml that are not a component.
-NOT_COMPONENTS = {"intro", "component", "field", "optional", "field_separator", "kinds"}
+NOT_COMPONENTS = {"intro", "component", "field", "optional", "limits", "field_separator", "kinds"}
 
 
 def catalogue_prompt() -> str:
@@ -22,6 +22,7 @@ def catalogue_prompt() -> str:
             PROMPTS["field"].format(
                 field=field,
                 kind=_kind_text(prop=prop),
+                limits=_limits(prop=prop),
                 optional="" if field in required else PROMPTS["optional"],
             )
             for field, prop in schema["properties"].items()
@@ -39,9 +40,26 @@ def catalogue_prompt() -> str:
 
 
 def _kind_text(prop: dict[str, Any]) -> str:
-    option = next(option for option in prop.get("anyOf", [prop]) if option.get("type") != "null")
+    option = _option(prop=prop)
     values = ", ".join(str(value) for value in option.get("enum", []))
     return PROMPTS["kinds"][_kind(option=option)].format(values=values)
+
+
+def _limits(prop: dict[str, Any]) -> str:
+    option = _option(prop=prop)
+    limits = PROMPTS["limits"]
+    if "minItems" in option and "maxItems" in option:
+        return limits["items"].format(min=option["minItems"], max=option["maxItems"])
+    if "maxItems" in option:
+        return limits["at_most_items"].format(max=option["maxItems"])
+    if "maxLength" in option:
+        return limits["at_most_characters"].format(max=option["maxLength"])
+    return ""
+
+
+def _option(prop: dict[str, Any]) -> dict[str, Any]:
+    """The field's schema without its null option."""
+    return next(option for option in prop.get("anyOf", [prop]) if option.get("type") != "null")
 
 
 def _kind(option: dict[str, Any]) -> str:

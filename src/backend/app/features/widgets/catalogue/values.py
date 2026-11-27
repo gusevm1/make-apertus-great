@@ -5,7 +5,8 @@ from app.core.errors import BadRequestError
 
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 _SEGMENT = re.compile(r"([A-Za-z_]\w*)(?:\[(\d+)\])?")
-_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})")
+# A whole value that is a date, optionally with a time; "2026-10-01 Migros" stays text.
+_DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:T[\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$")
 _MONTH = re.compile(r"^(\d{4})-(\d{2})$")
 
 
@@ -42,7 +43,22 @@ def rows(path: str, data: dict[str, Any], fields: list[str]) -> list[dict[str, A
                 raise BadRequestError(
                     f"{path}[{index}] has no field {field}; fields: {', '.join(row)}"
                 )
+            if isinstance(row[field], list | dict):
+                kind = type(row[field]).__name__
+                raise BadRequestError(f"{path}[{index}].{field} is a {kind}, not a value to show")
     return found
+
+
+def is_number(value: Any) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def figure(path: str, data: dict[str, Any]) -> int | float:
+    """The number at a path; a figure can't be a text, a list or an object."""
+    value = resolve(path=path, data=data)
+    if not is_number(value=value):
+        raise BadRequestError(f"{path} is a {type(value).__name__}, not a number")
+    return value
 
 
 def last_field(path: str) -> str:
@@ -75,7 +91,11 @@ def display(field: str, value: Any) -> str:
     if isinstance(value, int | float):
         if field.endswith("_chf"):
             return f"CHF {number(value=value)}"
-        return number(value=value, decimals=0 if float(value).is_integer() else 2)
+        is_whole = float(value).is_integer()
+        # A year or a count keeps its plain digits; only amounts get the apostrophes.
+        if "amount" not in field:
+            return str(int(value)) if is_whole else number(value=value)
+        return number(value=value, decimals=0 if is_whole else 2)
     text = str(value)
     date = _DATE.match(text)
     if date is not None:

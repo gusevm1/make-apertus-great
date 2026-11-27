@@ -52,7 +52,7 @@
   {%- if n.cut_note is not none %}<p class="cut-note">{{ n.cut_note }}</p>{% endif %}
 </section>
 {%- elif n.type in ("bar_chart", "line_chart") -%}
-<section class="chart" data-component="{{ n.type }}" data-path="{{ n.path }}">
+<section class="chart" data-component="{{ n.type }}" data-path="{{ n.path }}" data-rows="{{ n.rows }}">
   {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
   <div class="chart-area" id="{{ n.id }}">{% if n.svg is not none %}{{ n.svg | safe }}{% endif %}</div>
 </section>

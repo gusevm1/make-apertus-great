@@ -114,10 +114,13 @@ tfoot td { font-weight: 700; border-bottom: 0; }
     var mark = event.target.closest("[role='graphics-symbol'][aria-label]");
     var element = event.target.closest("[data-path]");
     if (element === null) return;
-    // A mark in a static chart ends its label with its row's path in brackets.
+    // A mark in a static chart ends its label with its row's path in brackets; the chart's
+    // data-rows map gives that row's figure and bookings.
     var path = mark === null ? null : /\(([^()]*)\)$/.exec(mark.getAttribute("aria-label"));
     if (path !== null && element.contains(mark)) {
-      select(element, { path: path[1] });
+      var row = (parse(element.getAttribute("data-rows")) || {})[path[1]];
+      if (row === undefined) return;
+      select(element, { path: path[1], label: row.label, value: row.value, booking_ids: row.booking_ids });
       return;
     }
     select(element);

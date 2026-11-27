@@ -4,8 +4,9 @@ from typing import Any
 
 import vl_convert
 
+from app.core.errors import BadRequestError
 from app.features.widgets.catalogue.schemas import BarChart, LineChart
-from app.features.widgets.catalogue.values import display, rows, short
+from app.features.widgets.catalogue.values import display, is_number, rows, short
 
 VEGA_LITE_VERSION = "5.21"
 # The width a static chart is drawn at; the page scales its SVG to the tile.
@@ -58,6 +59,18 @@ def chart_spec(component: BarChart | LineChart, data: dict[str, Any], live: bool
         fields.append(component.series)
     found = rows(path=component.data, data=data, fields=fields)
     series = [None if len(fields) < 3 else str(row[fields[2]]) for row in found]
+    seen: set[tuple[str | None, str]] = set()
+    for index, row in enumerate(found):
+        key = (series[index], str(row[component.x]))
+        # Vega-Lite would draw the sum of two rows with one label, a figure DATA doesn't hold.
+        if key in seen:
+            raise BadRequestError(
+                f"{component.data}[{index}] repeats {component.x} {key[1]}: a chart shows one "
+                "value per label"
+            )
+        seen.add(key)
+        if not is_number(value=row[component.y]):
+            raise BadRequestError(f"{component.data}[{index}].{component.y} is not a number")
     shorts = [short(field=component.x, value=row[component.x]) for row in found]
     # Two rows of one series with the same short label ("Oct" of two years) get the full one.
     is_unique = len(set(zip(series, shorts, strict=True))) == len(found)
@@ -118,7 +131,7 @@ def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
         "value": MUTED,
     }
     label_axis = {"field": "label", "type": "ordinal", "sort": None}
-    amount_axis = {"field": "y", "type": "quantitative", "axis": {"format": ",.0f"}}
+    amount_axis = {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}}
     if component.horizontal:
         return {
             "height": {"step": ROW_HEIGHT},
@@ -126,7 +139,7 @@ def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
             "data": {"values": values},
             "encoding": {
                 "y": {**label_axis, "axis": {"labelLimit": LABEL_LIMIT, "labelColor": TEXT}},
-                "x": {"field": "y", "type": "quantitative", "axis": None},
+                "x": {"field": "y", "type": "quantitative", "stack": None, "axis": None},
                 "description": {"field": "description"},
             },
             "layer": [
@@ -171,7 +184,7 @@ def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
 def _line(values: list[dict[str, Any]], has_series: bool) -> dict[str, Any]:
     encoding = {
         "x": {"field": "label", "type": "ordinal", "sort": None},
-        "y": {"field": "y", "type": "quantitative", "axis": {"format": ",.0f"}},
+        "y": {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}},
     }
     # Only the points carry the row's path: on a line or area it would split the series.
     points = {

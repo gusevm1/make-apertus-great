@@ -13,7 +13,7 @@ from app.features.widgets.catalogue import render as render_module
 from app.features.widgets.catalogue.prompts import NOT_COMPONENTS, PROMPTS, catalogue_prompt
 from app.features.widgets.catalogue.render import Form, fallback, render
 from app.features.widgets.catalogue.schemas import COMPONENTS, WidgetSpec
-from app.features.widgets.catalogue.values import resolve
+from app.features.widgets.catalogue.values import display, resolve
 
 SNAPSHOTS = Path(__file__).with_name("snapshots") / "widget_catalogue"
 CHROME = os.environ.get(
@@ -169,6 +169,64 @@ def test_a_figure_carries_the_booking_ids_of_its_row() -> None:
     )
 
 
+def test_a_chart_refuses_two_rows_with_one_label() -> None:
+    # Vega-Lite would draw their sum, 150, which DATA doesn't hold.
+    payees = [{"label": "Migros", "total_chf": 100.0}, {"label": "Migros", "total_chf": 50.0}]
+    body = {"type": "bar_chart", "data": "payees", "x": "label", "y": "total_chf"}
+    with pytest.raises(BadRequestError, match=r"payees\[1\] repeats label Migros"):
+        render(spec=spec(body=body), data={"payees": payees}, form="static")
+
+
+def test_a_figure_must_be_a_number() -> None:
+    with pytest.raises(BadRequestError, match=r"months\[0\] is a dict, not a number"):
+        render(
+            spec=spec(body={"type": "kpi", "label": "x", "value": "months[0]"}),
+            data=DATA,
+            form="static",
+        )
+    with pytest.raises(BadRequestError, match="months is a list, not a number"):
+        render(
+            spec=spec(body={"type": "kpi", "label": "x", "value": "months"}),
+            data=DATA,
+            form="static",
+        )
+    body = {"type": "table", "rows": "months", "columns": ["label", "booking_ids"]}
+    with pytest.raises(BadRequestError, match=r"months\[0\].booking_ids is a list"):
+        render(spec=spec(body=body), data=DATA, form="static")
+
+
+def test_a_total_that_is_not_the_sum_of_its_column_is_refused() -> None:
+    wrong = {**DATA, "payments_total_chf": 3000.0}
+    with pytest.raises(
+        BadRequestError, match="payments_total_chf is 3000.0, but the amount_chf column"
+    ):
+        render(spec=spec(body=BODIES["table"]), data=wrong, form="static")
+
+
+def test_counts_and_years_keep_plain_digits_and_only_whole_dates_are_dates() -> None:
+    assert display(field="year", value=2026) == "2026"
+    assert display(field="bookings", value=1234) == "1234"
+    assert display(field="amount", value=1234) == "1'234"
+    assert display(field="total_chf", value=1234) == "CHF 1'234.00"
+    assert display(field="due_date", value="2026-10-01") == "01.10.2026"
+    assert display(field="text", value="2026-10-01 Migros Zurich") == "2026-10-01 Migros Zurich"
+
+
+def test_the_prompt_names_the_size_limits() -> None:
+    prompt = catalogue_prompt()
+    assert "stats (list of {label, value: path into DATA}, 2 to 4 items)" in prompt
+    assert "columns (list of field names of the rows, 1 to 5 items)" in prompt
+    assert "label (text, at most 80 characters)" in prompt
+
+
+def test_a_static_chart_lists_its_rows_for_clicks() -> None:
+    page = render(spec=spec(body=BODIES["bar_chart"]), data=DATA, form="static")
+    rows = re.search(r'data-rows="([^"]*)"', page)
+    assert rows is not None
+    assert "months[1]" in rows.group(1)
+    assert "BK-03" in rows.group(1)
+
+
 def test_two_rows_with_the_same_short_label_keep_apart() -> None:
     months = [
         {"label": "2025-10", "total_chf": 8454.39},
@@ -295,17 +353,23 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
     assert sorted(seen.group(1).split(",")) == sorted(f"{w}:false:2" for w in WIDTHS)
 
 
-def _clicks(body: dict[str, Any], marktypes: list[str]) -> str:
-    """Click the last mark of each Vega mark type in turn on a live page; the rows it reported."""
-    page = render(spec=spec(body=body), data=DATA, form="live")
+def _live_mark(kind: str) -> str:
+    """A script expression for the last mark of a Vega mark type that belongs to a row."""
+    return (
+        "Array.from(document.querySelectorAll('.chart-area svg *')).filter(function(e){"
+        "var d=e.__data__;return d&&d.mark&&d.datum&&d.datum.path"
+        f"&&d.mark.marktype==='{kind}';}}).pop()"
+    )
+
+
+def _clicks(body: dict[str, Any], targets: list[str], form: Form = "live") -> str:
+    """Click each target (a script expression) in turn; the rows the page reported."""
+    page = render(spec=spec(body=body), data=DATA, form=form)
     click = (
-        "<script>setTimeout(function(){var marks=Array.from(document.querySelectorAll("
-        "'.chart-area svg *')).filter(function(e){var d=e.__data__;"
-        "return d&&d.mark&&d.datum&&d.datum.path;});"
+        "<script>setTimeout(function(){"
         + "".join(
-            f"var m=marks.filter(function(e){{return e.__data__.mark.marktype==='{kind}';}});"
-            "m[m.length-1].dispatchEvent(new MouseEvent('click',{bubbles:true}));"
-            for kind in marktypes
+            f"{target}.dispatchEvent(new MouseEvent('click',{{bubbles:true}}));"
+            for target in targets
         )
         + "},2000)</script></body>"
     )
@@ -344,10 +408,17 @@ def _clicks(body: dict[str, Any], marktypes: list[str]) -> str:
 
 @pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
 def test_clicking_a_live_bar_reports_its_row() -> None:
-    assert _clicks(body=BODIES["bar_chart"], marktypes=["rect"]) == "months[1] BK-03"
+    assert _clicks(body=BODIES["bar_chart"], targets=[_live_mark(kind="rect")]) == "months[1] BK-03"
 
 
 @pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
 def test_clicking_a_live_line_reports_only_its_points() -> None:
     # The line is one shape for all rows, so a click on it reports nothing.
-    assert _clicks(body=BODIES["line_chart"], marktypes=["line", "symbol"]) == "years[3] "
+    targets = [_live_mark(kind="line"), _live_mark(kind="symbol")]
+    assert _clicks(body=BODIES["line_chart"], targets=targets) == "years[3] "
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_clicking_a_static_bar_reports_its_row_and_bookings() -> None:
+    bar = "document.querySelector('.chart-area [aria-label$=\"(months[1])\"]')"
+    assert _clicks(body=BODIES["bar_chart"], targets=[bar], form="static") == "months[1] BK-03"

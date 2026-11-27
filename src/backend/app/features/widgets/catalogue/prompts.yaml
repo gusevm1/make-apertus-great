@@ -5,8 +5,12 @@ intro: |
 
 # How one component and one of its fields are written; {kind} is one of `kinds` below.
 component: "{name}: {description}\n  fields: {fields}\n  example: {example}"
-field: "{field} ({kind}{optional})"
+field: "{field} ({kind}{limits}{optional})"
 optional: ", optional"
+limits:
+  items: ", {min} to {max} items"
+  at_most_items: ", at most {max} items"
+  at_most_characters: ", at most {max} characters"
 field_separator: "; "
 kinds:
   path: path into DATA
