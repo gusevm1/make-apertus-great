@@ -60,7 +60,7 @@ LOAN_CHARGES = [
 
 def _statements(october_total: float) -> list[dict]:
     return [
-        # Its purchases fall before the data, so only its bill is checked.
+        # Its purchases fall before the data, so it is skipped.
         {
             "statement_id": "STMT-2023-11",
             "card_id": "CARD-VISA",

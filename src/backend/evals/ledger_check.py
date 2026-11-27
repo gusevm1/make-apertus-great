@@ -51,7 +51,6 @@ def account_failures(rows: list[LedgerRow], accounts: list[dict[str, Any]]) -> l
 def statement_failures(
     rows: list[LedgerRow], statements: list[dict[str, Any]], data_from: date
 ) -> tuple[list[str], list[str]]:
-    """Failures, and the statements skipped because their purchases predate the data."""
     by_id = {row.id: row for row in rows}
     failures: list[str] = []
     skipped: list[str] = []
@@ -130,7 +129,6 @@ def loan_failures(rows: list[LedgerRow], charges: list[dict[str, Any]]) -> list[
 def total_failures(
     rows: list[LedgerRow], booking_sum: Decimal, bill_sum: Decimal, purchase_sum: Decimal
 ) -> list[str]:
-    """`purchase_sum` is the cards' own sum, positive for a charge as the card lists it."""
     expected = chf(amount=booking_sum - bill_sum - purchase_sum)
     ledger_sum = chf(
         amount=sum((row.amount_chf for row in rows if row.kind != "card_settlement"), Decimal())
@@ -143,22 +141,16 @@ def total_failures(
     ]
 
 
-async def bank_sum(ledger: LedgerService, path: str, token: str, params: dict[str, Any]) -> Any:
-    return await ledger.read(path=path, token=token, params={"limit": 1} | params)
-
-
 async def check_customer(ledger: LedgerService, token: str) -> tuple[list[str], list[str], str]:
-    """The customer's failed checks, the statements skipped, and what was checked."""
     rows = await ledger.list_rows(token=token)
     info = await ledger.banking.get(path="/system/info")
     accounts = await ledger.read(path="/accounts", token=token)
     charges = await ledger.read(path="/loan-transactions", token=token)
-    bookings = await bank_sum(ledger=ledger, path="/bookings", token=token, params={})
-    bills = await bank_sum(
-        ledger=ledger,
+    bookings = await ledger.read(path="/bookings", token=token, params={"limit": 1})
+    bills = await ledger.read(
         path="/bookings",
         token=token,
-        params={"transaction_type": "card_settlement"},
+        params={"limit": 1, "transaction_type": "card_settlement"},
     )
     cards = await ledger.read(path="/cards", token=token)
     statements: list[dict[str, Any]] = []
@@ -168,8 +160,8 @@ async def check_customer(ledger: LedgerService, token: str) -> tuple[list[str], 
             continue
         card_path = f"/cards/{quote(card['card_id'], safe='')}"
         statements += (await ledger.read(path=f"{card_path}/statements", token=token))["items"]
-        purchases = await bank_sum(
-            ledger=ledger, path=f"{card_path}/transactions", token=token, params={}
+        purchases = await ledger.read(
+            path=f"{card_path}/transactions", token=token, params={"limit": 1}
         )
         purchase_sum += chf(amount=purchases["sum_chf"])
 
