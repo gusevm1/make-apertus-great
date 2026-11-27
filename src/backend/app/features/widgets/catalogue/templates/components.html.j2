@@ -20,18 +20,19 @@
 <section class="table-wrap" data-component="table" data-path="{{ n.path }}">
   {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
   <div class="table-scroll">
-  <table>
-    <thead><tr>{% for c in n.columns %}<th{% if c.numeric %} class="num"{% endif %}>{{ c.title }}</th>{% endfor %}</tr></thead>
-    <tbody>
+  {#- Explicit roles: below 560 px the table is laid out as cards, which drops the semantics in WebKit. #}
+  <table role="table">
+    <thead role="rowgroup"><tr role="row">{% for c in n.columns %}<th role="columnheader"{% if c.numeric %} class="num"{% endif %}>{{ c.title }}</th>{% endfor %}</tr></thead>
+    <tbody role="rowgroup">
     {%- for r in n.rows %}
-      <tr data-component="table-row" data-path="{{ r.path }}" data-values="{{ r.row_values }}" data-booking-ids="{{ r.booking_ids }}">
-        {%- for cell in r.cells %}<td data-label="{{ n.columns[loop.index0].title }}"{% if n.columns[loop.index0].numeric %} class="num"{% elif n.columns[loop.index0].date %} class="date"{% endif %}>{{ cell }}</td>{% endfor %}
+      <tr role="row" data-component="table-row" data-path="{{ r.path }}" data-values="{{ r.row_values }}" data-booking-ids="{{ r.booking_ids }}">
+        {%- for cell in r.cells %}<td role="cell" data-label="{{ n.columns[loop.index0].title }}"{% if n.columns[loop.index0].numeric %} class="num"{% elif n.columns[loop.index0].date %} class="date"{% endif %}>{{ cell }}</td>{% endfor %}
       </tr>
     {%- endfor %}
     </tbody>
     {%- if n.total is not none %}
-    <tfoot><tr data-component="table-total" data-path="{{ n.total.path }}" data-value="{{ n.total.raw }}" data-booking-ids="{{ n.total.booking_ids }}">
-      {%- for cell in n.total.cells %}<td{% if cell.numeric %} class="num"{% endif %}>{{ cell.text }}</td>{% endfor %}
+    <tfoot role="rowgroup"><tr role="row" data-component="table-total" data-path="{{ n.total.path }}" data-value="{{ n.total.raw }}" data-booking-ids="{{ n.total.booking_ids }}">
+      {%- for cell in n.total.cells %}<td role="cell" data-label="{{ n.columns[loop.index0].title }}"{% if cell.numeric %} class="num"{% endif %}>{{ cell.text }}</td>{% endfor %}
     </tr></tfoot>
     {%- endif %}
   </table>

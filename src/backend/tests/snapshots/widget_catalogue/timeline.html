@@ -57,9 +57,11 @@ tfoot td { font-weight: 700; border-bottom: 0; }
   .table-wrap tfoot tr { border-bottom: 0; }
   .table-wrap td { grid-column: 1; padding: 0; border: 0; }
   .table-wrap td.num { grid-column: 2; }
-  .table-wrap td:empty { display: none; }
+  /* An empty amount cell keeps its slot, so a total sits in its own column's place. */
+  .table-wrap td:not(.num):empty { display: none; }
   .table-wrap tbody td:not(:first-child):not(.num) { font-size: 0.82rem; color: var(--muted); }
-  .table-wrap tbody td:not(:first-child):not(.num)::before { content: attr(data-label) ": "; }
+  .table-wrap tbody td:not(:first-child):not(.num)::before,
+  .table-wrap td.num ~ td.num::before { content: attr(data-label) ": " / ""; font-weight: 400; color: var(--muted); }
 }
 .cut-note { margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
 .list ul { list-style: none; margin: 0; padding: 0; }

@@ -10,9 +10,10 @@ from pydantic import ValidationError
 
 from app.core.errors import BadRequestError
 from app.features.widgets.catalogue import render as render_module
+from app.features.widgets.catalogue.charts import LABEL_LIMIT, chart_spec
 from app.features.widgets.catalogue.prompts import NOT_COMPONENTS, PROMPTS, catalogue_prompt
 from app.features.widgets.catalogue.render import Form, fallback, render
-from app.features.widgets.catalogue.schemas import COMPONENTS, WidgetSpec
+from app.features.widgets.catalogue.schemas import COMPONENTS, BarChart, WidgetSpec
 from app.features.widgets.catalogue.values import display, resolve
 
 SNAPSHOTS = Path(__file__).with_name("snapshots") / "widget_catalogue"
@@ -176,7 +177,7 @@ def test_a_closing_script_in_a_title_and_a_quote_in_highlight_render_safely() ->
 def test_the_total_sits_under_its_amount_column() -> None:
     swapped = {**BODIES["table"], "columns": ["amount_chf", "payee"]}
     page = render(spec=spec(body=swapped), data=DATA, form="static")
-    total = re.search(r"<tfoot>.*?</tfoot>", page, re.DOTALL)
+    total = re.search(r"<tfoot[^>]*>.*?</tfoot>", page, re.DOTALL)
     assert total is not None
     cells = re.findall(r"<td[^>]*>([^<]*)</td>", total.group(0))
     assert cells == ["CHF 2&#39;919.00", "Total"]
@@ -448,7 +449,47 @@ PHONE_DATA: dict[str, Any] = {
         },
     ],
     "payments_total_chf": 2919.0,
+    "categories": [
+        {"category": "Groceries", "this_month_chf": 612.4, "last_month_chf": 540.0},
+        {"category": "Restaurants", "this_month_chf": 210.0, "last_month_chf": 388.5},
+    ],
+    "last_month_chf": 928.5,
 }
+
+
+def test_long_bar_labels_are_cut_and_named_in_full_in_the_tooltip() -> None:
+    bars = BarChart.model_validate(
+        {"type": "bar_chart", "data": "payees", "x": "label", "y": "total_chf", "horizontal": True}
+    )
+    chart = chart_spec(component=bars, data=PHONE_DATA, live=True)
+    assert chart["encoding"]["y"]["axis"]["labelLimit"] == LABEL_LIMIT
+    tooltip = chart["layer"][0]["encoding"]["tooltip"]
+    assert {"field": "label", "title": " "} in tooltip
+    assert chart["data"]["values"][0]["label"] == "Wohnbau Sihlfeld AG Liegenschaftsverwaltung"
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+def test_a_total_sits_under_its_own_amount_column_at_every_width() -> None:
+    body = {
+        "type": "table",
+        "rows": "categories",
+        "columns": ["category", "this_month_chf", "last_month_chf"],
+        "total": "last_month_chf",
+    }
+    page = render(spec=spec(body=body), data=PHONE_DATA, form="static")
+    # The total and the first row's cell of its column: same place in their rows, same label.
+    measure = (
+        "var foot=document.querySelector('tfoot tr'),cells=Array.from(foot.children);"
+        "var i=cells.findIndex(function(c){"
+        "return c.textContent.trim()!==''&&c.classList.contains('num');});"
+        "var row=document.querySelector('tbody tr'),cell=row.children[i];"
+        "var a=cells[i].getBoundingClientRect(),b=cell.getBoundingClientRect();"
+        "var fa=foot.getBoundingClientRect(),rb=row.getBoundingClientRect();"
+        "var same=Math.abs(a.right-b.right)<=1&&Math.abs((a.top-fa.top)-(b.top-rb.top))<=1;"
+        "var label=getComputedStyle(cells[i],'::before').content;"
+        "return same+':'+(label===getComputedStyle(cell,'::before').content);"
+    )
+    assert _at_widths(page=page, measure=measure) == sorted(f"{w}:true:true" for w in WIDTHS)
 
 
 @pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")

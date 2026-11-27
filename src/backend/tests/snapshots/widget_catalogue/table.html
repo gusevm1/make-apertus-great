@@ -57,9 +57,11 @@ tfoot td { font-weight: 700; border-bottom: 0; }
   .table-wrap tfoot tr { border-bottom: 0; }
   .table-wrap td { grid-column: 1; padding: 0; border: 0; }
   .table-wrap td.num { grid-column: 2; }
-  .table-wrap td:empty { display: none; }
+  /* An empty amount cell keeps its slot, so a total sits in its own column's place. */
+  .table-wrap td:not(.num):empty { display: none; }
   .table-wrap tbody td:not(:first-child):not(.num) { font-size: 0.82rem; color: var(--muted); }
-  .table-wrap tbody td:not(:first-child):not(.num)::before { content: attr(data-label) ": "; }
+  .table-wrap tbody td:not(:first-child):not(.num)::before,
+  .table-wrap td.num ~ td.num::before { content: attr(data-label) ": " / ""; font-weight: 400; color: var(--muted); }
 }
 .cut-note { margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
 .list ul { list-style: none; margin: 0; padding: 0; }
@@ -107,15 +109,15 @@ tfoot td { font-weight: 700; border-bottom: 0; }
   </header>
   <section class="table-wrap" data-component="table" data-path="payments">
   <div class="table-scroll">
-  <table>
-    <thead><tr><th>Due date</th><th>Payee</th><th class="num">Amount</th></tr></thead>
-    <tbody>
-      <tr data-component="table-row" data-path="payments[0]" data-values="{&#34;due_date&#34;: &#34;2026-11-27&#34;, &#34;payee&#34;: &#34;Wohnbau Sihlfeld AG Liegenschaftsverwaltung&#34;, &#34;amount_chf&#34;: 2800.0}" data-booking-ids="[]"><td data-label="Due date" class="date">27.11.2026</td><td data-label="Payee">Wohnbau Sihlfeld AG Liegenschaftsverwaltung</td><td data-label="Amount" class="num">CHF 2&#39;800.00</td>
+  <table role="table">
+    <thead role="rowgroup"><tr role="row"><th role="columnheader">Due date</th><th role="columnheader">Payee</th><th role="columnheader" class="num">Amount</th></tr></thead>
+    <tbody role="rowgroup">
+      <tr role="row" data-component="table-row" data-path="payments[0]" data-values="{&#34;due_date&#34;: &#34;2026-11-27&#34;, &#34;payee&#34;: &#34;Wohnbau Sihlfeld AG Liegenschaftsverwaltung&#34;, &#34;amount_chf&#34;: 2800.0}" data-booking-ids="[]"><td role="cell" data-label="Due date" class="date">27.11.2026</td><td role="cell" data-label="Payee">Wohnbau Sihlfeld AG Liegenschaftsverwaltung</td><td role="cell" data-label="Amount" class="num">CHF 2&#39;800.00</td>
       </tr>
-      <tr data-component="table-row" data-path="payments[1]" data-values="{&#34;due_date&#34;: &#34;2026-12-01&#34;, &#34;payee&#34;: &#34;&lt;b&gt;Fitnesspark&lt;/b&gt;&#34;, &#34;amount_chf&#34;: 119.0}" data-booking-ids="[]"><td data-label="Due date" class="date">01.12.2026</td><td data-label="Payee">&lt;b&gt;Fitnesspark&lt;/b&gt;</td><td data-label="Amount" class="num">CHF 119.00</td>
+      <tr role="row" data-component="table-row" data-path="payments[1]" data-values="{&#34;due_date&#34;: &#34;2026-12-01&#34;, &#34;payee&#34;: &#34;&lt;b&gt;Fitnesspark&lt;/b&gt;&#34;, &#34;amount_chf&#34;: 119.0}" data-booking-ids="[]"><td role="cell" data-label="Due date" class="date">01.12.2026</td><td role="cell" data-label="Payee">&lt;b&gt;Fitnesspark&lt;/b&gt;</td><td role="cell" data-label="Amount" class="num">CHF 119.00</td>
       </tr>
     </tbody>
-    <tfoot><tr data-component="table-total" data-path="payments_total_chf" data-value="2919.0" data-booking-ids="[]"><td>Total</td><td></td><td class="num">CHF 2&#39;919.00</td>
+    <tfoot role="rowgroup"><tr role="row" data-component="table-total" data-path="payments_total_chf" data-value="2919.0" data-booking-ids="[]"><td role="cell" data-label="Due date">Total</td><td role="cell" data-label="Payee"></td><td role="cell" data-label="Amount" class="num">CHF 2&#39;919.00</td>
     </tr></tfoot>
   </table>
   </div>
