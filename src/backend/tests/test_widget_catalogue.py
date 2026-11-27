@@ -414,11 +414,83 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
         + [{"type": "stack", "children": [BODIES[name] for name in (*CHARTS, "grid")]}],
     }
     page = render(spec=spec(body=body), data=DATA, form=form)
+    measure = (
+        "var r=document.documentElement;return (r.scrollWidth > r.clientWidth + 1)"
+        "+':'+document.querySelectorAll('.chart-area svg').length;"
+    )
+    # Every chart drawn, by the browser (live) or as SVG from the server (static).
+    assert _at_widths(page=page, measure=measure) == sorted(
+        f"{w}:false:{len(CHARTS)}" for w in WIDTHS
+    )
+
+
+PHONE_DATA: dict[str, Any] = {
+    "payees": [
+        {"label": "Wohnbau Sihlfeld AG Liegenschaftsverwaltung", "total_chf": 8400.0},
+        {"label": "Steueramt der Stadt Zürich", "total_chf": 6500.0},
+        {"label": "Mythen Krankenversicherung AG", "total_chf": 1402.2},
+        {"label": "Other", "total_chf": 13051.19},
+    ],
+    "payments": [
+        {
+            "due_date": "2026-11-27",
+            "payee": "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+            "description": "Miete Dezember 2026",
+            "type": "standing_order",
+            "amount_chf": 2800.0,
+        },
+        {
+            "due_date": "2026-12-01",
+            "payee": "Fitnesspark Zürich Stadelhofen",
+            "description": "Mitgliedschaft Dezember 2026",
+            "type": "direct_debit",
+            "amount_chf": 119.0,
+        },
+    ],
+    "payments_total_chf": 2919.0,
+}
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+@pytest.mark.parametrize("form", ["static", "live"])
+def test_long_labels_and_wide_tables_stay_inside_the_widget(form: Form) -> None:
+    body = {
+        "type": "stack",
+        "children": [
+            {
+                "type": "bar_chart",
+                "data": "payees",
+                "x": "label",
+                "y": "total_chf",
+                "horizontal": True,
+            },
+            {
+                "type": "table",
+                "rows": "payments",
+                "columns": ["due_date", "payee", "description", "type", "amount_chf"],
+                "total": "payments_total_chf",
+            },
+        ],
+    }
+    page = render(spec=spec(body=body), data=PHONE_DATA, form=form)
+    # How far any bar or label leaves its SVG, how far the table scrolls, whether the total shows.
+    measure = (
+        "var s=document.querySelector('.chart-area svg'),b=s.getBoundingClientRect(),worst=0;"
+        "s.querySelectorAll('text,path,rect').forEach(function(e){var r=e.getBoundingClientRect();"
+        "if(r.width>0)worst=Math.max(worst,r.right-b.right,b.left-r.left);});"
+        "var t=document.querySelector('.table-scroll');"
+        "var total=document.querySelector('tfoot td.num');"
+        "var shown=total.getBoundingClientRect().right<=t.getBoundingClientRect().right+1;"
+        "return Math.round(worst)+':'+(t.scrollWidth-t.clientWidth)+':'+shown;"
+    )
+    assert _at_widths(page=page, measure=measure) == sorted(f"{w}:0:0:true" for w in WIDTHS)
+
+
+def _at_widths(page: str, measure: str) -> list[str]:
+    """Load the page in iframes of every width; `measure` (a function body) runs in each."""
     probe = (
-        "<script>setTimeout(function(){var r=document.documentElement;"
-        "parent.postMessage({probe: true, width: innerWidth, "
-        "overflow: r.scrollWidth > r.clientWidth + 1, "
-        "charts: document.querySelectorAll('.chart-area svg').length}, '*')}, 2000)</script></body>"
+        "<script>setTimeout(function(){parent.postMessage({probe: true, width: innerWidth, "
+        f"result: (function(){{{measure}}})()}}, '*')}}, 2000)</script></body>"
     )
     with tempfile.TemporaryDirectory() as folder:
         root = Path(folder)
@@ -433,7 +505,7 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
             "<!doctype html><body>"
             + frames
             + "<script>var seen=[];addEventListener('message',function(e){if(!e.data.probe)return;"
-            "seen.push(e.data.width+':'+e.data.overflow+':'+e.data.charts);document.body.setAttribute('data-seen',seen.sort().join(','))})</script></body>"
+            "seen.push(e.data.width+':'+e.data.result);document.body.setAttribute('data-seen',seen.sort().join(','))})</script></body>"
         )
         (root / "host.html").write_text(host, encoding="utf-8")
         result = subprocess.run(
@@ -455,9 +527,7 @@ def test_no_widget_scrolls_sideways(form: Form) -> None:
         )
     seen = re.search(r'data-seen="([^"]*)"', result.stdout)
     assert seen is not None, result.stderr[-500:]
-    # Every chart drawn, by the browser (live) or as SVG from the server (static).
-    expected = sorted(f"{w}:false:{len(CHARTS)}" for w in WIDTHS)
-    assert sorted(seen.group(1).split(",")) == expected
+    return sorted(seen.group(1).split(","))
 
 
 def _live_mark(kind: str) -> str:
