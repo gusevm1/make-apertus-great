@@ -233,7 +233,9 @@ async def _categorise(api: httpx2.AsyncClient) -> dict[str, Any]:
     return stored.json()
 
 
-async def _categorise_only(api: httpx2.AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+async def _categorise_only(
+    api: httpx2.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> dict[str, Any]:
     """Run the categories step alone, so no severity and no personal tag exist yet."""
 
     async def skip(*args: object, **kwargs: object) -> None:
@@ -242,11 +244,17 @@ async def _categorise_only(api: httpx2.AsyncClient, monkeypatch: pytest.MonkeyPa
     with monkeypatch.context() as patch:
         patch.setattr(SeverityService, "create_proposal", skip)
         patch.setattr(PersonalTagService, "create_inference", skip)
-        await _categorise(api=api)
+        return await _categorise(api=api)
 
 
 def _counts(run: dict[str, Any]) -> dict[str, int]:
-    names = ("tagged_by_rule", "tagged_by_model", "already_tagged", "skipped")
+    names = (
+        "tagged_by_rule",
+        "tagged_by_correction",
+        "tagged_by_model",
+        "already_tagged",
+        "skipped",
+    )
     return {name: run[name] for name in names}
 
 

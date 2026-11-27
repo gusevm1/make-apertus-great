@@ -10,6 +10,7 @@ from app.features.ledger.service import LedgerService
 from app.features.transaction_tags.personal_tag_service import PersonalTagService
 from app.features.transaction_tags.repository import (
     CategorisationRunRepository,
+    CategoryCorrectionRepository,
     PersonalTagAssignmentRepository,
     PersonalTagEvaluationRepository,
     PersonalTagRepository,
@@ -94,7 +95,10 @@ async def _work(
         async with session_factory() as session:
             tags = TransactionTagRepository(session=session)
             categorisation = await TransactionTagService(
-                tags=tags, ledger=ledger, apertus=apertus
+                tags=tags,
+                corrections=CategoryCorrectionRepository(session=session),
+                ledger=ledger,
+                apertus=apertus,
             ).create_categorisation(owner_id=owner_id, token=token)
             await SeverityService(
                 tags=tags,

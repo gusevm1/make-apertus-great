@@ -86,6 +86,7 @@ class CategorisationRun(BaseModel):
     owner_id: UUID
     status: RunStatus
     tagged_by_rule: int
+    tagged_by_correction: int
     tagged_by_model: int
     already_tagged: int
     skipped: int

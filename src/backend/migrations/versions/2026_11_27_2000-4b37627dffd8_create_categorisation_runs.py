@@ -1,7 +1,7 @@
 """create categorisation runs
 
 Revision ID: 4b37627dffd8
-Revises: 586bf867a410
+Revises: 8e8e6d79deda
 Create Date: 2026-11-27 20:00:23.113653
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "4b37627dffd8"
-down_revision: str | Sequence[str] | None = "586bf867a410"
+down_revision: str | Sequence[str] | None = "8e8e6d79deda"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -26,6 +26,7 @@ def upgrade() -> None:
         sa.Column("owner_id", sa.Uuid(), nullable=False),
         sa.Column("status", sa.String(), server_default="queued", nullable=False),
         sa.Column("tagged_by_rule", sa.Integer(), server_default="0", nullable=False),
+        sa.Column("tagged_by_correction", sa.Integer(), server_default="0", nullable=False),
         sa.Column("tagged_by_model", sa.Integer(), server_default="0", nullable=False),
         sa.Column("already_tagged", sa.Integer(), server_default="0", nullable=False),
         sa.Column("skipped", sa.Integer(), server_default="0", nullable=False),

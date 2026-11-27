@@ -127,6 +127,7 @@ class CategorisationRunORM(Base):
     owner_id: Mapped[UUID]
     status: Mapped[str] = mapped_column(server_default="queued")
     tagged_by_rule: Mapped[int] = mapped_column(server_default="0")
+    tagged_by_correction: Mapped[int] = mapped_column(server_default="0")
     tagged_by_model: Mapped[int] = mapped_column(server_default="0")
     already_tagged: Mapped[int] = mapped_column(server_default="0")
     skipped: Mapped[int] = mapped_column(server_default="0")
