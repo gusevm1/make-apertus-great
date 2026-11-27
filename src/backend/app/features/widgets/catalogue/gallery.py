@@ -5,19 +5,11 @@ import html
 from pathlib import Path
 from typing import Any
 
-import httpx
-
-from app.clients.banking import BankingClient
-from app.core.config import get_settings
-from app.features.ledger.service import LedgerService
 from app.features.widgets.catalogue.render import render
 from app.features.widgets.catalogue.schemas import WidgetSpec
 from app.features.widgets.catalogue.values import display
 
 OUT = Path(__file__).resolve().parents[4] / "evals" / "widgets" / "results" / "catalogue"
-# A demo customer of the mock e-banking; the logins are public in starter/README.md.
-LOGIN = {"username": "lukas", "password": "lukas2026"}
-LOGIN_TIMEOUT_SECONDS = 30
 FRAMES = [("live", 360), ("live", 1000), ("static", 440)]
 
 
@@ -125,32 +117,6 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
     return {name: WidgetSpec.model_validate(spec) for name, spec in raw.items()}
 
 
-async def sample_data() -> dict[str, Any]:
-    """Lukas's DATA as the benchmark of #23 builds it, flattened into one object."""
-    from evals.widgets.data import build_all
-
-    settings = get_settings()
-    async with httpx.AsyncClient(timeout=LOGIN_TIMEOUT_SECONDS) as bank:
-        login = await bank.post(f"{settings.banking_api_url}/auth/login", json=LOGIN)
-    login.raise_for_status()
-    banking = BankingClient(settings=settings)
-    try:
-        tasks = await build_all(ledger=LedgerService(banking=banking), token=login.json()["token"])
-    finally:
-        await banking.close()
-    return {
-        "months": tasks["monthly_spending"]["months"],
-        "months_total_chf": tasks["monthly_spending"]["total_chf"],
-        "payments": tasks["upcoming_payments"]["payments"],
-        "payments_total_chf": tasks["upcoming_payments"]["total_chf"],
-        "payees": tasks["where_money_goes"]["payees"],
-        "payees_total_chf": tasks["where_money_goes"]["total_chf"],
-        "years": tasks["year_vs_year"]["months"],
-        "accounts": tasks["liquidity"]["accounts"],
-        "liquidity_total_chf": tasks["liquidity"]["total_liquidity_chf"],
-    }
-
-
 def write_gallery(data: dict[str, Any]) -> Path:
     OUT.mkdir(parents=True, exist_ok=True)
     sections = []
@@ -182,4 +148,7 @@ def write_gallery(data: dict[str, Any]) -> Path:
 
 
 if __name__ == "__main__":
-    print(write_gallery(data=asyncio.run(sample_data())))  # noqa: T201
+    # The bank is read by the evals' sample, so this feature never imports the banking client.
+    from evals.widgets.sample import lukas_data
+
+    print(write_gallery(data=asyncio.run(lukas_data())))  # noqa: T201
