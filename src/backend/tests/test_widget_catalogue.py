@@ -187,8 +187,13 @@ def test_a_closing_script_in_a_title_and_a_quote_in_highlight_render_safely() ->
     assert 'datum.key === \\"Oct \\\\\\"26\\"' in live
 
 
-@pytest.mark.parametrize(("good_when", "tone"), [("down", "change good"), ("up", "change bad")])
-def test_a_change_is_coloured_by_whether_it_goes_the_good_way(good_when: str, tone: str) -> None:
+@pytest.mark.parametrize(
+    ("good_when", "tone", "verdict"),
+    [("down", "change good", "good"), ("up", "change bad", "to watch")],
+)
+def test_a_change_is_coloured_by_whether_it_goes_the_good_way(
+    good_when: str, tone: str, verdict: str
+) -> None:
     body = {
         "type": "kpi",
         "label": "Groceries",
@@ -201,6 +206,8 @@ def test_a_change_is_coloured_by_whether_it_goes_the_good_way(good_when: str, to
     assert change is not None
     assert f'class="{tone}"' in change.group(0)
     assert "▼</span> CHF 120.50 less" in change.group(0)
+    # The verdict is written out too, not shown by colour alone.
+    assert f'<span class="verdict">{verdict}</span>' in change.group(0)
 
 
 def test_no_change_is_neutral_and_a_change_needs_a_number_and_a_way() -> None:

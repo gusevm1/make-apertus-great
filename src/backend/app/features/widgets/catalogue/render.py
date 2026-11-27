@@ -170,7 +170,7 @@ def _trend_and_change(
         "tone": "neutral" if direction is None else ("good" if is_good else "bad"),
         "text": display(field=last_field(path=item.change), value=abs(value)),
         "word": {"up": "more", "down": "less", None: "no change"}[direction],
-        "verdict": None if direction is None else ("a good change" if is_good else "to watch"),
+        "verdict": None if direction is None else ("good" if is_good else "to watch"),
     }
     return {"trend": trend, "change": change}
 

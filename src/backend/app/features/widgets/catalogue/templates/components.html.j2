@@ -1,7 +1,7 @@
 {#- A figure's change (a figure DATA holds, coloured by whether it goes the good way) and trend. #}
 {% macro trend_and_change(n) -%}
 {%- if n.change is not none %}
-  <span class="change {{ n.change.tone }}" data-component="change" data-path="{{ n.change.path }}" data-value="{{ n.change.raw }}" data-booking-ids="{{ n.change.booking_ids }}"><span class="arrow" aria-hidden="true">{% if n.change.direction == "up" %}▲{% elif n.change.direction == "down" %}▼{% else %}–{% endif %}</span> {{ n.change.text }} {{ n.change.word }}{% if n.change.verdict is not none %}<span class="sr-only">, {{ n.change.verdict }}</span>{% endif %}</span>
+  <span class="change {{ n.change.tone }}" data-component="change" data-path="{{ n.change.path }}" data-value="{{ n.change.raw }}" data-booking-ids="{{ n.change.booking_ids }}"><span class="arrow" aria-hidden="true">{% if n.change.direction == "up" %}▲{% elif n.change.direction == "down" %}▼{% else %}–{% endif %}</span> {{ n.change.text }} {{ n.change.word }}{% if n.change.verdict is not none %} <span class="verdict">{{ n.change.verdict }}</span>{% endif %}</span>
 {%- endif %}
 {%- if n.trend is not none %}
   <div class="trend" data-component="trend" data-path="{{ n.trend.path }}" data-rows="{{ n.trend.rows }}"><div class="chart-area trend-area" id="{{ n.trend.id }}">{% if n.trend.svg is not none %}{{ n.trend.svg | safe }}{% endif %}</div></div>
