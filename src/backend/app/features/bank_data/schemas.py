@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 from app.core.prompts import load_prompts
 
@@ -15,11 +15,16 @@ class BankData(RootModel[dict[str, Any]]):
     """What the banking API answered, with empty fields dropped and long lists shortened."""
 
 
-class NoArgs(BaseModel):
+class Args(BaseModel):
+    # An argument the tool does not have is an error the model can correct, not a dropped filter.
+    model_config = ConfigDict(extra="forbid")
+
+
+class NoArgs(Args):
     pass
 
 
-class Period(BaseModel):
+class Period(Args):
     # The API calls these `from` and `to`, which the model mixes up with words of the question.
     date_from: date | None = Field(
         default=None, serialization_alias="from", description=PROMPTS["date_from"]
@@ -29,7 +34,7 @@ class Period(BaseModel):
     )
 
 
-class BalancePreviewArgs(BaseModel):
+class BalancePreviewArgs(Args):
     account_id: str = Field(description=PROMPTS["account_id"])
     date_to: date | None = Field(
         default=None, serialization_alias="to", description=PROMPTS["date_to"]
@@ -57,16 +62,16 @@ class UpcomingPaymentsArgs(Period):
     account: str | None = Field(default=None, description=PROMPTS["account_id"])
 
 
-class PayeesArgs(BaseModel):
+class PayeesArgs(Args):
     text: str | None = Field(default=None, serialization_alias="q", description=PROMPTS["text"])
     new_last_90_days: bool | None = None
 
 
-class StandingOrdersArgs(BaseModel):
+class StandingOrdersArgs(Args):
     status: Literal["active", "ended"] | None = None
 
 
-class CardArgs(BaseModel):
+class CardArgs(Args):
     card_id: str = Field(description=PROMPTS["card_id"])
 
 
@@ -78,7 +83,7 @@ class CardTransactionsArgs(Period):
     limit: int = Field(default=ROWS_DEFAULT, ge=1, le=ROWS_MAX, description=PROMPTS["limit"])
 
 
-class PortfolioPerformanceArgs(BaseModel):
+class PortfolioPerformanceArgs(Args):
     period: Literal["ytd", "1y", "3y"] | None = None
 
 
@@ -91,6 +96,6 @@ class LoanTransactionsArgs(Period):
     type: Literal["interest", "amortisation"] | None = None
 
 
-class FxRatesArgs(BaseModel):
+class FxRatesArgs(Args):
     month: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")
     currency: Literal["EUR", "USD", "GBP"] | None = None
