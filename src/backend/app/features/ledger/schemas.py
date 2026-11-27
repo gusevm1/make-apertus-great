@@ -202,11 +202,15 @@ class GroupSum(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
+    provisional_out_chf: Decimal
+    provisional_in_chf: Decimal
 
 
 class GroupSums(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
+    provisional_out_chf: Decimal
+    provisional_in_chf: Decimal
     groups: list[GroupSum]
     row_ids: dict[str, list[str]]

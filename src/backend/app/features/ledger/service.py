@@ -231,12 +231,14 @@ class LedgerService:
                     count=len(grouped[name]),
                     money_out_chf=group_out,
                     money_in_chf=group_in,
+                    **_provisional(rows=grouped[name]),
                 )
             )
         return GroupSums(
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
+            **_provisional(rows=rows),
             groups=groups,
             row_ids={name: [row.id for row in grouped[name]] for name in names},
         )

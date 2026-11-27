@@ -468,7 +468,21 @@ async def test_every_weekday_is_listed_and_kinds_count_only_when_asked(
 
 async def test_a_history_that_starts_this_month_is_not_enough_for_a_trend() -> None:
     bookings = [_spending("BK-NOV", "2026-11-02", -50.0)]
-    ledger = _fake_ledger(bookings=bookings, purchases=[], pages_read=[])
+    ledger = _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
 
     with pytest.raises(BadRequestError, match="Only 0 full months"):
         await ledger.forecast_months(token=TOKEN, args=ForecastMonthsArgs(), today=TODAY)
+
+
+async def test_each_group_says_how_much_of_it_is_provisional(
+    ledger: LedgerService, statements: list[dict]
+) -> None:
+    statements[0]["status"] = "open"
+
+    weekdays = await ledger.sum_by_group(token=TOKEN, args=SumByGroupArgs(group_by="weekday"))
+
+    by_day = {group.group: group for group in weekdays.groups}
+    assert by_day["monday"].provisional_out_chf == Decimal("-10.96")
+    assert by_day["tuesday"].provisional_in_chf == Decimal("40.0")
+    assert by_day["friday"].provisional_out_chf == Decimal(0)
+    assert weekdays.provisional_out_chf == Decimal("-10.96")

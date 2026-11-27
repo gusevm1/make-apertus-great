@@ -35,7 +35,8 @@ forecast_months: >-
   or "what will I spend per month if this continues".
 sum_by_group: >-
   The customer's money movements added up per `quarter`, `year`, `weekday`, `account` or `kind`, each
-  group with its `count`, `money_out_chf` and `money_in_chf`. Takes the same filters as
+  group with its `count`, `money_out_chf` and `money_in_chf`, and each group and the total with
+  `provisional_out_chf` and `provisional_in_chf`, as in search_movements. Takes the same filters as
   search_movements. Use it for "2025 against 2024" (year), "do I spend more at weekends" (weekday),
   "what goes out of my savings account" (account) or "how much came in and went out" (kind, with
   every kind that should count). One call covers a comparison: for 2025 against 2024, group by year
