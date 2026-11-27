@@ -1,11 +1,23 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 
 from app.core.repository import BaseRepository
-from app.features.transaction_tags.models import SeveritySettingORM, TransactionTagORM
-from app.features.transaction_tags.schemas import SeveritySetting, TransactionTag
+from app.features.transaction_tags.models import (
+    PersonalTagAssignmentORM,
+    PersonalTagEvaluationORM,
+    PersonalTagORM,
+    SeveritySettingORM,
+    TransactionTagORM,
+)
+from app.features.transaction_tags.schemas import (
+    PersonalTag,
+    PersonalTagAssignment,
+    PersonalTagEvaluation,
+    SeveritySetting,
+    TransactionTag,
+)
 
 
 class TransactionTagRepository(BaseRepository[TransactionTagORM, TransactionTag]):
@@ -90,3 +102,109 @@ class SeveritySettingRepository(BaseRepository[SeveritySettingORM, SeveritySetti
         setting = self._to_schema(row=row)
         await self.session.commit()
         return setting
+
+
+class PersonalTagRepository(BaseRepository[PersonalTagORM, PersonalTag]):
+    orm_model = PersonalTagORM
+    schema = PersonalTag
+    sortable_fields = frozenset({"created_at", "name"})
+
+    async def get_owned(self, tag_id: UUID, owner_id: UUID) -> PersonalTag | None:
+        stmt = select(PersonalTagORM).where(
+            PersonalTagORM.id == tag_id, PersonalTagORM.owner_id == owner_id
+        )
+        row = await self.session.scalar(stmt)
+        return None if row is None else self._to_schema(row=row)
+
+    async def list_for_owner(self, owner_id: UUID) -> list[PersonalTag]:
+        tags = await self.list(sort="name", owner_id=owner_id)
+        # Ends the read's transaction, so none stays open while Apertus works.
+        await self.session.commit()
+        return tags
+
+    async def name_taken(self, owner_id: UUID, name: str, except_id: UUID | None = None) -> bool:
+        stmt = select(PersonalTagORM.id).where(
+            PersonalTagORM.owner_id == owner_id, func.lower(PersonalTagORM.name) == name.lower()
+        )
+        if except_id is not None:
+            stmt = stmt.where(PersonalTagORM.id != except_id)
+        taken = await self.session.scalar(stmt) is not None
+        await self.session.commit()
+        return taken
+
+    async def create_missing(self, values: list[dict[str, object]]) -> None:
+        """Store tags, keeping the ones whose name the customer has already."""
+        if not values:
+            return
+        await self.session.execute(insert(PersonalTagORM).values(values).on_conflict_do_nothing())
+        await self.session.commit()
+
+
+class PersonalTagAssignmentRepository(
+    BaseRepository[PersonalTagAssignmentORM, PersonalTagAssignment]
+):
+    orm_model = PersonalTagAssignmentORM
+    schema = PersonalTagAssignment
+
+    async def list_for_owner(self, owner_id: UUID) -> list[PersonalTagAssignment]:
+        assignments = await self.list(owner_id=owner_id)
+        await self.session.commit()
+        return assignments
+
+    async def list_for_tag(self, tag_id: UUID) -> list[PersonalTagAssignment]:
+        assignments = await self.list(tag_id=tag_id)
+        await self.session.commit()
+        return assignments
+
+    async def create_missing(self, values: list[dict[str, object]]) -> list[PersonalTagAssignment]:
+        """Store assignments, keeping the ones that exist already; returns the new ones."""
+        if not values:
+            return []
+        stmt = (
+            insert(PersonalTagAssignmentORM)
+            .values(values)
+            .on_conflict_do_nothing(index_elements=["tag_id", "row_source", "row_id"])
+            .returning(PersonalTagAssignmentORM)
+        )
+        created = [self._to_schema(row=row) for row in await self.session.scalars(stmt)]
+        await self.session.commit()
+        return created
+
+    async def delete_in_tag(self, assignment_id: UUID, tag_id: UUID) -> bool:
+        stmt = (
+            delete(PersonalTagAssignmentORM)
+            .where(
+                PersonalTagAssignmentORM.id == assignment_id,
+                PersonalTagAssignmentORM.tag_id == tag_id,
+            )
+            .returning(PersonalTagAssignmentORM.id)
+        )
+        deleted = await self.session.scalar(stmt) is not None
+        await self.session.commit()
+        return deleted
+
+
+class PersonalTagEvaluationRepository(
+    BaseRepository[PersonalTagEvaluationORM, PersonalTagEvaluation]
+):
+    orm_model = PersonalTagEvaluationORM
+    schema = PersonalTagEvaluation
+
+    async def list_row_keys(self, owner_id: UUID) -> set[tuple[str, str]]:
+        stmt = select(PersonalTagEvaluationORM.row_source, PersonalTagEvaluationORM.row_id).where(
+            PersonalTagEvaluationORM.owner_id == owner_id
+        )
+        keys = {(row.row_source, row.row_id) for row in await self.session.execute(stmt)}
+        await self.session.commit()
+        return keys
+
+    async def create_missing(self, values: list[dict[str, object]]) -> None:
+        if not values:
+            return
+        stmt = (
+            insert(PersonalTagEvaluationORM)
+            .values(values)
+            .on_conflict_do_nothing(index_elements=["owner_id", "row_source", "row_id"])
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()

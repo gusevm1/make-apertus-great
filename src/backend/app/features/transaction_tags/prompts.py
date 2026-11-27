@@ -3,6 +3,7 @@ import json
 from app.clients.apertus import Message as LLMMessage
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import LedgerRow
+from app.features.transaction_tags.schemas import PersonalTag
 
 PROMPTS = load_prompts(prompts_py=__file__)
 
@@ -56,3 +57,60 @@ def severity_prompt(
 
 def _escape(text: str) -> str:
     return text.replace("<", "&lt;").replace(">", "&gt;")
+
+
+def infer_tags_prompt(
+    account_names: list[str],
+    transfer_texts: list[str],
+    spending: dict[str, list[str]],
+    max_tags: int,
+) -> list[LLMMessage]:
+    """What Apertus sees of one customer, to propose at most `max_tags` personal tags."""
+    content = PROMPTS["infer_tags_input"].format(
+        accounts=_escape(text="\n".join(account_names)),
+        transfers=_escape(text="\n".join(transfer_texts)),
+        spending=_escape(
+            text="\n".join(
+                f"{category}: {', '.join(payees)}" for category, payees in spending.items()
+            )
+        ),
+    )
+    return [
+        {"role": "system", "content": PROMPTS["infer_tags_system"].format(max_tags=max_tags)},
+        {"role": "user", "content": content},
+    ]
+
+
+def assign_tags_prompt(
+    tags: list[PersonalTag], rows: dict[str, LedgerRow], categories: dict[str, str]
+) -> list[LLMMessage]:
+    """The batch for Apertus; `rows` are the ledger rows by their batch-local ref."""
+    tag_lines = "\n".join(f"{tag.name}: {tag.description}" for tag in tags)
+    row_lines = "\n".join(
+        _assigned_row_line(ref=ref, row=row, category=categories.get(ref))
+        for ref, row in rows.items()
+    )
+    content = PROMPTS["assign_tags_input"].format(
+        tags=_escape(text=tag_lines), rows=_escape(text=row_lines)
+    )
+    return [
+        {"role": "system", "content": PROMPTS["assign_tags_system"]},
+        {"role": "user", "content": content},
+    ]
+
+
+def _assigned_row_line(ref: str, row: LedgerRow, category: str | None) -> str:
+    fields = {
+        "ref": ref,
+        "kind": row.kind,
+        "date": row.date.isoformat(),
+        "text": row.text,
+        "counterparty": row.counterparty,
+        "category": category,
+        "amount_chf": str(abs(row.amount_chf)),
+        "original_amount": None if row.original_amount is None else str(abs(row.original_amount)),
+        "original_currency": row.original_currency,
+    }
+    return json.dumps(
+        {key: value for key, value in fields.items() if value is not None}, ensure_ascii=False
+    )

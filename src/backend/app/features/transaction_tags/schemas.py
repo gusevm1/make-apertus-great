@@ -1,8 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Literal, get_args
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.features.ledger.schemas import Kind
 
 CATEGORIES = (
     "housing",
@@ -26,6 +29,10 @@ SetBy = Literal["rule", "model", "customer"]
 SeverityScope = Literal["category", "payee", "booking"]
 SeveritySource = Literal["booking", "payee", "category", "default"]
 SeveritySetBy = Literal["model", "customer"]
+PersonalTagSetBy = Literal["model", "customer"]
+MAX_INFERRED_TAGS = 10
+TAG_NAME_MAX_LENGTH = 40
+TAG_DESCRIPTION_MAX_LENGTH = 200
 
 
 class TransactionTag(BaseModel):
@@ -132,3 +139,130 @@ class CategorySeverity(BaseModel):
 
 class CategorySeverities(BaseModel):
     categories: list[CategorySeverity]
+
+
+class PersonalTag(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    owner_id: UUID
+    name: str
+    description: str
+    set_by: PersonalTagSetBy
+    model: str | None
+    confirmed: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class PersonalTagAssignment(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    tag_id: UUID
+    owner_id: UUID
+    row_source: RowSource
+    row_id: str
+    set_by: PersonalTagSetBy
+    model: str | None
+    confirmed: bool
+    created_at: datetime
+
+
+class PersonalTagEvaluation(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    owner_id: UUID
+    row_source: RowSource
+    row_id: str
+    created_at: datetime
+
+
+class PersonalTagSummary(PersonalTag):
+    """A tag with what its rows add up to; own transfers count their outgoing side only."""
+
+    spending_count: int
+    spending_total_chf: Decimal
+    own_transfer_count: int
+    own_transfer_total_chf: Decimal
+
+
+class AssignedRow(PersonalTagAssignment):
+    kind: Kind
+    date: date
+    text: str
+    amount_chf: Decimal
+
+
+class RequestPersonalTagCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=TAG_NAME_MAX_LENGTH)
+    description: str = Field(default="", max_length=TAG_DESCRIPTION_MAX_LENGTH)
+
+
+class RequestPersonalTagUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=TAG_NAME_MAX_LENGTH)
+    description: str | None = Field(default=None, max_length=TAG_DESCRIPTION_MAX_LENGTH)
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def reject_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("Cannot be null")
+        return value
+
+
+class RequestPersonalTagAssignmentCreate(BaseModel):
+    row_source: RowSource
+    row_id: str = Field(min_length=1)
+
+
+class ResponsePersonalTag(BaseModel):
+    id: UUID
+    name: str
+    description: str
+    set_by: PersonalTagSetBy
+    model: str | None
+    confirmed: bool
+    spending_count: int
+    spending_total_chf: Decimal
+    own_transfer_count: int
+    own_transfer_total_chf: Decimal
+    created_at: datetime
+    updated_at: datetime
+
+
+class ResponsePersonalTagAssignment(BaseModel):
+    id: UUID
+    row_source: RowSource
+    row_id: str
+    kind: Kind
+    date: date
+    text: str
+    amount_chf: Decimal
+    set_by: PersonalTagSetBy
+    model: str | None
+    confirmed: bool
+    created_at: datetime
+
+
+class InferredTag(BaseModel):
+    """What Apertus proposes as a tag; we cut it to length and drop duplicates."""
+
+    name: str
+    description: str | None = None
+
+
+class InferredTags(BaseModel):
+    tags: list[InferredTag]
+
+
+class RowPersonalTags(BaseModel):
+    """What Apertus answers for one row: the names of its tags, none if no tag fits."""
+
+    ref: str
+    tags: list[str] | None = None
+
+
+class BatchPersonalTags(BaseModel):
+    rows: list[RowPersonalTags]
