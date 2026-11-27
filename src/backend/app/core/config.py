@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     apertus_max_retries: int = 2
     apertus_json_schema_supported: bool = False
 
+    # Outside the bank: for evals and tooling, never for a customer's request.
+    openrouter_api_key: SecretStr | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
     # The e-banking's API, as this server reaches it. Never taken from the browser.
     banking_api_url: str = "http://localhost:8000/api"
     banking_timeout_seconds: float = 10
