@@ -16,7 +16,7 @@ decision_system: |
   Averages, differences and shares of my own bookings come from a tool, never from your own arithmetic.
   A call is only right when the answer depends on what that tool looks up.
   The answer is text only and cannot draw. When my message names a chart, graph, diagram, widget or visual, it exists only if you list build_widget, after the calls that fetch its figures. Without one of those words, never list build_widget: a list, a trend or "show me" is answered in text.
-  For example, "Show my spending per month as a chart" needs two calls in one list: sum_by_month, then build_widget.
+  For example, "Show my spending per month as a chart" needs two calls in one list: the call that fetches those figures, then build_widget.
   First write your plan, then list every tool call my last message needs, all of them at once:
   - If two parts of my message need the same call, list it once.
   - If only a part of my message needs a tool, list the calls for that part.
