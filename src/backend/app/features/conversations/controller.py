@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
@@ -14,7 +16,11 @@ from app.features.conversations.schemas import (
     ResponseMessage,
 )
 from app.features.tool_calls.dependencies import ToolCallServiceDep
-from app.features.tool_calls.schemas import ResponseToolCall, ToolCall
+from app.features.tool_calls.schemas import (
+    RequestToolCallConfirmationCreate,
+    ResponseToolCall,
+    ToolCall,
+)
 
 router = APIRouter(
     prefix="/conversations", tags=["conversations"], dependencies=[Depends(require_user)]
@@ -112,3 +118,14 @@ async def list_tool_calls(
     """List the tool calls made in a conversation, oldest first."""
     tool_calls = await service.list_tool_calls(conversation_id=conversation.id)
     return [_tool_call_response(tool_call=tool_call) for tool_call in tool_calls]
+
+
+@router.post("/{conversation_id}/tool-calls/{tool_call_id}/confirmations", status_code=204)
+async def create_tool_call_confirmation(
+    tool_call_id: UUID,
+    body: RequestToolCallConfirmationCreate,
+    conversation: OwnedConversationDep,
+    service: ToolCallServiceDep,
+) -> None:
+    """Allow or refuse a tool call of a running turn that waits for the customer."""
+    service.confirm_tool_call(conversation_id=conversation.id, tool_call_id=tool_call_id, data=body)

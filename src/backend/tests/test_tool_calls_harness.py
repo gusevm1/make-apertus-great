@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.apertus import ApertusClient, LLMResult, Message, Model
 from app.features.tool_calls import service as tool_call_service
+from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
 from app.features.tool_calls.service import TOOL_FAILED, SwissSpelling, ToolCallService
@@ -57,6 +58,7 @@ async def _answer(
         apertus=cast(ApertusClient, apertus),
         tools=[LOOKUP],
         today=TODAY,
+        confirmations=Confirmations(),
     )
     content, provenance = await service.create_answer(
         conversation_id=conversation.id, message_id=message.id, messages=CHAT
@@ -162,6 +164,7 @@ async def test_answers_and_plans_use_swiss_ss(session: AsyncSession) -> None:
         apertus=cast(ApertusClient, apertus),
         tools=[LOOKUP],
         today=TODAY,
+        confirmations=Confirmations(),
     )
 
     content, _ = await service.create_answer(

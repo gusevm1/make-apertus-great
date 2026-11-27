@@ -13,10 +13,14 @@ from app.features.accounts.dependencies import AccountServiceDep
 from app.features.bank_data import tools as bank_data_tools
 from app.features.bank_data.dependencies import BankDataServiceDep
 from app.features.ledger.dependencies import LedgerServiceDep
+from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.service import ToolCallService
 from app.features.web_search import tools as web_search_tools
 from app.features.web_search.service import WebSearchService
+
+# One for the whole app: the stream that waits and the request that answers share it.
+CONFIRMATIONS = Confirmations()
 
 
 def get_tool_call_repo(session: SessionDep) -> ToolCallRepository:
@@ -53,7 +57,13 @@ def get_tool_call_service(
     tools: Annotated[list[Tool[Any]], Depends(get_tools)],
     today: Annotated[date, Depends(get_today)],
 ) -> ToolCallService:
-    return ToolCallService(tool_calls=tool_calls, apertus=apertus, tools=tools, today=today)
+    return ToolCallService(
+        tool_calls=tool_calls,
+        apertus=apertus,
+        tools=tools,
+        today=today,
+        confirmations=CONFIRMATIONS,
+    )
 
 
 ToolCallServiceDep = Annotated[ToolCallService, Depends(get_tool_call_service)]

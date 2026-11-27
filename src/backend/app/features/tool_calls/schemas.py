@@ -48,6 +48,10 @@ class ResponseToolCall(BaseModel):
     created_at: datetime
 
 
+class RequestToolCallConfirmationCreate(BaseModel):
+    is_allowed: bool
+
+
 class ToolRequest(BaseModel):
     reason: str = Field(description=PROMPTS["request_reason"])
     tool: str = Field(description=PROMPTS["request_tool"])

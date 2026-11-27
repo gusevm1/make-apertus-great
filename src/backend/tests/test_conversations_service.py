@@ -12,6 +12,7 @@ from app.features.conversations.schemas import RequestMessageCreate
 from app.features.conversations.service import ConversationService, is_quoted
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
 from app.features.tool_calls.service import ToolCallService
@@ -70,6 +71,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
             apertus=cast(ApertusClient, apertus),
             tools=[LOOKUP],
             today=TODAY,
+            confirmations=Confirmations(),
         ),
         documents=DocumentService(
             documents=DocumentRepository(session=session),

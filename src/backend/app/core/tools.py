@@ -14,3 +14,5 @@ class Tool[ArgsT: BaseModel]:
     description: str
     args_schema: type[ArgsT]
     handler: Callable[[ArgsT], Awaitable[BaseModel]]
+    # What the customer reads before allowing a call in the page; None: it runs without asking.
+    confirmation: str | None = None

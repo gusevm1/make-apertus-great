@@ -33,6 +33,8 @@ class ToolCallEvent:
     reason: str
     round: int
     plan: str
+    # Set while the call waits for the customer to allow it.
+    confirmation: str | None
 
 
 @dataclass(frozen=True)

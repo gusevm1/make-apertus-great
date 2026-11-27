@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from app.clients.apertus import ApertusClient, Model
 from app.clients.apertus import Message as LLMMessage
-from app.core.errors import AppError, UpstreamError
+from app.core.errors import AppError, NotFoundError, UpstreamError
 from app.core.provenance import Check, Provenance, Source
 from app.core.streaming import (
     DoneEvent,
@@ -20,6 +20,7 @@ from app.core.streaming import (
     ToolResultEvent,
 )
 from app.core.tools import Tool
+from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.prompts import (
     ToolRound,
     answer_prompt,
@@ -27,7 +28,12 @@ from app.features.tool_calls.prompts import (
     decision_prompt,
 )
 from app.features.tool_calls.repository import ToolCallRepository
-from app.features.tool_calls.schemas import ToolCall, ToolDecision, ToolRequest
+from app.features.tool_calls.schemas import (
+    RequestToolCallConfirmationCreate,
+    ToolCall,
+    ToolDecision,
+    ToolRequest,
+)
 
 MAX_TOOL_CALLS = 8
 MAX_TOOL_ROUNDS = 4
@@ -37,6 +43,9 @@ ANSWER_MODEL = Model.SMART
 ANSWER_PURPOSE = "answer"
 UNKNOWN_TOOL_ICON = "circle-help"
 TOOL_FAILED = "The tool failed."
+NOT_ALLOWED = "The customer has not allowed this call. Continue without it."
+# Shorter than the 300 seconds nginx keeps a silent stream open.
+CONFIRMATION_TIMEOUT_SECONDS = 120
 # The model writes ß despite the prompt; Swiss German always writes ss.
 SHARP_S = {"ß": "ss", "ẞ": "SS"}
 # ponytail: models mix marks („…"), so any closing mark ends the open quote; a line ends all
@@ -55,9 +64,11 @@ class ToolCallService:
         apertus: ApertusClient,
         tools: list[Tool[Any]],
         today: date,
+        confirmations: Confirmations,
     ) -> None:
         self.tool_calls = tool_calls
         self.apertus = apertus
+        self.confirmations = confirmations
         self.tools = {tool.name: tool for tool in tools}
         # The e-banking's date, which the demo data ends on; the server clock may differ.
         self.today = today
@@ -67,8 +78,12 @@ class ToolCallService:
     ) -> tuple[str, Provenance]:
         """Answer the messages, calling tools first when the model asks for them."""
         started = time.perf_counter()
+        # Nobody reads this turn while it runs, so a call that needs the customer's yes gets none.
         steps = self._call_tools(
-            conversation_id=conversation_id, message_id=message_id, messages=messages
+            conversation_id=conversation_id,
+            message_id=message_id,
+            messages=messages,
+            can_ask=False,
         )
         calls = [step async for step in steps if isinstance(step, ToolCall)]
         result = await self.apertus.chat(
@@ -88,7 +103,10 @@ class ToolCallService:
         started = time.perf_counter()
         calls: list[ToolCall] = []
         async for step in self._call_tools(
-            conversation_id=conversation_id, message_id=message_id, messages=messages
+            conversation_id=conversation_id,
+            message_id=message_id,
+            messages=messages,
+            can_ask=True,
         ):
             if not isinstance(step, ToolCall):
                 yield step
@@ -114,12 +132,24 @@ class ToolCallService:
         """List the tool calls made in a conversation, oldest first."""
         return await self.tool_calls.list(conversation_id=conversation_id)
 
+    def confirm_tool_call(
+        self, conversation_id: UUID, tool_call_id: UUID, data: RequestToolCallConfirmationCreate
+    ) -> None:
+        """Pass the customer's yes or no to the call that waits for it."""
+        is_waiting = self.confirmations.answer(
+            conversation_id=conversation_id, tool_call_id=tool_call_id, is_allowed=data.is_allowed
+        )
+        if not is_waiting:
+            raise NotFoundError("No tool call waits for this confirmation")
+
     async def _call_tools(
-        self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage]
+        self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage], can_ask: bool
     ) -> AsyncIterator[PlanningEvent | ToolCallEvent | ToolCall]:
         """Run the requested calls round by round; yields each round, each call's start and end."""
         calls: list[ToolCall] = []
         rounds: list[ToolRound] = []
+        # After a no, the turn does not ask for the same tool again.
+        refused: set[str] = set()
         for round_number in range(MAX_TOOL_ROUNDS):
             yield PlanningEvent(round=round_number)
             result = await self.apertus.structured(
@@ -144,6 +174,8 @@ class ToolCallService:
                     continue
                 call_id = uuid4()
                 title, icon = self._label(name=request.tool)
+                confirmation = self._confirmation(request=request)
+                is_asked = confirmation is not None and can_ask and request.tool not in refused
                 yield ToolCallEvent(
                     id=call_id,
                     tool_name=request.tool,
@@ -153,10 +185,23 @@ class ToolCallService:
                     reason=request.reason,
                     round=round_number,
                     plan=decision.plan,
+                    confirmation=confirmation if is_asked else None,
                 )
-                output, error = await self._run_tool(
-                    call_id=call_id, name=request.tool, arguments=request.arguments
+                is_allowed = confirmation is None or (
+                    is_asked
+                    and await self.confirmations.wait(
+                        conversation_id=conversation_id,
+                        tool_call_id=call_id,
+                        timeout_seconds=CONFIRMATION_TIMEOUT_SECONDS,
+                    )
                 )
+                if is_allowed:
+                    output, error = await self._run_tool(
+                        call_id=call_id, name=request.tool, arguments=request.arguments
+                    )
+                else:
+                    refused.add(request.tool)
+                    output, error = None, NOT_ALLOWED
                 call = await self.tool_calls.create(
                     id=call_id,
                     conversation_id=conversation_id,
@@ -182,6 +227,17 @@ class ToolCallService:
             if not round_calls or len(calls) == MAX_TOOL_CALLS:
                 break
             rounds.append((decision, round_calls))
+
+    def _confirmation(self, request: ToolRequest) -> str | None:
+        """What the customer has to allow first; a call that cannot run needs no answer."""
+        tool = self.tools.get(request.tool)
+        if tool is None or tool.confirmation is None:
+            return None
+        try:
+            tool.args_schema.model_validate(request.arguments)
+        except ValidationError:
+            return None
+        return tool.confirmation
 
     def _label(self, name: str) -> tuple[str, str]:
         tool = self.tools.get(name)
