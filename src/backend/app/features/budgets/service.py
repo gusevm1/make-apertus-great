@@ -30,7 +30,6 @@ class BudgetService:
         return budget
 
     async def list_budgets(self, owner_id: UUID, sort: str | None = None) -> list[Budget]:
-        """List the customer's budgets."""
         return await self.budgets.list(sort=sort, owner_id=owner_id)
 
     async def get_budget(self, budget_id: UUID, owner_id: UUID) -> Budget:
@@ -41,14 +40,12 @@ class BudgetService:
         return budget
 
     async def update_budget(self, budget: Budget, data: RequestBudgetUpdate) -> Budget:
-        """Change a budget's monthly amount."""
         updated = await self.budgets.update(entity_id=budget.id, data=data)
         if updated is None:
             raise NotFoundError("Budget not found")
         return updated
 
     async def delete_budget(self, budget_id: UUID) -> None:
-        """Delete a budget."""
         if not await self.budgets.delete(entity_id=budget_id):
             raise NotFoundError("Budget not found")
 

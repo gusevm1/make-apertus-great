@@ -25,7 +25,6 @@ class BudgetRepository(BaseRepository[BudgetORM, Budget]):
         return budgets
 
     async def create_if_new(self, data: RequestBudgetCreate, owner_id: UUID) -> Budget | None:
-        """Store the budget, or return None when the category has one already."""
         stmt = (
             insert(BudgetORM)
             .values(owner_id=owner_id, **data.model_dump())
