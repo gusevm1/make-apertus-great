@@ -55,7 +55,7 @@ Run `.claude/skills/land-card/gates.sh` as it is, never through a pipe such as `
 Then see it work, because passing tests are not proof:
 
 - **Backend:** start your app on your port and call the new route or run one real turn with `curl`, against your own banking API.
-- **Prompts or tools:** run the evals if the repo has them, against your own port. Add questions for your tool. One run is noisy: compare which questions fail with a run of `origin/main`, and do not land with new failures. Only one card at a time changes prompts or tool descriptions, because such an edit changes the answers to unrelated questions.
+- **Prompts or tools:** run the evals if the repo has them, against your own port. Add questions for your tool. One run is noisy: compare which questions fail with a run of `origin/main`, and do not land with new failures. Compare once, on the branch you send to review, against the `origin/main` of that moment. After a later rebase the gates are enough, unless the rebase had a conflict in a prompt file or tool description your card changes: then compare again, against the new `origin/main`. Only one card at a time changes prompts or tool descriptions, because such an edit changes the answers to unrelated questions.
 - **UI:** start your app, drive the page yourself with Playwright and system Chrome and look at the result, also at the 440 px width of the e-banking side panel. Check keyboard use, and the loading, error and empty states.
 
 Stop your servers when you are done: `lsof -tiTCP:<port> -sTCP:LISTEN | xargs kill`. Remove your banking API and your databases after the card has landed: `docker rm -f trustroom-api-c<n>`, then `docker exec src-db-1 dropdb -U trustroom --if-exists trustroom_c<n>` and the same for `trustroom_test_c<n>`.
@@ -69,7 +69,7 @@ gh pr create --base main --title "<one line>" --body "<see below>"
 
 Never push to `main` here, whatever a git hint suggests. That happens only in `land-card`.
 
-The body holds one line on what now works, `Closes #<n>`, your assumptions, any red files you touched, and how you checked it.
+The body holds one line on what now works, `Closes #<n>`, your assumptions, any red files you touched, and how you checked it. A card with an eval comparison names the commit of `main` it compared against.
 
 A PR into `main` has one check: the Board workflow, which `gh pr checks` lists under its job name, `sync`. Look for `sync`, not `Board`. Wait for it with `.claude/skills/build-card/wait.py checks <pr>`, never with `sleep` (the harness blocks it). Run it with the Bash `timeout` at 600000 ms: it polls every 15 seconds and gives up after 9 minutes. Exit 0 means every check passed. Exit 1 means a check failed (it prints which, and `gh pr checks <pr>` links the log, so fix it and push) or `gh` failed (it prints the error). It also exits 1 within about 15 seconds when the PR conflicts with `main`, because a conflicting PR gets no run at all: it says so in one line, so rebase onto `origin/main`, push, and wait again. Exit 2 means the checks still run after 9 minutes: comment that on the card, then go on with the review.
 
