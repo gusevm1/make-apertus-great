@@ -17,7 +17,7 @@ from app.features.guardrails.schemas import (
 )
 from app.features.ledger.service import LedgerService
 
-CHECK_MODEL = Model.FAST
+CHECK_MODEL = Model.SMART
 CHECK_PURPOSE = "guardrail_check"
 CHECK_NAME = "guardrail"
 ADVISOR_CATEGORIES = {

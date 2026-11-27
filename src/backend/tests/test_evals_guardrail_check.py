@@ -47,6 +47,7 @@ def test_score_counts_precision_recall_and_costly_mistakes() -> None:
     assert scores["false_declines"] == 1
     assert scores["false_pointers"] == 1
     assert scores["missed"] == 1
+    assert scores["harm"] == 3 + 1 + 1
     assert scores["language_accuracy"] == 4 / 5
     per_category = scores["per_category"]
     assert isinstance(per_category, dict)

@@ -24,6 +24,10 @@ CATEGORIES = [category.value for category in GuardrailCategory]
 DECLINES = {GuardrailCategory.OTHER_CUSTOMER.value, GuardrailCategory.OFF_TOPIC.value}
 # The gate answers as if the message were ok when its check fails, so a failure scores as ok.
 FAILED = "failed"
+TURN_ATTEMPTS = 3
+# From the persona feedback: a wrong decline throws the answer away and can read as an accusation;
+# a wrong pointer adds a line, a miss leaves one out.
+HARM_FALSE_DECLINE = 3
 
 
 class GoldItem(BaseModel):
@@ -71,12 +75,16 @@ def score(items: list[GoldItem], verdicts: list[Verdict]) -> dict[str, object]:
         for item, verdict in zip(items, verdicts, strict=True)
         if item.language in ("de", "en") and verdict.language is not None
     ]
+    false_declines = sum(gold == ok and got in DECLINES for gold, got in pairs)
+    false_pointers = sum(gold == ok and got not in DECLINES | {ok} for gold, got in pairs)
+    missed = sum(gold != ok and got == ok for gold, got in pairs)
     return {
         "accuracy": sum(gold == got for gold, got in pairs) / len(pairs),
         "per_category": per_category,
-        "false_declines": sum(gold == ok and got in DECLINES for gold, got in pairs),
-        "false_pointers": sum(gold == ok and got not in DECLINES | {ok} for gold, got in pairs),
-        "missed": sum(gold != ok and got == ok for gold, got in pairs),
+        "false_declines": false_declines,
+        "false_pointers": false_pointers,
+        "missed": missed,
+        "harm": HARM_FALSE_DECLINE * false_declines + false_pointers + missed,
         "failed_checks": sum(verdict.category == FAILED for verdict in verdicts),
         "language_accuracy": (
             None
@@ -100,7 +108,16 @@ async def classify_direct(apertus: ApertusClient, model: Model, text: str) -> Ve
 
 
 async def classify_via_backend(client: httpx.AsyncClient, text: str) -> Verdict:
-    """One real turn; the category is the guardrail check in the reply's provenance."""
+    """One real turn, tried up to three times; the category comes from the reply's provenance."""
+    for _ in range(TURN_ATTEMPTS - 1):
+        try:
+            return await _turn(client=client, text=text)
+        except httpx.HTTPError:
+            continue
+    return await _turn(client=client, text=text)
+
+
+async def _turn(client: httpx.AsyncClient, text: str) -> Verdict:
     conversation = await client.post("/api/conversations", json={"title": "guardrail eval"})
     conversation.raise_for_status()
     path = f"/api/conversations/{conversation.json()['id']}"
@@ -120,7 +137,7 @@ def report(items: list[GoldItem], verdicts: list[Verdict], scores: dict[str, obj
     print(  # noqa: T201
         f"accuracy {scores['accuracy']:.1%} on {len(items)} | false declines "
         f"{scores['false_declines']} | false pointers {scores['false_pointers']} | missed "
-        f"{scores['missed']} | failed checks {scores['failed_checks']} | language "
+        f"{scores['missed']} | harm {scores['harm']} | failed {scores['failed_checks']} | language "
         f"{_percent(scores['language_accuracy'])}"
     )
     for category, values in per_category.items():
