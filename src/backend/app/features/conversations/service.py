@@ -1,13 +1,14 @@
 import json
 import re
 from collections.abc import AsyncIterator
+from typing import Any
 from uuid import UUID
 
 import anyio
 
 from app.core.errors import BadRequestError, NotFoundError
-from app.core.provenance import Provenance
-from app.core.streaming import DoneEvent, StreamEvent, TokenEvent
+from app.core.provenance import Check, Provenance
+from app.core.streaming import CheckingEvent, DoneEvent, StreamEvent, TokenEvent, ToolResultEvent
 from app.features.conversations.prompts import chat_prompt
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import (
@@ -21,11 +22,14 @@ from app.features.conversations.schemas import (
 from app.features.documents.schemas import Document
 from app.features.documents.service import DocumentService
 from app.features.figure_checks.service import FigureCheckService
+from app.features.figure_corrections.service import FigureCorrectionService
 from app.features.guardrails.schemas import Guardrail
 from app.features.guardrails.service import GuardrailService
-from app.features.tool_calls.service import ToolCallService
+from app.features.tool_calls.service import SwissSpelling, ToolCallService
 
 HISTORY_LIMIT = 20
+# The first round's figure check, kept beside the check of the corrected answer.
+DRAFT_CHECK = "figures_found_draft"
 LINK_TARGET = re.compile(r"\]\([^)]*\)")
 LIST_NUMBER = re.compile(r"^\s*\d+[.)]\s", re.MULTILINE)
 
@@ -50,6 +54,7 @@ class ConversationService:
         tool_calls: ToolCallService,
         documents: DocumentService,
         figure_checks: FigureCheckService,
+        figure_corrections: FigureCorrectionService,
         guardrails: GuardrailService,
     ) -> None:
         self.conversations = conversations
@@ -57,6 +62,7 @@ class ConversationService:
         self.tool_calls = tool_calls
         self.documents = documents
         self.figure_checks = figure_checks
+        self.figure_corrections = figure_corrections
         self.guardrails = guardrails
 
     async def create_conversation(
@@ -119,15 +125,17 @@ class ConversationService:
                     message_id=history[-1].id,
                     messages=messages,
                 )
-                checked = await self._check_figures(
+                # Nobody has seen the answer yet, so it can still be corrected.
+                checked, checked_provenance = await self._check_figures(
                     conversation_id=conversation_id,
                     content=answer,
                     provenance=answer_provenance,
                     history=history,
                     documents=documents,
+                    can_correct=True,
                 )
                 content, provenance = _guarded(
-                    content=answer, provenance=checked, guardrail=guardrail
+                    content=checked, provenance=checked_provenance, guardrail=guardrail
                 )
         except Exception:
             await self.messages.delete(entity_id=history[-1].id)
@@ -158,20 +166,30 @@ class ConversationService:
                     message_id=history[-1].id,
                     messages=chat_prompt(history=history, page=data.page, documents=documents),
                 )
+                # An answer built on tool results shows only once its figures are checked.
+                is_held = False
                 async for event in events:
+                    is_held = is_held or isinstance(event, ToolResultEvent)
+                    if isinstance(event, TokenEvent) and is_held:
+                        continue
                     if not isinstance(event, DoneEvent):
                         yield event
                         continue
                     answer, answer_provenance = event.result
-                    checked = await self._check_figures(
+                    if is_held:
+                        yield CheckingEvent()
+                    checked, checked_provenance = await self._check_figures(
                         conversation_id=conversation_id,
                         content=answer,
                         provenance=answer_provenance,
                         history=history,
                         documents=documents,
+                        can_correct=is_held,
                     )
+                    if is_held:
+                        yield TokenEvent(text=checked)
                     content, provenance = _guarded(
-                        content=answer, provenance=checked, guardrail=guardrail
+                        content=checked, provenance=checked_provenance, guardrail=guardrail
                     )
                 pointer = _pointer_text(guardrail=guardrail)
                 if pointer != "":
@@ -236,19 +254,41 @@ class ConversationService:
         provenance: Provenance,
         history: list[Message],
         documents: list[Document],
-    ) -> Provenance:
+        can_correct: bool,
+    ) -> tuple[str, Provenance]:
         # Earlier turns count too, so a follow-up may repeat a figure it was shown before.
         calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
         results = [call.result for call in calls if call.result is not None]
         texts = [document.markdown for document in documents]
         texts += [message.content for message in history if message.role == "user"]
-        sources = [json.dumps(result, ensure_ascii=False) for result in results]
+        sources = [*[json.dumps(result, ensure_ascii=False) for result in results], *texts]
+        checks = self._checks(content=content, sources=sources, results=results, texts=texts)
+        figures = next((check for check in checks if check.name == "figures_found"), None)
+        if not can_correct or figures is None or figures.passed:
+            return content, provenance.model_copy(update={"checks": [*provenance.checks, *checks]})
+        corrected = await self.figure_corrections.correct_figures(
+            answer=content,
+            missing=self.figure_checks.missing_figures(answer=content, sources=sources),
+            sources=sources,
+        )
+        draft = figures.model_copy(update={"name": DRAFT_CHECK})
+        content = SwissSpelling().feed(text=corrected.content)
+        checks = self._checks(content=content, sources=sources, results=results, texts=texts)
+        return content, provenance.model_copy(
+            update={
+                "latency_ms": provenance.latency_ms + corrected.latency_ms,
+                "checks": [*provenance.checks, draft, *checks],
+            }
+        )
+
+    def _checks(
+        self, content: str, sources: list[str], results: list[dict[str, Any]], texts: list[str]
+    ) -> list[Check]:
         checks = [
-            self.figure_checks.check_figures(answer=content, sources=[*sources, *texts]),
+            self.figure_checks.check_figures(answer=content, sources=sources),
             self.figure_checks.check_dates(answer=content, results=results, texts=texts),
         ]
-        made = [check for check in checks if check is not None]
-        return provenance.model_copy(update={"checks": [*provenance.checks, *made]})
+        return [check for check in checks if check is not None]
 
     async def _store_reply(
         self, conversation_id: UUID, content: str, provenance: Provenance

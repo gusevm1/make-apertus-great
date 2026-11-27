@@ -55,7 +55,7 @@ async def test_stream_announces_each_round_and_labels_each_call(
         "tool_call",
         "tool_result",
         "planning",
-        "token",
+        "checking",
         "token",
         "done",
     ]

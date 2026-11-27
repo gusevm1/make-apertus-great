@@ -13,6 +13,7 @@ from app.features.conversations.service import ConversationService, is_quoted
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
 from app.features.figure_checks.service import FigureCheckService
+from app.features.figure_corrections.service import FigureCorrectionService
 from app.features.guardrails.schemas import GuardrailCategory, GuardrailCheck
 from app.features.guardrails.service import GuardrailService
 from app.features.ledger.service import LedgerService
@@ -86,6 +87,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
         ),
         documents=documents,
         figure_checks=FigureCheckService(),
+        figure_corrections=FigureCorrectionService(apertus=cast(ApertusClient, apertus)),
         guardrails=GuardrailService(
             apertus=cast(ApertusClient, apertus),
             ledger=LedgerService(banking=fake_banking_client()),

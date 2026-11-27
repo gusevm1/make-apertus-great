@@ -76,7 +76,7 @@ async def session() -> AsyncIterator[AsyncSession]:
 class FakeApertus:
     """The fake Apertus API: `requests` is what it got, `status` fails it, `decisions` script it.
 
-    `reply` is the text of every answer.
+    `reply` is the text of every answer, after the scripted `replies`.
     Guardrail checks are kept apart: `guardrail_requests` and the `guardrails` script.
     """
 
@@ -84,6 +84,8 @@ class FakeApertus:
     status: int = 200
     decisions: list[str] = field(default_factory=list)
     reply: str = FAKE_REPLY
+    # Answers in turn before `reply` answers the rest.
+    replies: list[str] = field(default_factory=list)
     guardrail_requests: list[dict[str, Any]] = field(default_factory=list)
     guardrails: list[str] = field(default_factory=list)
     # Answers a structured request from its body; without it `decisions` answer.
@@ -380,7 +382,8 @@ async def client(
             return httpx2.Response(apertus.status, json={"error": {"message": "fake failure"}})
         # Only `structured` sets a temperature, which marks a tool decision request.
         if "temperature" not in body:
-            return _fake_completion(body=body, content=apertus.reply)
+            reply = apertus.replies.pop(0) if apertus.replies else apertus.reply
+            return _fake_completion(body=body, content=reply)
         if apertus.structured_reply is not None:
             return _fake_completion(body=body, content=apertus.structured_reply(body))
         decision = apertus.decisions.pop(0) if apertus.decisions else NO_TOOL_DECISION

@@ -24,6 +24,12 @@ class PlanningEvent:
     round: int
 
 
+# The answer is written and its figures are being checked before it shows.
+@dataclass(frozen=True)
+class CheckingEvent:
+    pass
+
+
 @dataclass(frozen=True)
 class ToolCallEvent:
     id: UUID
@@ -52,14 +58,18 @@ class DoneEvent[T]:
     result: T
 
 
-type StreamEvent[T] = TokenEvent | PlanningEvent | ToolCallEvent | ToolResultEvent | DoneEvent[T]
+type StreamEvent[T] = (
+    TokenEvent | PlanningEvent | CheckingEvent | ToolCallEvent | ToolResultEvent | DoneEvent[T]
+)
 
 
 def _format(event: str, payload: str) -> str:
     return f"event: {event}\ndata: {payload}\n\n"
 
 
-def _event(event: str, data: PlanningEvent | ToolCallEvent | ToolResultEvent) -> str:
+def _event(
+    event: str, data: PlanningEvent | CheckingEvent | ToolCallEvent | ToolResultEvent
+) -> str:
     return _format(event=event, payload=json.dumps(asdict(data), default=str))
 
 
@@ -70,7 +80,7 @@ def _error(body: ErrorResponse) -> str:
 def sse_response[T](
     events: AsyncIterator[StreamEvent[T]], to_response: Callable[[T], BaseModel]
 ) -> StreamingResponse:
-    """Turn a service's event stream into SSE: planning, tool events, token… then done or error."""
+    """Turn a service's events into SSE: planning, tools, checking, token… then done or error."""
 
     async def body() -> AsyncIterator[str]:
         try:
@@ -79,6 +89,8 @@ def sse_response[T](
                     yield _format(event="token", payload=json.dumps({"text": event.text}))
                 elif isinstance(event, PlanningEvent):
                     yield _event(event="planning", data=event)
+                elif isinstance(event, CheckingEvent):
+                    yield _event(event="checking", data=event)
                 elif isinstance(event, ToolCallEvent):
                     yield _event(event="tool_call", data=event)
                 elif isinstance(event, ToolResultEvent):

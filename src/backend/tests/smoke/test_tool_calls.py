@@ -272,7 +272,7 @@ async def test_failed_turn_leaves_no_tool_calls_behind(
     assert (await client.get(f"{url}/tool-calls")).json() == []
 
 
-async def test_streamed_message_uses_a_tool_then_streams_the_reply(
+async def test_streamed_message_uses_a_tool_then_shows_the_checked_reply(
     client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus
 ) -> None:
     conversation = await make_conversation(session=session)
@@ -289,7 +289,7 @@ async def test_streamed_message_uses_a_tool_then_streams_the_reply(
         "tool_call",
         "tool_result",
         "planning",
-        "token",
+        "checking",
         "token",
         "done",
     ]
