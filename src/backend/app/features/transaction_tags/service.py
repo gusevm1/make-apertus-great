@@ -26,7 +26,7 @@ from app.features.transaction_tags.schemas import (
 )
 from app.features.transaction_tags.severity import booking_key, normalise_payee, payee_key
 
-BATCH_SIZE = 50
+BATCH_SIZE = 25
 MAX_PARALLEL_BATCHES = 16
 MAX_CORRECTION_EXAMPLES = 30
 

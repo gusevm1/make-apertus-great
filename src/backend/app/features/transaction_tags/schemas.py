@@ -226,6 +226,8 @@ class RowCategory(BaseModel):
     """What Apertus answers for one row; the category is checked against `CATEGORIES` by us."""
 
     ref: str
+    # Written before the category, so each answer is tied to its row and none slips onto the next.
+    payee: str | None = Field(default=None, description=PROMPTS["categorise_payee_field"])
     category: str = Field(json_schema_extra={"enum": list(CATEGORIES)})
     certainty: str | None = Field(default=None, json_schema_extra={"enum": list(CERTAINTIES)})
 
