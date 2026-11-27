@@ -17,7 +17,7 @@ from evals.run import EvalSettings
 
 DOCUMENTS_PATH = Path(__file__).with_name("documents.yaml")
 SAMPLES_DIR = Path(__file__).parents[3] / "starter/resources/Demodaten/Dokumente"
-# Three describe attempts of 150 s each, and the corrective call.
+# Longer than the proxy's 300 s: the eval calls the backend directly and waits out a slow gateway.
 UPLOAD_TIMEOUT_SECONDS = 600
 
 Value = float | date | str

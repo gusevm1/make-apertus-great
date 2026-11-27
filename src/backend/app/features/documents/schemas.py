@@ -14,7 +14,8 @@ NAME_MAX_LENGTH = 200
 DESCRIBE_MAX_CHARS = 300_000
 SUMMARY_MAX_LENGTH = 200
 # A description of about 1300 tokens takes 50 s on a quiet gateway, past 60 s under load.
-DESCRIBE_TIMEOUT_SECONDS = 150
+# Three attempts stay under the 300 s the page's proxy waits for an upload.
+DESCRIBE_TIMEOUT_SECONDS = 90
 READ_DOCUMENTS_MAX = 3
 READ_FULL_TEXT_MAX_CHARS = 5_000
 READ_MAX_CHARS = 300_000
