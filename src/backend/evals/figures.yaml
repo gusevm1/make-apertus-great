@@ -113,6 +113,14 @@ questions:
     documents: [P1_Lukas_Meier/Reiseofferte_Japan_2027_Fernweh_Atelier.pdf]
     any_calls: true
     answer: '(?=[\s\S]*(?<![\d''’,])4[''’,\s]?527\.50?(?![\d]|[.,]\d))(?=[\s\S]*(?<![\d''’,])(?:37[''’,\s]?566\.29|48[''’,\s]?983\.35)(?![\d]|[.,]\d))'
+  # The partner pension needs a written report to the fund, and the certificate says none is on file.
+  - question: Is my partner Sara covered by my pension fund if something happens to me?
+    customer: lukas
+    rule: lukas
+    documents: [P1_Lukas_Meier/Vorsorgeausweis_2026_Lukas_Meier.pdf]
+    any_calls: true
+    answer: '(?=[\s\S]*(?<![\d''’,])38[''’,\s]?534(?:\.40?)?(?![\d]|[.,]\d))(?=[\s\S]*(?:report|notif|regist|in writing|meld|schriftlich))'
+    answer_not: '\b(?:is|ist)\s+(?:fully\s+|voll\s+)?(?:covered|abgesichert|versichert)\b(?![^.]{0,80}\b(?:if|only|provided|as long as|wenn|sofern|falls|nur)\b)'
   - question: Does the salary on this payslip match what I received on my account?
     customer: jana
     rule: jana
