@@ -141,6 +141,22 @@ def test_a_minus_before_spending_is_a_wrong_sign() -> None:
     assert "wrong_sign" in result.failures
 
 
+def test_a_figure_the_context_check_flags_counts_as_flagged() -> None:
+    context = Check(
+        name="figures_in_context",
+        passed=False,
+        detail="0 of 1 fit; money moved written with a minus: 430.05",
+    )
+    turn = _turn(answer="Ausgaben: CHF -430.05").model_copy(
+        update={"checks": [*_turn(answer="").checks, context]}
+    )
+
+    result = _score(turn)
+
+    assert result.figures[0].flagged
+    assert "check_missed_wrong_figure" not in result.failures
+
+
 def test_a_list_dash_is_no_sign_and_small_whole_numbers_are_no_figures() -> None:
     result = _score(_turn(answer="- CHF 430.05 in 10 Einkäufen am 31. Oktober, Monat 2026-10"))
 

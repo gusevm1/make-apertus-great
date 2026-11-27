@@ -30,7 +30,8 @@ from evals.gold import (
 from evals.run import TURN_TIMEOUT_SECONDS, ActualCall, EvalSettings, log_in, matches
 
 RESULTS_PATH = Path(__file__).with_name("logs") / "gold"
-CHECK_NAME = "figures_found"
+# The checks on the stored answer whose flagged figures count; not the draft before a correction.
+CHECK_NAMES = ("figures_found", "figures_in_context")
 # Sums of more answer figures than this are not tried, since the subsets grow as 2^n.
 MAX_ADDENDS = 12
 MIN_ADDEND = Decimal(10)
@@ -82,7 +83,7 @@ class RunResult(BaseModel):
     figures: list[FigureVerdict]
     missing: list[str]
     failures: list[Failure]
-    check: Check | None
+    checks: list[Check]
     error: str | None
     # The turn as asked, so a later scorer can score it again without the gateway.
     turn: Turn
@@ -107,10 +108,15 @@ def found_in(figure: Figure, values: list[Decimal] | set[Decimal]) -> bool:
     return _found(figure=figure, values=set(values))
 
 
-def flagged_texts(check: Check | None) -> set[str]:
-    if check is None or check.detail is None or "not found: " not in check.detail:
-        return set()
-    return set(check.detail.split("not found: ", 1)[1].split(", "))
+def flagged_texts(checks: list[Check]) -> set[str]:
+    """The figures the checks name after their counts, as in "2 of 3 found; not found: a, b"."""
+    texts: set[str] = set()
+    for check in checks:
+        if check.passed or check.detail is None:
+            continue
+        for part in check.detail.split("; ")[1:]:
+            texts |= set(part.split(": ", 1)[-1].split(", "))
+    return texts
 
 
 def has_minus(answer: str, text: str) -> bool:
@@ -256,12 +262,12 @@ def is_wrong(verdict: FigureVerdict, missing: list[str]) -> bool:
 
 
 def score_turn(question: GoldQuestion, computed: Computed, turn: Turn, run: int) -> RunResult:
-    check = next((check for check in turn.checks if check.name == CHECK_NAME), None)
+    checks = [check for check in turn.checks if check.name in CHECK_NAMES]
     sources = [*turn.sources, question.question]
     verdicts, missing = classify(
         question=question, computed=computed, answer=turn.answer, sources=sources
     )
-    flagged = flagged_texts(check=check)
+    flagged = flagged_texts(checks=checks)
     failures: list[Failure] = []
     for verdict in verdicts:
         verdict.flagged = verdict.text in flagged
@@ -287,7 +293,7 @@ def score_turn(question: GoldQuestion, computed: Computed, turn: Turn, run: int)
         figures=verdicts,
         missing=missing,
         failures=failures,
-        check=check,
+        checks=checks,
         error=turn.error,
         turn=turn,
     )
