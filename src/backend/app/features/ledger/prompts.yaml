@@ -40,7 +40,7 @@ sum_by_group: >-
   search_movements. Use it for "2025 against 2024" (year), "do I spend more at weekends" (weekday),
   "what goes out of my savings account" (account) or "how much came in and went out" (kind, with
   every kind that should count). One call covers a comparison: for 2025 against 2024, group by year
-  over both years.
+  over both years. It knows no category, personal tag or severity: for those, use sum_spending.
 find_unusual_movements: >-
   The customer's payments in the period that stand out, each with its `reason`: `unusual_amount` is
   more than 3 times the median of the payments to the same counterparty over the year before (shown
