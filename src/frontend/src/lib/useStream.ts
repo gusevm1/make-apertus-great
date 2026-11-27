@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { failureMessage } from "../api";
+import {
+  backendErrorOf,
+  CONNECTION_DROPPED,
+  failureOf,
+  RequestError,
+  requestErrorOf,
+} from "../api";
 
 export interface SheetLine {
   label: string;
@@ -47,7 +53,7 @@ interface SseEvent {
 }
 
 interface StreamState {
-  status: "idle" | "streaming" | "error";
+  status: "idle" | "streaming";
   text: string;
   toolCalls: StreamToolCall[];
   /** The planning round in progress, from the last `planning` event. */
@@ -57,7 +63,6 @@ interface StreamState {
   startedAt: number | null;
   /** Time from `start` to the last tool result. */
   workedMs: number | null;
-  error: string | null;
 }
 
 const IDLE: StreamState = {
@@ -68,7 +73,6 @@ const IDLE: StreamState = {
   isChecking: false,
   startedAt: null,
   workedMs: null,
-  error: null,
 };
 const EVENT_PREFIX = "event: ";
 const DATA_PREFIX = "data: ";
@@ -93,7 +97,7 @@ export function readEvents(buffer: string): {
   return { events, rest };
 }
 
-/** Reads one `?stream=true` response: tool events and tokens land in state, `start` resolves with the `done` payload. */
+/** Reads one `?stream=true` response: tool events and tokens land in state, `start` resolves with the `done` payload or throws a RequestError. */
 export function useStream<TDone>() {
   const [state, setState] = useState<StreamState>(IDLE);
 
@@ -126,8 +130,7 @@ export function useStream<TDone>() {
         ),
       }));
     } else if (event === "error") {
-      const data: { message: string } = JSON.parse(raw);
-      throw new Error(data.message);
+      throw backendErrorOf(JSON.parse(raw));
     } else if (event === "done") {
       const data: TDone = JSON.parse(raw);
       return data;
@@ -139,7 +142,7 @@ export function useStream<TDone>() {
     url: string,
     token: string,
     body: unknown,
-  ): Promise<TDone | null> {
+  ): Promise<TDone> {
     setState({ ...IDLE, status: "streaming", startedAt: Date.now() });
     try {
       const response = await fetch(url, {
@@ -151,7 +154,7 @@ export function useStream<TDone>() {
         body: JSON.stringify(body),
       });
       if (!response.ok || response.body === null) {
-        throw new Error(await failureMessage(response));
+        throw await failureOf(response);
       }
       const reader = response.body
         .pipeThrough(new TextDecoderStream())
@@ -167,13 +170,11 @@ export function useStream<TDone>() {
           if (result !== null) return result;
         }
       }
-      throw new Error("The answer stopped before it was finished.");
+      throw new RequestError("connection", CONNECTION_DROPPED);
     } catch (error) {
       // The backend stores nothing from a failed turn, so its tool calls and text go too.
-      const message =
-        error instanceof Error ? error.message : "The stream failed.";
-      setState({ ...IDLE, status: "error", error: message });
-      return null;
+      setState(IDLE);
+      throw requestErrorOf(error);
     }
   }
 

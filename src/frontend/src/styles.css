@@ -192,7 +192,8 @@ main,
 
 /* Buttons: outlined in the bank's green, filled for the main action. */
 .sidebar > button,
-.sheet-actions button {
+.sheet-actions button,
+.failure button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -211,7 +212,8 @@ main,
   background: var(--color-primary);
 }
 
-.sheet-actions button:hover:not(:disabled) {
+.sheet-actions button:hover:not(:disabled),
+.failure button:hover:not(:disabled) {
   background: var(--color-primary-soft);
 }
 
@@ -482,6 +484,36 @@ main,
   background: var(--color-surface);
   border-left: 3px solid var(--color-error);
   border-radius: var(--radius-sm);
+}
+
+/* A failed request in the thread: what failed, what became of the input, Try again. */
+.failure {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-error);
+  border-radius: var(--radius);
+}
+
+.failure p {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.failure strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-error);
+}
+
+.failure button {
+  flex: none;
 }
 
 /* The model's formatting inside an answer. */

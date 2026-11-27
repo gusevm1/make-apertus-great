@@ -53,26 +53,78 @@ export interface Conversation {
   title: string | null;
 }
 
+export type FailureKind = "connection" | "apertus" | "other";
+
+/** A failure as the chat shows it: what failed, and what became of the customer's input. */
+export interface Failure {
+  title: string;
+  detail: string;
+}
+
+/** A failed request, with a message in our words instead of the browser's. */
+export class RequestError extends Error {
+  kind: FailureKind;
+
+  constructor(kind: FailureKind, message: string) {
+    super(message);
+    this.kind = kind;
+  }
+}
+
+export const CONNECTION_DROPPED = "The connection to the TrustRoom dropped.";
+const APERTUS_DOWN = "Apertus is not answering right now.";
+const UNKNOWN_FAILURE = "Something went wrong.";
+// The other services whose 502 names them; every other 502 comes from Apertus.
+const OTHER_SERVICES = /OCR|banking API|Web search/;
+
 /** Calls our backend as the customer the e-banking token belongs to. */
 export async function api<T>(
   path: string,
   token: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: { ...init.headers, Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error(await failureMessage(response));
-  return response.status === 204 ? (undefined as T) : response.json();
+  try {
+    const response = await fetch(path, {
+      ...init,
+      headers: { ...init.headers, Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw await failureOf(response);
+    return response.status === 204 ? (undefined as T) : await response.json();
+  } catch (error) {
+    throw requestErrorOf(error);
+  }
 }
 
-export async function failureMessage(response: Response): Promise<string> {
+/** Any failure as a RequestError; the browser reports a dropped connection as a TypeError. */
+export function requestErrorOf(error: unknown): RequestError {
+  if (error instanceof RequestError) return error;
+  if (error instanceof TypeError) {
+    return new RequestError("connection", CONNECTION_DROPPED);
+  }
+  return new RequestError("other", UNKNOWN_FAILURE);
+}
+
+export async function failureOf(response: Response): Promise<RequestError> {
   const isJson =
     response.headers.get("content-type")?.includes("application/json") === true;
-  if (!isJson) return `The request failed (${response.status}).`;
-  const body: { message: string } = await response.json();
-  return body.message;
+  // Only our backend answers in JSON; a proxy that cannot reach it answers in text or HTML.
+  if (!isJson) {
+    return response.status >= 500
+      ? new RequestError("connection", CONNECTION_DROPPED)
+      : new RequestError("other", UNKNOWN_FAILURE);
+  }
+  return backendErrorOf(await response.json());
+}
+
+/** Our backend's error body, from a response or a stream `error` event. */
+export function backendErrorOf(body: {
+  error: string;
+  message: string;
+}): RequestError {
+  if (body.error === "upstream_error" && !OTHER_SERVICES.test(body.message)) {
+    return new RequestError("apertus", APERTUS_DOWN);
+  }
+  return new RequestError("other", body.message);
 }
 
 export function json(body: unknown): RequestInit {

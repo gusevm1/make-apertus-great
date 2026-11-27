@@ -12,6 +12,8 @@ import {
   type DocumentRef,
   json,
   type Message,
+  type RequestError,
+  requestErrorOf,
   type ToolCall,
   type WidgetPublication,
   type WidgetVersion,
@@ -110,7 +112,10 @@ function Chat({
   const [question, setQuestion] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const [pendingDocuments, setPendingDocuments] = useState<DocumentRef[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [failed, setFailed] = useState<{
+    error: RequestError;
+    action: FailedAction;
+  } | null>(null);
   const [isOpening, setIsOpening] = useState(false);
   const [attached, setAttached] = useState<DocumentRef[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -193,15 +198,22 @@ function Chat({
     widgetId: string;
     version: number;
   }) {
-    setLoadError(null);
+    setFailed(null);
     try {
       await showWidget(widget);
     } catch (error) {
-      setLoadError(messageOf(error));
+      fail(error, { name: "visual", widget });
     }
   }
 
-  const isHome = conversationId === null && pending === null;
+  function fail(error: unknown, action: FailedAction) {
+    setFailed({ error: requestErrorOf(error), action });
+  }
+
+  // A failed question stays in the thread above its note, also when its new chat was dropped.
+  const failedQuestion = failed?.action.name === "ask" ? failed.action : null;
+  const isHome =
+    conversationId === null && pending === null && failedQuestion === null;
 
   // The chat follows new text until the customer scrolls up, and again once they are back down.
   // The home starts at its top.
@@ -213,23 +225,21 @@ function Chat({
   }, [isHome, messages, pending, stream.text, stream.toolCalls.length]);
 
   // The stored chats come back after a reload, listed on the home in the panel and the full page.
-  useEffect(() => {
-    let isCurrent = true;
-    async function load() {
-      try {
-        const stored = await api<Conversation[]>("/api/conversations", token);
-        if (isCurrent) setConversations(stored);
-      } catch (error) {
-        if (isCurrent) setLoadError(messageOf(error));
-      } finally {
-        if (isCurrent) setIsLoadingChats(false);
-      }
+  async function loadChats() {
+    setFailed(null);
+    setIsLoadingChats(true);
+    try {
+      setConversations(await api<Conversation[]>("/api/conversations", token));
+    } catch (error) {
+      fail(error, { name: "load" });
+    } finally {
+      setIsLoadingChats(false);
     }
-    void load();
-    return () => {
-      isCurrent = false;
-    };
-    // Runs once per customer: Chat is keyed by the customer, and the token only changes with them.
+  }
+
+  // Runs once per customer: Chat is keyed by the customer, and the token only changes with them.
+  useEffect(() => {
+    void loadChats();
   }, []);
 
   // Tags the customer's bookings in the background; nothing waits for it and nothing shows it.
@@ -273,7 +283,7 @@ function Chat({
     setAttached([]);
     setPending(content);
     setPendingDocuments(documents);
-    setLoadError(null);
+    setFailed(null);
     let createdId: string | null = null;
     try {
       let id = conversationId;
@@ -291,16 +301,11 @@ function Chat({
         setConversationId(id);
       }
       const path = `/api/conversations/${id}`;
-      const reply = await stream.start(`${path}/messages?stream=true`, token, {
+      await stream.start(`${path}/messages?stream=true`, token, {
         content,
         document_ids: documents.map((document) => document.id),
         page: pageOf(context),
       });
-      if (reply === null) {
-        if (createdId !== null) await discardEmptyChat(createdId);
-        restoreQuestion(content, documents);
-        return;
-      }
       // The reply is stored. A failed reload only costs the tool lines, never a second send.
       try {
         const { storedMessages, storedCalls } = await open(id);
@@ -314,13 +319,13 @@ function Chat({
           .findLast((widget) => widget !== null);
         if (built !== undefined && built !== null) await showWidget(built);
       } catch (error) {
-        setLoadError(messageOf(error));
+        fail(error, { name: "open", id });
       }
       stream.reset();
     } catch (error) {
-      setLoadError(messageOf(error));
       if (createdId !== null) await discardEmptyChat(createdId);
       restoreQuestion(content, documents);
+      fail(error, { name: "ask", content, documents });
     } finally {
       setPending(null);
     }
@@ -359,7 +364,11 @@ function Chat({
     // Cleared, so choosing the same file again fires the event again.
     event.target.value = "";
     if (file === undefined) return;
-    setLoadError(null);
+    await upload(file);
+  }
+
+  async function upload(file: File) {
+    setFailed(null);
     setIsUploading(true);
     try {
       const form = new FormData();
@@ -370,27 +379,39 @@ function Chat({
       });
       setAttached((current) => [...current, document]);
     } catch (error) {
-      setLoadError(messageOf(error));
+      fail(error, { name: "upload", file });
     } finally {
       setIsUploading(false);
     }
   }
 
   async function handleOpen(id: string) {
-    setLoadError(null);
+    setFailed(null);
     // The chat list is disabled meanwhile, so two picks cannot finish out of order.
     setIsOpening(true);
     try {
       await open(id);
       clearVisual();
     } catch (error) {
-      setLoadError(messageOf(error));
+      fail(error, { name: "open", id });
     } finally {
       setIsOpening(false);
     }
   }
 
+  // Try again repeats the failed action with what the page holds now.
+  function retry() {
+    if (failed === null) return voice.retry();
+    const { action } = failed;
+    if (action.name === "ask") void ask(action.content);
+    else if (action.name === "load") void loadChats();
+    else if (action.name === "open") void handleOpen(action.id);
+    else if (action.name === "upload") void upload(action.file);
+    else void handleOpenVisual(action.widget);
+  }
+
   function handleNewChat() {
+    setFailed(null);
     setConversationId(null);
     setMessages([]);
     setToolCalls([]);
@@ -408,17 +429,32 @@ function Chat({
   );
   const title =
     conversations.find((conversation) => conversation.id === conversationId)
-      ?.title ?? pending;
-  const error = stream.error ?? loadError ?? voice.error;
-  const errorNote = error !== null && (
-    <p className="error-note" role="alert">
-      {error}
-    </p>
+      ?.title ??
+    pending ??
+    failedQuestion?.content;
+  const failure =
+    failed === null
+      ? voice.failure
+      : { title: failed.error.message, detail: detailOf(failed) };
+  const errorNote = failure !== null && (
+    <div className="failure" role="alert">
+      <p>
+        <strong>{failure.title}</strong>
+        {failure.detail}
+      </p>
+      <button
+        type="button"
+        onClick={retry}
+        disabled={isBusy || voice.phase !== "idle"}
+      >
+        Try again
+      </button>
+    </div>
   );
   const shownView = shownViewOf({
     view,
     isWaiting: waitingCalls.length > 0,
-    hasError: error !== null,
+    hasError: failure !== null,
   });
   const isChatForced = shownView !== view;
   useEffect(() => {
@@ -551,6 +587,12 @@ function Chat({
                   )}
                 </Answer>
               </>
+            )}
+            {failedQuestion !== null && (
+              <Question
+                text={failedQuestion.content}
+                documents={failedQuestion.documents}
+              />
             )}
             {!isHome && errorNote}
           </section>
@@ -753,6 +795,29 @@ function pageOf(context: HostContext) {
   return { title, account_name: account === "" ? null : (account ?? null) };
 }
 
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : "Something went wrong.";
+type FailedAction =
+  | { name: "ask"; content: string; documents: DocumentRef[] }
+  | { name: "load" }
+  | { name: "open"; id: string }
+  | { name: "upload"; file: File }
+  | { name: "visual"; widget: { widgetId: string; version: number } };
+
+/** The note's second line: what became of what the customer sent. */
+function detailOf({
+  error,
+  action,
+}: {
+  error: RequestError;
+  action: FailedAction;
+}): string {
+  if (action.name === "ask") {
+    // The backend stores nothing from a turn it ends with an error.
+    return error.kind === "connection"
+      ? "Your question is back in the input."
+      : "Nothing was saved. Your question is back in the input.";
+  }
+  if (action.name === "load") return "Your chats were not loaded.";
+  if (action.name === "open") return "The chat was not loaded.";
+  if (action.name === "upload") return "The document was not attached.";
+  return "The visual was not opened.";
 }
