@@ -71,7 +71,10 @@ Nothing else. The card is the brief. If you feel the need to explain more, the c
 
 ```
 board add --title "<what works afterwards>" --size S --priority P1 --body "## Why
-<one or two sentences>
+<one or two sentences: who needs this and what for>
+
+## What
+<two to five lines: what gets built, where it lives, its limits as numbers, what is left out>
 
 ## Acceptance criteria
 - [ ] <something a reviewer can check>
@@ -89,7 +92,7 @@ after #<n>"
 ```
 
 - A card fits one agent for about an hour, review and landing included. Split anything larger into cards that each work end to end.
-- Criteria say what is true afterwards, not how to code it. An agent that has never seen this conversation must be able to build it.
+- `## What` names what gets built and where, with limits as numbers, and the criteria say what is true afterwards. Neither says how to code it. An agent that has never seen this conversation must be able to build it. `scrum-board` has the rules and an example under "Writing a card".
 - Two cards that change the same lines get an `after #<n>` between them.
 - Promote with `board move <n> ready` only what the run issue covers. That scope is the humans' decision, already taken. Anything else stays in Backlog for them.
 - Read the acceptance criteria before you promote a card, your own included. A card that leaves a decision to a human, or holds a criterion no agent can check (such as a pass rate that changes from run to run), stays in Backlog: its agent would block it within minutes.
@@ -115,7 +118,7 @@ and use every feature once, in light and dark. Report at most 15 lines: gates, w
 where the tree breaks our rules (layers, features importing each other, hard-coded values,
 missing states, missing docs). Add one Backlog card per real problem with
 `board add --size S --priority <P0 to P2>`, its body under the headings ## Why,
-## Acceptance criteria, ## Owns, ## Check and ## Demo-path step.
+## What, ## Acceptance criteria, ## Owns, ## Check and ## Demo-path step.
 ```
 
 Promote the cards it adds if they are in scope.

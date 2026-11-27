@@ -29,7 +29,10 @@ Don't edit the card's body. Comment on it (`gh issue comment <n> --body ...`), s
 
 **Proposed card**
 ## Why
-<one or two sentences>
+<one or two sentences: who needs this and what for>
+
+## What
+<two to five lines: what gets built, where it lives, its limits as numbers, what is left out>
 
 ## Acceptance criteria
 - [ ] <checkable>
@@ -66,5 +69,6 @@ For an existing card, set the size if it is missing: `board set <n> --size S`. L
 ## Rules
 
 - Report what you don't know instead of filling it in. An invented requirement is worse than an open question.
-- Don't design the solution. Criteria say what must be true afterwards, not how to code it.
+- Don't design the solution. `## What` names what gets built and where, and the criteria say what must be true afterwards. Neither says how to code it.
+- Write the card as `scrum-board` describes under "Writing a card": concrete names and numbers, under about 25 lines, with the `unslop` skill applied.
 - Create the split cards only once the PO agrees to the split.
