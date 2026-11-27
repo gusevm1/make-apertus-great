@@ -1,6 +1,6 @@
 import re
 from datetime import date
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, ClassVar, Literal, Self
 
 from pydantic import (
     AfterValidator,
@@ -62,10 +62,12 @@ class Args(BaseModel):
 
 
 class Change(Args):
+    nothing_to_change: ClassVar[str] = "Name at least one field to change besides the id."
+
     @model_validator(mode="after")
     def _changes_something(self) -> Self:
         if len(self.model_dump(exclude_none=True)) < 2:
-            raise ValueError("Name at least one field to change besides the id.")
+            raise ValueError(self.nothing_to_change)
         return self
 
 
@@ -148,6 +150,10 @@ class StandingOrderArgs(Args):
 
 
 class StandingOrderUpdateArgs(Change, StandingOrderArgs):
+    # A null end date means "unchanged", which is what models send when they mean "remove".
+    nothing_to_change: ClassVar[str] = (
+        f'{Change.nothing_to_change} To remove the end date, send end_date "none".'
+    )
     payee_name: PayeeName | None = Field(default=None, description=PROMPTS["payee_name"])
     payee_iban: Iban | None = Field(default=None, description=PROMPTS["payee_iban"])
     amount: Amount | None = None

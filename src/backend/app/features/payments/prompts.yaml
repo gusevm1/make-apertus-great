@@ -4,7 +4,7 @@ create_payment: Prepares a one-off payment, or a transfer between own accounts.
 update_payment: Changes a pending payment. Send only the fields that change.
 delete_payment: Deletes a pending payment so that it is not paid.
 create_standing_order: Sets up a standing order to a payee or an own account.
-update_standing_order: Changes a standing order. Send only the fields that change.
+update_standing_order: Changes a standing order. Send only the fields that change; end_date "none" removes the end date.
 delete_standing_order: Deletes a standing order so that it pays no more.
 payment_type: "domestic: Swiss IBAN, international: foreign IBAN, account_transfer: own accounts."
 debit_account_id: "From list_accounts, such as ACC-PRIV."
