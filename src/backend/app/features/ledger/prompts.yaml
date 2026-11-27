@@ -68,6 +68,14 @@ explain_balance_change: >-
   start plus money in plus money out gives the end balance; when it is not 0, say so. Use it for
   "why is my account lower than a month ago" or "where did my savings go since June", with the
   account id from list_accounts. Use these figures and never add or subtract balances yourself.
+tax_year_summary: >-
+  The figures from the bank that a Swiss tax return for one year asks for: the mortgage interest
+  paid, the payments into Pillar 3a with the year's limit and `pillar_3a_over_limit_chf` when they
+  exceed it, each account's balance after its last booking of the year, and the portfolio value on
+  31 December. Amounts paid are positive. When `until` is before 31 December, the year is not over
+  and the figures are so far. Use it for "what do I need for my tax return" or "how much did I pay
+  into my 3a in 2025". Say in the answer that these are figures from the bank, not tax advice, and
+  that no tax was computed. Dividends are not included.
 unknown_account: >-
   The ledger has no bookings of {account_id}. Pass one of these account ids: {account_ids}.
 not_enough_months: >-
@@ -81,6 +89,7 @@ date_from: "First day of the period, as YYYY-MM-DD."
 date_to: "Last day of the period, as YYYY-MM-DD."
 text: "Words to look for in the text and the counterparty, such as merchant names. A movement matches when it contains any of them."
 kind: "Which kinds to count: spending (money out), credit (money in), own_transfer (between own accounts or into the depot), card_settlement (the bill of a credit card, whose purchases count already). Leave it out for spending and credit."
+tax_year: "The tax year, such as 2025."
 balance_date_from: "First day of the period, as YYYY-MM-DD. The start balance is the one before this day's bookings."
 balance_date_to: "Last day of the period, as YYYY-MM-DD. The end balance is the one after this day's bookings."
 account_id: "An account id from list_accounts, such as ACC-PRIV."

@@ -24,6 +24,9 @@ PERIOD_FIELDS = ("first_from", "first_to", "second_from", "second_to")
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 # Per side of a balance change; the rest is added up as `others`.
 TOP_BALANCE_COUNTERPARTIES = 5
+PILLAR_3A_COUNTERPARTY = "Säule 3a"
+# The largest Pillar 3a payment a year for an employee with a pension fund.
+PILLAR_3A_LIMITS_CHF = {2024: Decimal("7056"), 2025: Decimal("7258"), 2026: Decimal("7258")}
 
 # own_transfer moves money between own accounts or into the depot; card_settlement is the card bill.
 Kind = Literal["spending", "credit", "own_transfer", "card_settlement"]
@@ -162,6 +165,12 @@ class BalanceChangeArgs(BaseModel):
         if self.date_from > self.date_to:
             raise ValueError("date_from is after date_to. The period starts on date_from.")
         return self
+
+
+class TaxYearArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    year: int = Field(ge=2000, le=2100, description=PROMPTS["tax_year"])
 
 
 class ForecastMonthsArgs(Selection):
@@ -366,3 +375,26 @@ class BalanceChange(BaseModel):
     others_out: CounterpartySum | None
     # Last, so a cut in the tool result drops ids before any figure.
     row_ids: dict[str, dict[str, list[str]]]
+
+
+class YearEndBalance(BaseModel):
+    account_id: str
+    # The day of the account's last booking of the year.
+    date: datetime.date
+    balance_chf: Decimal
+
+
+class TaxYearSummary(BaseModel):
+    year: int
+    # Before 31 December when the year is not over yet.
+    until: datetime.date
+    mortgage_interest_paid_chf: Decimal
+    pillar_3a_paid_chf: Decimal
+    # None for a year whose limit the server does not know.
+    pillar_3a_limit_chf: Decimal | None
+    pillar_3a_over_limit_chf: Decimal | None
+    year_end_balances: list[YearEndBalance]
+    # On 31 December; None when the portfolio's history has no value for that day.
+    portfolio_value_chf: Decimal | None
+    # Last, so a cut in the tool result drops ids before any figure.
+    row_ids: dict[str, list[str]]

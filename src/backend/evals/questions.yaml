@@ -89,3 +89,10 @@
         date_from: '2026-10-2\d'
         date_to: '2026-11-2\d'
   not_called: [search_web]
+- question: What do I need for my 2025 tax return?
+  calls:
+    - tool: tax_year_summary
+      arguments:
+        year: "2025"
+  answer: (tax advice|Steuerberatung)
+  not_called: [search_web]

@@ -19,6 +19,7 @@ from app.features.ledger.schemas import (
     SearchMovementsArgs,
     SumByCounterpartyArgs,
     SumByGroupArgs,
+    TaxYearArgs,
 )
 from app.features.ledger.service import LedgerService
 
@@ -81,6 +82,12 @@ PURCHASES = [
         "statement_id": "STMT-2026-10",
     },
 ]
+PERFORMANCE = {
+    "points": [
+        {"date": "2025-11-30", "value_chf": 64172.04},
+        {"date": "2025-12-31", "value_chf": 64165.28},
+    ]
+}
 LOAN_CHARGES = [{"booking_id": "BK-8", "loan_id": "LOAN-03", "type": "interest"}]
 
 
@@ -120,6 +127,8 @@ def _fake_ledger(
             return httpx2.Response(200, json={"items": ACCOUNTS})
         if path == "/loan-transactions":
             return httpx2.Response(200, json={"items": LOAN_CHARGES, "sum_chf": 918.75})
+        if path == "/portfolio/performance" and request.url.params.get("period") == "3y":
+            return httpx2.Response(200, json=PERFORMANCE)
         if path == "/cards":
             cards = [
                 {"card_id": "CARD-DEBIT", "type": "debit", "linked_account": "ACC-PRIV"},
@@ -929,3 +938,96 @@ async def test_a_newest_month_with_only_a_bonus_so_far_keeps_the_split() -> None
     comparison = await _career(bookings=[*CAREER, bonus]).compare_periods(token=TOKEN, args=args)
 
     assert comparison.salary_start == date(2025, 9, 25)
+
+
+TAX_YEAR = [
+    _booking("BK-T1", "loan_interest", -227.5, booking_date="2025-03-31", balance_after=9772.5),
+    _booking("BK-T2", "loan_interest", -230.0, booking_date="2025-06-30", balance_after=9542.5),
+    *[
+        _booking(
+            f"BK-3A-{month}",
+            "standing_order",
+            -650.0,
+            booking_date=f"2025-{month:02d}-26",
+            counterparty_name="Vorsorgekonto Säule 3a",
+            balance_after=9542.5 - 650.0 * (month - 6),
+        )
+        for month in range(7, 13)
+    ],
+    _booking(
+        "BK-3A-IN",
+        "standing_order",
+        650.0,
+        account_id="ACC-3A",
+        booking_date="2025-12-26",
+        counterparty_name="Privatkonto",
+        balance_after=650.0,
+    ),
+    _booking("BK-T3", "debit_card", -10.0, booking_date="2026-01-05", balance_after=5632.5),
+]
+CHARGES = [
+    {"booking_id": "BK-T1", "loan_id": "LOAN-03", "type": "interest"},
+    {"booking_id": "BK-T2", "loan_id": "LOAN-03", "type": "interest"},
+]
+
+
+async def test_a_tax_year_sums_interest_and_3a_and_takes_the_balances_of_31_december(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(f"{__name__}.LOAN_CHARGES", CHARGES)
+    ledger = _fake_ledger(bookings=TAX_YEAR, purchases=[], statements=[], pages_read=[])
+
+    summary = await ledger.tax_year_summary(
+        token=TOKEN, args=TaxYearArgs(year=2025), today=date(2026, 11, 26)
+    )
+
+    assert summary.until == date(2025, 12, 31)
+    assert summary.mortgage_interest_paid_chf == Decimal("457.5")
+    assert summary.row_ids["mortgage_interest"] == ["BK-T1", "BK-T2"]
+    assert summary.pillar_3a_paid_chf == Decimal("3900.0")
+    assert summary.row_ids["pillar_3a"] == [f"BK-3A-{month}" for month in range(7, 13)]
+    assert (summary.pillar_3a_limit_chf, summary.pillar_3a_over_limit_chf) == (Decimal(7258), None)
+    assert [(b.account_id, b.date, b.balance_chf) for b in summary.year_end_balances] == [
+        ("ACC-3A", date(2025, 12, 26), Decimal("650.0")),
+        ("ACC-PRIV", date(2025, 12, 26), Decimal("5642.5")),
+    ]
+    assert summary.row_ids["ACC-PRIV"] == ["BK-3A-12"]
+    assert summary.portfolio_value_chf == Decimal("64165.28")
+
+
+async def test_a_year_without_a_loan_has_no_interest_and_3a_over_the_limit_says_by_how_much() -> (
+    None
+):
+    payments = [
+        _booking(
+            f"BK-P{month}",
+            "standing_order",
+            -700.0,
+            booking_date=f"2025-{month:02d}-26",
+            counterparty_name="Vorsorgekonto Säule 3a",
+            balance_after=10000.0 - 700.0 * month,
+        )
+        for month in range(1, 12)
+    ]
+    ledger = _fake_ledger(bookings=payments, purchases=[], statements=[], pages_read=[])
+
+    summary = await ledger.tax_year_summary(
+        token=TOKEN, args=TaxYearArgs(year=2025), today=date(2026, 11, 26)
+    )
+
+    assert (summary.mortgage_interest_paid_chf, summary.row_ids["mortgage_interest"]) == (0, [])
+    assert summary.pillar_3a_paid_chf == Decimal("7700.0")
+    assert summary.pillar_3a_over_limit_chf == Decimal("442.0")
+
+
+async def test_a_year_that_is_not_over_runs_until_today_and_has_no_year_end_value() -> None:
+    ledger = _fake_ledger(bookings=TAX_YEAR, purchases=[], statements=[], pages_read=[])
+
+    summary = await ledger.tax_year_summary(
+        token=TOKEN, args=TaxYearArgs(year=2026), today=date(2026, 11, 26)
+    )
+
+    assert summary.until == date(2026, 11, 26)
+    assert summary.pillar_3a_limit_chf == Decimal(7258)
+    assert summary.portfolio_value_chf is None
+    assert summary.year_end_balances[-1].balance_chf == Decimal("5632.5")

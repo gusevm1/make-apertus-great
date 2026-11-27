@@ -18,6 +18,8 @@ from app.features.ledger.schemas import (
     SearchMovementsArgs,
     SumByCounterpartyArgs,
     SumByGroupArgs,
+    TaxYearArgs,
+    TaxYearSummary,
     UnusualMovements,
 )
 from app.features.ledger.service import LedgerService
@@ -49,6 +51,9 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
 
     async def explain_balance_change(args: BalanceChangeArgs) -> BalanceChange:
         return await service.explain_balance_change(token=token, args=args)
+
+    async def tax_year_summary(args: TaxYearArgs) -> TaxYearSummary:
+        return await service.tax_year_summary(token=token, args=args, today=today)
 
     return [
         Tool(
@@ -114,5 +119,13 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
             description=PROMPTS["explain_balance_change"],
             args_schema=BalanceChangeArgs,
             handler=explain_balance_change,
+        ),
+        Tool(
+            name="tax_year_summary",
+            title="Gather your tax figures",
+            icon="receipt",
+            description=PROMPTS["tax_year_summary"],
+            args_schema=TaxYearArgs,
+            handler=tax_year_summary,
         ),
     ]

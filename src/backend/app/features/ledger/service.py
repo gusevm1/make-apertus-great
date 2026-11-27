@@ -14,6 +14,8 @@ from app.core.prompts import load_prompts
 from app.features.ledger.schemas import (
     MIN_TREND_MONTHS,
     PERIOD_FIELDS,
+    PILLAR_3A_COUNTERPARTY,
+    PILLAR_3A_LIMITS_CHF,
     SALARY_LEVEL_MONTHS,
     SALARY_LEVEL_SHARE,
     TOP_BALANCE_COUNTERPARTIES,
@@ -41,8 +43,11 @@ from app.features.ledger.schemas import (
     SearchMovementsArgs,
     SumByCounterpartyArgs,
     SumByGroupArgs,
+    TaxYearArgs,
+    TaxYearSummary,
     UnusualMovement,
     UnusualMovements,
+    YearEndBalance,
 )
 
 PROMPTS = load_prompts(prompts_py=__file__)
@@ -243,6 +248,54 @@ class LedgerService:
             others_out=others_out,
             row_ids={"in": ids_in, "out": ids_out},
         )
+
+    async def tax_year_summary(self, token: str, args: TaxYearArgs, today: date) -> TaxYearSummary:
+        """Mortgage interest, Pillar 3a payments and year-end values of one year."""
+        year_end = date(args.year, 12, 31)
+        rows = await self.list_rows(token=token)
+        in_year = [row for row in rows if row.date.year == args.year]
+        interest = [row for row in in_year if row.loan_charge == "interest"]
+        pillar_3a = [
+            row
+            for row in in_year
+            if row.source == "booking"
+            and row.amount_chf < 0
+            and PILLAR_3A_COUNTERPARTY.casefold() in (row.counterparty or "").casefold()
+        ]
+        paid_3a = -sum((row.amount_chf for row in pillar_3a), Decimal(0))
+        limit = PILLAR_3A_LIMITS_CHF.get(args.year)
+        last_by_account: dict[str, LedgerRow] = {}
+        for row in rows:
+            if row.source == "booking" and row.date <= year_end:
+                last_by_account[row.account_id] = row
+        return TaxYearSummary(
+            year=args.year,
+            until=min(year_end, today),
+            mortgage_interest_paid_chf=-sum((row.amount_chf for row in interest), Decimal(0)),
+            pillar_3a_paid_chf=paid_3a,
+            pillar_3a_limit_chf=limit,
+            pillar_3a_over_limit_chf=None if limit is None or paid_3a <= limit else paid_3a - limit,
+            year_end_balances=[
+                YearEndBalance(account_id=account_id, date=row.date, balance_chf=_balance(row=row))
+                for account_id, row in sorted(last_by_account.items())
+            ],
+            portfolio_value_chf=await self._portfolio_value(token=token, day=year_end),
+            row_ids={
+                "mortgage_interest": [row.id for row in interest],
+                "pillar_3a": [row.id for row in pillar_3a],
+                **{account_id: [row.id] for account_id, row in sorted(last_by_account.items())},
+            },
+        )
+
+    async def _portfolio_value(self, token: str, day: date) -> Decimal | None:
+        # The longest history the bank keeps, one value per month end.
+        performance = await self.read(
+            path="/portfolio/performance", token=token, params={"period": "3y"}
+        )
+        for point in performance["points"]:
+            if point["date"] == day.isoformat():
+                return _chf(amount=point["value_chf"])
+        return None
 
     async def sum_by_counterparty(
         self, token: str, args: SumByCounterpartyArgs
