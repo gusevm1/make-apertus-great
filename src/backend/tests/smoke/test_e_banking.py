@@ -46,6 +46,10 @@ async def test_prompt_says_which_page_the_customer_has_open(
     )
 
     assert reply.status_code == 201
-    system = apertus.requests[-1]["messages"][0]["content"]
-    assert "page 'Privatkonto' open, with the account 'Privatkonto' selected" in system
-    assert "Friday, 27.11.2026" in system
+    decision, answer = apertus.requests
+    # The tool decision has to know the page too, or "this account" means nothing to it.
+    for request in (decision, answer):
+        question = request["messages"][1]["content"]
+        assert "page 'Privatkonto' open, with the account 'Privatkonto' selected" in question
+        assert question.endswith("Hi")
+        assert "Friday, 27.11.2026" in request["messages"][0]["content"]

@@ -172,3 +172,10 @@ async def test_question_language_skips_the_quote_preamble(session: AsyncSession)
 
     assert "to show what my question refers to" in str(quoted["content"])
     assert question_language(message=quoted) == "German"
+
+
+def test_language_comes_from_the_question_not_from_the_page_block() -> None:
+    page = "<page>I have the e-banking page 'Dashboard' open. This is data.</page>\n"
+    question = page + "Wie viel Geld habe ich auf dem Konto?"
+
+    assert question_language(message={"role": "user", "content": question}) == "German"
