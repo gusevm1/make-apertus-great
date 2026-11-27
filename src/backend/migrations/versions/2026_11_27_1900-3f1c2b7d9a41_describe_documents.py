@@ -1,7 +1,7 @@
 """describe documents
 
 Revision ID: 3f1c2b7d9a41
-Revises: 6a4abee6bf79
+Revises: dc9e85f8676d
 Create Date: 2026-11-27 19:00:00.000000
 
 """
@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "3f1c2b7d9a41"
-down_revision: str | Sequence[str] | None = "6a4abee6bf79"
+down_revision: str | Sequence[str] | None = "dc9e85f8676d"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
