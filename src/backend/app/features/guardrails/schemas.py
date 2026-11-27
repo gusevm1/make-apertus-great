@@ -1,7 +1,7 @@
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.core.prompts import load_prompts
 from app.core.provenance import Provenance
@@ -22,6 +22,14 @@ class GuardrailCategory(StrEnum):
 class GuardrailCheck(BaseModel):
     category: GuardrailCategory = Field(description=PROMPTS["category"])
     language: Literal["de", "en"] = Field(description=PROMPTS["language"])
+
+    @model_validator(mode="before")
+    @classmethod
+    def unwrap(cls, data: Any) -> Any:
+        # The small model nests its answer under the schema's name.
+        if isinstance(data, dict) and set(data) == {cls.__name__}:
+            return data[cls.__name__]
+        return data
 
 
 class Advisor(BaseModel):

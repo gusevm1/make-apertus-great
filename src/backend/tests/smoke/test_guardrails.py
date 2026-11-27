@@ -64,6 +64,16 @@ async def test_advisor_comes_from_the_bank_not_the_model(
     assert ADVISOR_NAME not in json.dumps(apertus.requests)
 
 
+async def test_check_nested_under_the_schema_name_still_counts(
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus
+) -> None:
+    apertus.guardrails = [json.dumps({"GuardrailCheck": json.loads(check(category="off_topic"))})]
+
+    reply = await ask(client=client, session=session, content="Write me a poem.")
+
+    assert reply["content"] == PROMPTS["off_topic_en"]
+
+
 @pytest.mark.parametrize(("category", "language"), [("other_customer", "en"), ("off_topic", "de")])
 async def test_decline_runs_no_tool_and_no_answer(
     client: httpx2.AsyncClient,
