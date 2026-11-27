@@ -31,5 +31,11 @@ docker start "$container" >/dev/null 2>&1 || docker run -d --name "$container" -
   echo "APP_PORT=$app_port"
 } >"$root/.env"
 
+# gates.sh runs the frontend checks, and a fresh worktree has no node_modules.
+if [ ! -d "$root/src/frontend/node_modules" ]; then
+  echo "Installing the frontend's packages (npm ci in src/frontend)"
+  (cd "$root/src/frontend" && npm ci --no-audit --no-fund --loglevel=error)
+fi
+
 echo "banking API: http://localhost:$api_port   your app: port $app_port"
 echo "When the card is done: docker rm -f $container"
