@@ -18,6 +18,7 @@ export interface Message {
 export interface ToolCall {
   id: string;
   message_id: string;
+  tool_name: string;
   title: string;
   round: number;
   plan: string;
@@ -25,6 +26,17 @@ export interface ToolCall {
   arguments: Record<string, unknown>;
   result: Record<string, unknown> | null;
   error: string | null;
+}
+
+/** One version of a widget, drawn by the server from its stored spec and data. */
+export interface WidgetVersion {
+  widget_id: string;
+  number: number;
+  title: string;
+  html: string;
+  model: string | null;
+  latency_ms: number;
+  checks: { name: string; passed: boolean; detail: string | null }[];
 }
 
 export interface Conversation {

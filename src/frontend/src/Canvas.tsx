@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import type { WidgetVersion } from "./api";
 import { Icon } from "./Icon";
 
 /** A widget page from our renderer, shown in a sandboxed frame. */
 export interface Visual {
   title: string;
   html: string;
+  /** Who drew it and what was checked, such as "apertus-70b · 8.4 s · figures checked". */
+  caption: string;
 }
 
 export const EXAMPLE_QUESTIONS = [
@@ -65,6 +68,7 @@ export function Canvas({
   return (
     <section className="canvas" aria-label="Visual">
       <h2>{visual.title}</h2>
+      <p className="canvas-caption">{visual.caption}</p>
       <iframe
         ref={frameRef}
         title={visual.title}
@@ -77,6 +81,41 @@ export function Canvas({
 }
 
 export type View = "chat" | "visual";
+
+/** The widget a `build_widget` call made, or null for any other call or a failed one. */
+export function builtWidgetOf(call: {
+  tool_name: string;
+  result: Record<string, unknown> | null;
+}): { widgetId: string; version: number; title: string } | null {
+  if (call.tool_name !== "build_widget" || call.result === null) return null;
+  const { widget_id, version_number, title } = call.result;
+  if (typeof widget_id !== "string" || typeof version_number !== "number")
+    return null;
+  return {
+    widgetId: widget_id,
+    version: version_number,
+    title: typeof title === "string" ? title : "Widget",
+  };
+}
+
+/** The line under a widget's title: the model, its time and whether the labels' figures check out. */
+export function captionOf(version: WidgetVersion): string {
+  const parts = [
+    version.model ?? "plain widget",
+    `${(version.latency_ms / 1000).toFixed(1)} s`,
+  ];
+  const figures = version.checks.find(
+    (check) => check.name === "figures_found",
+  );
+  if (figures !== undefined) {
+    parts.push(
+      figures.passed
+        ? "figures checked"
+        : "a label names a figure not in the data",
+    );
+  }
+  return parts.join(" · ");
+}
 
 /** The view a narrow frame shows: a question waiting for an answer, or an error, always shows the chat. */
 export function shownViewOf({

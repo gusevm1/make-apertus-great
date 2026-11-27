@@ -13,9 +13,17 @@ import {
   json,
   type Message,
   type ToolCall,
+  type WidgetVersion,
 } from "./api";
 import { type HostContext, useHostContext } from "./host";
-import { Canvas, shownViewOf, type View, type Visual } from "./Canvas";
+import {
+  builtWidgetOf,
+  Canvas,
+  captionOf,
+  shownViewOf,
+  type View,
+  type Visual,
+} from "./Canvas";
 import { CategoryCenter } from "./CategoryCenter";
 import { Confirmation } from "./Confirmation";
 import { ChatList, type ChatListProps, Home } from "./Home";
@@ -105,8 +113,7 @@ function Chat({
   const [isOpening, setIsOpening] = useState(false);
   const [attached, setAttached] = useState<DocumentRef[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  // Filled once widgets exist (#25); until then the canvas shows its empty state.
-  const [visual] = useState<Visual | null>(null);
+  const [visual, setVisual] = useState<Visual | null>(null);
   // In a narrow frame one view at a time; wider, the CSS shows both and ignores this.
   const [view, setView] = useState<View>("chat");
   const chatRef = useRef<HTMLElement>(null);
@@ -129,6 +136,33 @@ function Chat({
     setConversationId(id);
     setMessages(storedMessages);
     setToolCalls(storedCalls);
+    return { storedMessages, storedCalls };
+  }
+
+  // Draws a widget on the canvas; a narrow frame switches to it.
+  async function showWidget(widget: { widgetId: string; version: number }) {
+    const version = await api<WidgetVersion>(
+      `/api/widgets/${widget.widgetId}/versions/${widget.version}?form=live`,
+      token,
+    );
+    setVisual({
+      title: version.title,
+      html: version.html,
+      caption: captionOf(version),
+    });
+    setView("visual");
+  }
+
+  async function handleOpenVisual(widget: {
+    widgetId: string;
+    version: number;
+  }) {
+    setLoadError(null);
+    try {
+      await showWidget(widget);
+    } catch (error) {
+      setLoadError(messageOf(error));
+    }
   }
 
   const isHome = conversationId === null && pending === null;
@@ -220,7 +254,16 @@ function Chat({
       }
       // The reply is stored. A failed reload only costs the tool lines, never a second send.
       try {
-        await open(id);
+        const { storedMessages, storedCalls } = await open(id);
+        // Tool calls are stored on the question they answer, the last question of the chat.
+        const asked = storedMessages.findLast(
+          (message) => message.role === "user",
+        );
+        const built = storedCalls
+          .filter((call) => call.message_id === asked?.id)
+          .map(builtWidgetOf)
+          .findLast((widget) => widget !== null);
+        if (built !== undefined && built !== null) await showWidget(built);
       } catch (error) {
         setLoadError(messageOf(error));
       }
@@ -290,6 +333,7 @@ function Chat({
     setIsOpening(true);
     try {
       await open(id);
+      setVisual(null);
     } catch (error) {
       setLoadError(messageOf(error));
     } finally {
@@ -301,6 +345,7 @@ function Chat({
     setConversationId(null);
     setMessages([]);
     setToolCalls([]);
+    setVisual(null);
     stream.reset();
   }
 
@@ -428,6 +473,7 @@ function Chat({
                     (call) => call.message_id === messages[index - 1]?.id,
                   )}
                   provenance={message.provenance}
+                  onOpenVisual={(widget) => void handleOpenVisual(widget)}
                 >
                   <Markdown text={message.content} />
                 </Answer>
@@ -436,7 +482,11 @@ function Chat({
             {pending !== null && (
               <>
                 <Question text={pending} documents={pendingDocuments} />
-                <Answer steps={stream.toolCalls} provenance={null}>
+                <Answer
+                  steps={stream.toolCalls}
+                  provenance={null}
+                  onOpenVisual={(widget) => void handleOpenVisual(widget)}
+                >
                   {stream.text !== "" ? (
                     <Markdown text={stream.text} />
                   ) : (
@@ -574,16 +624,33 @@ function Question({
 function Answer({
   steps,
   provenance,
+  onOpenVisual,
   children,
 }: {
   steps: Parameters<typeof Trace>[0]["steps"];
   provenance: Message["provenance"];
+  onOpenVisual: (widget: { widgetId: string; version: number }) => void;
   children: ReactNode;
 }) {
+  const widgets = steps.map(builtWidgetOf).filter((widget) => widget !== null);
   return (
     <article className="answer">
       <Trace steps={steps} />
       <div className="answer-text">{children}</div>
+      {widgets.map((widget) => (
+        <button
+          key={`${widget.widgetId}-${widget.version}`}
+          type="button"
+          className="visual-ready"
+          onClick={() => onOpenVisual(widget)}
+        >
+          <Icon name="chart" size={16} />
+          <span>
+            <strong>Visual ready</strong> {widget.title}
+          </span>
+          <Icon name="chevronRight" size={16} />
+        </button>
+      ))}
       {provenance !== null && (
         <footer>
           <span>

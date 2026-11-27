@@ -850,6 +850,49 @@ main,
   min-height: 44px;
 }
 
+.canvas-caption {
+  margin: -8px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* The widget an answer drew; opens it on the canvas, which a narrow frame switches to. */
+.visual-ready {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.visual-ready span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.visual-ready strong {
+  color: var(--color-primary);
+}
+
+.visual-ready:hover {
+  border-color: var(--color-primary);
+}
+
+.visual-ready:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .canvas iframe {
   display: block;
   width: 100%;

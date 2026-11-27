@@ -13,6 +13,7 @@ const PATHS = {
   plus: "M12 5v14M5 12h14",
   chevronLeft: "M15 6l-6 6 6 6",
   chevronRight: "M9 6l6 6-6 6",
+  chart: "M4 20h16M7 16v-5M12 16V6M17 16v-8",
 };
 
 export type IconName = keyof typeof PATHS;

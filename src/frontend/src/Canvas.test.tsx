@@ -1,7 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import {
+  builtWidgetOf,
   Canvas,
+  captionOf,
   EXAMPLE_QUESTIONS,
   frameHeightOf,
   shownViewOf,
@@ -11,6 +13,7 @@ import {
 const SAMPLE: Visual = {
   title: "Monthly spending",
   html: '<!doctype html><p>CHF 10\'598.77</p><script>parent.postMessage({source: "trustroom-widget", type: "widget-height", height: 240}, "*")</script>',
+  caption: "apertus-70b · 8.4 s · figures checked",
 };
 
 function html(visual: Visual | null) {
@@ -70,6 +73,40 @@ test("only our own frame resizes itself, to a finite and bounded height", () => 
       frame,
     ),
   ).toBe(null);
+});
+
+test("only a build_widget call with its widget names a widget to show", () => {
+  const result = { widget_id: "W-1", version_number: 1, title: "Spending" };
+
+  expect(builtWidgetOf({ tool_name: "build_widget", result })).toEqual({
+    widgetId: "W-1",
+    version: 1,
+    title: "Spending",
+  });
+  expect(builtWidgetOf({ tool_name: "sum_by_month", result })).toBe(null);
+  expect(builtWidgetOf({ tool_name: "build_widget", result: null })).toBe(null);
+  expect(
+    builtWidgetOf({ tool_name: "build_widget", result: { widget_id: 7 } }),
+  ).toBe(null);
+});
+
+test("the caption says who drew the widget and whether its labels' figures check out", () => {
+  const version = {
+    widget_id: "W-1",
+    number: 1,
+    title: "Spending",
+    html: "",
+    model: "apertus-70b",
+    latency_ms: 8400,
+    checks: [{ name: "figures_found", passed: false, detail: "1 of 2 found" }],
+  };
+
+  expect(captionOf(version)).toBe(
+    "apertus-70b · 8.4 s · a label names a figure not in the data",
+  );
+  expect(captionOf({ ...version, model: null, checks: [] })).toBe(
+    "plain widget · 8.4 s",
+  );
 });
 
 test("a waiting question or an error shows the chat in a narrow frame", () => {
