@@ -119,7 +119,8 @@ function Chat({ context }: { context: HostContext }) {
     if (content === "" || stream.status === "streaming") return;
     const documents = attached;
     isFollowing.current = true;
-    setQuestion("");
+    // A suggestion from the home leaves a typed draft in the input.
+    setQuestion((current) => (current.trim() === content ? "" : current));
     setAttached([]);
     setPending(content);
     setPendingDocuments(documents);
@@ -373,10 +374,11 @@ function Chat({ context }: { context: HostContext }) {
             </ul>
           )}
           <div className="input-row">
-            <label className="icon" aria-label="Attach a document">
+            <label className="icon">
               <Icon name="paperclip" />
               <input
                 type="file"
+                aria-label="Attach a document"
                 accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx"
                 onChange={(event) => void handleAttach(event)}
                 disabled={isBusy || attached.length >= DOCUMENTS_PER_MESSAGE}
