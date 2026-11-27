@@ -15,6 +15,7 @@ import {
   type ToolCall,
 } from "./api";
 import { type HostContext, useHostContext } from "./host";
+import { Confirmation } from "./Confirmation";
 import { canCaptureAudio } from "./lib/audioCapture";
 import { useStream } from "./lib/useStream";
 import { Trace } from "./Trace";
@@ -155,6 +156,14 @@ function Chat({ context }: { context: HostContext }) {
     setAttached((current) => (current.length === 0 ? documents : current));
   }
 
+  async function handleConfirmation(toolCallId: string, isAllowed: boolean) {
+    await api<void>(
+      `/api/conversations/${conversationId}/tool-calls/${toolCallId}/confirmations`,
+      token,
+      json({ is_allowed: isAllowed }),
+    );
+  }
+
   async function handleAttach(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     // Cleared, so choosing the same file again fires the event again.
@@ -203,6 +212,9 @@ function Chat({ context }: { context: HostContext }) {
     isOpening ||
     isUploading;
   const account = context.account ? `, account ${context.account.name}` : "";
+  const waitingCalls = stream.toolCalls.filter(
+    (toolCall) => toolCall.confirmation !== null && toolCall.isRunning,
+  );
 
   return (
     <main>
@@ -280,9 +292,20 @@ function Chat({ context }: { context: HostContext }) {
           <>
             <article className="msg user">{pending}</article>
             <Trace steps={stream.toolCalls} />
-            <article className="msg assistant">
-              {stream.text === "" ? "Thinking…" : stream.text}
-            </article>
+            {waitingCalls.map((toolCall) => (
+              <Confirmation
+                key={toolCall.id}
+                toolCall={toolCall}
+                onAnswer={(isAllowed) =>
+                  handleConfirmation(toolCall.id, isAllowed)
+                }
+              />
+            ))}
+            {waitingCalls.length === 0 && (
+              <article className="msg assistant">
+                {stream.text === "" ? "Thinking…" : stream.text}
+              </article>
+            )}
           </>
         )}
         {(stream.error ?? loadError ?? voice.error) !== null && (

@@ -10,6 +10,8 @@ export interface StreamToolCall {
   reason: string;
   round: number;
   plan: string;
+  /** What the customer has to allow before the call runs; null when it runs without asking. */
+  confirmation: string | null;
   result: Record<string, unknown> | null;
   error: string | null;
   isRunning: boolean;
@@ -25,6 +27,7 @@ type ToolCallEvent = Pick<
   | "reason"
   | "round"
   | "plan"
+  | "confirmation"
 >;
 type ToolResultEvent = Pick<StreamToolCall, "id" | "result" | "error">;
 
