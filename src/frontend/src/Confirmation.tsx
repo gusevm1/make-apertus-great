@@ -9,18 +9,21 @@ interface Props {
 /** Asks the customer before a tool call runs, and shows what it would send. */
 export function Confirmation({ toolCall, onAnswer }: Props) {
   const [answer, setAnswer] = useState<boolean | null>(null);
+  const [isSending, setIsSending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
   async function handleAnswer(isAllowed: boolean) {
-    setAnswer(isAllowed);
+    setIsSending(true);
     setFailure(null);
     try {
       await onAnswer(isAllowed);
+      setAnswer(isAllowed);
     } catch (error) {
-      setAnswer(null);
       setFailure(
         error instanceof Error ? error.message : "Something went wrong.",
       );
+    } finally {
+      setIsSending(false);
     }
   }
 
@@ -39,10 +42,15 @@ export function Confirmation({ toolCall, onAnswer }: Props) {
             type="button"
             className="primary"
             onClick={() => void handleAnswer(true)}
+            disabled={isSending}
           >
             Allow
           </button>
-          <button type="button" onClick={() => void handleAnswer(false)}>
+          <button
+            type="button"
+            onClick={() => void handleAnswer(false)}
+            disabled={isSending}
+          >
             Don’t allow
           </button>
         </div>
