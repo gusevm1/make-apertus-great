@@ -189,9 +189,13 @@ class ToolCallService:
                     continue
                 call_id = uuid4()
                 title, icon = self._label(name=request.tool)
-                confirmation = self._confirmation(request=request)
+                confirmation = self._confirmation(name=request.tool)
                 is_asked = confirmation is not None and can_ask and request.tool not in refused
-                lines, refusal = await self._sheet(request=request) if is_asked else (None, None)
+                lines, refusal = (
+                    await self._sheet(call_id=call_id, request=request)
+                    if is_asked
+                    else (None, None)
+                )
                 is_asked = is_asked and refusal is None
                 yield ToolCallEvent(
                     id=call_id,
@@ -263,30 +267,34 @@ class ToolCallService:
                 lines.append(line)
         return "".join(f"\n\n{line}" for line in lines)
 
-    def _confirmation(self, request: ToolRequest) -> str | None:
-        """What the customer has to allow first; a call that cannot run needs no answer."""
-        tool = self.tools.get(request.tool)
-        if tool is None or tool.confirmation is None:
-            return None
-        try:
-            tool.args_schema.model_validate(request.arguments)
-        except ValidationError:
-            return None
-        return tool.confirmation
+    # Decided from the tool alone: with one, the call runs only after the customer allows it.
+    def _confirmation(self, name: str) -> str | None:
+        tool = self.tools.get(name)
+        return None if tool is None else tool.confirmation
 
     def _builds_on_turn(self, name: str) -> bool:
         tool = self.tools.get(name)
         return tool is not None and tool.turn_handler is not None
 
     # The lines the customer reads, or why the call is refused before they are asked.
-    async def _sheet(self, request: ToolRequest) -> tuple[list[SheetLine] | None, str | None]:
+    async def _sheet(
+        self, call_id: UUID, request: ToolRequest
+    ) -> tuple[list[SheetLine] | None, str | None]:
         tool = self.tools[request.tool]
+        try:
+            args = tool.args_schema.model_validate(request.arguments)
+        except ValidationError as exc:
+            return None, f"Invalid arguments. {_problems(exc=exc)}"
         if tool.sheet is None:
             return None, None
         try:
-            return await tool.sheet(tool.args_schema.model_validate(request.arguments)), None
+            return await tool.sheet(args), None
         except AppError as exc:
             return None, str(exc)
+        except Exception:
+            # Such as a bank row without a field: this call fails, the turn goes on.
+            logger.exception("Sheet of tool call %s to %s failed", call_id, request.tool)
+            return None, TOOL_FAILED
 
     def _label(self, name: str) -> tuple[str, str]:
         tool = self.tools.get(name)
@@ -304,11 +312,7 @@ class ToolCallService:
         try:
             args = tool.args_schema.model_validate(arguments)
         except ValidationError as exc:
-            problems = "; ".join(
-                f"{'.'.join(str(part) for part in problem['loc'])}: {problem['msg']}"
-                for problem in exc.errors()
-            )
-            return None, f"Invalid arguments. {problems}"
+            return None, f"Invalid arguments. {_problems(exc=exc)}"
         try:
             if tool.turn_handler is not None:
                 output = await tool.turn_handler(args, turn)
@@ -343,6 +347,13 @@ class ToolCallService:
             sources=list(pages.values()),
             checks=[check] if calls else [],
         )
+
+
+def _problems(exc: ValidationError) -> str:
+    return "; ".join(
+        f"{'.'.join(str(part) for part in problem['loc'])}: {problem['msg']}"
+        for problem in exc.errors()
+    )
 
 
 def _turn(conversation_id: UUID, calls: list[ToolCall]) -> Turn:
