@@ -1,0 +1,9 @@
+# Plain HTTP: Vercel is the only caller and the box has no DNS name.
+{
+	auto_https off
+}
+
+:8010 {
+	# One line, "reverse_proxy api-<colour>:8000", written by remote-deploy.sh.
+	import /etc/caddy/active-upstream.caddy
+}

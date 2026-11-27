@@ -1,0 +1,77 @@
+# The demo on the EC2 box, in /opt/trustroom. The Deploy workflow copies this folder there.
+# Vercel serves both pages and forwards /api to port 8000 (banking API) and 8010 (our backend).
+# The .env next to this file exists only on the box: LLM_*, SEARXNG_SECRET and what remote-deploy.sh writes.
+x-api: &api
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://trustroom:trustroom@db:5432/trustroom
+    APP_ORIGIN: https://trustroom-apertus.vercel.app
+    BANKING_API_URL: http://banking-api:8000/api
+    OCR_URL: http://ocr:8002
+    SEARXNG_URL: http://searxng:8080
+  depends_on:
+    db:
+      condition: service_healthy
+  logging:
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # The one door to our backend. remote-deploy.sh points it at the live colour.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "8010:8010"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./active-upstream.caddy:/etc/caddy/active-upstream.caddy:ro
+
+  api-blue:
+    <<: *api
+    image: ${API_IMAGE_BLUE:-ghcr.io/gusevm1/trustroom-backend:latest}
+
+  api-green:
+    <<: *api
+    image: ${API_IMAGE_GREEN:-ghcr.io/gusevm1/trustroom-backend:latest}
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trustroom
+      POSTGRES_PASSWORD: trustroom
+      POSTGRES_DB: trustroom
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustroom"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  searxng:
+    image: searxng/searxng:2026.11.23-a7163d091
+    restart: unless-stopped
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+
+  # Keeps its data in the container: recreating it drops the documents our database refers to.
+  banking-api:
+    image: ghcr.io/tiziano-schacht-ti8m/trustroom-banking-api:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DEMO_TODAY: "2026-11-27"
+
+  ocr:
+    image: ghcr.io/tiziano-schacht-ti8m/trustroom-ocr:latest
+    restart: unless-stopped
+
+volumes:
+  db-data:
