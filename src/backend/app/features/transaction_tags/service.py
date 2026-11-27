@@ -54,14 +54,21 @@ class TransactionTagService:
             for batch in batches
         ]
         tagged_by_model = 0
+        failed_batches = 0
         # Written one at a time as they finish: one session, and a crash keeps finished batches.
         for call in asyncio.as_completed(calls):
+            answered = await call
+            if answered is None:
+                failed_batches += 1
+                continue
             tagged_by_model += await self.tags.create_many(
                 values=[
                     _values(owner_id=owner_id, row=row, category=category, model=model)
-                    for row, category, model in await call
+                    for row, category, model in answered
                 ]
             )
+        if batches and failed_batches == len(batches):
+            raise UpstreamError("Apertus categorised no batch")
         return Categorisation(
             tagged_by_rule=tagged_by_rule,
             tagged_by_model=tagged_by_model,
@@ -71,7 +78,7 @@ class TransactionTagService:
 
     async def _categorise_batch(
         self, rows: list[LedgerRow], semaphore: asyncio.Semaphore
-    ) -> list[tuple[LedgerRow, str, str]]:
+    ) -> list[tuple[LedgerRow, str, str]] | None:
         refs = {f"r{number}": row for number, row in enumerate(rows, start=1)}
         async with semaphore:
             try:
@@ -82,7 +89,7 @@ class TransactionTagService:
                     purpose="categorise_spending",
                 )
             except UpstreamError:
-                return []
+                return None
         # The first answer per ref counts; unknown refs and categories are dropped.
         answers: dict[str, str] = {}
         for answer in result.content.rows:

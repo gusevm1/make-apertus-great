@@ -263,16 +263,15 @@ async def test_unknown_ref_and_unknown_category_are_not_stored(
     assert {tag["category"] for tag in tags.values()} == {"groceries", "loan_leasing"}
 
 
-async def test_a_failed_batch_leaves_its_rows_untagged(
+async def test_a_categorisation_where_every_batch_failed_is_an_error(
     lukas: httpx2.AsyncClient, apertus: FakeApertus
 ) -> None:
     apertus.status = 500
 
     response = await lukas.post("/api/categorisations")
 
-    assert response.status_code == 201
-    assert response.json()["tagged_by_model"] == 0
-    assert response.json()["skipped"] == 4
+    assert response.status_code == 502
+    assert response.json()["error"] == "upstream_error"
     assert set(await _tags(api=lukas)) == {"BK-4"}
 
 
