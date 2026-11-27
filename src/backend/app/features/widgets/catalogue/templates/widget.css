@@ -42,6 +42,18 @@ th { font-weight: 500; font-size: 0.78rem; color: var(--muted); white-space: now
 td.num, th.num { text-align: right; white-space: nowrap; overflow-wrap: normal; }
 td.date { white-space: nowrap; overflow-wrap: normal; }
 tfoot td { font-weight: 700; border-bottom: 0; }
+/* Narrow: a row becomes a card, first column and amounts on top, the rest below with its name. */
+@media (max-width: 560px) {
+  .table-wrap table, .table-wrap tbody, .table-wrap tfoot { display: block; }
+  .table-wrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .table-wrap tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-auto-flow: dense; column-gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .table-wrap tfoot tr { border-bottom: 0; }
+  .table-wrap td { grid-column: 1; padding: 0; border: 0; }
+  .table-wrap td.num { grid-column: 2; }
+  .table-wrap td:empty { display: none; }
+  .table-wrap tbody td:not(:first-child):not(.num) { font-size: 0.82rem; color: var(--muted); }
+  .table-wrap tbody td:not(:first-child):not(.num)::before { content: attr(data-label) ": "; }
+}
 .cut-note { margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
 .list ul { list-style: none; margin: 0; padding: 0; }
 .list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }

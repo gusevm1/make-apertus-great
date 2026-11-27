@@ -25,7 +25,7 @@
     <tbody>
     {%- for r in n.rows %}
       <tr data-component="table-row" data-path="{{ r.path }}" data-values="{{ r.row_values }}" data-booking-ids="{{ r.booking_ids }}">
-        {%- for cell in r.cells %}<td{% if n.columns[loop.index0].numeric %} class="num"{% elif n.columns[loop.index0].date %} class="date"{% endif %}>{{ cell }}</td>{% endfor %}
+        {%- for cell in r.cells %}<td data-label="{{ n.columns[loop.index0].title }}"{% if n.columns[loop.index0].numeric %} class="num"{% elif n.columns[loop.index0].date %} class="date"{% endif %}>{{ cell }}</td>{% endfor %}
       </tr>
     {%- endfor %}
     </tbody>
