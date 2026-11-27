@@ -14,9 +14,10 @@ Five people and their agents work in parallel, so the conventions below matter m
   at runtime.
 - Customer data stays inside: nothing the customer types, uploads or owns goes to a service outside
   the stack in `starter/docker-compose.yml`, except the model gateway.
-- Web search is the one exception, and it is off by default. It only exists when `TAVILY_API_KEY`
-  is set, because it sends the search query to a service outside the bank. The technical report
-  has to list it in the data flow.
+- Web search is the one exception. It runs through our own SearXNG, exists only when `SEARXNG_URL`
+  is set, and sends the search query to search engines outside the bank. So every search waits
+  until the customer has read the query and allowed it in the page. The technical report has to
+  list it in the data flow.
 - Figures are never invented. The server computes every sum, date and comparison from the banking API;
   the model only chooses what to compute and words the result. Every figure can name its bookings.
 - Identity comes from the token the e-banking hands us. We build no login of our own.
@@ -169,6 +170,8 @@ add a card for it.
 - Their example TrustRoom: `TRUSTROOM_URL=http://localhost:3000 docker compose --profile example up -d`.
 - Model settings for local work: `.env` in the repo root with the three `LLM_*` variables.
 - Our Postgres (from `src/`): `docker compose up -d db`, on port 5433.
+- Web search (from `src/`): `docker compose up -d searxng`, on port 8089, and
+  `SEARXNG_URL=http://localhost:8089` in `src/backend/.env`. Without it the chat has no web search.
 - Backend (from `src/backend`): `uv run alembic upgrade head`, then
   `uv run uvicorn app.main:app --reload --port 8010`.
 - Frontend (from `src/frontend`, after `npm install`): `npm run dev`, on port 3000, which is where
