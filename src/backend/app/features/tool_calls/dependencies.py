@@ -23,6 +23,8 @@ from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.service import ToolCallService
 from app.features.web_search import tools as web_search_tools
 from app.features.web_search.service import WebSearchService
+from app.features.widgets import tools as widget_tools
+from app.features.widgets.dependencies import WidgetServiceDep
 
 # One for the whole app: the stream that waits and the request that answers share it.
 CONFIRMATIONS = Confirmations()
@@ -45,6 +47,7 @@ def get_tools(
     documents: DocumentServiceDep,
     ledger: LedgerServiceDep,
     payments: PaymentServiceDep,
+    widgets: WidgetServiceDep,
     today: Annotated[date, Depends(get_today)],
 ) -> list[Tool[Any]]:
     # A feature whose tools read the customer's bank data adds its service dependency here.
@@ -53,6 +56,7 @@ def get_tools(
         *bank_data_tools.get_tools(service=bank_data, token=user.token),
         *document_tools.get_tools(service=documents, owner_id=user.id),
         *ledger_tools.get_tools(service=ledger, token=user.token, today=today),
+        *widget_tools.get_tools(service=widgets, owner_id=user.id),
         # Changes to the bank: each one waits for the customer's yes in the page.
         *payment_tools.get_tools(service=payments, token=user.token),
         # Web search sends the query outside the bank, so it needs SearXNG's address to exist.

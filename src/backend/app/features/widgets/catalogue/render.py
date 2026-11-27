@@ -40,6 +40,7 @@ from app.features.widgets.catalogue.values import (
     is_date,
     is_number,
     last_field,
+    row_label,
     rows,
 )
 
@@ -125,7 +126,7 @@ def _view(
     if isinstance(node, StatRow):
         stats = [
             _figure(path=stat.value, data=data)
-            | {"label": stat.label}
+            | {"label": _named(label=stat.label, row=row_label(path=stat.value, data=data))}
             | _trend_and_change(item=stat, data=data, form=form, charts=charts)
             for stat in node.stats
         ]
@@ -179,20 +180,31 @@ def _kpi(
 ) -> dict[str, Any]:
     view = {
         "type": node.type,
-        "label": node.label,
         **_figure(path=node.value, data=data),
+        "label": _named(label=node.label, row=row_label(path=node.value, data=data)),
         **_trend_and_change(item=node, data=data, form=form, charts=charts),
     }
     if node.compare is None:
         return view | {"compare_text": None}
     compare = _figure(path=node.compare, data=data)
+    # The compared row names itself; the model's words only stand in when the row has no name.
+    compare_label = row_label(path=node.compare, data=data)
+    if compare_label is None:
+        compare_label = node.compare_label if node.compare_label is not None else "Compared with"
     return view | {
         "compare_path": compare["path"],
         "compare_raw": compare["raw"],
         "compare_text": compare["text"],
         "compare_booking_ids": compare["booking_ids"],
-        "compare_label": node.compare_label if node.compare_label is not None else "Compared with",
+        "compare_label": compare_label,
     }
+
+
+def _named(label: str, row: str | None) -> str:
+    # "September" already names the row "Sep 2026"; "October" on "Jan 2026" shows both.
+    if row is None or row in label or label.lower().startswith(row.split()[0].lower()):
+        return label
+    return f"{label} · {row}"
 
 
 def _table(node: Table, data: dict[str, Any]) -> dict[str, Any]:

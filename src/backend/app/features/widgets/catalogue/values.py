@@ -8,6 +8,8 @@ _SEGMENT = re.compile(r"([A-Za-z_]\w*)(?:\[(\d+)\])?")
 # A whole value that is a date, optionally with a time; "2026-10-01 Migros" stays text.
 _DATE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:T[\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$")
 _MONTH = re.compile(r"^(\d{4})-(\d{2})$")
+# The fields that name a row, in the order they are looked for.
+ROW_LABEL_FIELDS = ("label", "month", "date", "counterparty", "payee", "group", "name")
 
 
 def resolve(path: str, data: dict[str, Any]) -> Any:
@@ -78,6 +80,18 @@ def booking_ids(path: str, data: dict[str, Any]) -> list[str]:
     if not isinstance(row, dict) or not isinstance(row.get("booking_ids"), list):
         return []
     return row["booking_ids"]
+
+
+def row_label(path: str, data: dict[str, Any]) -> str | None:
+    """What names the row a figure sits in, such as "Oct 2026" for months[5].total_chf."""
+    parent = path.rpartition(".")[0]
+    if parent == "":
+        return None
+    row = resolve(path=parent, data=data)
+    if not isinstance(row, dict):
+        return None
+    field = next((name for name in ROW_LABEL_FIELDS if isinstance(row.get(name), str)), None)
+    return None if field is None else display(field=field, value=row[field])
 
 
 def number(value: Any, decimals: int = 2) -> str:

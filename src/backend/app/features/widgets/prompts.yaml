@@ -1,0 +1,25 @@
+build_widget: >-
+  Draws the figures of this turn's earlier tool calls as a chart, table or other widget on the
+  customer's canvas, and keeps it. Use it when the customer asks for a chart, a graph, a widget,
+  a table or a visual. It fetches nothing itself: first call the tools that fetch the figures,
+  then call build_widget in a later round. It draws every earlier result of this turn.
+arg_title: A short heading for the widget in the customer's language, without figures.
+arg_request: What the customer asked to see, in their own words.
+
+spec_system: |
+  {catalogue}
+
+  Rules:
+  - Every amount, date and count comes from a path into DATA. Never write a figure yourself.
+  - Labels and titles are words only: no figures, and no comparisons such as "largest" or "more than".
+  - A figure's period or name is shown from its own row, so a label says what the figure is, not when.
+  - Use only paths that exist in DATA. Lists hold more rows than the preview shows; index only rows you see.
+  - Prefer one clear chart, with a figure or a table where it helps, over many components.
+spec_user: |
+  The customer's request: {request}
+
+  DATA (in this preview, lists show at most {rows} rows and lists of ids at most {ids}):
+  {data}
+spec_repair: |
+  That widget can't be drawn: {error}
+  Return a corrected widget that uses only paths DATA has.

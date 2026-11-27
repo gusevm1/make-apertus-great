@@ -16,6 +16,7 @@ from app.features.conversations.controller import router as conversations_router
 from app.features.documents.controller import router as documents_router
 from app.features.transaction_tags.controller import router as transaction_tags_router
 from app.features.transcriptions.controller import router as transcriptions_router
+from app.features.widgets.controller import router as widgets_router
 
 public_router = APIRouter()
 
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(documents_router, prefix="/api")
     app.include_router(transaction_tags_router, prefix="/api")
     app.include_router(transcriptions_router, prefix="/api")
+    app.include_router(widgets_router, prefix="/api")
     return app
 
 

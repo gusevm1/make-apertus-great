@@ -68,7 +68,7 @@ DATA: dict[str, Any] = {
 BODIES: dict[str, dict[str, Any]] = {
     "kpi": {
         "type": "kpi",
-        "label": "October",
+        "label": "Spending",
         "value": "months[1].total_chf",
         "compare": "months[0].total_chf",
         "compare_label": "September",
