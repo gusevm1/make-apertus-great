@@ -31,8 +31,8 @@ from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import (
     RequestToolCallConfirmationCreate,
     ToolCall,
-    ToolDecision,
     ToolRequest,
+    decision_schema,
 )
 
 MAX_TOOL_CALLS = 8
@@ -89,7 +89,9 @@ class ToolCallService:
         # Streamed, so the timeout counts the wait per chunk, not the whole answer.
         stream = self.apertus.stream_chat(
             messages=answer_prompt(
-                messages=dated_prompt(messages=messages, today=self.today), calls=calls
+                messages=dated_prompt(messages=messages, today=self.today),
+                calls=calls,
+                tools=list(self.tools.values()),
             ),
             model=ANSWER_MODEL,
             purpose=ANSWER_PURPOSE,
@@ -120,7 +122,9 @@ class ToolCallService:
             yield ToolResultEvent(id=step.id, result=step.result, error=step.error)
         stream = self.apertus.stream_chat(
             messages=answer_prompt(
-                messages=dated_prompt(messages=messages, today=self.today), calls=calls
+                messages=dated_prompt(messages=messages, today=self.today),
+                calls=calls,
+                tools=list(self.tools.values()),
             ),
             model=ANSWER_MODEL,
             purpose=ANSWER_PURPOSE,
@@ -164,7 +168,7 @@ class ToolCallService:
                     tools=list(self.tools.values()),
                     today=self.today,
                 ),
-                schema=ToolDecision,
+                schema=decision_schema(tools=list(self.tools.values())),
                 model=DECISION_MODEL,
                 purpose=DECISION_PURPOSE,
             )

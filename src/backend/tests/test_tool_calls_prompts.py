@@ -12,7 +12,7 @@ from app.features.tool_calls.prompts import (
     decision_prompt,
     question_language,
 )
-from app.features.tool_calls.schemas import ToolDecision, ToolRequest
+from app.features.tool_calls.schemas import ToolDecision, ToolRequest, decision_schema
 from tests.conftest import TODAY
 from tests.factories import make_conversation, make_message, make_tool_call
 from tests.lookup_tool import LOOKUP
@@ -58,7 +58,7 @@ async def test_answer_prompt_adds_results_and_cuts_long_ones(session: AsyncSessi
         result={"text": "x" * (TOOL_RESULT_MAX_CHARS * 2)},
     )
 
-    prompt = answer_prompt(messages=CHAT, calls=[call])
+    prompt = answer_prompt(messages=CHAT, calls=[call], tools=[LOOKUP])
 
     assert prompt[:2] == CHAT
     assert prompt[2]["role"] == "user"
@@ -83,7 +83,7 @@ async def test_answer_prompt_says_where_a_built_widget_is(
         error=error,
     )
 
-    content = answer_prompt(messages=CHAT, calls=[call])[2]["content"]
+    content = answer_prompt(messages=CHAT, calls=[call], tools=[LOOKUP])[2]["content"]
 
     assert isinstance(content, str)
     assert ("drawn on the canvas" in content) is says_canvas
@@ -100,7 +100,7 @@ async def test_answer_prompt_cuts_long_errors(session: AsyncSession) -> None:
         error="x" * (TOOL_RESULT_MAX_CHARS * 2),
     )
 
-    content = answer_prompt(messages=CHAT, calls=[call])[2]["content"]
+    content = answer_prompt(messages=CHAT, calls=[call], tools=[LOOKUP])[2]["content"]
 
     assert isinstance(content, str)
     assert content.count("x") <= TOOL_RESULT_MAX_CHARS
@@ -121,8 +121,8 @@ async def test_answer_prompt_names_the_question_language_over_german_results(
     question: Message = {"role": "user", "content": "How much did I pay to the Steueramt?"}
     greeting: Message = {"role": "user", "content": "Migros?"}
 
-    english = answer_prompt(messages=[CHAT[0], question], calls=[call])[-1]["content"]
-    unknown = answer_prompt(messages=[CHAT[0], greeting], calls=[call])[-1]["content"]
+    english = answer_prompt(messages=[CHAT[0], question], calls=[call], tools=[])[-1]["content"]
+    unknown = answer_prompt(messages=[CHAT[0], greeting], calls=[call], tools=[])[-1]["content"]
 
     assert isinstance(english, str)
     assert "Steueramt Kanton Zürich" in english
@@ -141,7 +141,7 @@ def test_answer_prompt_names_the_language_without_tool_calls() -> None:
         ],
     }
 
-    prompt = answer_prompt(messages=[CHAT[0], question], calls=[])
+    prompt = answer_prompt(messages=[CHAT[0], question], calls=[], tools=[LOOKUP])
 
     assert prompt[:2] == [CHAT[0], question]
     assert prompt[2]["role"] == "user"
@@ -150,6 +150,34 @@ def test_answer_prompt_names_the_language_without_tool_calls() -> None:
     assert "My question is written in English, so write the whole answer in English" in content
     assert "never state an account figure" in content
     assert "say that you cannot see it" in content
+
+
+async def test_answer_prompt_lists_what_the_turn_can_do(session: AsyncSession) -> None:
+    conversation = await make_conversation(session=session)
+    message = await make_message(session=session, conversation_id=conversation.id)
+    call = await make_tool_call(
+        session=session, conversation_id=conversation.id, message_id=message.id
+    )
+
+    direct = answer_prompt(messages=CHAT, calls=[], tools=[LOOKUP])[-1]["content"]
+    with_results = answer_prompt(messages=CHAT, calls=[call], tools=[LOOKUP])[-1]["content"]
+    nothing = answer_prompt(messages=CHAT, calls=[], tools=[])[-1]["content"]
+
+    assert isinstance(direct, str) and isinstance(with_results, str)
+    assert f"what you can do here: {LOOKUP.title}." in direct
+    assert f"what you can do here: {LOOKUP.title}." in with_results
+    assert isinstance(nothing, str)
+    assert LOOKUP.title not in nothing
+
+
+def test_decision_schema_names_only_the_turns_tools() -> None:
+    schema = decision_schema(tools=[LOOKUP])
+
+    request = schema.model_json_schema()["$defs"]["NamedToolRequest"]
+    assert request["properties"]["tool"]["enum"] == [LOOKUP.name, ""]
+    # Without guided decoding an unknown name still validates, so the loop tells the model.
+    decision = schema.model_validate({"plan": "x", "calls": [{"reason": "y", "tool": "nope"}]})
+    assert decision.calls[0].tool == "nope"
 
 
 @pytest.mark.parametrize(

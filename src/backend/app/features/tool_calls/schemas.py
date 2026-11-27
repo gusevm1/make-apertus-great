@@ -2,10 +2,11 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from app.core.prompts import load_prompts
 from app.core.provenance import Provenance
+from app.core.tools import Tool
 
 PROMPTS = load_prompts(prompts_py=__file__)
 
@@ -66,3 +67,19 @@ class ToolDecision(BaseModel):
         default_factory=list,
         description=PROMPTS["decision_calls"],
     )
+
+
+def decision_schema(tools: list[Tool[Any]]) -> type[ToolDecision]:
+    """`ToolDecision` whose JSON schema names only these tools, so the model cannot invent one."""
+    # The empty name stays allowed: the model writes it for "no call", and the loop skips it.
+    names: list[JsonValue] = [*(tool.name for tool in tools), ""]
+
+    class NamedToolRequest(ToolRequest):
+        tool: str = Field(description=PROMPTS["request_tool"], json_schema_extra={"enum": names})
+
+    class NamedToolDecision(ToolDecision):
+        calls: list[NamedToolRequest] = Field(  # pyright: ignore[reportIncompatibleVariableOverride]
+            default_factory=list, description=PROMPTS["decision_calls"]
+        )
+
+    return NamedToolDecision
