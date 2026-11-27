@@ -147,20 +147,28 @@ ACCOUNTS = [
 ]
 
 
-BOOKINGS = {
-    "items": [
-        {
-            "booking_id": "BK-00101",
-            "booking_date": "2026-10-30",
-            "amount": -212.1,
-            "counterparty_name": "Migros",
-            "counterparty_iban": None,
-        }
-    ],
-    "total": 51,
-    "sum_credit": 0.0,
-    "sum_debit": -989.6,
-}
+BOOKINGS = [
+    {
+        "booking_id": "BK-00101",
+        "account_id": "ACC-PRIV",
+        "booking_date": "2026-10-30",
+        "amount": -212.1,
+        "booking_text": "Kartenzahlung Debit Mastercard 30.10.2026 MIGROS",
+        "counterparty_name": "Migros",
+        "counterparty_iban": None,
+        "transaction_type": "debit_card",
+    },
+    {
+        "booking_id": "BK-00102",
+        "account_id": "ACC-PRIV",
+        "booking_date": "2026-10-28",
+        "amount": -2800.0,
+        "booking_text": "Dauerauftrag Wohnbau Sihlfeld AG",
+        "counterparty_name": "Wohnbau Sihlfeld AG",
+        "counterparty_iban": "CH93 0076 2011 6238 5295 7",
+        "transaction_type": "standing_order",
+    },
+]
 # The query strings the fake bank got for /bookings, newest last.
 BANKING_QUERIES: list[str] = []
 
@@ -179,7 +187,10 @@ def fake_banking_client() -> BankingClient:
             return httpx2.Response(201, json={"id": "DOC-0001"})
         if request.url.path == "/api/bookings":
             BANKING_QUERIES.append(str(request.url.query, "ascii"))
-            return httpx2.Response(200, json=BOOKINGS)
+            offset = int(request.url.params.get("offset", 0))
+            return httpx2.Response(200, json={"items": BOOKINGS[offset:], "total": len(BOOKINGS)})
+        if request.url.path in ("/api/cards", "/api/loan-transactions"):
+            return httpx2.Response(200, json={"items": []})
         if request.url.path == "/api/accounts/ACC-PRIV/balance-preview":
             return httpx2.Response(200, json={"account_id": "ACC-PRIV", "points": []})
         if request.url.path == "/api/accounts":

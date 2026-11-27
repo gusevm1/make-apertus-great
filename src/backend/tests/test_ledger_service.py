@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -10,6 +11,7 @@ from app.core.errors import BadRequestError
 from app.features.bank_data.service import BankDataService
 from app.features.bank_data.tools import get_tools
 from app.features.ledger import service as ledger_service
+from app.features.ledger.schemas import Filters, SearchMovementsArgs, SumByCounterpartyArgs
 from app.features.ledger.service import LedgerService
 
 TOKEN = "lukas-token"
@@ -205,3 +207,100 @@ async def test_an_id_of_dots_cannot_climb_to_another_path(
         await preview.handler(preview.args_schema(account_id=".."))
 
     assert pages_read == []
+
+
+async def test_a_card_purchase_and_the_bill_that_pays_it_count_once(ledger: LedgerService) -> None:
+    found = await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs())
+    bills = await ledger.search_movements(
+        token=TOKEN, args=SearchMovementsArgs(kind=["card_settlement"])
+    )
+
+    assert sorted(found.row_ids) == ["BK-1", "BK-2", "BK-4", "BK-8", "CTX-1", "CTX-2"]
+    assert (found.money_out_chf, found.money_in_chf) == (Decimal("-3281.81"), Decimal("8190.0"))
+    assert bills.row_ids == ["BK-5"]
+
+
+async def test_text_matches_any_word_and_amounts_have_no_sign(ledger: LedgerService) -> None:
+    shops = await ledger.search_movements(
+        token=TOKEN, args=SearchMovementsArgs(text=["DROPBOX", "zalando"])
+    )
+    large = await ledger.search_movements(
+        token=TOKEN, args=SearchMovementsArgs(amount_min=Decimal(900), sort="largest")
+    )
+
+    assert sorted(shops.row_ids) == ["CTX-1", "CTX-2"]
+    assert [row.id for row in large.rows] == ["BK-1", "BK-4", "BK-8"]
+
+
+async def test_only_the_limit_is_listed_but_the_sums_cover_all(ledger: LedgerService) -> None:
+    found = await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs(limit=2))
+
+    assert (len(found.rows), found.rows_not_listed, found.count) == (2, 4, 6)
+    assert found.money_out_chf == Decimal("-3281.81")
+
+
+async def test_every_month_of_the_period_is_listed_also_without_a_match(
+    ledger: LedgerService,
+) -> None:
+    filters = Filters(date_from=date(2026, 8, 1), date_to=date(2026, 10, 31), kind=["spending"])
+
+    sums = await ledger.sum_by_month(token=TOKEN, filters=filters)
+
+    assert [(month.month, month.count) for month in sums.months] == [
+        ("2026-08", 0),
+        ("2026-09", 0),
+        ("2026-10", 4),
+    ]
+    assert sums.months[2].money_out_chf == Decimal("-3281.81")
+    assert sorted(sums.row_ids["2026-10"]) == ["BK-2", "BK-4", "BK-8", "CTX-1"]
+
+
+async def test_the_largest_counterparties_come_first_and_the_rest_is_one_group(
+    ledger: LedgerService,
+) -> None:
+    args = SumByCounterpartyArgs(kind=["spending"], limit=2)
+
+    sums = await ledger.sum_by_counterparty(token=TOKEN, args=args)
+
+    assert [group.money_out_chf for group in sums.counterparties] == [
+        Decimal("-2140.0"),
+        Decimal("-918.75"),
+    ]
+    assert sums.others is not None
+    assert (sums.others.count, sums.others.money_out_chf) == (2, Decimal("-223.06"))
+
+
+async def test_three_tools_in_one_turn_read_the_bank_once(
+    ledger: LedgerService,
+    pages_read: list[str],
+) -> None:
+    await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs())
+    await ledger.sum_by_month(token=TOKEN, filters=Filters())
+    await ledger.sum_by_counterparty(token=TOKEN, args=SumByCounterpartyArgs())
+
+    assert pages_read == ["bookings offset=0", "card offset=0"]
+
+
+async def test_a_word_no_movement_contains_asks_for_names(ledger: LedgerService) -> None:
+    with pytest.raises(BadRequestError, match="sum_by_counterparty"):
+        await ledger.search_movements(
+            token=TOKEN, args=SearchMovementsArgs.model_validate({"text": "online shops"})
+        )
+
+
+async def test_a_word_from_another_period_is_a_real_zero(ledger: LedgerService) -> None:
+    args = SearchMovementsArgs(text=["Dropbox"], date_from=date(2026, 11, 1))
+
+    found = await ledger.search_movements(token=TOKEN, args=args)
+
+    assert (found.count, found.money_out_chf) == (0, Decimal(0))
+
+
+async def test_words_match_at_a_word_start_and_a_bar_separates_them(ledger: LedgerService) -> None:
+    found = await ledger.search_movements(
+        token=TOKEN, args=SearchMovementsArgs.model_validate({"text": "zal|drop"})
+    )
+
+    assert sorted(found.row_ids) == ["CTX-1", "CTX-2"]
+    with pytest.raises(BadRequestError):
+        await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs(text=["ando"]))

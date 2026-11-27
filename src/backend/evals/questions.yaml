@@ -11,3 +11,22 @@
 #   calls:
 #     - tool: list_accounts
 #   not_called: [search_web]
+
+- question: How much did I spend at online shops last month?
+  calls:
+    - tool: search_movements
+      arguments:
+        date_from: "2026-10-01"
+        date_to: "2026-10-31"
+  not_called: [list_bookings, list_card_transactions]
+- question: Did I pay my rent in each of the last 3 months?
+  calls:
+    - tool: sum_by_month
+      arguments:
+        date_from: "2026-(08|09)-01"
+        date_to: '2026-(10-31|11-\d\d)'
+- question: Can you show me my monthly spending over the last 6 months?
+  calls:
+    - tool: sum_by_month
+      arguments:
+        date_from: "2026-(05|06)-01"

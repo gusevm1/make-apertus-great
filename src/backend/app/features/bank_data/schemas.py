@@ -1,5 +1,4 @@
 from datetime import date
-from decimal import Decimal
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
@@ -52,16 +51,6 @@ class BalancePreviewArgs(Args):
     )
 
 
-class BookingsArgs(Period):
-    account: list[str] | None = Field(default=None, description=PROMPTS["account_id"])
-    text: str | None = Field(default=None, serialization_alias="q", description=PROMPTS["text"])
-    direction: Literal["credit", "debit"] | None = None
-    amount_min: Decimal | None = None
-    amount_max: Decimal | None = None
-    sort: Literal["booking_date", "-booking_date", "amount", "-amount"] | None = None
-    limit: int = Field(default=ROWS_DEFAULT, ge=1, le=ROWS_MAX, description=PROMPTS["limit"])
-
-
 class PaymentsArgs(Period):
     status: Literal["pending", "completed"] | None = None
     account: str | None = Field(default=None, description=PROMPTS["account_id"])
@@ -84,14 +73,6 @@ class StandingOrdersArgs(Args):
 
 class CardArgs(Args):
     card_id: str = Field(description=PROMPTS["card_id"])
-
-
-class CardTransactionsArgs(Period):
-    card_id: str = Field(description=PROMPTS["card_id"])
-    text: str | None = Field(default=None, serialization_alias="q", description=PROMPTS["text"])
-    amount_min: Decimal | None = None
-    amount_max: Decimal | None = None
-    limit: int = Field(default=ROWS_DEFAULT, ge=1, le=ROWS_MAX, description=PROMPTS["limit"])
 
 
 class PortfolioPerformanceArgs(Args):

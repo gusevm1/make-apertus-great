@@ -12,6 +12,7 @@ from app.features.accounts import tools as account_tools
 from app.features.accounts.dependencies import AccountServiceDep
 from app.features.bank_data import tools as bank_data_tools
 from app.features.bank_data.dependencies import BankDataServiceDep
+from app.features.ledger import tools as ledger_tools
 from app.features.ledger.dependencies import LedgerServiceDep
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
@@ -32,11 +33,13 @@ def get_tools(
     user: CurrentUserDep,
     accounts: AccountServiceDep,
     bank_data: BankDataServiceDep,
+    ledger: LedgerServiceDep,
 ) -> list[Tool[Any]]:
     # A feature whose tools read the customer's bank data adds its service dependency here.
     return [
         *account_tools.get_tools(service=accounts, token=user.token),
         *bank_data_tools.get_tools(service=bank_data, token=user.token),
+        *ledger_tools.get_tools(service=ledger, token=user.token),
         # Web search sends the query outside the bank, so it needs SearXNG's address to exist.
         *(
             []

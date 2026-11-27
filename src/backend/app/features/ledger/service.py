@@ -1,4 +1,6 @@
 import re
+from collections import defaultdict
+from collections.abc import Iterable
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -6,10 +8,26 @@ from urllib.parse import quote
 
 from app.clients.banking import BankingClient
 from app.core.errors import BadRequestError
-from app.features.ledger.schemas import Kind, LedgerRow
+from app.core.prompts import load_prompts
+from app.features.ledger.schemas import (
+    CounterpartySum,
+    CounterpartySums,
+    Filters,
+    Kind,
+    LedgerRow,
+    MonthSum,
+    MonthSums,
+    Movement,
+    MovementSearch,
+    SearchMovementsArgs,
+    SumByCounterpartyArgs,
+)
 
+PROMPTS = load_prompts(prompts_py=__file__)
 PAGE_SIZE = 1000  # the banking API's maximum
 OWN_TRANSFER_TYPES = {"account_transfer", "securities_buy"}
+# Without a kind, nothing counts twice: no move between own accounts, no card bill.
+COUNTED_KINDS: set[Kind] = {"spending", "credit"}
 # Every path the model's tools may read; `{}` is one segment. Nothing here changes the bank.
 READ_PATHS = [
     "/customer",
@@ -42,6 +60,8 @@ _READ_PATTERNS = [
 class LedgerService:
     def __init__(self, banking: BankingClient) -> None:
         self.banking = banking
+        # One instance per request, so a turn with several ledger tools reads the bank once.
+        self._rows: dict[str, list[LedgerRow]] = {}
 
     async def read(self, path: str, token: str, params: dict[str, Any] | None = None) -> Any:
         """One read from the banking API as the customer, only on a path of `READ_PATHS`."""
@@ -56,6 +76,87 @@ class LedgerService:
 
     async def list_rows(self, token: str) -> list[LedgerRow]:
         """Every booking and credit card purchase of the customer, oldest first."""
+        if token not in self._rows:
+            self._rows[token] = await self._read_rows(token=token)
+        return self._rows[token]
+
+    async def search_movements(self, token: str, args: SearchMovementsArgs) -> MovementSearch:
+        """The rows that match, with their count and sums, newest or largest first."""
+        rows = await self._matching(token=token, filters=args)
+        if args.sort == "largest":
+            listed = sorted(rows, key=lambda row: abs(row.amount_chf), reverse=True)
+        else:
+            listed = sorted(rows, key=lambda row: (row.date, row.id), reverse=args.sort == "newest")
+        listed = listed[: args.limit]
+        out, received = _sums(rows=rows)
+        return MovementSearch(
+            count=len(rows),
+            money_out_chf=out,
+            money_in_chf=received,
+            rows=[Movement.model_validate(row, from_attributes=True) for row in listed],
+            rows_not_listed=len(rows) - len(listed),
+            row_ids=[row.id for row in rows],
+        )
+
+    async def sum_by_month(self, token: str, filters: Filters) -> MonthSums:
+        """One sum per month of the period, a month without a match as 0."""
+        rows = await self._matching(token=token, filters=filters)
+        everything = await self.list_rows(token=token)
+        by_month: dict[str, list[LedgerRow]] = defaultdict(list)
+        for row in rows:
+            by_month[row.date.strftime("%Y-%m")].append(row)
+        months = _months(filters=filters, rows=everything)
+        out, received = _sums(rows=rows)
+        return MonthSums(
+            count=len(rows),
+            money_out_chf=out,
+            money_in_chf=received,
+            months=[_month_sum(month=month, rows=by_month[month]) for month in months],
+            row_ids={month: [row.id for row in by_month[month]] for month in months},
+        )
+
+    async def sum_by_counterparty(
+        self, token: str, args: SumByCounterpartyArgs
+    ) -> CounterpartySums:
+        """The counterparties with the largest sums, and the rest as one group."""
+        rows = await self._matching(token=token, filters=args)
+        by_counterparty: dict[str, list[LedgerRow]] = defaultdict(list)
+        for row in rows:
+            by_counterparty[row.counterparty or row.text].append(row)
+        groups = sorted(
+            (
+                _counterparty_sum(counterparty=name, rows=group)
+                for name, group in by_counterparty.items()
+            ),
+            key=lambda group: group.money_in_chf - group.money_out_chf,
+            reverse=True,
+        )
+        top, rest = groups[: args.limit], groups[args.limit :]
+        rest_rows = [row for group in rest for row in by_counterparty[group.counterparty]]
+        out, received = _sums(rows=rows)
+        return CounterpartySums(
+            count=len(rows),
+            money_out_chf=out,
+            money_in_chf=received,
+            counterparties=top,
+            others=None if not rest else _counterparty_sum(counterparty="others", rows=rest_rows),
+            row_ids={
+                group.counterparty: [row.id for row in by_counterparty[group.counterparty]]
+                for group in top
+            },
+        )
+
+    async def _matching(self, token: str, filters: Filters) -> list[LedgerRow]:
+        rows = await self.list_rows(token=token)
+        # A word no movement contains is a category the model made up, not an empty period.
+        if filters.text is not None and not any(
+            _has_words(row=row, words=filters.text) for row in rows
+        ):
+            words = ", ".join(f'"{word}"' for word in filters.text)
+            raise BadRequestError(PROMPTS["text_not_found"].format(words=words))
+        return [row for row in rows if _matches(row=row, filters=filters)]
+
+    async def _read_rows(self, token: str) -> list[LedgerRow]:
         accounts = await self.read(path="/accounts", token=token)
         own_ibans = {_compact(iban=account["iban"]) for account in accounts["items"]}
         charges = await self.read(path="/loan-transactions", token=token)
@@ -92,6 +193,60 @@ class LedgerService:
             items += page["items"]
             if len(items) >= page["total"] or not page["items"]:
                 return items
+
+
+def _matches(row: LedgerRow, filters: Filters) -> bool:
+    kinds = COUNTED_KINDS if filters.kind is None else set(filters.kind)
+    amount = abs(row.amount_chf)
+    checks = [
+        row.kind in kinds,
+        filters.date_from is None or row.date >= filters.date_from,
+        filters.date_to is None or row.date <= filters.date_to,
+        filters.text is None or _has_words(row=row, words=filters.text),
+        filters.account_id is None or row.account_id == filters.account_id,
+        filters.card_id is None or row.card_id == filters.card_id,
+        filters.amount_min is None or amount >= filters.amount_min,
+        filters.amount_max is None or amount <= filters.amount_max,
+    ]
+    return all(checks)
+
+
+def _has_words(row: LedgerRow, words: list[str]) -> bool:
+    # At the start of a word, so "rent" does not find "Parentis".
+    searched = f"{row.text} {row.counterparty or ''}"
+    return any(re.search(rf"\b{re.escape(word)}", searched, re.IGNORECASE) for word in words)
+
+
+def _sums(rows: Iterable[LedgerRow]) -> tuple[Decimal, Decimal]:
+    amounts = [row.amount_chf for row in rows]
+    out = sum((amount for amount in amounts if amount < 0), Decimal(0))
+    received = sum((amount for amount in amounts if amount > 0), Decimal(0))
+    return out, received
+
+
+def _counterparty_sum(counterparty: str, rows: list[LedgerRow]) -> CounterpartySum:
+    out, received = _sums(rows=rows)
+    return CounterpartySum(
+        counterparty=counterparty, count=len(rows), money_out_chf=out, money_in_chf=received
+    )
+
+
+def _month_sum(month: str, rows: list[LedgerRow]) -> MonthSum:
+    out, received = _sums(rows=rows)
+    return MonthSum(month=month, count=len(rows), money_out_chf=out, money_in_chf=received)
+
+
+def _months(filters: Filters, rows: list[LedgerRow]) -> list[str]:
+    # Without a period, from the first to the last row of the ledger.
+    if not rows and (filters.date_from is None or filters.date_to is None):
+        return []
+    first = rows[0].date if filters.date_from is None else filters.date_from
+    last = rows[-1].date if filters.date_to is None else filters.date_to
+    months, year, month = [], first.year, first.month
+    while (year, month) <= (last.year, last.month):
+        months.append(f"{year:04d}-{month:02d}")
+        year, month = (year + 1, 1) if month == 12 else (year, month + 1)
+    return months
 
 
 def _booking_row(

@@ -10,9 +10,7 @@ from app.core.tools import Tool
 from app.features.bank_data.schemas import (
     BalancePreviewArgs,
     BankData,
-    BookingsArgs,
     CardArgs,
-    CardTransactionsArgs,
     FxRatesArgs,
     LoanTransactionsArgs,
     NoArgs,
@@ -58,13 +56,6 @@ READS = [
         args=BalancePreviewArgs,
     ),
     Read(
-        name="list_bookings",
-        title="Search your bookings",
-        icon="list",
-        path="/bookings",
-        args=BookingsArgs,
-    ),
-    Read(
         name="list_payments",
         title="Look at your payments",
         icon="send",
@@ -99,13 +90,6 @@ READS = [
         icon="receipt",
         path="/cards/{card_id}/statements",
         args=CardArgs,
-    ),
-    Read(
-        name="list_card_transactions",
-        title="Search your card purchases",
-        icon="shopping-bag",
-        path="/cards/{card_id}/transactions",
-        args=CardTransactionsArgs,
     ),
     Read(name="get_portfolio", title="Look at your portfolio", icon="pie-chart", path="/portfolio"),
     Read(

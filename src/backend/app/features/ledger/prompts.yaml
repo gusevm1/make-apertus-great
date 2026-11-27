@@ -1,0 +1,33 @@
+# One description per tool, then the arguments. Every tool counts the customer's ledger: all bookings
+# of all accounts and all credit card purchases, each money movement once. The server adds it up.
+search_movements: >-
+  Find the customer's money movements on all accounts and cards: date, amount in CHF (negative means
+  money out), text, counterparty and kind. Returns `count`, `money_out_chf` and `money_in_chf` over
+  ALL matching movements, even those not listed, so use those sums and never add up rows yourself.
+  Movements carry no category, so a category word such as "rent", "online shops" or "groceries" in
+  `text` finds nothing. Pass the names of the merchants or the landlord instead, and when you do not
+  know them, call sum_by_counterparty first to see who the customer pays. Use it for "how much did I
+  spend at Migros" or "show my largest payments".
+sum_by_month: >-
+  The customer's money movements added up per month: for each month of the period its `count`,
+  `money_out_chf` and `money_in_chf`, also months with no match, as 0. Takes the same filters as
+  search_movements, also the names in `text`. Use it for "my spending per month", "did I pay my rent
+  each month" (with the landlord's name) or "when did the child support come in".
+sum_by_counterparty: >-
+  The customer's money movements added up per counterparty, such as a shop, a landlord or a person,
+  the largest first (up to `limit`, 15 at most) and the rest as `others`. Takes the same filters as search_movements. Use it
+  for "where does my money go", and first when a question names a category instead of a merchant
+  (rent, online shops, insurance), to find the names to pass to the other tools.
+text_not_found: >-
+  No movement in the whole ledger contains {words}. Movements carry no category: call
+  sum_by_counterparty for the period to see who the customer pays, then search for those names.
+
+date_from: "First day of the period, as YYYY-MM-DD."
+date_to: "Last day of the period, as YYYY-MM-DD."
+text: "Words to look for in the text and the counterparty, such as merchant names. A movement matches when it contains any of them."
+kind: "Which kinds to count: spending (money out), credit (money in), own_transfer (between own accounts or into the depot), card_settlement (the bill of a credit card, whose purchases count already). Leave it out for spending and credit."
+account_id: "An account id from list_accounts, such as ACC-PRIV."
+card_id: "A card id from list_cards."
+amount_min: "Smallest amount in CHF, without a sign."
+amount_max: "Largest amount in CHF, without a sign."
+limit: "How many movements to list. The sums always cover all matching movements."

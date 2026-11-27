@@ -10,12 +10,6 @@ get_balance_preview: >-
   How one account's balance will develop from today until a date, day by day, with every payment
   that is already known (standing orders, pending payments). Use it for "will my account go negative"
   or "how much is left after my bills".
-list_bookings: >-
-  Booked transactions on the customer's accounts, newest first: date, amount (negative means money
-  out), booking text, counterparty and transaction type. Always returns `total` (how many bookings
-  match), `sum_credit` and `sum_debit` over ALL matching bookings, even those not listed, so use
-  those sums and never add up rows yourself. Bookings carry no category; filter by `text` to find a
-  merchant or a purpose such as rent.
 list_payments: >-
   Payments the customer entered: pending ones that are still due and completed ones, with payee,
   amount, execution date and message. Returns `sum_chf` over all matching payments.
@@ -34,9 +28,6 @@ list_cards: >-
 list_card_statements: >-
   The monthly statements of one credit card: period, total and due date. Take the card id from
   list_cards.
-list_card_transactions: >-
-  The purchases on one credit card: date, merchant, amount and original currency. Take the card id
-  from list_cards. Purchases with a debit card are bookings, not card transactions.
 get_portfolio: >-
   The customer's securities portfolio: total value, invested amount and the allocation by asset
   class, currency and region.
