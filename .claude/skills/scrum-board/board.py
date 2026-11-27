@@ -590,7 +590,7 @@ def add_problem(args: argparse.Namespace) -> str | None:
     missing += [f"--{flag}" for flag in ("priority", "size") if getattr(args, flag) is None]
     if len(missing) > 0:
         return f"board add needs: {', '.join(missing)}. Body template:\n\n{CARD_TEMPLATE}"
-    if TESTS in owned_paths(body=args.body):
+    if any(path in (TESTS, TESTS.removeprefix("src/")) for path in owned_paths(body=args.body)):
         return f"Owns names all of {TESTS}/: name the card's own test files instead."
     return None
 
@@ -982,6 +982,8 @@ def demo() -> None:
     finally:
         globals()["gh"], globals()["load_fields"] = real_gh, real_load_fields
     assert calls == [], calls
+    body = full_body.replace("## Owns", "## Owns\nbackend/tests/**")
+    assert add_problem(args=argparse.Namespace(body=body, priority="P1", size="S")) is not None
     for owns in ("", "src/backend/tests/test_x.py", "src/backend/tests/smoke/"):
         body = full_body.replace("## Owns", f"## Owns\n{owns}")
         assert add_problem(args=argparse.Namespace(body=body, priority="P1", size="S")) is None
