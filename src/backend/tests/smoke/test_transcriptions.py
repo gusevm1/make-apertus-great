@@ -19,7 +19,7 @@ def make_wav(seconds: float, rate: int = 16000) -> bytes:
     return buffer.getvalue()
 
 
-async def test_transcription_sends_the_audio_to_the_fast_model(
+async def test_transcription_sends_the_audio_to_the_smart_model(
     client: httpx2.AsyncClient, apertus: FakeApertus
 ) -> None:
     wav = make_wav(seconds=2)
@@ -30,10 +30,10 @@ async def test_transcription_sends_the_audio_to_the_fast_model(
     body = response.json()
     # The fake answers every call that sets a temperature with its tool decision.
     assert body["text"] == NO_TOOL_DECISION
-    assert body["model"] == "fake-fast"
+    assert body["model"] == "fake-smart"
     assert isinstance(body["latency_ms"], int)
     [request] = apertus.requests
-    assert request["model"] == "fake-fast"
+    assert request["model"] == "fake-smart"
     assert request["temperature"] == 0
     [message] = request["messages"]
     instruction, audio = message["content"]

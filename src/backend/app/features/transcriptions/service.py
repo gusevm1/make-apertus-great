@@ -29,7 +29,10 @@ class TranscriptionService:
                 f"Send at most {WAV_MAX_SECONDS} seconds."
             )
         result = await self.apertus.transcribe(
-            wav=wav, instruction=transcription_instruction(), model=Model.FAST, purpose="transcribe"
+            wav=wav,
+            instruction=transcription_instruction(),
+            model=Model.SMART,
+            purpose="transcribe",
         )
         return Transcription(
             text=result.content.strip(), model=result.model, latency_ms=result.latency_ms
