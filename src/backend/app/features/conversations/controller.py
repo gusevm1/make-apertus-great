@@ -102,11 +102,11 @@ async def create_message(
     """Send a message and get the reply, which may use tools; `?stream=true` streams it as SSE."""
     if stream:
         events = service.stream_message(
-            conversation_id=conversation.id, data=body, owner_id=user.id
+            conversation_id=conversation.id, data=body, owner_id=user.id, profile=user.profile
         )
         return sse_response(events=events, to_response=_message_response)
     message = await service.create_message(
-        conversation_id=conversation.id, data=body, owner_id=user.id
+        conversation_id=conversation.id, data=body, owner_id=user.id, profile=user.profile
     )
     return _message_response(message=message)
 

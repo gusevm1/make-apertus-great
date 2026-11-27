@@ -11,7 +11,7 @@ from app.features.tool_calls.schemas import ToolCall, ToolDecision
 PROMPTS = load_prompts(prompts_py=__file__)
 TOOL_RESULT_MAX_CHARS = 6000
 # The blocks `chat_prompt` puts in front of the question; their own text is escaped.
-BLOCK_END = re.compile(r"</(?:document|page|quote)>")
+BLOCK_END = re.compile(r"</(?:customer|document|page|quote)>")
 # ponytail: common words of four languages, ask the model once other languages matter
 COMMON_WORDS = {
     language: set(words.split())
