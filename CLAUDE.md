@@ -28,6 +28,17 @@ Five people and their agents work in parallel, so the conventions below matter m
 - `prod` holds stable versions. It only moves by promoting a commit of `main` that a human picked.
   Agents never push to `prod`.
 
+## Deployment
+
+- A push to `prod` deploys, and nothing else does. The Deploy workflow builds the backend image, swaps
+  it in on the EC2 box without downtime and then builds both pages on Vercel.
+- The e-banking is at https://ebanking-apertus.vercel.app, our page at
+  https://trustroom-apertus.vercel.app. Both forward `/api` to the box.
+- The box (`13.62.249.16`, Maxim's AWS account) runs `src/deploy/docker-compose.yml` in
+  `/opt/trustroom`. Its `.env` holds the `LLM_*` values and exists only there.
+- Vercel cuts a forwarded request after 120 s, so no endpoint may take longer without streaming.
+- Roll back on the box: `bash /opt/trustroom/remote-deploy.sh ghcr.io/gusevm1/trustroom-backend:sha-<earlier commit>`.
+
 ## Board
 
 The [board](https://github.com/users/gusevm1/projects/4) is the single source of truth for what gets
@@ -70,7 +81,7 @@ Before prose goes to a person (a card, a PR body, a commit message, docs, the re
 **Layers:** controller → service → repository, one set per feature in `app/features/<name>/`.
 
 - **Controllers only translate HTTP:** call one service method and map to `ResponseX`. No business logic.
-- **Services hold the logic.** They may call their own repository, `app/clients/`, and other features' *services*, never another feature's repository. If two features need each other, move the shared logic into its own feature.
+- **Services hold the logic.** They may call their own repository, `app/clients/`, and other features' _services_, never another feature's repository. If two features need each other, move the shared logic into its own feature.
 - **Repositories are the only layer that touches the DB.** They inherit `BaseRepository`, commit on write, and return Pydantic domain models, never ORM objects.
 
 **ORM style:** SQLAlchemy 2.0 typed mappings only (`title: Mapped[str | None]`, `mapped_column(...)`), never legacy `Column(...)`. Nullability comes from the type. Don't add `relationship()`; query by foreign key in the repository.
@@ -84,6 +95,7 @@ Before prose goes to a person (a card, a PR body, a commit message, docs, the re
 **Data lifecycle:** child tables use `ondelete="CASCADE"` (or explicit cleanup). New `NOT NULL` columns on existing tables need a `server_default`. Ingest scripts are idempotent (upsert by natural key), so re-running after a partial failure is safe. **Migrations:** `uv run alembic revision --autogenerate -m "..."`, then read the file. If `alembic heads` shows more than one head after a merge, point your migration's `down_revision` at the other head (don't edit merged migrations).
 
 **Apertus calls:**
+
 - Always go through `ApertusClient` in `app/clients/apertus.py` (`chat`, `stream_chat`, `structured`), injected as `ApertusClientDep`. Never import `openai` elsewhere.
 - Pass `model=Model.SMART | Model.FAST` (never model strings) and a `purpose="..."` label. The default is `SMART` until evals say otherwise.
 - The client returns `LLMResult` (`content`, `model`, `latency_ms`, tokens). LLM-generated resources store **provenance**: `model`, `latency_ms`, `sources`, `checks`, shown in the UI.
