@@ -7,14 +7,6 @@ export interface Visual {
   html: string;
 }
 
-/** What the customer clicked in a widget, as the widget's bridge reports it. */
-export interface Selection {
-  component: string;
-  path: string;
-  label: string | null;
-  value: number | null;
-}
-
 export const EXAMPLE_QUESTIONS = [
   "Show my monthly spending over the last 6 months as a chart",
   "Create a widget listing the payments due in the next 30 days",
@@ -26,48 +18,22 @@ export function Canvas({
   visual,
   isBusy,
   onAsk,
-  onSelect,
 }: {
   visual: Visual | null;
   isBusy: boolean;
   onAsk: (question: string) => void;
-  onSelect: (selection: Selection) => void;
 }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(FRAME_HEIGHT_DEFAULT);
 
-  // Only our own frame may resize itself or report a click; the frame's content is untrusted.
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
-      const frame = frameRef.current;
-      if (frame === null || event.source !== frame.contentWindow) return;
-      const message: unknown = event.data;
-      if (!isRecord(message) || message.source !== "trustroom-widget") return;
-      if (
-        message.type === "widget-height" &&
-        typeof message.height === "number"
-      )
-        setHeight(
-          Math.min(
-            Math.max(message.height, FRAME_HEIGHT_MIN),
-            FRAME_HEIGHT_MAX,
-          ),
-        );
-      if (
-        message.type === "widget-select" &&
-        typeof message.component === "string" &&
-        typeof message.path === "string"
-      )
-        onSelect({
-          component: message.component,
-          path: message.path,
-          label: typeof message.label === "string" ? message.label : null,
-          value: typeof message.value === "number" ? message.value : null,
-        });
+      const next = frameHeightOf(event, frameRef.current?.contentWindow);
+      if (next !== null) setHeight(next);
     }
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onSelect]);
+  }, []);
 
   if (visual === null) {
     return (
@@ -110,18 +76,34 @@ export function Canvas({
   );
 }
 
-/** The selected part as the chip above the input shows it, e.g. "Oct 2026 · 10'598.77". */
-export function selectionText(selection: Selection): string {
-  const name = selection.label ?? selection.path;
-  if (selection.value === null) return name;
-  const value = selection.value.toLocaleString("de-CH", {
-    maximumFractionDigits: 2,
-  });
-  return `${name} · ${value}`;
+export type View = "chat" | "visual";
+
+/** The view a narrow frame shows: a question waiting for an answer, or an error, always shows the chat. */
+export function shownViewOf({
+  view,
+  isWaiting,
+  hasError,
+}: {
+  view: View;
+  isWaiting: boolean;
+  hasError: boolean;
+}): View {
+  return isWaiting || hasError ? "chat" : view;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+/** The frame's new height from a widget's message, or null; only our own frame may resize itself. */
+export function frameHeightOf(
+  event: Pick<MessageEvent, "source" | "data">,
+  frameWindow: Window | null | undefined,
+): number | null {
+  if (frameWindow === null || frameWindow === undefined) return null;
+  if (event.source !== frameWindow) return null;
+  const message: unknown = event.data;
+  if (typeof message !== "object" || message === null) return null;
+  const { source, type, height } = message as Record<string, unknown>;
+  if (source !== "trustroom-widget" || type !== "widget-height") return null;
+  if (typeof height !== "number" || !Number.isFinite(height)) return null;
+  return Math.min(Math.max(height, FRAME_HEIGHT_MIN), FRAME_HEIGHT_MAX);
 }
 
 const FRAME_HEIGHT_DEFAULT = 320;

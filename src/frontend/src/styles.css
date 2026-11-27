@@ -171,6 +171,10 @@ main,
     display: grid;
   }
 
+  .layout[data-has-visual="true"] .home-chats {
+    display: block;
+  }
+
   /* In a wide page the title sits on the chat's column instead of a bar across the page. */
   main .thread-bar {
     width: 100%;
@@ -842,6 +846,10 @@ main,
   font-size: 18px;
 }
 
+.canvas .row {
+  min-height: 44px;
+}
+
 .canvas iframe {
   display: block;
   width: 100%;
@@ -862,12 +870,6 @@ main,
     opacity: 0;
     transform: translateY(4px);
   }
-}
-
-.attached .selection {
-  font-weight: 600;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
 }
 
 /* Out of sight, but still reachable with the keyboard. */

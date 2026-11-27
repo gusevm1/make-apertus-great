@@ -3,7 +3,8 @@ import { expect, test } from "vitest";
 import {
   Canvas,
   EXAMPLE_QUESTIONS,
-  selectionText,
+  frameHeightOf,
+  shownViewOf,
   type Visual,
 } from "./Canvas";
 
@@ -14,12 +15,7 @@ const SAMPLE: Visual = {
 
 function html(visual: Visual | null) {
   return renderToStaticMarkup(
-    <Canvas
-      visual={visual}
-      isBusy={false}
-      onAsk={() => undefined}
-      onSelect={() => undefined}
-    />,
+    <Canvas visual={visual} isBusy={false} onAsk={() => undefined} />,
   );
 }
 
@@ -44,21 +40,49 @@ test("shows the widget page in a sandboxed frame, never as HTML in the page", ()
   expect(output).not.toContain("<p>CHF");
 });
 
-test("names the selected part with its value the Swiss way", () => {
+test("only our own frame resizes itself, to a finite and bounded height", () => {
+  const frame = {} as Window;
+  const other = {} as Window;
+  const message = (height: unknown) => ({
+    source: "trustroom-widget",
+    type: "widget-height",
+    height,
+  });
+
+  expect(frameHeightOf({ source: frame, data: message(240) }, frame)).toBe(240);
+  expect(frameHeightOf({ source: frame, data: message(10) }, frame)).toBe(80);
+  expect(frameHeightOf({ source: frame, data: message(9999) }, frame)).toBe(
+    2000,
+  );
+  expect(frameHeightOf({ source: other, data: message(240) }, frame)).toBe(
+    null,
+  );
+  expect(frameHeightOf({ source: frame, data: message(Infinity) }, frame)).toBe(
+    null,
+  );
+  expect(frameHeightOf({ source: frame, data: message(NaN) }, frame)).toBe(
+    null,
+  );
+  expect(frameHeightOf({ source: frame, data: message(240) }, null)).toBe(null);
   expect(
-    selectionText({
-      component: "bar_chart",
-      path: "months[5]",
-      label: "Oct 2026",
-      value: 10598.77,
-    }),
-  ).toBe("Oct 2026 · 10'598.77");
+    frameHeightOf(
+      { source: frame, data: { type: "widget-height", height: 240 } },
+      frame,
+    ),
+  ).toBe(null);
+});
+
+test("a waiting question or an error shows the chat in a narrow frame", () => {
   expect(
-    selectionText({
-      component: "table",
-      path: "payments[2]",
-      label: null,
-      value: null,
-    }),
-  ).toBe("payments[2]");
+    shownViewOf({ view: "visual", isWaiting: false, hasError: false }),
+  ).toBe("visual");
+  expect(
+    shownViewOf({ view: "visual", isWaiting: true, hasError: false }),
+  ).toBe("chat");
+  expect(
+    shownViewOf({ view: "visual", isWaiting: false, hasError: true }),
+  ).toBe("chat");
+  expect(shownViewOf({ view: "chat", isWaiting: false, hasError: false })).toBe(
+    "chat",
+  );
 });

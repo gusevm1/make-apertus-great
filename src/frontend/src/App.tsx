@@ -15,7 +15,7 @@ import {
   type ToolCall,
 } from "./api";
 import { type HostContext, useHostContext } from "./host";
-import { Canvas, type Selection, selectionText, type Visual } from "./Canvas";
+import { Canvas, shownViewOf, type View, type Visual } from "./Canvas";
 import { Confirmation } from "./Confirmation";
 import { ChatList, type ChatListProps, Home } from "./Home";
 import { Icon } from "./Icon";
@@ -50,10 +50,10 @@ function Chat({ context }: { context: HostContext }) {
   const [isUploading, setIsUploading] = useState(false);
   // Filled once widgets exist (#25); until then the canvas shows its empty state.
   const [visual] = useState<Visual | null>(null);
-  const [selection, setSelection] = useState<Selection | null>(null);
   // In a narrow frame one view at a time; wider, the CSS shows both and ignores this.
-  const [view, setView] = useState<"chat" | "visual">("chat");
+  const [view, setView] = useState<View>("chat");
   const chatRef = useRef<HTMLElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isFollowing = useRef(true);
   const lastScrollTop = useRef(0);
   const stream = useStream<Message>();
@@ -75,10 +75,6 @@ function Chat({ context }: { context: HostContext }) {
   }
 
   const isHome = conversationId === null && pending === null;
-
-  useEffect(() => {
-    if (visual !== null) setView("visual");
-  }, [visual]);
 
   // The chat follows new text until the customer scrolls up, and again once they are back down.
   // The home starts at its top.
@@ -127,6 +123,9 @@ function Chat({ context }: { context: HostContext }) {
 
   async function ask(content: string) {
     if (content === "" || stream.status === "streaming") return;
+    // The answer streams into the chat, so a narrow frame shows the chat.
+    setView("chat");
+    inputRef.current?.focus();
     const documents = attached;
     isFollowing.current = true;
     // A suggestion from the home leaves a typed draft in the input.
@@ -265,6 +264,15 @@ function Chat({ context }: { context: HostContext }) {
       {error}
     </p>
   );
+  const shownView = shownViewOf({
+    view,
+    isWaiting: waitingCalls.length > 0,
+    hasError: error !== null,
+  });
+  const isChatForced = shownView !== view;
+  useEffect(() => {
+    if (isChatForced) inputRef.current?.focus();
+  }, [isChatForced]);
   const chats: ChatListProps = {
     conversations,
     currentId: conversationId,
@@ -277,21 +285,20 @@ function Chat({ context }: { context: HostContext }) {
     <div className="trustroom">
       <div
         className="layout"
-        // A question waiting for the customer's answer always shows, even from the visual.
-        data-view={waitingCalls.length > 0 ? "chat" : view}
+        data-view={shownView}
         data-has-visual={visual !== null}
       >
         <div className="switch" role="group" aria-label="Show">
           <button
             type="button"
-            aria-pressed={view === "chat"}
+            aria-pressed={shownView === "chat"}
             onClick={() => setView("chat")}
           >
             Chat
           </button>
           <button
             type="button"
-            aria-pressed={view === "visual"}
+            aria-pressed={shownView === "visual"}
             onClick={() => setView("visual")}
           >
             Visual
@@ -309,11 +316,7 @@ function Chat({ context }: { context: HostContext }) {
           <Canvas
             visual={visual}
             isBusy={isBusy}
-            onAsk={(text) => {
-              setView("chat");
-              void ask(text);
-            }}
-            onSelect={setSelection}
+            onAsk={(text) => void ask(text)}
           />
         </div>
 
@@ -398,22 +401,13 @@ function Chat({ context }: { context: HostContext }) {
         </main>
 
         {/* Outside main, so the input stays at the bottom when the visual takes a narrow frame. */}
-        <form className="composer" onSubmit={handleSubmit}>
-          {(attached.length > 0 || isUploading || selection !== null) && (
+        <form
+          className="composer"
+          aria-label="Ask TrustRoom"
+          onSubmit={handleSubmit}
+        >
+          {(attached.length > 0 || isUploading) && (
             <ul className="attached">
-              {selection !== null && (
-                <li className="selection">
-                  <span>{selectionText(selection)}</span>
-                  <button
-                    type="button"
-                    className="icon"
-                    aria-label="Remove the selected part"
-                    onClick={() => setSelection(null)}
-                  >
-                    <Icon name="close" size={12} />
-                  </button>
-                </li>
-              )}
               {attached.map((document) => (
                 <li key={document.id}>
                   <Icon name="file" size={14} />
@@ -450,6 +444,7 @@ function Chat({ context }: { context: HostContext }) {
               />
             </label>
             <input
+              ref={inputRef}
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               placeholder={placeholderOf(voice.phase, waitingCalls.length > 0)}
