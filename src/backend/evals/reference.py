@@ -1,4 +1,4 @@
-"""Expected answers to the four core questions per demo customer, computed from the seed CSVs."""
+"""Expected answers to the reference questions per demo customer, computed from the seed CSVs."""
 
 import csv
 import re
@@ -20,6 +20,9 @@ LAST_MONTH = "2026-10"
 RENT_MONTHS = ["2026-08", "2026-09", "2026-10", "2026-11"]
 SPENDING_MONTHS = ["2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"]
 DUE_FROM, DUE_TO = "2026-11-27", "2026-12-26"
+TODAY = "2026-11-27"
+SALARY_MONTH = "2026-11"
+INTEREST_YEAR = "2025"
 # Online shops and marketplaces; IKEA and Interdiscount count only for their online orders.
 ONLINE_SHOPS = re.compile(
     r"galaxus|digitec|microspot|brack|zalando|amazon|aliexpress|etsy|blacksocks|ricardo|vinted"
@@ -161,6 +164,59 @@ def due_payments(folder: Path) -> Answer:
     )
 
 
+def salary(folder: Path) -> Answer:
+    paid = [
+        row
+        for row in read_rows(folder=folder, name="bookings")
+        if row["transaction_type"] == "salary" and row["booking_date"].startswith(SALARY_MONTH)
+    ]
+    return Answer(
+        question=f"Salary booked in {SALARY_MONTH}, to compare with the payslip",
+        figure=", ".join(
+            f"{chf(amount=Decimal(row['amount']))} on {row['booking_date']}" for row in paid
+        )
+        or "none",
+        ids=[row["booking_id"] for row in paid],
+    )
+
+
+def savings(folder: Path) -> Answer:
+    accounts = [
+        row for row in read_rows(folder=folder, name="accounts") if row["type"] == "savings"
+    ]
+    total = sum((Decimal(row["current_balance"]) for row in accounts), Decimal(0))
+    balances = ", ".join(
+        f"{row['name']} {chf(amount=Decimal(row['current_balance']))}" for row in accounts
+    )
+    return Answer(
+        question="Savings accounts today",
+        figure=f"{chf(amount=total)} in all: {balances}",
+        ids=[row["account_id"] for row in accounts],
+    )
+
+
+def mortgage(folder: Path) -> Answer:
+    interest = [
+        row
+        for row in read_rows(folder=folder, name="loan_transactions")
+        if row["type"] == "interest" and row["value_date"].startswith(INTEREST_YEAR)
+    ]
+    if not interest:
+        return Answer(question="Mortgage", figure="no loan interest booked", ids=[])
+    paid = sum((Decimal(row["amount"]) for row in interest), Decimal(0))
+    loans = read_rows(folder=folder, name="loans")
+    next_loan = min(
+        (row for row in loans if row["maturity_date"] >= TODAY),
+        key=lambda row: row["maturity_date"],
+    )
+    return Answer(
+        question=f"Mortgage interest paid in {INTEREST_YEAR}, next tranche to mature",
+        figure=f"{chf(amount=paid)} in {len(interest)} bookings; next {next_loan['number']} "
+        f"on {next_loan['maturity_date']}",
+        ids=[row["booking_id"] for row in interest],
+    )
+
+
 def reference(folder: Path) -> list[Answer]:
     movements = read_movements(folder=folder)
     return [
@@ -168,6 +224,9 @@ def reference(folder: Path) -> list[Answer]:
         rent(folder=folder),
         monthly_spending(movements=movements),
         due_payments(folder=folder),
+        salary(folder=folder),
+        savings(folder=folder),
+        mortgage(folder=folder),
     ]
 
 
