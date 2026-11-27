@@ -130,6 +130,7 @@ questions:
       - P1_Lukas_Meier/Reiseofferte_Japan_2027_Fernweh_Atelier.pdf
     any_calls: true
     answer: '(?=[\s\S]*(?<![\d''’,])198(?:\.00)?(?![\d]|[.,]\d))(?=[\s\S]*(?:(?:(?:trip |travel )?cancel\w*|Annullation\w*|Reiseabbruch\w*|Reiserücktritt\w*)(?:[^.]|\.\d){0,80}(?:\bnot\b|\bnicht\b|n[’'']t\b)\s(?:\w+\s){0,3}?(?:covered|insured|included|cover|versichert|gedeckt|abgedeckt|enthalten)|(?:\bnot\b|\bnicht\b|n[’'']t\b)\s(?:\w+\s){0,3}?(?:covered|insured|included|cover|versichert|gedeckt|abgedeckt|enthalten)(?:[^.]|\.\d){0,40}(?:(?:trip |travel )?cancel\w*|Annullation\w*|Reiseabbruch\w*|Reiserücktritt\w*)|(?:\bnot\b|\bnicht\b|n[’'']t\b|\bno\b|\bkeine?\b)\s(?:\w+\s){0,3}?(?:(?:trip |travel )?cancel\w*|Annullation\w*|Reiseabbruch\w*|Reiserücktritt\w*)))'
+    answer_not: '\b(?:covered|versichert|gedeckt)\s+(?:for\s+)?(?:both|beides)\b|\b(?:covered for|versichert für|gedeckt für)\b(?:(?!\b(?:but|not|nicht|aber|however|jedoch)\b)[^.,;:]){0,40}\b(?:trip |travel )?(?:cancel|Annullation|Reiseabbruch)'
   - question: Does the salary on this payslip match what I received on my account?
     customer: jana
     rule: jana

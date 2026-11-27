@@ -152,6 +152,8 @@ def test_the_cover_answer_needs_cancellation_not_covered_and_the_offer_price() -
     )
     assert answer_problems(question=cover, answer=wrong) != []
     assert answer_problems(question=cover, answer="Trip cancellation is not covered.") != []
+    both = "Yes, you are covered for both. You don't need the cancellation cover for CHF 198."
+    assert answer_problems(question=cover, answer=both) != []
 
 
 def test_the_mortgage_answer_needs_the_interest_and_the_maturity_date() -> None:
