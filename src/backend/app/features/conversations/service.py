@@ -2,6 +2,8 @@ import re
 from collections.abc import AsyncIterator
 from uuid import UUID
 
+import anyio
+
 from app.core.errors import BadRequestError, NotFoundError
 from app.core.provenance import Provenance
 from app.core.streaming import DoneEvent, StreamEvent
@@ -111,18 +113,23 @@ class ConversationService:
             message_id=history[-1].id,
             messages=messages,
         )
+        is_stored = False
         try:
             async for event in events:
                 if not isinstance(event, DoneEvent):
                     yield event
                     continue
                 content, provenance = event.result
-        except Exception:
-            await self.messages.delete(entity_id=history[-1].id)
-            raise
-        reply = await self._store_reply(
-            conversation_id=conversation_id, content=content, provenance=provenance
-        )
+            reply = await self._store_reply(
+                conversation_id=conversation_id, content=content, provenance=provenance
+            )
+            is_stored = True
+        finally:
+            # Also when the page closes mid-answer, which cancels the turn: a question stored
+            # without its reply would put two user turns in a row into the next prompt.
+            if not is_stored:
+                with anyio.CancelScope(shield=True):
+                    await self.messages.delete(entity_id=history[-1].id)
         yield DoneEvent(result=reply)
 
     async def _add_user_message(
