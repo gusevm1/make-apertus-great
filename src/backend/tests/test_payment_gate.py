@@ -199,9 +199,10 @@ async def test_closed_stream_never_writes(
     with pytest.raises(asyncio.CancelledError):
         await turn
 
-    assert not confirmations.answer(
-        conversation_id=conversation_id, tool_call_id=tool_call_id, is_allowed=True
+    waiting_tool = confirmations.get_tool_name(
+        conversation_id=conversation_id, tool_call_id=tool_call_id
     )
+    assert waiting_tool is None
     assert BANK_WRITES == []
     await banking.close()
 
