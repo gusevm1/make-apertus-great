@@ -1,7 +1,7 @@
 """create transaction tags
 
 Revision ID: 2eea7beedc03
-Revises: 6a4abee6bf79
+Revises: 3f1c2b7d9a41
 Create Date: 2026-11-27 16:32:35.069735
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "2eea7beedc03"
-down_revision: str | Sequence[str] | None = "6a4abee6bf79"
+down_revision: str | Sequence[str] | None = "3f1c2b7d9a41"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
