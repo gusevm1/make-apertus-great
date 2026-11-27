@@ -86,15 +86,21 @@ class ToolCallService:
             can_ask=False,
         )
         calls = [step async for step in steps if isinstance(step, ToolCall)]
-        result = await self.apertus.chat(
+        # Streamed, so the timeout counts the wait for the next chunk, not the whole answer,
+        # and a slow gateway no longer restarts a long answer every 60 seconds.
+        stream = self.apertus.stream_chat(
             messages=answer_prompt(
                 messages=dated_prompt(messages=messages, today=self.today), calls=calls
             ),
             model=ANSWER_MODEL,
             purpose=ANSWER_PURPOSE,
         )
-        provenance = self._provenance(model=result.model, started=started, calls=calls)
-        return SwissSpelling().feed(text=result.content), provenance
+        async for _ in stream:
+            pass
+        if stream.result is None:
+            raise UpstreamError("Apertus stream ended without a result")
+        provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
+        return SwissSpelling().feed(text=stream.result.content), provenance
 
     async def stream_answer(
         self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage]

@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from typing import Any, cast
 from uuid import UUID
 
@@ -5,7 +6,7 @@ import pytest
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.clients.apertus import ApertusClient, LLMResult, Message, Model
+from app.clients.apertus import ApertusClient, LLMResult, LLMStream, Message, Model
 from app.features.tool_calls import service as tool_call_service
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
@@ -36,11 +37,17 @@ class RecordingApertus:
             content=decision, model="fake", latency_ms=1, tokens_in=None, tokens_out=None
         )
 
-    async def chat(self, messages: list[Message], *, model: Model, purpose: str) -> LLMResult[str]:
+    def stream_chat(self, messages: list[Message], *, model: Model, purpose: str) -> LLMStream:
         self.prompts.append(messages)
-        return LLMResult(
+
+        async def chunks() -> AsyncIterator[str]:
+            yield self.answer
+
+        stream = LLMStream(chunks=chunks())
+        stream.result = LLMResult(
             content=self.answer, model="fake", latency_ms=1, tokens_in=None, tokens_out=None
         )
+        return stream
 
 
 def _lookups(*queries: str) -> ToolDecision:
