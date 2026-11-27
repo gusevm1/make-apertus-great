@@ -4,11 +4,14 @@ from uuid import UUID
 from fastapi import Depends
 
 from app.clients.apertus import ApertusClientDep
+from app.clients.banking import BankingClientDep
 from app.core.auth import CurrentUserDep
 from app.core.db import SessionDep
 from app.features.ledger.dependencies import LedgerServiceDep
+from app.features.transaction_tags.categorisation_runs import CategorisationRunService
 from app.features.transaction_tags.personal_tag_service import PersonalTagService
 from app.features.transaction_tags.repository import (
+    CategorisationRunRepository,
     CategoryCorrectionRepository,
     PersonalTagAssignmentRepository,
     PersonalTagEvaluationRepository,
@@ -16,7 +19,7 @@ from app.features.transaction_tags.repository import (
     SeveritySettingRepository,
     TransactionTagRepository,
 )
-from app.features.transaction_tags.schemas import PersonalTag
+from app.features.transaction_tags.schemas import CategorisationRun, PersonalTag
 from app.features.transaction_tags.service import TransactionTagService
 from app.features.transaction_tags.severity_service import SeverityService
 from app.features.transaction_tags.spending_service import SpendingService
@@ -99,3 +102,25 @@ def get_spending_service(
 
 
 SpendingServiceDep = Annotated[SpendingService, Depends(get_spending_service)]
+
+
+def get_categorisation_run_service(
+    session: SessionDep, banking: BankingClientDep, apertus: ApertusClientDep
+) -> CategorisationRunService:
+    return CategorisationRunService(
+        runs=CategorisationRunRepository(session=session), banking=banking, apertus=apertus
+    )
+
+
+CategorisationRunServiceDep = Annotated[
+    CategorisationRunService, Depends(get_categorisation_run_service)
+]
+
+
+async def get_owned_categorisation(
+    categorisation_id: UUID, user: CurrentUserDep, service: CategorisationRunServiceDep
+) -> CategorisationRun:
+    return await service.get_run(categorisation_id=categorisation_id, owner_id=user.id)
+
+
+OwnedCategorisationDep = Annotated[CategorisationRun, Depends(get_owned_categorisation)]

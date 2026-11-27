@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, ForeignKey, Index, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -110,3 +110,25 @@ class PersonalTagEvaluationORM(Base):
     owner_id: Mapped[UUID]
     row_source: Mapped[str]
     row_id: Mapped[str]
+
+
+class CategorisationRunORM(Base):
+    __tablename__ = "categorisation_runs"
+    __table_args__ = (
+        CheckConstraint("status IN ('queued', 'running', 'done', 'failed')", name="status"),
+        Index(
+            "uq_categorisation_runs_owner_active",
+            "owner_id",
+            unique=True,
+            postgresql_where=text("status IN ('queued', 'running')"),
+        ),
+    )
+
+    owner_id: Mapped[UUID]
+    status: Mapped[str] = mapped_column(server_default="queued")
+    tagged_by_rule: Mapped[int] = mapped_column(server_default="0")
+    tagged_by_model: Mapped[int] = mapped_column(server_default="0")
+    already_tagged: Mapped[int] = mapped_column(server_default="0")
+    skipped: Mapped[int] = mapped_column(server_default="0")
+    started_at: Mapped[datetime | None]
+    finished_at: Mapped[datetime | None]

@@ -1,10 +1,11 @@
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from app.core.repository import BaseRepository
 from app.features.transaction_tags.models import (
+    CategorisationRunORM,
     CategoryCorrectionORM,
     PersonalTagAssignmentORM,
     PersonalTagEvaluationORM,
@@ -13,6 +14,7 @@ from app.features.transaction_tags.models import (
     TransactionTagORM,
 )
 from app.features.transaction_tags.schemas import (
+    CategorisationRun,
     CategoryCorrection,
     PersonalTag,
     PersonalTagAssignment,
@@ -256,6 +258,52 @@ class PersonalTagEvaluationRepository(
             insert(PersonalTagEvaluationORM)
             .values(values)
             .on_conflict_do_nothing(index_elements=["owner_id", "row_source", "row_id"])
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()
+
+
+class CategorisationRunRepository(BaseRepository[CategorisationRunORM, CategorisationRun]):
+    orm_model = CategorisationRunORM
+    schema = CategorisationRun
+
+    async def get_owned(self, categorisation_id: UUID, owner_id: UUID) -> CategorisationRun | None:
+        stmt = select(CategorisationRunORM).where(
+            CategorisationRunORM.id == categorisation_id, CategorisationRunORM.owner_id == owner_id
+        )
+        row = await self.session.scalar(stmt)
+        await self.session.commit()
+        return None if row is None else self._to_schema(row=row)
+
+    async def fail_unfinished(self, owner_id: UUID) -> None:
+        """Close the runs of this customer that were queued or running."""
+        stmt = (
+            update(CategorisationRunORM)
+            .where(
+                CategorisationRunORM.owner_id == owner_id,
+                CategorisationRunORM.status.in_(["queued", "running"]),
+            )
+            .values(status="failed", finished_at=func.now())
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()
+
+    async def mark_running(self, run_id: UUID) -> None:
+        stmt = (
+            update(CategorisationRunORM)
+            .where(CategorisationRunORM.id == run_id)
+            .values(status="running", started_at=func.now())
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()
+
+    async def mark_finished(
+        self, run_id: UUID, status: str, counts: dict[str, int] | None = None
+    ) -> None:
+        stmt = (
+            update(CategorisationRunORM)
+            .where(CategorisationRunORM.id == run_id)
+            .values(status=status, finished_at=func.now(), **(counts or {}))
         )
         await self.session.execute(stmt)
         await self.session.commit()

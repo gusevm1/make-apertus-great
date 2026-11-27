@@ -1,18 +1,28 @@
+import asyncio
 import json
 from collections.abc import AsyncIterator
 from datetime import date
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 import httpx2
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.banking import BankingClient
+from app.core.auth import owner_id
 from app.core.config import get_settings
+from app.core.errors import UpstreamError
 from app.features.ledger.schemas import LedgerRow
 from app.features.transaction_tags import service as tag_service
-from app.features.transaction_tags.schemas import CATEGORIES
+from app.features.transaction_tags.categorisation_runs import wait_for_runs
+from app.features.transaction_tags.models import CategorisationRunORM
+from app.features.transaction_tags.personal_tag_service import PersonalTagService
+from app.features.transaction_tags.schemas import CATEGORIES, Categorisation
+from app.features.transaction_tags.service import TransactionTagService
 from app.features.transaction_tags.severity import effective_severity, payee_key
+from app.features.transaction_tags.severity_service import SeverityService
 from app.main import app
 from tests.conftest import FakeApertus
 
@@ -143,6 +153,8 @@ def _by_keyword(request_body: dict[str, Any]) -> str:
     """A fake Apertus that sorts a row by what its text says."""
     if any("<categories>\n" in message["content"] for message in request_body["messages"]):
         return _severity_reply(request_body=request_body)
+    if any(message["content"].startswith("<accounts>\n") for message in request_body["messages"]):
+        return json.dumps({"tags": []})
     categories = {
         "Gartenmoebel": "shopping",
         "Einkauf": "groceries",
@@ -211,6 +223,42 @@ async def anna(lukas: httpx2.AsyncClient) -> AsyncIterator[httpx2.AsyncClient]:
         yield api
 
 
+async def _categorise(api: httpx2.AsyncClient) -> dict[str, Any]:
+    """Start a run, wait for the background work, and return the run as GET shows it."""
+    response = await api.post("/api/categorisations")
+    assert response.status_code == 202
+    await wait_for_runs()
+    stored = await api.get(f"/api/categorisations/{response.json()['id']}")
+    assert stored.status_code == 200
+    return stored.json()
+
+
+async def _categorise_only(api: httpx2.AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run the categories step alone, so no severity and no personal tag exist yet."""
+
+    async def skip(*args: object, **kwargs: object) -> None:
+        return None
+
+    with monkeypatch.context() as patch:
+        patch.setattr(SeverityService, "create_proposal", skip)
+        patch.setattr(PersonalTagService, "create_inference", skip)
+        await _categorise(api=api)
+
+
+def _counts(run: dict[str, Any]) -> dict[str, int]:
+    names = ("tagged_by_rule", "tagged_by_model", "already_tagged", "skipped")
+    return {name: run[name] for name in names}
+
+
+def _is_categorising(request_body: dict[str, Any]) -> bool:
+    return any(message["content"].startswith("<rows>") for message in request_body["messages"])
+
+
+def _categorise_requests(apertus: FakeApertus) -> list[dict[str, Any]]:
+    """The requests that categorise rows, apart from the severity and personal tag ones."""
+    return [request for request in apertus.requests if _is_categorising(request_body=request)]
+
+
 async def _tags(api: httpx2.AsyncClient) -> dict[str, dict[str, Any]]:
     response = await api.get("/api/transaction-tags")
     assert response.status_code == 200
@@ -218,10 +266,10 @@ async def _tags(api: httpx2.AsyncClient) -> dict[str, dict[str, Any]]:
 
 
 async def test_tags_every_spending_row_and_nothing_else(lukas: httpx2.AsyncClient) -> None:
-    response = await lukas.post("/api/categorisations")
+    run = await _categorise(api=lukas)
 
-    assert response.status_code == 201
-    assert response.json() == {
+    assert run["status"] == "done"
+    assert _counts(run=run) == {
         "tagged_by_rule": 1,
         "tagged_by_correction": 0,
         "tagged_by_model": 4,
@@ -241,7 +289,7 @@ async def test_tags_every_spending_row_and_nothing_else(lukas: httpx2.AsyncClien
 async def test_loan_row_is_tagged_by_rule_and_the_rest_by_the_model(
     lukas: httpx2.AsyncClient,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise(api=lukas)
 
     tags = await _tags(api=lukas)
 
@@ -253,7 +301,7 @@ async def test_loan_row_is_tagged_by_rule_and_the_rest_by_the_model(
 
 
 async def test_two_rows_at_one_payee_get_different_categories(lukas: httpx2.AsyncClient) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise(api=lukas)
 
     tags = await _tags(api=lukas)
 
@@ -264,9 +312,9 @@ async def test_two_rows_at_one_payee_get_different_categories(lukas: httpx2.Asyn
 async def test_the_prompt_carries_the_row_fields_and_no_loan_row(
     lukas: httpx2.AsyncClient, apertus: FakeApertus
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise(api=lukas)
 
-    (request,) = apertus.requests
+    (request,) = _categorise_requests(apertus=apertus)
     rows = _rows_of(request_body=request).values()
     assert len(rows) == 4
     assert any(
@@ -279,13 +327,13 @@ async def test_the_prompt_carries_the_row_fields_and_no_loan_row(
 async def test_a_second_call_sends_no_tagged_row(
     lukas: httpx2.AsyncClient, apertus: FakeApertus
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise(api=lukas)
     apertus.requests.clear()
 
-    response = await lukas.post("/api/categorisations")
+    run = await _categorise(api=lukas)
 
-    assert apertus.requests == []
-    assert response.json() == {
+    assert _categorise_requests(apertus=apertus) == []
+    assert _counts(run=run) == {
         "tagged_by_rule": 0,
         "tagged_by_correction": 0,
         "tagged_by_model": 0,
@@ -298,7 +346,7 @@ async def test_a_second_call_sends_no_tagged_row(
 async def test_only_untagged_rows_are_sent_on_a_later_call(
     lukas: httpx2.AsyncClient, apertus: FakeApertus
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise(api=lukas)
     apertus.requests.clear()
     app.state.banking = _bank_client(
         bookings_by_token={
@@ -309,9 +357,9 @@ async def test_only_untagged_rows_are_sent_on_a_later_call(
         }
     )
 
-    await lukas.post("/api/categorisations")
+    await _categorise(api=lukas)
 
-    (request,) = apertus.requests
+    (request,) = _categorise_requests(apertus=apertus)
     (row,) = _rows_of(request_body=request).values()
     assert row["counterparty"] == "Coop"
 
@@ -320,6 +368,8 @@ async def test_unknown_ref_and_unknown_category_are_not_stored(
     lukas: httpx2.AsyncClient, apertus: FakeApertus
 ) -> None:
     def reply(request_body: dict[str, Any]) -> str:
+        if not _is_categorising(request_body=request_body):
+            return _by_keyword(request_body=request_body)
         refs = list(_rows_of(request_body=request_body))
         answers = [
             {"ref": refs[0], "category": "groceries"},
@@ -331,23 +381,23 @@ async def test_unknown_ref_and_unknown_category_are_not_stored(
 
     apertus.structured_reply = reply
 
-    response = await lukas.post("/api/categorisations")
+    run = await _categorise(api=lukas)
 
-    assert response.json()["tagged_by_model"] == 1
-    assert response.json()["skipped"] == 3
+    assert run["tagged_by_model"] == 1
+    assert run["skipped"] == 3
     tags = await _tags(api=lukas)
     assert {tag["category"] for tag in tags.values()} == {"groceries", "loan_leasing"}
 
 
-async def test_a_categorisation_where_every_batch_failed_is_an_error(
+async def test_a_run_where_every_batch_failed_is_marked_failed(
     lukas: httpx2.AsyncClient, apertus: FakeApertus
 ) -> None:
     apertus.status = 500
 
-    response = await lukas.post("/api/categorisations")
+    run = await _categorise(api=lukas)
 
-    assert response.status_code == 502
-    assert response.json()["error"] == "upstream_error"
+    assert run["status"] == "failed"
+    assert run["finished_at"] is not None
     assert set(await _tags(api=lukas)) == {"BK-4"}
 
 
@@ -356,9 +406,11 @@ async def test_rows_go_to_apertus_in_batches(
 ) -> None:
     monkeypatch.setattr(tag_service, "BATCH_SIZE", 3)
 
-    await lukas.post("/api/categorisations")
+    await _categorise(api=lukas)
 
-    sizes = sorted(len(_rows_of(request_body=request)) for request in apertus.requests)
+    sizes = sorted(
+        len(_rows_of(request_body=request)) for request in _categorise_requests(apertus=apertus)
+    )
     assert sizes == [1, 3]
     assert len(await _tags(api=lukas)) == 5
 
@@ -366,8 +418,8 @@ async def test_rows_go_to_apertus_in_batches(
 async def test_a_customer_lists_only_their_own_tags(
     lukas: httpx2.AsyncClient, anna: httpx2.AsyncClient
 ) -> None:
-    await lukas.post("/api/categorisations")
-    await anna.post("/api/categorisations")
+    await _categorise(api=lukas)
+    await _categorise(api=anna)
 
     assert set(await _tags(api=lukas)) == {"BK-1", "BK-2", "BK-3", "BK-4", "CTX-1"}
     assert set(await _tags(api=anna)) == {"BK-A1"}
@@ -409,8 +461,11 @@ def test_a_booking_override_beats_a_payee_override_beats_the_category_beats_the_
     assert severity("booking:BK-2", "coop", category="housing") == ("critical", "default")
 
 
-async def test_a_row_without_a_setting_has_the_default_severity(lukas: httpx2.AsyncClient) -> None:
-    await lukas.post("/api/categorisations")
+async def test_a_row_without_a_setting_has_the_default_severity(
+    lukas: httpx2.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     tags = await _tags(api=lukas)
 
@@ -419,9 +474,11 @@ async def test_a_row_without_a_setting_has_the_default_severity(lukas: httpx2.As
 
 
 async def test_the_proposal_stores_one_unconfirmed_severity_per_category(
-    lukas: httpx2.AsyncClient, apertus: FakeApertus
+    lukas: httpx2.AsyncClient,
+    apertus: FakeApertus,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
     apertus.requests.clear()
 
     response = await lukas.post("/api/severity-proposals")
@@ -500,8 +557,11 @@ async def test_a_proposal_only_asks_for_categories_without_a_setting(
     assert (customer_setting["set_by"], customer_setting["confirmed"]) == ("customer", True)
 
 
-async def test_a_customer_category_setting_beats_the_default(lukas: httpx2.AsyncClient) -> None:
-    await lukas.post("/api/categorisations")
+async def test_a_customer_category_setting_beats_the_default(
+    lukas: httpx2.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
     await lukas.patch(
         "/api/severity-settings",
         json={"scope": "category", "key": "restaurants", "severity": "major"},
@@ -515,8 +575,9 @@ async def test_a_customer_category_setting_beats_the_default(lukas: httpx2.Async
 
 async def test_a_payee_override_applies_to_rows_tagged_after_it(
     lukas: httpx2.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
     await lukas.patch(
         "/api/severity-settings",
         json={"scope": "payee", "key": "Migros", "severity": "negligible"},
@@ -524,7 +585,7 @@ async def test_a_payee_override_applies_to_rows_tagged_after_it(
     app.state.banking = _bank_client(
         bookings_by_token={"customer-token": ("CUST-001", [*LUKAS_BOOKINGS, _migros("BK-8")])}
     )
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     tags = await _tags(api=lukas)
 
@@ -539,7 +600,7 @@ async def test_a_payee_override_applies_to_rows_tagged_after_it(
 async def test_a_booking_override_beats_the_payee_override_over_the_api(
     lukas: httpx2.AsyncClient,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise(api=lukas)
     for scope, key, severity in [
         ("category", "groceries", "moderate"),
         ("payee", "migros", "negligible"),
@@ -588,10 +649,12 @@ async def test_an_override_for_an_unknown_category_or_a_foreign_booking_is_refus
 
 
 async def test_a_customer_sees_and_changes_only_their_own_severities(
-    lukas: httpx2.AsyncClient, anna: httpx2.AsyncClient
+    lukas: httpx2.AsyncClient,
+    anna: httpx2.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await lukas.post("/api/categorisations")
-    await anna.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
+    await _categorise_only(api=anna, monkeypatch=monkeypatch)
     await lukas.patch(
         "/api/severity-settings", json={"scope": "payee", "key": "coop", "severity": "critical"}
     )
@@ -601,3 +664,93 @@ async def test_a_customer_sees_and_changes_only_their_own_severities(
 
     assert anna_settings == []
     assert anna_tags["BK-A1"]["severity_source"] == "default"
+
+
+async def test_a_post_answers_202_with_a_run_that_the_background_then_finishes(
+    lukas: httpx2.AsyncClient,
+) -> None:
+    response = await lukas.post("/api/categorisations")
+
+    assert response.status_code == 202
+    started = response.json()
+    assert started["status"] in ("queued", "running")
+    assert started["finished_at"] is None
+    await wait_for_runs()
+    run = (await lukas.get(f"/api/categorisations/{started['id']}")).json()
+    assert run["status"] == "done"
+    assert run["finished_at"] is not None
+    assert run["started_at"] is not None
+    assert _counts(run=run)["tagged_by_model"] == 4
+    assert len(await _tags(api=lukas)) == 5
+
+
+async def test_a_second_post_while_a_run_goes_returns_that_run_and_a_later_one_starts_anew(
+    lukas: httpx2.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    release = asyncio.Event()
+    original = TransactionTagService.create_categorisation
+
+    async def held(self: TransactionTagService, owner_id: UUID, token: str) -> Categorisation:
+        await release.wait()
+        return await original(self, owner_id=owner_id, token=token)
+
+    monkeypatch.setattr(TransactionTagService, "create_categorisation", held)
+
+    first = await lukas.post("/api/categorisations")
+    second = await lukas.post("/api/categorisations")
+
+    assert first.status_code == 202
+    assert second.status_code == 200
+    assert second.json()["id"] == first.json()["id"]
+    release.set()
+    await wait_for_runs()
+    assert (await lukas.get(f"/api/categorisations/{first.json()['id']}")).json()["status"] == (
+        "done"
+    )
+    third = await lukas.post("/api/categorisations")
+    assert third.status_code == 202
+    assert third.json()["id"] != first.json()["id"]
+    await wait_for_runs()
+
+
+async def test_a_run_lost_to_a_restart_does_not_block_the_next_post(
+    lukas: httpx2.AsyncClient, session: AsyncSession
+) -> None:
+    lost = CategorisationRunORM(owner_id=owner_id(customer_id="CUST-001"), status="running")
+    session.add(lost)
+    await session.commit()
+
+    run = await _categorise(api=lukas)
+
+    assert run["status"] == "done"
+    assert run["id"] != str(lost.id)
+    await session.refresh(lost)
+    assert lost.status == "failed"
+    assert lost.finished_at is not None
+
+
+async def test_a_customer_cannot_read_the_run_of_another(
+    lukas: httpx2.AsyncClient, anna: httpx2.AsyncClient
+) -> None:
+    run = await _categorise(api=lukas)
+
+    response = await anna.get(f"/api/categorisations/{run['id']}")
+
+    assert response.status_code == 404
+    assert response.json()["error"] == "not_found"
+    assert (await lukas.get(f"/api/categorisations/{run['id']}")).status_code == 200
+
+
+async def test_a_run_that_fails_after_the_categories_keeps_them_and_is_marked_failed(
+    lukas: httpx2.AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def broken(*args: object, **kwargs: object) -> None:
+        raise UpstreamError("Apertus is down")
+
+    monkeypatch.setattr(SeverityService, "create_proposal", broken)
+
+    run = await _categorise(api=lukas)
+
+    assert run["status"] == "failed"
+    assert len(await _tags(api=lukas)) == 5
+    assert (await lukas.get("/api/severity-settings")).json() == []

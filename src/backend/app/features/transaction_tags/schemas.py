@@ -37,6 +37,7 @@ SetBy = Literal["rule", "model", "customer"]
 SeverityScope = Literal["category", "payee", "booking"]
 SeveritySource = Literal["booking", "payee", "category", "default"]
 SeveritySetBy = Literal["model", "customer"]
+RunStatus = Literal["queued", "running", "done", "failed"]
 PersonalTagSetBy = Literal["model", "customer"]
 MAX_INFERRED_TAGS = 10
 TAG_NAME_MAX_LENGTH = 40
@@ -76,6 +77,21 @@ class Categorisation(BaseModel):
     tagged_by_model: int
     already_tagged: int
     skipped: int  # rows Apertus gave no valid category, so they stay untagged for the next call
+
+
+class CategorisationRun(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    owner_id: UUID
+    status: RunStatus
+    tagged_by_rule: int
+    tagged_by_model: int
+    already_tagged: int
+    skipped: int
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
 
 
 class RatedTransactionTag(TransactionTag):
@@ -192,12 +208,17 @@ class ResponseTransactionTag(BaseModel):
     updated_at: datetime
 
 
-class ResponseCategorisation(BaseModel):
+class ResponseCategorisationRun(BaseModel):
+    id: UUID
+    status: RunStatus
     tagged_by_rule: int
     tagged_by_correction: int
     tagged_by_model: int
     already_tagged: int
     skipped: int
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
 
 
 class RowCategory(BaseModel):

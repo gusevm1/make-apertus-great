@@ -2,18 +2,19 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.core.auth import CurrentUserDep, require_user
 from app.features.transaction_tags.dependencies import (
+    CategorisationRunServiceDep,
+    OwnedCategorisationDep,
     OwnedPersonalTagDep,
     PersonalTagServiceDep,
     SeverityServiceDep,
-    TransactionTagServiceDep,
 )
 from app.features.transaction_tags.schemas import (
     AssignedRow,
-    Categorisation,
+    CategorisationRun,
     Category,
     CategoryCorrectionResult,
     CategorySummary,
@@ -25,7 +26,7 @@ from app.features.transaction_tags.schemas import (
     RequestPersonalTagCreate,
     RequestPersonalTagUpdate,
     RequestSeverityUpdate,
-    ResponseCategorisation,
+    ResponseCategorisationRun,
     ResponseCategoryCorrection,
     ResponseCategorySummary,
     ResponsePersonalTag,
@@ -46,17 +47,25 @@ def _setting_response(setting: SeveritySetting) -> ResponseSeveritySetting:
     return ResponseSeveritySetting.model_validate(setting, from_attributes=True)
 
 
-def _categorisation_response(categorisation: Categorisation) -> ResponseCategorisation:
-    return ResponseCategorisation.model_validate(categorisation, from_attributes=True)
+def _categorisation_response(run: CategorisationRun) -> ResponseCategorisationRun:
+    return ResponseCategorisationRun.model_validate(run, from_attributes=True)
 
 
-@router.post("/categorisations", response_model=ResponseCategorisation, status_code=201)
+@router.post("/categorisations", response_model=ResponseCategorisationRun, status_code=202)
 async def create_categorisation(
-    user: CurrentUserDep, service: TransactionTagServiceDep
-) -> ResponseCategorisation:
-    """Categorise the spending rows that have no category yet."""
-    categorisation = await service.create_categorisation(owner_id=user.id, token=user.token)
-    return _categorisation_response(categorisation=categorisation)
+    user: CurrentUserDep, service: CategorisationRunServiceDep, response: Response
+) -> ResponseCategorisationRun:
+    """Start tagging your untagged rows in the background; 200 with the run if one is going."""
+    run, is_new = await service.start(owner_id=user.id, token=user.token)
+    if not is_new:
+        response.status_code = 200
+    return _categorisation_response(run=run)
+
+
+@router.get("/categorisations/{categorisation_id}", response_model=ResponseCategorisationRun)
+async def get_categorisation(run: OwnedCategorisationDep) -> ResponseCategorisationRun:
+    """Show the status and counts of a categorisation run."""
+    return _categorisation_response(run=run)
 
 
 @router.get("/transaction-tags", response_model=list[ResponseTransactionTag])
