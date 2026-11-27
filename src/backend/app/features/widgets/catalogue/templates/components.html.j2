@@ -127,7 +127,7 @@
   </div></div>
   {%- endif %}
 </section>
-{%- elif n.type in ("bar_chart", "line_chart", "area_chart", "comparison", "donut", "forecast_chart") -%}
+{%- elif n.type in ("bar_chart", "line_chart", "area_chart", "comparison", "donut", "forecast_chart", "budget_bars", "waterfall", "calendar") -%}
 <section class="chart" data-component="{{ n.type }}" data-path="{{ n.path }}" data-rows="{{ n.rows }}">
   {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
   {%- if n.legend is not none %}
@@ -145,10 +145,14 @@
     </div>
   </div>
   {%- else %}
-  <div class="chart-area" id="{{ n.id }}">{% if n.svg is not none %}{{ n.svg | safe }}{% endif %}</div>
+  {#- A calendar keeps its cell size and scrolls inside itself when the widget is narrower. #}
+  <div class="chart-area{% if n.type == 'calendar' %} calendar-area{% endif %}" id="{{ n.id }}">{% if n.svg is not none %}{{ n.svg | safe }}{% endif %}</div>
   {%- endif %}
   {%- if n.forecast_legend is not none %}
   <p class="forecast-legend"><span><i class="key solid" aria-hidden="true"></i>Actual</span><span><i class="key dashed" aria-hidden="true"></i>Forecast</span>{% if n.forecast_legend.range %}<span><i class="key band" aria-hidden="true"></i>Range</span>{% endif %}</p>
+  {%- endif %}
+  {%- if n.budget_legend %}
+  <p class="forecast-legend"><span><i class="key spent" aria-hidden="true"></i>Spent</span><span><i class="key budget" aria-hidden="true"></i>Budget</span><span><i class="key over" aria-hidden="true"></i>Over budget</span></p>
   {%- endif %}
 </section>
 {%- elif n.type == "stack" -%}

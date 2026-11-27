@@ -1,8 +1,11 @@
 import re
+from decimal import Decimal
 from typing import Any
 
 from app.core.errors import BadRequestError
 
+# Half a Rappen: two figures that should agree may differ by rounding only.
+HALF_RAPPEN = Decimal("0.005")
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 _SEGMENT = re.compile(r"([A-Za-z_]\w*)(?:\[(\d+)\])?")
 # A whole value that is a date, optionally with a time; "2026-10-01 Migros" stays text.
@@ -57,6 +60,11 @@ def is_number(value: Any) -> bool:
 
 def is_date(value: Any) -> bool:
     return isinstance(value, str) and _DATE.match(value) is not None
+
+
+def agree(a: int | float, b: int | float) -> bool:
+    """Whether two figures are the same up to rounding."""
+    return abs(Decimal(str(a)) - Decimal(str(b))) <= HALF_RAPPEN
 
 
 def figure(path: str, data: dict[str, Any]) -> int | float:

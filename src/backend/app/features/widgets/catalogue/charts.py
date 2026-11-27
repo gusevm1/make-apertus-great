@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import date, timedelta
 from functools import cache
 from typing import Any
 
@@ -9,14 +10,27 @@ from app.core.errors import BadRequestError
 from app.features.widgets.catalogue.schemas import (
     AreaChart,
     BarChart,
+    BudgetBars,
+    Calendar,
     Chart,
     Comparison,
     Donut,
     ForecastChart,
     LineChart,
     Trend,
+    Waterfall,
 )
-from app.features.widgets.catalogue.values import display, is_number, rows, short
+from app.features.widgets.catalogue.values import (
+    MONTHS,
+    agree,
+    display,
+    figure,
+    is_date,
+    is_number,
+    number,
+    rows,
+    short,
+)
 
 VEGA_LITE_VERSION = "5.21"
 # The width a static chart is drawn at; the page scales its SVG to the tile.
@@ -77,6 +91,18 @@ PERIOD_SERIES = [
     PALETTE["blue_light"],
     PALETTE["amber_light"],
 ]
+# Over budget in the e-banking's warning colour (widget.css --warning); a falling waterfall step
+# in grey; the total in navy.
+WARNING = PALETTE["amber"]
+STEP_DOWN = PALETTE["grey_light"]
+# A day of the calendar is one cell; a calendar shows at most 53 weeks.
+CELL = 15
+MAX_DAYS = 371
+WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+# A day without a row, and the scale from a little spending to the most; a square-root scale,
+# so one large bill doesn't wash out every other day.
+EMPTY_DAY = "#f2f3f3"
+CALENDAR_RANGE = [ACCENT_LIGHT, ACCENT]
 # A sparkline has one size in both forms, beside a figure.
 SPARK_WIDTH = 160
 SPARK_HEIGHT = 40
@@ -116,12 +142,16 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
     """The Vega-Lite spec of a chart, with its rows taken from DATA; it computes no figure."""
     x_field, y_field, series_field = _fields(component=component)
     fields = [x_field, y_field] + ([series_field] if series_field is not None else [])
-    is_forecast = isinstance(component, ForecastChart)
-    found = rows(
-        path=component.data, data=data, fields=fields + ([component.kind] if is_forecast else [])
-    )
+    extra = _extra_fields(component=component)
+    found = rows(path=component.data, data=data, fields=fields + extra)
     if isinstance(component, ForecastChart):
         _check_forecast(component=component, found=found)
+    if isinstance(component, BudgetBars | Waterfall | Calendar):
+        _check_figures(component=component, found=found, fields=[y_field, *extra])
+    if isinstance(component, Waterfall):
+        _check_steps(component=component, found=found)
+    if isinstance(component, Calendar):
+        _check_days(component=component, found=found)
     if isinstance(component, Donut) and len(found) > len(SLICES):
         raise BadRequestError(
             f"{component.data} has {len(found)} parts; a donut shows at most {len(SLICES)}"
@@ -164,27 +194,36 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
             value |= _forecast_fields(
                 component=component, row=row, full=full, shown=shown, path=path
             )
+        if isinstance(component, BudgetBars):
+            value |= _budget_fields(component=component, row=row, full=full, path=path)
+        if isinstance(component, Waterfall):
+            value |= _step_fields(component=component, row=row, full=full, path=path)
+        if isinstance(component, Calendar):
+            value |= _day_fields(day=row[x_field])
         values.append(value)
     if isinstance(component, Trend):
         return _sparkline(values=values)
-    if isinstance(component, ForecastChart):
-        size = (
-            {"width": "container", "autosize": {"type": "fit-x", "contains": "padding"}}
-            if live
-            else {"width": STATIC_WIDTH}
-        )
-        return {**size, **_forecast(values=values, has_range=component.low is not None)}
-    chosen = _chosen(component=component, values=values, has_series=series_field is not None)
-    if isinstance(component, Donut):
-        colours = [chosen.get(value["key"], SLICES[index]) for index, value in enumerate(values)]
-        return _donut(values=values, colours=colours)
+    if isinstance(component, Calendar):
+        return _calendar(values=values)
     # A horizontal chart's labels sit beside the plot, so its static plot is narrower.
-    labels_beside = isinstance(component, BarChart) and component.horizontal
+    labels_beside = isinstance(component, BudgetBars) or (
+        isinstance(component, BarChart) and component.horizontal
+    )
     size: dict[str, Any] = (
         {"width": "container", "autosize": {"type": "fit-x", "contains": "padding"}}
         if live
         else {"width": STATIC_WIDTH - LABEL_LIMIT if labels_beside else STATIC_WIDTH}
     )
+    if isinstance(component, ForecastChart):
+        return {**size, **_forecast(values=values, has_range=component.low is not None)}
+    if isinstance(component, BudgetBars):
+        return {**size, **_budget(component=component, values=values)}
+    if isinstance(component, Waterfall):
+        return {**size, **_waterfall(component=component, values=values, data=data)}
+    chosen = _chosen(component=component, values=values, has_series=series_field is not None)
+    if isinstance(component, Donut):
+        colours = [chosen.get(value["key"], SLICES[index]) for index, value in enumerate(values)]
+        return _donut(values=values, colours=colours)
     if isinstance(component, BarChart):
         return {**size, **_bar(component=component, values=values, chosen=chosen)}
     scale = _series_scale(series=[value["series"] for value in values], chosen=chosen)
@@ -235,9 +274,70 @@ def _series_scale(series: list[str | None], chosen: dict[str, str]) -> dict[str,
 def _fields(component: Chart | Trend) -> tuple[str, str, str | None]:
     if isinstance(component, Donut):
         return component.label, component.value, None
+    if isinstance(component, BudgetBars):
+        return component.label, component.actual, None
+    if isinstance(component, Waterfall):
+        return component.label, component.amount, None
+    if isinstance(component, Calendar):
+        return component.date, component.value, None
     if isinstance(component, BarChart | Trend | ForecastChart):
         return component.x, component.y, None
     return component.x, component.y, component.series
+
+
+def _extra_fields(component: Chart | Trend) -> list[str]:
+    # Fields a row needs beside its label, value and series.
+    if isinstance(component, ForecastChart):
+        return [component.kind]
+    if isinstance(component, BudgetBars):
+        return [component.budget]
+    if isinstance(component, Waterfall):
+        return [component.start, component.end]
+    return []
+
+
+def _check_figures(
+    component: BudgetBars | Waterfall | Calendar, found: list[dict[str, Any]], fields: list[str]
+) -> None:
+    for index, row in enumerate(found):
+        for field in fields:
+            if not is_number(value=row[field]):
+                raise BadRequestError(f"{component.data}[{index}].{field} is not a number")
+            # A bar against a budget, or a day's cell on one scale, has no negative length.
+            if not isinstance(component, Waterfall) and row[field] < 0:
+                raise BadRequestError(f"{component.data}[{index}].{field} is negative")
+
+
+def _check_steps(component: Waterfall, found: list[dict[str, Any]]) -> None:
+    # Each step starts where the one before ended, and its amount is the distance it goes.
+    for index, row in enumerate(found):
+        where = f"{component.data}[{index}]"
+        start, end = row[component.start], row[component.end]
+        if not agree(row[component.amount], end - start):
+            raise BadRequestError(
+                f"{where}.{component.amount} is {row[component.amount]}, but the step goes from "
+                f"{start} to {end}"
+            )
+        if index > 0 and not agree(start, found[index - 1][component.end]):
+            raise BadRequestError(
+                f"{where}.{component.start} is {start}, but the step before ends at "
+                f"{found[index - 1][component.end]}: steps must join"
+            )
+
+
+def _check_days(component: Calendar, found: list[dict[str, Any]]) -> None:
+    if len(found) == 0:
+        raise BadRequestError(f"{component.data} has no days to show")
+    for index, row in enumerate(found):
+        if not is_date(value=row[component.date]) or len(row[component.date]) != len("2026-11-27"):
+            raise BadRequestError(
+                f"{component.data}[{index}].{component.date} is not a day: {row[component.date]!r}"
+            )
+    days = [date.fromisoformat(row[component.date]) for row in found]
+    if (max(days) - min(days)).days + 1 > MAX_DAYS:
+        raise BadRequestError(
+            f"{component.data} spans more than {MAX_DAYS} days; a calendar shows at most 53 weeks"
+        )
 
 
 def _check_forecast(component: ForecastChart, found: list[dict[str, Any]]) -> None:
@@ -563,6 +663,240 @@ def _forecast(values: list[dict[str, Any]], has_range: bool) -> dict[str, Any]:
         "padding": {"left": 0, "right": LAST_LABEL_ROOM, "top": 10, "bottom": 0},
         "data": {"values": values},
         "layer": layers,
+    }
+
+
+def _budget_fields(
+    component: BudgetBars, row: dict[str, Any], full: str, path: str
+) -> dict[str, Any]:
+    actual, budget = row[component.actual], row[component.budget]
+    is_over = actual > budget
+    shown = display(field=component.actual, value=actual)
+    budget_shown = display(field=component.budget, value=budget)
+    status = "over budget" if is_over else "within budget"
+    return {
+        "budget": budget,
+        "budget_shown": budget_shown,
+        "over": is_over,
+        "status": status,
+        # The label sits after the bar or the budget marker, whichever reaches further.
+        "reach": max(actual, budget),
+        # Over budget is said in words too, not by colour alone.
+        "text": number(value=actual, decimals=0) + (" · over" if is_over else ""),
+        "description": f"{full}, {shown} of {budget_shown} budget, {status} ({path})",
+    }
+
+
+def _step_fields(component: Waterfall, row: dict[str, Any], full: str, path: str) -> dict[str, Any]:
+    start, end, amount = row[component.start], row[component.end], row[component.amount]
+    shown = display(field=component.amount, value=amount)
+    since = display(field=component.start, value=start)
+    until = display(field=component.end, value=end)
+    return {
+        "start": start,
+        "end": end,
+        "top": max(start, end),
+        "step": "up" if amount >= 0 else "down",
+        # The step's own figure, signed, so up and down don't rest on colour alone.
+        "text": ("+" if amount > 0 else "") + number(value=amount, decimals=0),
+        "description": f"{full}, {shown}, from {since} to {until} ({path})",
+    }
+
+
+def _day_fields(day: str) -> dict[str, Any]:
+    when = date.fromisoformat(day)
+    monday = when - timedelta(days=when.weekday())
+    return {"week": monday.isoformat(), "weekday": WEEKDAYS[when.weekday()]}
+
+
+def _budget(component: BudgetBars, values: list[dict[str, Any]]) -> dict[str, Any]:
+    # One scale for bars and budget markers, from zero to the furthest of either.
+    reach = max((value["reach"] for value in values), default=0)
+    scale = {"domain": [0, reach if reach > 0 else 1]}
+    amount = {"type": "quantitative", "stack": None, "axis": None, "scale": scale}
+    over = {"test": "datum.over"}
+    return {
+        "height": {"step": ROW_HEIGHT},
+        "padding": {"left": 0, "right": 96, "top": 4, "bottom": 0},
+        "data": {"values": values},
+        "encoding": {
+            "y": {
+                "field": "label",
+                "type": "ordinal",
+                "sort": None,
+                "axis": {"labelLimit": LABEL_LIMIT, "labelColor": TEXT},
+            },
+            "description": {"field": "description"},
+        },
+        "layer": [
+            {
+                "mark": {"type": "bar", "cornerRadiusEnd": 5, "height": {"band": 0.62}},
+                "encoding": {
+                    "x": {**amount, "field": "y"},
+                    "color": {"condition": {**over, "value": WARNING}, "value": ACCENT},
+                    "tooltip": [
+                        {"field": "label", "title": " "},
+                        {"field": "shown", "title": component.actual},
+                        {"field": "budget_shown", "title": component.budget},
+                        {"field": "status", "title": " "},
+                    ],
+                },
+            },
+            {
+                "mark": {"type": "tick", "thickness": 3, "size": ROW_HEIGHT - 6, "color": TEXT},
+                "encoding": {"x": {**amount, "field": "budget"}},
+            },
+            {
+                "mark": {
+                    "type": "text",
+                    "align": "left",
+                    "dx": 8,
+                    "fontSize": 12,
+                    "fontWeight": 600,
+                },
+                "encoding": {
+                    "x": {**amount, "field": "reach"},
+                    "text": {"field": "text"},
+                    "color": {"condition": {**over, "value": WARNING}, "value": MUTED},
+                },
+            },
+        ],
+    }
+
+
+def _waterfall(
+    component: Waterfall, values: list[dict[str, Any]], data: dict[str, Any]
+) -> dict[str, Any]:
+    steps = list(values)
+    if component.total is not None:
+        total = figure(path=component.total, data=data)
+        last_end = values[-1]["end"] if len(values) > 0 else 0
+        if not agree(total, last_end):
+            raise BadRequestError(
+                f"{component.total} is {total}, but the last step ends at {last_end}"
+            )
+        label = "Left" if component.total_label is None else component.total_label
+        # A total named like a step would share its bar.
+        if label in {value["label"] for value in values}:
+            raise BadRequestError(f"total_label {label!r} is also a step's label")
+        shown = display(field=component.total, value=total)
+        steps.append(
+            {
+                "key": label,
+                "label": label,
+                "y": total,
+                "shown": shown,
+                "series": None,
+                "path": component.total,
+                "description": f"{label}, {shown} ({component.total})",
+                "booking_ids": [],
+                "start": 0,
+                "end": total,
+                "top": max(0, total),
+                "step": "total",
+                "text": number(value=total, decimals=0),
+            }
+        )
+    colour = {
+        "condition": [
+            {"test": "datum.step === 'total'", "value": TEXT},
+            {"test": "datum.step === 'down'", "value": STEP_DOWN},
+        ],
+        "value": ACCENT,
+    }
+    amount = {"type": "quantitative", "stack": None}
+    return {
+        "height": BAR_HEIGHT,
+        "data": {"values": steps},
+        "encoding": {
+            "x": {
+                "field": "label",
+                "type": "ordinal",
+                "sort": None,
+                "axis": {"labelAngle": -30, "labelLimit": 90},
+            },
+            "description": {"field": "description"},
+        },
+        "layer": [
+            {
+                "mark": {"type": "bar", "cornerRadius": 4, "width": {"band": 0.62}},
+                "encoding": {
+                    "y": {**amount, "field": "start", "axis": {"format": ",.0f"}},
+                    "y2": {"field": "end"},
+                    "color": colour,
+                    "tooltip": [
+                        {"field": "label", "title": " "},
+                        {"field": "shown", "title": component.amount},
+                    ],
+                },
+            },
+            {
+                "mark": {
+                    "type": "text",
+                    "dy": -8,
+                    "fontSize": 12,
+                    "fontWeight": 600,
+                    "color": TEXT,
+                },
+                "encoding": {"y": {**amount, "field": "top"}, "text": {"field": "text"}},
+            },
+        ],
+    }
+
+
+def _calendar(values: list[dict[str, Any]]) -> dict[str, Any]:
+    days = [date.fromisoformat(value["key"]) for value in values]
+    first, last = min(days), max(days)
+    # Every day of the span gets a quiet cell, so the weeks keep their shape.
+    span = [first + timedelta(days=offset) for offset in range((last - first).days + 1)]
+    background = [_day_fields(day=day.isoformat()) for day in span]
+    weeks = list(dict.fromkeys(cell["week"] for cell in background))
+    # A week is labelled with the month that starts in it, and the first week with its own.
+    labelled = {weeks[0]: MONTHS[first.month - 1]}
+    for day in span:
+        if day.day == 1:
+            labelled[(day - timedelta(days=day.weekday())).isoformat()] = MONTHS[day.month - 1]
+    x = {
+        "field": "week",
+        "type": "ordinal",
+        "sort": None,
+        "scale": {"domain": weeks},
+        "axis": {
+            "orient": "top",
+            "values": list(labelled),
+            "labelExpr": f"{json.dumps(list(labelled.values()))}"
+            f"[indexof({json.dumps(list(labelled))}, datum.value)]",
+            "labelAlign": "left",
+        },
+    }
+    y = {"field": "weekday", "type": "ordinal", "sort": WEEKDAYS, "scale": {"domain": WEEKDAYS}}
+    cell = {"type": "rect", "cornerRadius": 2, "stroke": SURFACE, "strokeWidth": 2}
+    return {
+        "width": {"step": CELL},
+        "height": {"step": CELL},
+        "data": {"values": values},
+        "layer": [
+            {
+                "data": {"values": background},
+                "mark": {**cell, "color": EMPTY_DAY, "aria": False},
+                "encoding": {"x": x, "y": y},
+            },
+            {
+                "mark": cell,
+                "encoding": {
+                    "x": x,
+                    "y": y,
+                    "color": {
+                        "field": "y",
+                        "type": "quantitative",
+                        "scale": {"type": "sqrt", "range": CALENDAR_RANGE, "zero": True},
+                        "legend": {"format": ",.0f", "orient": "bottom", "gradientLength": 120},
+                    },
+                    "description": {"field": "description"},
+                    "tooltip": _tooltip(y_title="value"),
+                },
+            },
+        ],
     }
 
 

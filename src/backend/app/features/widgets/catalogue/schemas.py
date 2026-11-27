@@ -182,6 +182,45 @@ class ForecastChart(Component):
         return None if self.low is None or self.high is None else (self.low, self.high)
 
 
+class BudgetBars(Component):
+    type: Literal["budget_bars"]
+    title: Label | None = None
+    data: DataPath
+    # The field that names each row, such as a category.
+    label: FieldName
+    actual: FieldName
+    budget: FieldName
+
+
+class Waterfall(Component):
+    type: Literal["waterfall"]
+    title: Label | None = None
+    # The steps in order, each with where it starts and ends and its own amount.
+    data: DataPath
+    label: FieldName
+    start: FieldName
+    end: FieldName
+    amount: FieldName
+    # What is left after the last step, a figure DATA holds; drawn as a last bar from zero.
+    total: DataPath | None = None
+    total_label: Label | None = None
+
+    @model_validator(mode="after")
+    def _total_label_needs_a_total(self) -> Self:
+        if self.total_label is not None and self.total is None:
+            raise ValueError("total_label needs total: the figure the last bar shows")
+        return self
+
+
+class Calendar(Component):
+    type: Literal["calendar"]
+    title: Label | None = None
+    # One row per day, such as spending per day.
+    data: DataPath
+    date: FieldName
+    value: FieldName
+
+
 class ScenarioFigure(Component):
     label: Label
     # A field of every case's row, such as "left_chf".
@@ -234,7 +273,17 @@ class Grid(Component):
     children: list["Node"] = Field(min_length=2, max_length=6)
 
 
-Chart = BarChart | LineChart | AreaChart | Comparison | Donut | ForecastChart
+Chart = (
+    BarChart
+    | LineChart
+    | AreaChart
+    | Comparison
+    | Donut
+    | ForecastChart
+    | BudgetBars
+    | Waterfall
+    | Calendar
+)
 Node = Annotated[
     Kpi
     | StatRow
@@ -247,6 +296,9 @@ Node = Annotated[
     | Comparison
     | Donut
     | ForecastChart
+    | BudgetBars
+    | Waterfall
+    | Calendar
     | Scenarios
     | Progress
     | Callout
@@ -269,6 +321,9 @@ COMPONENTS: list[type[Component]] = [
     Comparison,
     Donut,
     ForecastChart,
+    BudgetBars,
+    Waterfall,
+    Calendar,
     Scenarios,
     Progress,
     Callout,

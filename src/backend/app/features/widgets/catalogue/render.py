@@ -17,6 +17,7 @@ from app.features.widgets.catalogue.charts import (
 from app.features.widgets.catalogue.schemas import (
     FIELD_PATTERN,
     PATH_PATTERN,
+    BudgetBars,
     Callout,
     Chart,
     Donut,
@@ -36,6 +37,7 @@ from app.features.widgets.catalogue.schemas import (
     WidgetSpec,
 )
 from app.features.widgets.catalogue.values import (
+    HALF_RAPPEN,
     MONTHS,
     booking_ids,
     display,
@@ -61,8 +63,6 @@ TABLE_ROWS = 50
 # Scenarios compare cases, so at least two; more than six no longer fit the switch.
 MIN_CASES = 2
 MAX_CASES = 6
-# Half a Rappen: a total may differ from the sum of its rows by rounding only.
-TOTAL_TOLERANCE = Decimal("0.005")
 
 _env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape(["j2"]))
 _css = (TEMPLATES / "widget.css").read_text(encoding="utf-8")
@@ -277,7 +277,7 @@ def _check_sum(
     if not all(is_number(value=cell) for cell in cells):
         raise BadRequestError(f"{rows_path}: the {column} column holds no amounts for the total")
     column_sum = sum((Decimal(str(cell)) for cell in cells), Decimal(0))
-    if abs(column_sum - Decimal(str(total))) > TOTAL_TOLERANCE:
+    if abs(column_sum - Decimal(str(total))) > HALF_RAPPEN:
         raise BadRequestError(
             f"{total_path} is {total}, but the {column} column of {rows_path} adds up to "
             f"{column_sum}"
@@ -419,6 +419,7 @@ def _chart(
         "legend": None,
         "total": None,
         "forecast_legend": None,
+        "budget_legend": isinstance(node, BudgetBars),
     }
     if isinstance(node, ForecastChart):
         return view | {"forecast_legend": {"range": node.low is not None}}
