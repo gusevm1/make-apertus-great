@@ -28,7 +28,6 @@ if [ "${RESET:-}" = "1" ]; then docker rm -f "$container" >/dev/null 2>&1 || tru
 docker start "$container" >/dev/null 2>&1 || docker run -d --name "$container" -p "$api_port:8000" \
   -e DEMO_TODAY=2026-11-27 ghcr.io/tiziano-schacht-ti8m/trustroom-banking-api:latest >/dev/null
 
-# The tests empty every table, so two worktrees on one test database break each other's runs.
 # docker compose from a worktree would recreate src-db-1, which mounts db-init from the checkout that created it.
 if ! docker start src-db-1 >/dev/null 2>&1; then
   echo "No src-db-1. Start it once from the main checkout: cd $main/src && docker compose up -d db" >&2
