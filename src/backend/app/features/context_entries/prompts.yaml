@@ -2,4 +2,7 @@ list_context_entries: >-
   Lists what I noted about myself in the TrustRoom: my goals (with an amount in CHF and a target date
   where I gave one), facts about my life and my preferences. Use it when my question touches my
   plans, my savings goals or my situation. Where an entry of mine disagrees with my bank profile or a
-  document, my entry counts; say that the figure comes from my own entry.
+  document, my entry counts; say that the figure comes from my own entry. The list holds only my newest
+  entries. When left_out is above 0, I have that many older entries you cannot see: then never answer
+  that I noted nothing about something; say that you see only my newest entries and that an older one
+  may hold it.
