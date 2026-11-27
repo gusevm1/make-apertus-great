@@ -1,4 +1,5 @@
 import json
+import re
 from functools import cache
 from typing import Any
 
@@ -42,6 +43,27 @@ SLICES = [
     "#e3e9ea",
     "#c2c8c8",
 ]
+# The colours a customer can choose, from the e-banking tokens; each is at least 3:1 on white.
+PALETTE = {
+    "petrol": ACCENT,
+    "petrol_light": "#5f9c95",
+    "navy": TEXT,
+    "navy_light": "#4a6272",
+    "grey": MUTED,
+    "grey_light": "#8a959b",
+    "red": "#b3261e",
+    "red_light": "#e0464b",
+    "green": "#1d7a45",
+    "green_light": "#3d9a63",
+    "blue": "#2f6fd6",
+    "blue_light": "#5b8fe0",
+    "amber": "#9a5b00",
+    "amber_light": "#c27a12",
+}
+# A series value naming a year, month or day; the newest such series gets the accent colour.
+PERIOD = re.compile(r"^\d{4}(-\d{2}){0,2}$")
+# Earlier periods step back in lighter greys, so the current one stands out.
+PERIOD_SERIES = [ACCENT, PALETTE["grey_light"], "#a9b2b6", "#c2c8c8"]
 # A sparkline has one size in both forms, beside a figure.
 SPARK_WIDTH = 160
 SPARK_HEIGHT = 40
@@ -122,10 +144,12 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
                 "booking_ids": row.get("booking_ids", []),
             }
         )
-    if isinstance(component, Donut):
-        return _donut(values=values)
     if isinstance(component, Trend):
         return _sparkline(values=values)
+    chosen = _chosen(component=component, values=values, has_series=series_field is not None)
+    if isinstance(component, Donut):
+        colours = [chosen.get(value["key"], SLICES[index]) for index, value in enumerate(values)]
+        return _donut(values=values, colours=colours)
     # A horizontal chart's labels sit beside the plot, so its static plot is narrower.
     labels_beside = isinstance(component, BarChart) and component.horizontal
     size: dict[str, Any] = (
@@ -134,17 +158,38 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
         else {"width": STATIC_WIDTH - LABEL_LIMIT if labels_beside else STATIC_WIDTH}
     )
     if isinstance(component, BarChart):
-        return {**size, **_bar(component=component, values=values)}
+        return {**size, **_bar(component=component, values=values, chosen=chosen)}
+    scale = _series_scale(series=[value["series"] for value in values], chosen=chosen)
     if isinstance(component, Comparison):
-        return {**size, **_comparison(values=values)}
+        return {**size, **_comparison(values=values, scale=scale)}
     has_series = series_field is not None
-    if isinstance(component, AreaChart):
-        return {**size, **_line(values=values, has_series=has_series, filled=True)}
-    return {**size, **_line(values=values, has_series=has_series, filled=False)}
+    filled = isinstance(component, AreaChart)
+    return {**size, **_line(values=values, has_series=has_series, filled=filled, scale=scale)}
 
 
-def slice_colour(index: int) -> str:
-    return SLICES[index]
+def _chosen(component: Chart, values: list[dict[str, Any]], has_series: bool) -> dict[str, str]:
+    # The customer's colours by row label or series value; a key the chart lacks is refused.
+    if component.colors is None:
+        return {}
+    keys = {value["series"] if has_series else value["key"] for value in values}
+    for key in component.colors:
+        if key not in keys:
+            kind = "series value" if has_series else "label"
+            raise BadRequestError(
+                f"colors names {key!r}, which is no {kind} of {component.data}; "
+                f"it has: {', '.join(sorted(str(each) for each in keys))}"
+            )
+    return {key: PALETTE[name] for key, name in component.colors.items()}
+
+
+def _series_scale(series: list[str | None], chosen: dict[str, str]) -> dict[str, Any]:
+    names = [name for name in dict.fromkeys(series) if name is not None]
+    # Periods newest first, so the current year gets the accent colour and leads the legend.
+    is_periods = len(names) > 0 and all(PERIOD.fullmatch(name) is not None for name in names)
+    domain = sorted(names, reverse=is_periods)
+    base = PERIOD_SERIES if is_periods else SERIES
+    colours = [chosen.get(name, base[index % len(base)]) for index, name in enumerate(domain)]
+    return {"domain": domain, "range": colours}
 
 
 def _fields(component: Chart | Trend) -> tuple[str, str, str | None]:
@@ -171,10 +216,20 @@ def _tooltip(y_title: str) -> list[dict[str, str]]:
     return [{"field": "label", "title": " "}, {"field": "shown", "title": y_title}]
 
 
-def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
+def _bar(
+    component: BarChart, values: list[dict[str, Any]], chosen: dict[str, str]
+) -> dict[str, Any]:
     highlight = component.highlight
+    highlight_colour = (
+        ACCENT if component.highlight_color is None else PALETTE[component.highlight_color]
+    )
+    # The customer's colours come first; keys are checked against the rows and JSON-quoted.
+    conditions = [
+        {"test": f"datum.key === {_js(key)}", "value": colour} for key, colour in chosen.items()
+    ]
+    conditions.append({"test": f"datum.key === {_js(highlight)}", "value": highlight_colour})
     accent = {
-        "condition": {"test": f"datum.key === {_js(highlight)}", "value": ACCENT},
+        "condition": conditions if len(conditions) > 1 else conditions[0],
         "value": ACCENT_LIGHT if highlight is not None else ACCENT_MID,
     }
     text_colour = {
@@ -232,7 +287,9 @@ def _bar(component: BarChart, values: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _line(values: list[dict[str, Any]], has_series: bool, filled: bool) -> dict[str, Any]:
+def _line(
+    values: list[dict[str, Any]], has_series: bool, filled: bool, scale: dict[str, Any]
+) -> dict[str, Any]:
     encoding = {
         "x": {"field": "label", "type": "ordinal", "sort": None},
         "y": {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}},
@@ -246,7 +303,7 @@ def _line(values: list[dict[str, Any]], has_series: bool, filled: bool) -> dict[
         },
     }
     if has_series:
-        colour = {"field": "series", "type": "nominal", "scale": {"range": SERIES}}
+        colour = {"field": "series", "type": "nominal", "scale": scale}
         line = {"type": "line", "interpolate": "monotone", "strokeWidth": 2.5}
         # Areas overlap, never stack: a stacked area would draw sums DATA doesn't hold.
         shape = (
@@ -335,7 +392,7 @@ def _sparkline(values: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _comparison(values: list[dict[str, Any]]) -> dict[str, Any]:
+def _comparison(values: list[dict[str, Any]], scale: dict[str, Any]) -> dict[str, Any]:
     # Bars of each series side by side per label; `stack: None` keeps every bar one row's value.
     return {
         "height": BAR_HEIGHT,
@@ -344,7 +401,7 @@ def _comparison(values: list[dict[str, Any]]) -> dict[str, Any]:
             "x": {"field": "label", "type": "ordinal", "sort": None},
             "xOffset": {"field": "series", "type": "nominal"},
             "y": {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}},
-            "color": {"field": "series", "type": "nominal", "scale": {"range": SERIES}},
+            "color": {"field": "series", "type": "nominal", "scale": scale},
             "description": {"field": "description"},
         },
         "layer": [
@@ -358,7 +415,7 @@ def _comparison(values: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _donut(values: list[dict[str, Any]]) -> dict[str, Any]:
+def _donut(values: list[dict[str, Any]], colours: list[str]) -> dict[str, Any]:
     ordered = [{**value, "order": index} for index, value in enumerate(values)]
     return {
         "width": DONUT_SIZE,
@@ -382,7 +439,7 @@ def _donut(values: list[dict[str, Any]]) -> dict[str, Any]:
                 "legend": None,
                 "scale": {
                     "domain": [value["path"] for value in ordered],
-                    "range": [slice_colour(index=index) for index in range(len(ordered))],
+                    "range": colours,
                 },
             },
             "description": {"field": "description"},

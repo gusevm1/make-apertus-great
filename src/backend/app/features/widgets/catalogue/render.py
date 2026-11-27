@@ -12,7 +12,6 @@ from app.features.widgets.catalogue.charts import (
     THEME,
     chart_spec,
     runtime,
-    slice_colour,
     static_svg,
 )
 from app.features.widgets.catalogue.schemas import (
@@ -360,6 +359,8 @@ def _chart(
     }
     if not isinstance(node, Donut):
         return view
+    # The legend's swatches are the slices' own colours, the customer's where chosen.
+    colours = charts[-1]["spec"]["encoding"]["color"]["scale"]["range"]
     legend = [
         {
             "path": value["path"],
@@ -367,7 +368,7 @@ def _chart(
             "label": value["label"],
             "text": value["shown"],
             "booking_ids": json.dumps(value["booking_ids"]),
-            "colour": slice_colour(index=index),
+            "colour": colours[index],
         }
         for index, value in enumerate(values)
     ]

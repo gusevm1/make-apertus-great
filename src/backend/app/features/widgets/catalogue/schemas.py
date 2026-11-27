@@ -11,6 +11,25 @@ DataPath = Annotated[str, Field(strict=True, max_length=120, pattern=PATH_PATTER
 FieldName = Annotated[str, Field(strict=True, max_length=60, pattern=FIELD_PATTERN)]
 Label = Annotated[str, Field(strict=True, min_length=1, max_length=80)]
 Note = Annotated[str, Field(strict=True, min_length=1, max_length=200)]
+# The palette a customer chooses chart colours from; charts.PALETTE holds their values.
+ColourName = Literal[
+    "petrol",
+    "petrol_light",
+    "navy",
+    "navy_light",
+    "grey",
+    "grey_light",
+    "red",
+    "red_light",
+    "green",
+    "green_light",
+    "blue",
+    "blue_light",
+    "amber",
+    "amber_light",
+]
+# A row label or series value of the chart's data, such as "2026-10" or "2025", to a colour.
+Colours = Annotated[dict[Label, ColourName], Field(max_length=24)]
 
 
 class Component(BaseModel):
@@ -90,7 +109,9 @@ class BarChart(Component):
     y: FieldName
     # A value of `x` to draw in the accent colour, such as "2026-10".
     highlight: Label | None = None
+    highlight_color: ColourName | None = None
     horizontal: bool = False
+    colors: Colours | None = None
 
 
 class LineChart(Component):
@@ -100,6 +121,7 @@ class LineChart(Component):
     x: FieldName
     y: FieldName
     series: FieldName | None = None
+    colors: Colours | None = None
 
 
 class AreaChart(Component):
@@ -109,6 +131,7 @@ class AreaChart(Component):
     x: FieldName
     y: FieldName
     series: FieldName | None = None
+    colors: Colours | None = None
 
 
 class Comparison(Component):
@@ -118,6 +141,7 @@ class Comparison(Component):
     x: FieldName
     y: FieldName
     series: FieldName
+    colors: Colours | None = None
 
 
 class Donut(Component):
@@ -127,6 +151,7 @@ class Donut(Component):
     label: FieldName
     value: FieldName
     total: DataPath | None = None
+    colors: Colours | None = None
 
 
 class Timeline(Component):

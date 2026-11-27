@@ -74,6 +74,19 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
                 "highlight": last,
             },
         },
+        "bar_chart_coloured": {
+            "title": "Monthly spending",
+            "subtitle": "Colours the customer chose",
+            "body": {
+                "type": "bar_chart",
+                "data": "months",
+                "x": "label",
+                "y": "total_chf",
+                "highlight": last,
+                "highlight_color": "red",
+                "colors": {before: "amber_light"},
+            },
+        },
         "bar_chart_horizontal": {
             "title": "Where the money goes",
             "subtitle": "Last 3 months",

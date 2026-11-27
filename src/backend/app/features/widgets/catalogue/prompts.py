@@ -41,7 +41,9 @@ def catalogue_prompt() -> str:
 
 def _kind_text(prop: dict[str, Any]) -> str:
     option = _option(prop=prop)
-    values = ", ".join(str(value) for value in option.get("enum", []))
+    # A colour map lists its allowed colours under its values' schema.
+    choices = option.get("enum", option.get("additionalProperties", {}).get("enum", []))
+    values = ", ".join(str(value) for value in choices)
     return PROMPTS["kinds"][_kind(option=option)].format(values=values)
 
 
@@ -52,6 +54,8 @@ def _limits(prop: dict[str, Any]) -> str:
         return limits["items"].format(min=option["minItems"], max=option["maxItems"])
     if "maxItems" in option:
         return limits["at_most_items"].format(max=option["maxItems"])
+    if "maxProperties" in option:
+        return limits["at_most_items"].format(max=option["maxProperties"])
     if "maxLength" in option:
         return limits["at_most_characters"].format(max=option["maxLength"])
     return ""
@@ -76,6 +80,8 @@ def _kind(option: dict[str, Any]) -> str:
         if items.get("$ref", "").endswith("/Stat"):
             return "stats"
         return "components"
+    if option.get("type") == "object":
+        return "colors"
     if "enum" in option:
         return "choice"
     if option.get("type") == "boolean":

@@ -20,6 +20,7 @@ kinds:
   trend: "{{data: path into DATA, x and y: field names of its rows}}"
   components: list of components
   choice: "one of {values}"
+  colors: "map from a label or series value of the chart's rows to a colour, one of {values}"
   boolean: true or false
   text: text
 
@@ -39,19 +40,21 @@ timeline:
   description: Rows in date order along a line, such as payments that fall due; each with its date, a label, an optional detail and a value.
   example: {"type": "timeline", "title": "Due next", "rows": "payments", "date": "due_date", "label": "payee", "detail": "description", "value": "amount_chf"}
 bar_chart:
-  description: Bars for one value per label, such as spending per month. `horizontal` suits long labels such as payee names. `highlight` names one label to draw in the accent colour.
+  description: >-
+    Bars for one value per label, such as spending per month. `horizontal` suits long labels such as payee names. `highlight` names one label to draw in the accent colour, or in `highlight_color`. `colors` gives labels a colour the customer asked for, so "make October red" becomes "colors": {"2026-10": "red"}, with the label as DATA writes it.
   example: {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf", "highlight": "2026-10"}
 line_chart:
-  description: A line over labels in order, such as months; `series` draws one line per value of that field, such as one per year.
+  description: >-
+    A line over labels in order, such as months; `series` draws one line per value of that field, such as one per year. The newest year or month gets the accent colour; `colors` gives a series value another colour, such as {"2025": "blue"}.
   example: {"type": "line_chart", "data": "years", "x": "month", "y": "total_chf", "series": "year"}
 area_chart:
-  description: A filled area over labels in order, such as spending per month; with `series`, one area per value of that field, drawn over each other.
+  description: A filled area over labels in order, such as spending per month; with `series`, one area per value of that field, drawn over each other, and `colors` as in line_chart.
   example: {"type": "area_chart", "data": "months", "x": "label", "y": "total_chf"}
 comparison:
-  description: Bars of two or more periods side by side for each label, such as each month of this year next to last year; `series` names the period field.
+  description: Bars of two or more periods side by side for each label, such as each month of this year next to last year; `series` names the period field, and `colors` works as in line_chart.
   example: {"type": "comparison", "title": "This year against last year", "data": "years", "x": "month", "y": "total_chf", "series": "year"}
 donut:
-  description: The shares of a whole as a ring, with a legend of every part and its value, such as spending per payee; `total` is a total DATA already holds.
+  description: The shares of a whole as a ring, with a legend of every part and its value, such as spending per payee; `total` is a total DATA already holds, and `colors` gives a part's label a colour.
   example: {"type": "donut", "data": "payees", "label": "label", "value": "total_chf", "total": "payees_total_chf"}
 progress:
   description: A figure against a goal as a bar, such as savings towards a trip; both come from DATA.
