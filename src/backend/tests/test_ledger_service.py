@@ -748,8 +748,8 @@ async def test_a_period_outside_the_history_has_no_months_and_no_rows() -> None:
     assert comparison.row_ids["earlier"] == []
 
 
-async def test_a_placeholder_instead_of_a_date_asks_to_find_the_date_first() -> None:
-    with pytest.raises(ValueError, match="is not a date.*search_movements"):
+async def test_a_placeholder_instead_of_a_date_points_to_since_salary_start() -> None:
+    with pytest.raises(ValueError, match="is not a date.*since_salary_start"):
         _compare(first=("<first_salary_date>", "2025-08-31"), second=("2025-09-01", "2026-11-27"))
 
 
@@ -851,3 +851,81 @@ async def test_an_account_without_bookings_names_the_ones_there_are() -> None:
             token=TOKEN,
             args=_balance_args(date_from="2026-10-01", date_to="2026-10-31", account_id="ACC-NOPE"),
         )
+
+
+# Student pay, then a salary at a new level from September, and a pro rata 13th salary apart.
+CAREER = [
+    _booking("BK-S1", "salary", 1690.2, booking_date="2025-06-25"),
+    _booking("BK-P1", "debit_card", -400.0, booking_date="2025-07-10"),
+    _booking("BK-S2", "salary", 1185.6, booking_date="2025-08-25"),
+    _booking("BK-S3", "salary", 5553.64, booking_date="2025-09-25"),
+    _booking("BK-P2", "debit_card", -900.0, booking_date="2025-10-04"),
+    _booking("BK-S4", "salary", 5553.64, booking_date="2025-10-24"),
+    _booking("BK-S5", "salary", 5553.64, booking_date="2025-11-25"),
+    _booking("BK-S6", "salary", 1934.61, booking_date="2025-11-25"),
+]
+
+
+def _career(bookings: list[dict] = CAREER) -> LedgerService:
+    return _fake_ledger(bookings=bookings, purchases=[], statements=[], pages_read=[])
+
+
+async def test_since_salary_start_splits_at_the_first_salary_of_todays_level() -> None:
+    args = ComparePeriodsArgs.model_validate({"since_salary_start": True, "kind": "spending"})
+
+    comparison = await _career().compare_periods(token=TOKEN, args=args)
+
+    assert comparison.salary_start == date(2025, 9, 25)
+    assert (comparison.earlier.date_from, comparison.earlier.date_to) == (
+        date(2025, 6, 1),
+        date(2025, 8, 31),
+    )
+    assert (comparison.later.date_from, comparison.later.date_to) == (
+        date(2025, 9, 1),
+        date(2025, 11, 30),
+    )
+    assert (comparison.earlier.average_out_chf, comparison.later.average_out_chf) == (
+        Decimal("-133.33"),
+        Decimal("-300.0"),
+    )
+    assert comparison.row_ids == {
+        "earlier": ["BK-P1"],
+        "later": ["BK-P2"],
+        "salary_start": ["BK-S3"],
+    }
+
+
+async def test_since_salary_start_ignores_placeholder_dates() -> None:
+    args = ComparePeriodsArgs.model_validate(
+        {"since_salary_start": True, "first_from": "<first_salary_date>", "second_to": "today"}
+    )
+
+    assert args.first_from is None and args.second_to is None
+
+
+async def test_a_salary_at_one_level_since_the_history_starts_has_nothing_to_compare() -> None:
+    args = ComparePeriodsArgs.model_validate({"since_salary_start": True})
+
+    with pytest.raises(BadRequestError, match="no earlier period"):
+        await _career(bookings=CAREER[3:]).compare_periods(token=TOKEN, args=args)
+
+
+async def test_without_a_salary_the_customer_is_asked_when_the_job_started() -> None:
+    args = ComparePeriodsArgs.model_validate({"since_salary_start": True})
+
+    with pytest.raises(BadRequestError, match="No salary"):
+        await _career(bookings=[CAREER[1]]).compare_periods(token=TOKEN, args=args)
+
+
+async def test_without_dates_or_since_salary_start_all_four_dates_are_asked_for() -> None:
+    with pytest.raises(ValueError, match="all four dates"):
+        ComparePeriodsArgs.model_validate({"first_from": "2025-01-01", "first_to": "2025-06-30"})
+
+
+async def test_a_newest_month_with_only_a_bonus_so_far_keeps_the_split() -> None:
+    bonus = _booking("BK-S7", "salary", 800.0, booking_date="2025-12-05")
+    args = ComparePeriodsArgs.model_validate({"since_salary_start": "true"})
+
+    comparison = await _career(bookings=[*CAREER, bonus]).compare_periods(token=TOKEN, args=args)
+
+    assert comparison.salary_start == date(2025, 9, 25)

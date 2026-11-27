@@ -17,6 +17,10 @@ TREND_MONTHS_DEFAULT = 12
 MAX_PROJECTED_MONTHS = 6
 PROJECTED_MONTHS_DEFAULT = 3
 TOP_COUNTERPARTIES = 15
+# Today's salary level is the median of the last months; a month below this share of it is lower.
+SALARY_LEVEL_MONTHS = 3
+SALARY_LEVEL_SHARE = Decimal("0.5")
+PERIOD_FIELDS = ("first_from", "first_to", "second_from", "second_to")
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 # Per side of a balance change; the rest is added up as `others`.
 TOP_BALANCE_COUNTERPARTIES = 5
@@ -102,12 +106,21 @@ class SumByCounterpartyArgs(Filters):
 
 
 class ComparePeriodsArgs(Selection):
-    first_from: datetime.date = Field(description=PROMPTS["first_from"])
-    first_to: datetime.date = Field(description=PROMPTS["first_to"])
-    second_from: datetime.date = Field(description=PROMPTS["second_from"])
-    second_to: datetime.date = Field(description=PROMPTS["second_to"])
+    first_from: datetime.date | None = Field(default=None, description=PROMPTS["first_from"])
+    first_to: datetime.date | None = Field(default=None, description=PROMPTS["first_to"])
+    second_from: datetime.date | None = Field(default=None, description=PROMPTS["second_from"])
+    second_to: datetime.date | None = Field(default=None, description=PROMPTS["second_to"])
+    since_salary_start: bool = Field(default=False, description=PROMPTS["since_salary_start"])
 
-    @field_validator("first_from", "first_to", "second_from", "second_to", mode="before")
+    @model_validator(mode="before")
+    @classmethod
+    def _salary_start_needs_no_dates(cls, data: Any) -> Any:
+        # Without known dates the model writes placeholders; here the server finds the dates.
+        if isinstance(data, dict) and str(data.get("since_salary_start")).lower() == "true":
+            return {key: value for key, value in data.items() if key not in PERIOD_FIELDS}
+        return data
+
+    @field_validator(*PERIOD_FIELDS, mode="before")
     @classmethod
     def _a_date(cls, value: Any) -> Any:
         # The model writes placeholders when it plans this call before it knows the date.
@@ -117,15 +130,24 @@ class ComparePeriodsArgs(Selection):
 
     @model_validator(mode="after")
     def _in_order(self) -> Self:
-        for start, end, name in [
-            (self.first_from, self.first_to, "first"),
-            (self.second_from, self.second_to, "second"),
-        ]:
+        if self.since_salary_start:
+            return self
+        for (start, end), name in zip(self.periods(), ["first", "second"], strict=True):
             if start > end:
                 raise ValueError(
                     f"{name}_from is after {name}_to. The period starts on {name}_from."
                 )
         return self
+
+    def periods(self) -> list[tuple[datetime.date, datetime.date]]:
+        if (
+            self.first_from is None
+            or self.first_to is None
+            or self.second_from is None
+            or self.second_to is None
+        ):
+            raise ValueError(PROMPTS["dates_or_salary_start"])
+        return [(self.first_from, self.first_to), (self.second_from, self.second_to)]
 
 
 class BalanceChangeArgs(BaseModel):
@@ -263,6 +285,8 @@ class PeriodComparison(BaseModel):
     average_out_change_percent: Decimal | None
     average_in_change_chf: Decimal
     average_in_change_percent: Decimal | None
+    # With since_salary_start: the first salary at today's level, where the later period begins.
+    salary_start: datetime.date | None = None
     # Last, so a cut in the tool result drops ids before any figure.
     row_ids: dict[str, list[str]]
 

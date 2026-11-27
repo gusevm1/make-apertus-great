@@ -55,8 +55,9 @@ compare_periods: >-
   Compares two periods, in either order, under the same filters as search_movements: each period's
   sums and average per month, and the change in CHF and percent of the totals and of the averages.
   Use it for "how has my spending changed since ...", "since I started working" or "this summer
-  against last summer", and never subtract sums yourself. A job starts with its first salary: find
-  it with search_movements (kind credit, sort oldest), then compare before and after it.
+  against last summer", and never subtract sums yourself. For "since I started working" or "since
+  my new job", set `since_salary_start` and leave out the dates: the server splits at the first
+  salary of today's level and names it as `salary_start`.
 explain_balance_change: >-
   How the balance of one account changed over a period, from its bookings: `start_balance_chf`
   before the first booking of `date_from`, `end_balance_chf` after the last booking of `date_to`,
@@ -92,9 +93,16 @@ group_by: "What to add up per: quarter, year, weekday, account or kind."
 counterparty_limit: "How many counterparties to list one by one. The rest is added up as `others`."
 sort: "The order of the listed movements: newest, oldest, or largest for the biggest amounts first, as in \"my largest payments\"."
 not_a_date: >-
-  "{value}" is not a date. If the question names an event, such as starting a job, call
-  search_movements to find its date (for a job the first salary, kind credit, sort oldest), and
-  compare_periods once its result is in.
+  "{value}" is not a date. For a job start, set since_salary_start instead of the dates.
+dates_or_salary_start: >-
+  Give all four dates, first_from, first_to, second_from and second_to, or set since_salary_start.
+salary_since_history_start: >-
+  The salary has been at today's level since {date}, when the bank's history starts, so there is no
+  earlier period to compare with. Answer with the monthly sums from sum_by_month instead.
+no_salary: >-
+  No salary was booked in the bank's history, so no job start can be found. Ask the customer when
+  the job started and compare those dates.
+since_salary_start: "True to compare everything before the first salary of today's level with everything since. Then leave out the four dates."
 first_from: "First day of one period, as YYYY-MM-DD."
 first_to: "Last day of that period, as YYYY-MM-DD."
 second_from: "First day of the other period, as YYYY-MM-DD."

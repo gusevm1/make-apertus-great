@@ -13,6 +13,9 @@ from app.core.errors import BadRequestError
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import (
     MIN_TREND_MONTHS,
+    PERIOD_FIELDS,
+    SALARY_LEVEL_MONTHS,
+    SALARY_LEVEL_SHARE,
     TOP_BALANCE_COUNTERPARTIES,
     BalanceChange,
     BalanceChangeArgs,
@@ -159,16 +162,27 @@ class LedgerService:
 
     async def compare_periods(self, token: str, args: ComparePeriodsArgs) -> PeriodComparison:
         """Two periods under the same filters, and how much more the later one moved."""
-        # The model passes the periods in the order the question names them, not by date.
-        earlier, later = sorted(
-            [(args.first_from, args.first_to), (args.second_from, args.second_to)]
-        )
+        salary_start = None
+        if args.since_salary_start:
+            rows = await self.list_rows(token=token)
+            salary_start = _salary_start(rows=rows)
+            split = salary_start.date.replace(day=1)
+            if split <= rows[0].date:
+                raise BadRequestError(
+                    PROMPTS["salary_since_history_start"].format(date=salary_start.date)
+                )
+            # _period_sum cuts both to the months the history covers.
+            earlier, later = (date.min, split - timedelta(days=1)), (split, date.max)
+        else:
+            # The model passes the periods in the order the question names them, not by date.
+            earlier, later = sorted(args.periods())
         earlier_sum, earlier_ids = await self._period_sum(token=token, args=args, period=earlier)
         later_sum, later_ids = await self._period_sum(token=token, args=args, period=later)
         out_change = abs(later_sum.money_out_chf) - abs(earlier_sum.money_out_chf)
         in_change = later_sum.money_in_chf - earlier_sum.money_in_chf
         average_out_change = abs(later_sum.average_out_chf) - abs(earlier_sum.average_out_chf)
         average_in_change = later_sum.average_in_chf - earlier_sum.average_in_chf
+        salary_ids = {} if salary_start is None else {"salary_start": [salary_start.id]}
         return PeriodComparison(
             earlier=earlier_sum,
             later=later_sum,
@@ -184,7 +198,8 @@ class LedgerService:
             average_in_change_percent=_percent(
                 change=average_in_change, base=earlier_sum.average_in_chf
             ),
-            row_ids={"earlier": earlier_ids, "later": later_ids},
+            salary_start=None if salary_start is None else salary_start.date,
+            row_ids={"earlier": earlier_ids, "later": later_ids, **salary_ids},
         )
 
     async def explain_balance_change(self, token: str, args: BalanceChangeArgs) -> BalanceChange:
@@ -387,7 +402,7 @@ class LedgerService:
             date_from=period[0], date_to=period[1], rows=await self.list_rows(token=token)
         )
         date_from, date_to = period if covered is None else covered
-        shared = args.model_dump(exclude={"first_from", "first_to", "second_from", "second_to"})
+        shared = args.model_dump(exclude={*PERIOD_FIELDS, "since_salary_start"})
         filters = Filters(**shared, date_from=date_from, date_to=date_to)
         rows = [] if covered is None else await self._matching(token=token, filters=filters)
         months = 0 if covered is None else _count_months(first=date_from, last=date_to)
@@ -630,6 +645,25 @@ def _cents(value: float) -> Decimal:
 
 def _count_months(first: date, last: date) -> int:
     return (last.year - first.year) * 12 + last.month - first.month + 1
+
+
+def _salary_start(rows: list[LedgerRow]) -> LedgerRow:
+    # Per month, so a bonus or a 13th salary booked apart adds to its month instead of looking low.
+    by_month = _by_month(rows=[row for row in rows if row.transaction_type == "salary"])
+    if not by_month:
+        raise BadRequestError(PROMPTS["no_salary"])
+    months = sorted(by_month)
+    totals = [sum((row.amount_chf for row in by_month[month]), Decimal(0)) for month in months]
+    level = statistics.median(totals[-SALARY_LEVEL_MONTHS:]) * SALARY_LEVEL_SHARE
+    # A newest month that is low so far, such as a bonus alone, still belongs to today's level.
+    end = len(totals)
+    while totals[end - 1] < level:
+        end -= 1
+    start = 0
+    for index in range(end):
+        if totals[index] < level:
+            start = index + 1
+    return by_month[months[start]][0]
 
 
 def _covered(

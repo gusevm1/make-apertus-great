@@ -35,9 +35,11 @@
         date_from: "2026-(05|06)-01"
 - question: How has my spending changed since I started working?
   customer: jana
-  # Her student pay starts in December 2023 and her salary in September 2025, so either start counts.
+  # The server finds her salary start, September 2025; dates of the model's own are a guess.
   calls:
     - tool: compare_periods
+      arguments:
+        since_salary_start: "true"
 - question: Is my spending going up or down over the last year?
   calls:
     - tool: forecast_months
