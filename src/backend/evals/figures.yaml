@@ -121,6 +121,15 @@ questions:
     any_calls: true
     answer: '(?=[\s\S]*(?<![\d''’,])38[''’,\s]?534(?:\.40?)?(?![\d]|[.,]\d))(?=[\s\S]*(?:partner\w*(?:[^.]|\.\d){0,60}(?:report|notif|regist)|(?:report|notif|regist)\w*(?:[^.]|\.\d){0,60}partner|in writing|schriftlich|(?:ge)?meld(?:en|et)|Meldung))'
     answer_not: '^(?![\s\S]*(?:only if|only when|provided|as long as|unless|nur,? wenn|sofern|falls|vorausgesetzt))(?:\s*\**(?:yes|ja)\b|[\s\S]*\b(?:Sara|she|sie)(?:''s|’s| is| ist| would be| wäre| erhält| receives| gets| would (?:get|receive))\s+(?:fully |voll )?(?:covered|entitled|abgesichert|versichert|berechtigt|a partner|eine (?:Lebens)?partnerrente|CHF))'
+  # The policy covers emergency treatment abroad, but trip cancellation is «nicht versichert»; the offer sells it for CHF 198.
+  - question: Am I covered if I get sick in Japan? What about trip cancellation?
+    customer: lukas
+    rule: lukas
+    documents:
+      - P1_Lukas_Meier/Versicherungspolice_2027_Mythen_Lukas_Meier.pdf
+      - P1_Lukas_Meier/Reiseofferte_Japan_2027_Fernweh_Atelier.pdf
+    any_calls: true
+    answer: '(?=[\s\S]*(?<![\d''’,])198(?:\.00)?(?![\d]|[.,]\d))(?=[\s\S]*(?:(?:(?:trip |travel )?cancel\w*|Annullation\w*|Reiseabbruch\w*|Reiserücktritt\w*)(?:[^.]|\.\d){0,80}(?:\bnot\b|\bnicht\b|n[’'']t\b)\s(?:\w+\s){0,3}?(?:covered|insured|included|cover|versichert|gedeckt|abgedeckt|enthalten)|(?:\bnot\b|\bnicht\b|n[’'']t\b)\s(?:\w+\s){0,3}?(?:covered|insured|included|cover|versichert|gedeckt|abgedeckt|enthalten)(?:[^.]|\.\d){0,40}(?:(?:trip |travel )?cancel\w*|Annullation\w*|Reiseabbruch\w*|Reiserücktritt\w*)|(?:\bnot\b|\bnicht\b|n[’'']t\b|\bno\b|\bkeine?\b)\s(?:\w+\s){0,3}?(?:(?:trip |travel )?cancel\w*|Annullation\w*|Reiseabbruch\w*|Reiserücktritt\w*)))'
   - question: Does the salary on this payslip match what I received on my account?
     customer: jana
     rule: jana

@@ -106,7 +106,7 @@ def test_figures_ask_the_reference_questions_of_each_customer() -> None:
     customers = Counter(
         question.customer for question in questions if question.rule != "provisional"
     )
-    assert customers == {"lukas": 7, "jana": 5, "daniela": 5, "marco": 5}
+    assert customers == {"lukas": 8, "jana": 5, "daniela": 5, "marco": 5}
     assert all(question.answer is not None for question in questions)
 
 
@@ -115,7 +115,7 @@ def test_every_attached_document_is_a_sample_document() -> None:
         name for question in load_questions(path=FIGURES_PATH) for name in question.documents
     ]
 
-    assert len(documents) == 5
+    assert len(documents) == 7
     assert all((DOCUMENTS_PATH / name).is_file() for name in documents)
 
 
