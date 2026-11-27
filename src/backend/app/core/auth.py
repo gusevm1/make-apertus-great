@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID, uuid5
 
 from fastapi import Depends, Request
@@ -20,6 +20,8 @@ class CurrentUser(BaseModel):
     id: UUID
     customer_id: str
     token: str
+    # The banking API's /customer, read once per request here; the chat's context uses it.
+    profile: dict[str, Any]
 
 
 def owner_id(customer_id: str) -> UUID:
@@ -40,6 +42,7 @@ async def get_current_user(
         id=owner_id(customer_id=customer_id),
         customer_id=customer_id,
         token=credentials.credentials,
+        profile=customer,
     )
 
 
