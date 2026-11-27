@@ -16,6 +16,7 @@ class WebSearchService:
         found = await self.searxng.search(query=query)
         best = sorted(found, key=lambda result: result.score, reverse=True)[:MAX_RESULTS]
         return WebSearch(
+            query=query,
             results=[
                 WebPage(title=page.title, url=page.url, snippet=trim(text=page.content))
                 for page in best

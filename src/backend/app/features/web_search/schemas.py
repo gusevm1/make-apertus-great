@@ -10,5 +10,7 @@ class WebPage(BaseModel):
 
 
 class WebSearch(BaseModel):
+    # The model sees a call's result, not its arguments, and the customer may have changed them.
+    query: str
     results: list[WebPage]
     sources: list[ResultSource]
