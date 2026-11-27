@@ -471,7 +471,14 @@ def _sparkline(values: list[dict[str, Any]]) -> dict[str, Any]:
 def _forecast(values: list[dict[str, Any]], has_range: bool) -> dict[str, Any]:
     actual = [value for value in values if value["kind"] == "actual"]
     forecast = [value for value in values if value["kind"] == "forecast"]
-    x = {"field": "label", "type": "ordinal", "sort": None}
+    # The layers have their own rows, so the order of the months is given, not taken from them.
+    x = {
+        "field": "label",
+        "type": "ordinal",
+        "sort": None,
+        "scale": {"domain": [value["label"] for value in values]},
+        "axis": {"labelOverlap": "greedy"},
+    }
     y = {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}}
     line = {"type": "line", "interpolate": "monotone", "strokeWidth": 2.5, "color": ACCENT}
     layers: list[dict[str, Any]] = []

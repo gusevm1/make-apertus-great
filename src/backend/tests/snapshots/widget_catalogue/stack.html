@@ -116,6 +116,8 @@ tfoot td { font-weight: 700; border-bottom: 0; }
 .case-option input:checked + span { background: var(--primary); border-color: var(--primary); color: var(--surface); }
 .case-option input:focus-visible + span { outline: 2px solid var(--primary); outline-offset: 2px; }
 .case-shown { margin: 0; font-weight: 600; }
+/* A case's grid would otherwise override the hidden attribute. */
+.case[hidden] { display: none; }
 .forecast-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; font-size: 0.78rem; color: var(--muted); }
 .forecast-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .key { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid var(--primary); }

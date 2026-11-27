@@ -927,6 +927,10 @@ def _forecast_spec(**changes: Any) -> dict[str, Any]:
 def test_a_forecast_draws_actual_solid_forecast_dashed_and_its_range() -> None:
     layers = _forecast_spec()["layer"]
     band, solid, dashed, points, zero = layers
+    # Every layer places the months in DATA's order, whatever rows it draws itself.
+    months = ["Aug", "Sep", "Oct", "Nov", "Dec"]
+    for layer in (band, solid, dashed, points):
+        assert layer["encoding"]["x"]["scale"]["domain"] == months
     assert band["mark"]["type"] == "area"
     assert band["encoding"]["y"]["field"] == "low" and band["encoding"]["y2"]["field"] == "high"
     assert [value["path"] for value in band["data"]["values"]] == ["forecast[3]", "forecast[4]"]
@@ -1047,9 +1051,12 @@ def test_choosing_a_case_shows_its_figures_and_picks_no_part() -> None:
     page = render(spec=spec(body=BODIES["scenarios"]), data=DATA, form="live")
     # Keys and pointer both change the radio, and the page answers the change event.
     measure = (
+        "var visible=function(){return Array.from(document.querySelectorAll('.case'))"
+        ".filter(function(p){return getComputedStyle(p).display!=='none';});};"
+        "var before=visible().length;"
         "var radio=document.querySelectorAll('.cases input')[1];radio.click();"
-        "var shown=Array.from(document.querySelectorAll('.case')).filter(function(p){"
-        "return !p.hidden;});"
+        "var shown=visible();"
+        "if(before!==1)return 'before:'+before;"
         "return shown.length+':'+shown[0].getAttribute('data-case')+':'"
         "+shown[0].querySelector('.stat-value').textContent;"
     )
