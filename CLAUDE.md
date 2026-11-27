@@ -93,7 +93,7 @@ Before prose goes to a person (a card, a PR body, a commit message, docs, the re
 - Never log prompts, responses or customer data yourself. The client logs metadata always and content only when `LOG_LLM_CONTENT=true`.
 - For the procedure, use the `add-llm-feature` skill.
 
-**Bank data comes from the banking API, through `BankingClient` in `app/clients/banking.py`,** called with the customer's token (`user.token`). Its address comes from our config, never from the browser. We store only what the API has no place for: conversations, messages, tool calls.
+**Bank data comes from the banking API, through `BankingClient` in `app/clients/banking.py`,** called with the customer's token (`user.token`). Its address comes from our config, never from the browser. We store only what the API has no place for: conversations, messages, tool calls and the text of uploaded documents. The uploaded file itself goes to the API's `/documents`, and `OcrClient` in `app/clients/ocr.py` turns it into Markdown once.
 
 **Auth and ownership are dependencies, secure by default.** The user is the customer the e-banking token belongs to, resolved by `get_current_user` through the banking API. Routers carry `dependencies=[Depends(require_user)]`, and only an explicit `public_router` is unprotected. Endpoints that take a resource ID receive it through an ownership dependency (`get_owned_x`, which raises `NotFoundError`), never by loading and checking it manually. The owner filter is part of the query (`WHERE id = ... AND owner_id = ...`), not a comparison in Python after loading.
 
