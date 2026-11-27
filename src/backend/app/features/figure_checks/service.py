@@ -162,8 +162,8 @@ def _found(figure: Figure, values: set[Decimal]) -> bool:
     )
 
 
+# Each dict of a tool result is one row of its own plain values.
 def _result_rows(value: Any) -> list[str]:
-    """Each dict of a tool result as one row of its own plain values."""
     if isinstance(value, list):
         return [row for item in value for row in _result_rows(value=item)]
     if not isinstance(value, dict):
