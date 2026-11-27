@@ -94,13 +94,11 @@ export function CategoryCenter({
   const [filter, setFilter] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [isCategorising, setIsCategorising] = useState(false);
-  const [reloads, setReloads] = useState(0);
   const reviewRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let isCurrent = true;
     async function load() {
-      setError(null);
       try {
         const next = await loadCenter({ token, year });
         if (isCurrent) setStored(next);
@@ -112,7 +110,7 @@ export function CategoryCenter({
     return () => {
       isCurrent = false;
     };
-  }, [token, year, reloads]);
+  }, [token, year]);
 
   async function correct(
     key: string,
@@ -122,7 +120,8 @@ export function CategoryCenter({
     setError(null);
     try {
       await api("/api/category-corrections", token, json(body));
-      setReloads((count) => count + 1);
+      // The buttons stay disabled until the corrected rows are back.
+      setStored(await loadCenter({ token, year }));
     } catch (correctError) {
       setError(messageOf(correctError));
     } finally {
@@ -143,7 +142,7 @@ export function CategoryCenter({
         setError(
           `Apertus could not sort ${bookings(result.skipped)}. Try again in a moment.`,
         );
-      setReloads((count) => count + 1);
+      setStored(await loadCenter({ token, year }));
     } catch (categoriseError) {
       setError(messageOf(categoriseError));
     } finally {
@@ -177,7 +176,10 @@ export function CategoryCenter({
               key={option}
               type="button"
               aria-pressed={option === year}
-              onClick={() => setYear(option)}
+              onClick={() => {
+                setError(null);
+                setYear(option);
+              }}
             >
               {option}
             </button>
