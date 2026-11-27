@@ -21,10 +21,10 @@ from tests.conftest import (
 
 PAYSLIP = """## Lohnabrechnung November 2026
 
-| Lohnart          | Betrag CHF   |
-|------------------|--------------|
-| Bruttolohn       | 10'269.23    |
-| Nettolohn        | 8'742.35     |
+| Lohnart          | Betrag CHF   | Jan-Nov CHF   |
+|------------------|--------------|---------------|
+| Bruttolohn       | 10'269.23    | 119'985.91    |
+| Nettolohn        | 8'742.35     | 102'645.85    |
 """
 MONTH = {"name": "month", "date": "2026-11-15", "passage": "Lohnabrechnung November 2026"}
 GROSS = {

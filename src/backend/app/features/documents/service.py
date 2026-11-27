@@ -24,6 +24,7 @@ from app.features.documents.schemas import (
 
 # A table row in the OCR text reads "| Nettolohn | 8'742.35 |"; a passage may leave out the markup.
 SPACE_AND_MARKUP = re.compile(r"[\s|*#]+")
+SPACE_OR_MARKUP = r"[\s|*#]*"
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 PASSAGE_MISSING = "it has no passage"
 VALUE_MISSING = "these words come without an amount, date or text"
@@ -196,12 +197,12 @@ def _failure(field: DescribedField, passage: str, text: str) -> str | None:
 
 def _in_text(squeezed: str, text: str) -> bool:
     """Whether the passage is in the text, and a number at either end is whole there."""
-    pattern = re.escape(squeezed)
+    pattern = SPACE_OR_MARKUP.join(re.escape(char) for char in squeezed)
     if squeezed[0].isdigit():
         pattern = r"(?<!\d)(?<!\d['.,])" + pattern
     if squeezed[-1].isdigit():
         pattern += r"(?!\d|['.,]\d)"
-    return re.search(pattern, _squeezed(text=text)) is not None
+    return re.search(pattern, text) is not None
 
 
 def _has_value(field: DescribedField) -> bool:
