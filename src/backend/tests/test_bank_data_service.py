@@ -35,6 +35,7 @@ async def test_an_id_cannot_reach_another_path_of_the_banking_api() -> None:
     recorder = _Recorder()
     tools = {tool.name: tool for tool in get_tools(service=recorder, token="token")}
     preview = tools["get_balance_preview"]
+    assert preview.handler is not None
 
     await preview.handler(preview.args_schema(account_id="../customer?x="))
 

@@ -19,7 +19,7 @@ from app.core.streaming import (
     ToolCallEvent,
     ToolResultEvent,
 )
-from app.core.tools import Tool
+from app.core.tools import Tool, Turn, TurnResult
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.prompts import (
     ToolRound,
@@ -202,7 +202,10 @@ class ToolCallService:
                 )
                 if is_allowed:
                     output, error = await self._run_tool(
-                        call_id=call_id, name=request.tool, arguments=request.arguments
+                        call_id=call_id,
+                        name=request.tool,
+                        arguments=request.arguments,
+                        turn=_turn(conversation_id=conversation_id, calls=calls),
                     )
                 else:
                     refused.add(request.tool)
@@ -251,7 +254,7 @@ class ToolCallService:
         return tool.title, tool.icon
 
     async def _run_tool(
-        self, call_id: UUID, name: str, arguments: dict[str, Any]
+        self, call_id: UUID, name: str, arguments: dict[str, Any], turn: Turn
     ) -> tuple[dict[str, Any] | None, str | None]:
         """Run the tool; a call the model got wrong comes back as an error for it to correct."""
         tool = self.tools.get(name)
@@ -266,7 +269,12 @@ class ToolCallService:
             )
             return None, f"Invalid arguments. {problems}"
         try:
-            output = await tool.handler(args)
+            if tool.turn_handler is not None:
+                output = await tool.turn_handler(args, turn)
+            elif tool.handler is not None:
+                output = await tool.handler(args)
+            else:
+                raise RuntimeError(f"Tool {name} has no handler")
         except Exception as exc:
             # A ValidationError is a ValueError, but raised inside a handler it is a bug.
             if isinstance(exc, AppError | ValueError) and not isinstance(exc, ValidationError):
@@ -294,6 +302,15 @@ class ToolCallService:
             sources=list(pages.values()),
             checks=[check] if calls else [],
         )
+
+
+def _turn(conversation_id: UUID, calls: list[ToolCall]) -> Turn:
+    results = [
+        TurnResult(tool_call_id=call.id, tool_name=call.tool_name, result=call.result)
+        for call in calls
+        if call.result is not None
+    ]
+    return Turn(conversation_id=conversation_id, results=results)
 
 
 def _merge_identical(requests: list[ToolRequest]) -> list[ToolRequest]:

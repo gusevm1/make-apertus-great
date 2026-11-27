@@ -234,6 +234,7 @@ async def test_an_id_of_dots_cannot_climb_to_another_path(
         tool.name: tool for tool in get_tools(service=BankDataService(ledger=ledger), token=TOKEN)
     }
     preview = tools["get_balance_preview"]
+    assert preview.handler is not None
 
     with pytest.raises(BadRequestError, match="is not a read the bank data allows"):
         await preview.handler(preview.args_schema(account_id=".."))
