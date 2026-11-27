@@ -44,9 +44,8 @@ class DocumentField(BaseModel):
     passage: str
 
 
+# Everything Apertus fills is optional, so a value the document lacks stays empty.
 class DescribedField(BaseModel):
-    """A field as Apertus reads it: everything optional, so a missing value stays empty."""
-
     name: str | None = None
     amount: float | None = None
     currency: str | None = None
@@ -56,8 +55,6 @@ class DescribedField(BaseModel):
 
 
 class DocumentDescription(BaseModel):
-    """What Apertus fills in once per upload."""
-
     kind: DocumentKind | None = None
     title: str | None = None
     issuer: str | None = None

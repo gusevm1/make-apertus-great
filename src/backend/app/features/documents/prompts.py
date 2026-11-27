@@ -6,7 +6,6 @@ PROMPTS = load_prompts(prompts_py=__file__)
 
 
 def describe_prompt(markdown: str) -> list[Message]:
-    """The request to describe one document."""
     field_names = "\n".join(
         f"  - {kind}: {', '.join(names)}" for kind, names in FIELD_NAMES.items()
     )
@@ -22,6 +21,5 @@ def describe_prompt(markdown: str) -> list[Message]:
 
 
 def correction_message(failures: dict[str, str]) -> Message:
-    """Names each failed field with why it failed."""
     lines = "\n".join(f"- {name}: {reason}" for name, reason in failures.items())
     return {"role": "user", "content": PROMPTS["correct_fields"].format(failures=lines)}

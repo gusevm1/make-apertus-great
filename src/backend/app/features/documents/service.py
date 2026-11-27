@@ -73,7 +73,6 @@ class DocumentService:
         )
 
     async def _describe(self, markdown: str) -> dict[str, Any]:
-        """The description columns; empty when Apertus fails, since the upload stands without."""
         text = markdown[:DESCRIBE_MAX_CHARS]
         messages = describe_prompt(markdown=text)
         try:
@@ -84,6 +83,7 @@ class DocumentService:
                 purpose="describe_document",
             )
         except UpstreamError:
+            # The upload stands without a description.
             return {}
         description = result.content
         fields, failures = checked_fields(description=description, text=text)
@@ -113,7 +113,6 @@ class DocumentService:
         failures: dict[str, str],
         text: str,
     ) -> tuple[list[DocumentField], dict[str, str], int]:
-        """One more call that names the failed fields: what passes now, what is dropped, its ms."""
         try:
             result = await self.apertus.structured(
                 messages=[
@@ -158,7 +157,6 @@ class DocumentService:
 def checked_fields(
     description: DocumentDescription, text: str
 ) -> tuple[list[DocumentField], dict[str, str]]:
-    """The fields that pass, one per name, and why each failed one failed."""
     allowed = FIELD_NAMES.get(description.kind or "other", ())
     passed: list[DocumentField] = []
     failures: dict[str, str] = {}
@@ -196,7 +194,7 @@ def _failure(field: DescribedField, passage: str, text: str) -> str | None:
 
 
 def _in_text(squeezed: str, text: str) -> bool:
-    """Whether the passage is in the text, and a number at either end is whole there."""
+    # A number at either end of the passage has to be whole in the text, not cut short.
     pattern = SPACE_OR_MARKUP.join(re.escape(char) for char in squeezed)
     if squeezed[0].isdigit():
         pattern = r"(?<!\d)(?<!\d['.,])" + pattern
