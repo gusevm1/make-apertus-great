@@ -93,7 +93,7 @@ async def categorise_persona(
         f"{base_url}/api/categorisations", headers=headers, timeout=CATEGORISE_TIMEOUT_SECONDS
     )
     response.raise_for_status()
-    print(f"  {persona}: {response.json()} in {time.monotonic() - started:.0f} s", file=sys.stderr)
+    print(f"  {persona}: {response.json()} in {time.monotonic() - started:.0f} s", file=sys.stderr)  # noqa: T201
     tags = await client.get(f"{base_url}/api/transaction-tags", headers=headers, timeout=120)
     tags.raise_for_status()
     return {f"{persona}:{tag['row_source']}:{tag['row_id']}": tag for tag in tags.json()}
@@ -202,7 +202,7 @@ async def main() -> None:
     result["label"] = args.label
     result["split"] = args.split
     summary = {key: value for key, value in result.items() if key != "wrong_examples"}
-    print(json.dumps(summary, indent=1, ensure_ascii=False))
+    print(json.dumps(summary, indent=1, ensure_ascii=False))  # noqa: T201
     if args.out is not None:
         args.out.write_text(json.dumps(result, indent=1, ensure_ascii=False))
 
