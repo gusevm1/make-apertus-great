@@ -46,14 +46,17 @@ async def _waiting_call() -> tuple[UUID, UUID]:
 
 
 async def _answer(
-    client: httpx2.AsyncClient, searxng: FakeSearxng, is_allowed: bool
+    client: httpx2.AsyncClient,
+    searxng: FakeSearxng,
+    is_allowed: bool,
+    arguments: dict[str, object] | None = None,
 ) -> httpx2.Response:
     """Answers the search that waits, after checking that nothing was sent yet."""
     conversation_id, tool_call_id = await _waiting_call()
     assert searxng.requests == []
     return await client.post(
         f"/api/conversations/{conversation_id}/tool-calls/{tool_call_id}/confirmations",
-        json={"is_allowed": is_allowed},
+        json={"is_allowed": is_allowed, "arguments": arguments},
     )
 
 
@@ -74,8 +77,8 @@ async def test_allowed_search_runs_and_the_answer_cites_the_page(
     assert searxng.requests == [{"q": "SNB Leitzins aktuell", "format": "json"}]
     events = sse_events(response=response)
     asked = [data for name, data in events if name == "tool_call"]
-    assert [(call["confirmation"], call["arguments"]) for call in asked] == [
-        (CONFIRMATION, {"query": "SNB Leitzins aktuell"})
+    assert [(call["confirmation"], call["is_editable"], call["arguments"]) for call in asked] == [
+        (CONFIRMATION, True, {"query": "SNB Leitzins aktuell"})
     ]
     sources = events[-1][1]["provenance"]["sources"]
     assert [(source["title"], source["url"]) for source in sources] == [
@@ -92,6 +95,51 @@ async def test_allowed_search_runs_and_the_answer_cites_the_page(
     answer = apertus.requests[-1]["messages"][-1]["content"]
     assert SNB_PAGE["content"] in answer
     assert SNB_PAGE["url"] in answer
+
+
+async def test_edited_query_is_the_one_that_leaves_the_bank(
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus, searxng: FakeSearxng
+) -> None:
+    conversation = await make_conversation(session=session)
+    url = f"/api/conversations/{conversation.id}"
+    apertus.decisions = [_search(query="Lohn Lukas Meier Bank")]
+    searxng.results = [SNB_PAGE]
+    edited = {"query": "Lohn Bank Schweiz"}
+
+    response, confirmation = await asyncio.gather(
+        _stream(client=client, url=url),
+        _answer(client=client, searxng=searxng, is_allowed=True, arguments=edited),
+    )
+
+    assert confirmation.status_code == 204
+    assert searxng.requests == [{"q": "Lohn Bank Schweiz", "format": "json"}]
+    ended = [data for name, data in sse_events(response=response) if name == "tool_result"]
+    assert [call["arguments"] for call in ended] == [edited]
+    (call,) = (await client.get(f"{url}/tool-calls")).json()
+    assert call["arguments"] == edited
+    assert call["result"]["query"] == "Lohn Bank Schweiz"
+    assert '"query": "Lohn Bank Schweiz"' in apertus.requests[-1]["messages"][-1]["content"]
+
+
+async def test_edit_that_breaks_the_schema_is_refused_and_the_call_keeps_waiting(
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus, searxng: FakeSearxng
+) -> None:
+    conversation = await make_conversation(session=session)
+    url = f"/api/conversations/{conversation.id}"
+    apertus.decisions = [_search(query="SNB Leitzins")]
+
+    async def answer_badly_first() -> tuple[httpx2.Response, httpx2.Response]:
+        bad = await _answer(
+            client=client, searxng=searxng, is_allowed=True, arguments={"query": ""}
+        )
+        return bad, await _answer(client=client, searxng=searxng, is_allowed=True)
+
+    _, (bad, good) = await asyncio.gather(_stream(client=client, url=url), answer_badly_first())
+
+    assert bad.status_code == 400
+    assert bad.json()["message"].startswith("Invalid arguments. query:")
+    assert good.status_code == 204
+    assert searxng.requests == [{"q": "SNB Leitzins", "format": "json"}]
 
 
 async def test_refused_search_sends_nothing_and_the_turn_asks_no_second_time(

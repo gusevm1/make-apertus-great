@@ -49,6 +49,8 @@ class Tool[ArgsT: BaseModel]:
     sheet: Callable[[ArgsT], Awaitable[list[SheetLine]]] | None = None
     # A line the server adds under an answer built on this tool's result, or None.
     pointer: Callable[[dict[str, Any], str], str | None] | None = None
+    # The customer may change the arguments in the page before allowing the call.
+    is_editable: bool = False
 
     def __post_init__(self) -> None:
         if (self.handler is None) == (self.turn_handler is None):

@@ -27,5 +27,6 @@ def get_tools(service: WebSearchService) -> list[Tool[Any]]:
             args_schema=SearchWebArgs,
             handler=search_web,
             confirmation="This sends the query to search engines outside the bank.",
+            is_editable=True,
         )
     ]

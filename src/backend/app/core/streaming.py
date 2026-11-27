@@ -44,11 +44,14 @@ class ToolCallEvent:
     confirmation: str | None
     # What the sheet lists while it waits; None: the raw arguments.
     lines: list[SheetLine] | None
+    is_editable: bool
 
 
 @dataclass(frozen=True)
 class ToolResultEvent:
     id: UUID
+    # What the call ran with, which differs from the request after the customer's edit.
+    arguments: dict[str, Any]
     result: dict[str, Any] | None
     error: str | None
 

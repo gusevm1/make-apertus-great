@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from app.clients.apertus import ApertusClient, Model
 from app.clients.apertus import Message as LLMMessage
-from app.core.errors import AppError, NotFoundError, UpstreamError
+from app.core.errors import AppError, BadRequestError, NotFoundError, UpstreamError
 from app.core.provenance import Check, Provenance, Source
 from app.core.streaming import (
     DoneEvent,
@@ -120,7 +120,9 @@ class ToolCallService:
                 yield step
                 continue
             calls.append(step)
-            yield ToolResultEvent(id=step.id, result=step.result, error=step.error)
+            yield ToolResultEvent(
+                id=step.id, arguments=step.arguments, result=step.result, error=step.error
+            )
         stream = self.apertus.stream_chat(
             messages=answer_prompt(
                 messages=dated_prompt(messages=messages, today=self.today),
@@ -145,12 +147,23 @@ class ToolCallService:
     def confirm_tool_call(
         self, conversation_id: UUID, tool_call_id: UUID, data: RequestToolCallConfirmationCreate
     ) -> None:
-        """Pass the customer's yes or no to the call that waits for it."""
-        is_waiting = self.confirmations.answer(
-            conversation_id=conversation_id, tool_call_id=tool_call_id, is_allowed=data.is_allowed
+        """Pass the customer's answer, with the arguments they changed, to the call that waits."""
+        tool_name = self.confirmations.get_tool_name(
+            conversation_id=conversation_id, tool_call_id=tool_call_id
         )
-        if not is_waiting:
+        if tool_name is None:
             raise NotFoundError("No tool call waits for this confirmation")
+        if data.is_allowed and data.arguments is not None:
+            tool = self.tools[tool_name]
+            if not tool.is_editable:
+                raise BadRequestError("The arguments of this call cannot be changed")
+            try:
+                tool.args_schema.model_validate(data.arguments)
+            except ValidationError as exc:
+                raise BadRequestError(f"Invalid arguments. {_problems(exc=exc)}") from exc
+        self.confirmations.answer(
+            conversation_id=conversation_id, tool_call_id=tool_call_id, data=data
+        )
 
     async def _call_tools(
         self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage], can_ask: bool
@@ -208,15 +221,20 @@ class ToolCallService:
                     plan=decision.plan,
                     confirmation=confirmation if is_asked else None,
                     lines=lines,
+                    is_editable=is_asked and self.tools[request.tool].is_editable,
                 )
-                is_allowed = confirmation is None or (
-                    is_asked
-                    and await self.confirmations.wait(
+                is_allowed = confirmation is None
+                arguments = request.arguments
+                if is_asked:
+                    answer = await self.confirmations.wait(
                         conversation_id=conversation_id,
                         tool_call_id=call_id,
+                        tool_name=request.tool,
                         timeout_seconds=CONFIRMATION_TIMEOUT_SECONDS,
                     )
-                )
+                    is_allowed = answer.is_allowed
+                    if is_allowed and answer.arguments is not None:
+                        arguments = answer.arguments
                 # Stored before the tool runs, so what the tool stores can point to its call.
                 await self.tool_calls.create(
                     id=call_id,
@@ -229,7 +247,7 @@ class ToolCallService:
                     tool_name=request.tool,
                     title=title,
                     icon=icon,
-                    arguments=request.arguments,
+                    arguments=arguments,
                     result=None,
                     error=None,
                     provenance=Provenance(
@@ -242,7 +260,7 @@ class ToolCallService:
                     output, error = await self._run_tool(
                         call_id=call_id,
                         name=request.tool,
-                        arguments=request.arguments,
+                        arguments=arguments,
                         turn=_turn(conversation_id=conversation_id, call_id=call_id, calls=calls),
                     )
                 else:

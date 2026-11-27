@@ -51,6 +51,8 @@ class ResponseToolCall(BaseModel):
 
 class RequestToolCallConfirmationCreate(BaseModel):
     is_allowed: bool
+    # The customer's own version of the call's arguments; None runs what the model asked for.
+    arguments: dict[str, Any] | None = None
 
 
 class ToolRequest(BaseModel):

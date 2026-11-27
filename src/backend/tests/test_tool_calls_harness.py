@@ -1,4 +1,7 @@
+import asyncio
 from collections.abc import AsyncIterator
+from contextlib import aclosing
+from dataclasses import replace
 from typing import Any, cast
 from uuid import UUID
 
@@ -7,10 +10,16 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.apertus import ApertusClient, LLMResult, LLMStream, Message, Model
+from app.core.errors import BadRequestError
+from app.core.streaming import ToolCallEvent, ToolResultEvent
 from app.features.tool_calls import service as tool_call_service
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
-from app.features.tool_calls.schemas import ToolDecision, ToolRequest
+from app.features.tool_calls.schemas import (
+    RequestToolCallConfirmationCreate,
+    ToolDecision,
+    ToolRequest,
+)
 from app.features.tool_calls.service import TOOL_FAILED, SwissSpelling, ToolCallService
 from tests.conftest import TODAY
 from tests.factories import make_conversation, make_message
@@ -181,6 +190,57 @@ async def test_answers_and_plans_use_swiss_ss(session: AsyncSession) -> None:
     assert content == "Grüsse aus der STRASSE"
     calls = await service.list_tool_calls(conversation_id=conversation.id)
     assert [call.plan for call in calls] == ["Gemäss Plan."]
+
+
+async def test_arguments_of_a_call_that_is_not_editable_cannot_be_changed(
+    session: AsyncSession,
+) -> None:
+    conversation = await make_conversation(session=session)
+    message = await make_message(session=session, conversation_id=conversation.id)
+    confirmations = Confirmations()
+    service = ToolCallService(
+        tool_calls=ToolCallRepository(session=session),
+        apertus=cast(ApertusClient, RecordingApertus(decisions=[_lookups("Bern")])),
+        tools=[replace(LOOKUP, confirmation="This looks it up.")],
+        today=TODAY,
+        confirmations=confirmations,
+    )
+
+    async def answer() -> None:
+        while not confirmations.waiting:  # noqa: ASYNC110
+            await asyncio.sleep(0.01)
+        ((_, tool_call_id),) = confirmations.waiting
+        edited = RequestToolCallConfirmationCreate(is_allowed=True, arguments={"query": "Chur"})
+        with pytest.raises(BadRequestError, match="cannot be changed"):
+            service.confirm_tool_call(
+                conversation_id=conversation.id, tool_call_id=tool_call_id, data=edited
+            )
+        service.confirm_tool_call(
+            conversation_id=conversation.id,
+            tool_call_id=tool_call_id,
+            data=RequestToolCallConfirmationCreate(is_allowed=True),
+        )
+
+    async def stream() -> list[bool]:
+        editable = []
+        events = service.stream_answer(
+            conversation_id=conversation.id, message_id=message.id, messages=CHAT
+        )
+        # The fake has no stream for the answer, so the turn ends with the call.
+        async with aclosing(events):
+            async for event in events:
+                if isinstance(event, ToolCallEvent):
+                    editable.append(event.is_editable)
+                if isinstance(event, ToolResultEvent):
+                    break
+        return editable
+
+    async with asyncio.timeout(5):
+        editable, _ = await asyncio.gather(stream(), answer())
+
+    assert editable == [False]
+    (call,) = await service.list_tool_calls(conversation_id=conversation.id)
+    assert (call.arguments, call.error) == ({"query": "Bern"}, None)
 
 
 @pytest.mark.parametrize(
