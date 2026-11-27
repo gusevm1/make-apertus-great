@@ -164,6 +164,35 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
                 "high": "high_chf",
             },
         },
+        "budget_bars": {
+            "title": "Against budget",
+            "subtitle": "Last 3 months; sample budgets for the gallery, the bank holds none",
+            "body": {
+                "type": "budget_bars",
+                "data": "budgets",
+                "label": "payee",
+                "actual": "spent_chf",
+                "budget": "budget_chf",
+            },
+        },
+        "waterfall": {
+            "title": f"{last_name}: from income to what is left",
+            "body": {
+                "type": "waterfall",
+                "data": "flow",
+                "label": "step",
+                "start": "start_chf",
+                "end": "end_chf",
+                "amount": "amount_chf",
+                "total": "flow_left_chf",
+                "total_label": "Left",
+            },
+        },
+        "calendar": {
+            "title": "Spending per day",
+            "subtitle": "Last 3 months",
+            "body": {"type": "calendar", "data": "days", "date": "date", "value": "total_chf"},
+        },
         "callout": {
             "title": "Note",
             "body": {
