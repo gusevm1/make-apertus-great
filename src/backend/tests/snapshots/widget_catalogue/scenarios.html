@@ -139,19 +139,21 @@ tfoot td { font-weight: 700; border-bottom: 0; }
     <p class="widget-sub">Sample</p>
   </header>
   <section class="scenarios" data-component="scenarios" data-path="rent_cases">
-  <fieldset class="cases"><legend class="sr-only">Case</legend><label class="case-option"><input type="radio" name="cases-rent_cases" value="0" checked><span>Rent today</span></label><label class="case-option"><input type="radio" name="cases-rent_cases" value="1"><span>200 more</span></label><label class="case-option"><input type="radio" name="cases-rent_cases" value="2"><span>&lt;b&gt;400 more&lt;/b&gt;</span></label>
+  <fieldset class="cases"><legend class="sr-only">Choose a case</legend><label class="case-option"><input type="radio" name="cases-1" value="0" checked><span>Rent today</span></label><label class="case-option"><input type="radio" name="cases-1" value="1"><span>200 more</span></label><label class="case-option"><input type="radio" name="cases-1" value="2"><span>&lt;b&gt;400 more&lt;/b&gt;</span></label>
   </fieldset>
-  <div class="stats case" data-case="0" data-path="rent_cases[0]" aria-live="polite">
+  <div class="case-panels" aria-live="polite">
+  <div class="stats case" data-case="0" data-path="rent_cases[0]">
     <div class="stat" data-component="scenario-figure" data-path="rent_cases[0].rent_chf" data-value="2800.0" data-booking-ids="[]"><span class="stat-label">Rent</span><span class="stat-value">CHF 2&#39;800.00</span></div>
     <div class="stat" data-component="scenario-figure" data-path="rent_cases[0].left_chf" data-value="912.4" data-booking-ids="[]"><span class="stat-label">Left over</span><span class="stat-value">CHF 912.40</span></div>
   </div>
-  <div class="stats case" data-case="1" data-path="rent_cases[1]" aria-live="polite" hidden>
+  <div class="stats case" data-case="1" data-path="rent_cases[1]" hidden>
     <div class="stat" data-component="scenario-figure" data-path="rent_cases[1].rent_chf" data-value="3000.0" data-booking-ids="[]"><span class="stat-label">Rent</span><span class="stat-value">CHF 3&#39;000.00</span></div>
     <div class="stat" data-component="scenario-figure" data-path="rent_cases[1].left_chf" data-value="712.4" data-booking-ids="[]"><span class="stat-label">Left over</span><span class="stat-value">CHF 712.40</span></div>
   </div>
-  <div class="stats case" data-case="2" data-path="rent_cases[2]" aria-live="polite" hidden>
+  <div class="stats case" data-case="2" data-path="rent_cases[2]" hidden>
     <div class="stat" data-component="scenario-figure" data-path="rent_cases[2].rent_chf" data-value="3200.0" data-booking-ids="[]"><span class="stat-label">Rent</span><span class="stat-value">CHF 3&#39;200.00</span></div>
     <div class="stat" data-component="scenario-figure" data-path="rent_cases[2].left_chf" data-value="512.4" data-booking-ids="[]"><span class="stat-label">Left over</span><span class="stat-value">CHF 512.40</span></div>
+  </div>
   </div>
 </section>
 </main>

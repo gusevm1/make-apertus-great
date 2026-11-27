@@ -72,7 +72,9 @@ _bridge = (TEMPLATES / "bridge.js").read_text(encoding="utf-8")
 def render(spec: WidgetSpec, data: dict[str, Any], form: Form) -> str:
     """The widget as one HTML page; `live` charts react in the browser, `static` ones are SVG."""
     charts: list[dict[str, Any]] = []
-    body = _view(node=spec.body, data=data, form=form, charts=charts)
+    # One radio group per scenarios widget on the page, numbered like the charts.
+    groups: list[str] = []
+    body = _view(node=spec.body, data=data, form=form, charts=charts, groups=groups)
     payload = {"charts": charts, "config": THEME, "locale": LOCALE}
     return _env.get_template("page.html.j2").render(
         csp=CSP[form],
@@ -119,11 +121,12 @@ def _is_rows(value: Any) -> bool:
 
 
 def _view(
-    node: Node, data: dict[str, Any], form: Form, charts: list[dict[str, Any]]
+    node: Node, data: dict[str, Any], form: Form, charts: list[dict[str, Any]], groups: list[str]
 ) -> dict[str, Any]:
     if isinstance(node, Stack | Grid):
         children = [
-            _view(node=child, data=data, form=form, charts=charts) for child in node.children
+            _view(node=child, data=data, form=form, charts=charts, groups=groups)
+            for child in node.children
         ]
         columns = node.columns if isinstance(node, Grid) else None
         return {"type": node.type, "columns": columns, "children": children}
@@ -144,7 +147,8 @@ def _view(
     if isinstance(node, Progress):
         return _progress(node=node, data=data)
     if isinstance(node, Scenarios):
-        return _scenarios(node=node, data=data, form=form)
+        groups.append(f"cases-{len(groups) + 1}")
+        return _scenarios(node=node, data=data, form=form, group=groups[-1])
     if isinstance(node, Callout):
         return {"type": node.type, "title": node.title, "text": node.text, "tone": node.tone}
     return _chart(node=node, data=data, form=form, charts=charts)
@@ -347,7 +351,7 @@ def _progress(node: Progress, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _scenarios(node: Scenarios, data: dict[str, Any], form: Form) -> dict[str, Any]:
+def _scenarios(node: Scenarios, data: dict[str, Any], form: Form, group: str) -> dict[str, Any]:
     found = rows(
         path=node.data, data=data, fields=[node.label] + [item.field for item in node.figures]
     )
@@ -374,6 +378,7 @@ def _scenarios(node: Scenarios, data: dict[str, Any], form: Form) -> dict[str, A
         "title": node.title,
         "path": node.data,
         "form": form,
+        "group": group,
         "labels": [item.label for item in node.figures],
         "cases": cases,
     }

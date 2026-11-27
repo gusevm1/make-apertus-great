@@ -12,6 +12,7 @@ from app.core.errors import BadRequestError
 from app.features.widgets.catalogue import render as render_module
 from app.features.widgets.catalogue.charts import (
     ACCENT,
+    ACCENT_LIGHT,
     LABEL_LIMIT,
     PALETTE,
     PERIOD_SERIES,
@@ -966,10 +967,19 @@ def test_a_forecast_without_a_range_draws_no_band() -> None:
 
 def test_a_forecast_reads_its_figures_and_says_which_points_are_forecast() -> None:
     values = _forecast_spec()["data"]["values"]
-    assert values[3]["description"] == "Nov 2026, forecast CHF 250.00 (forecast[3])"
-    assert values[3]["range"] == "CHF 100.00 to CHF 300.00"
+    between = "between CHF 100.00 and CHF 300.00"
+    assert values[3]["description"] == f"Nov 2026, forecast CHF 250.00, {between} (forecast[3])"
+    assert values[3]["detail"] == f"forecast, {between}"
+    # An actual row has no range, so its tooltip names none.
+    assert values[0]["detail"] == "actual"
     assert values[0]["description"] == "Aug 2026, CHF 500.00 (forecast[0])"
     assert values[0]["booking_ids"] == ["BK-10"]
+
+
+def test_only_a_forecasts_points_carry_a_label_for_screen_readers() -> None:
+    band, solid, dashed, points, zero = _forecast_spec()["layer"]
+    assert all(layer["mark"]["aria"] is False for layer in (band, solid, dashed, zero))
+    assert "aria" not in points["mark"]
 
 
 @pytest.mark.parametrize(
@@ -997,14 +1007,18 @@ def test_a_forecast_range_needs_both_ends() -> None:
 
 def test_a_static_forecast_is_svg_with_a_dashed_line_and_labelled_points() -> None:
     page = render(spec=spec(body=BODIES["forecast_chart"]), data=DATA, form="static")
-    assert "stroke-dasharray" in page
-    assert 'aria-label="Nov 2026, forecast CHF 250.00 (forecast[3])"' in page
-    assert '<span><i class="key band" aria-hidden="true"></i>Range</span>' in page
+    svg = re.search(r"<svg.*?</svg>", page, re.DOTALL)
+    assert svg is not None
+    # The forecast's own dash (the zero line has another), and the range drawn in its colour.
+    assert 'stroke-dasharray="6,4"' in svg.group(0)
+    assert f'fill="{ACCENT_LIGHT}"' in svg.group(0)
+    between = "between CHF 100.00 and CHF 300.00"
+    assert f'aria-label="Nov 2026, forecast CHF 250.00, {between} (forecast[3])"' in svg.group(0)
 
 
 def test_live_scenarios_draw_every_case_and_show_the_first() -> None:
     page = render(spec=spec(body=BODIES["scenarios"]), data=DATA, form="live")
-    assert re.findall(r'<input type="radio" name="cases-rent_cases" value="(\d)"', page) == [
+    assert re.findall(r'<input type="radio" name="cases-1" value="(\d)"', page) == [
         "0",
         "1",
         "2",
@@ -1063,3 +1077,31 @@ def test_choosing_a_case_shows_its_figures_and_picks_no_part() -> None:
     assert _at_widths(page=page, measure=measure) == sorted(f"{w}:1:1:CHF 3'000.00" for w in WIDTHS)
     radio = "document.querySelectorAll('.cases input')[1]"
     assert _clicks(body=BODIES["scenarios"], targets=[radio]) == ""
+
+
+def test_two_scenarios_on_one_page_keep_their_own_radio_group() -> None:
+    body = {"type": "stack", "children": [BODIES["scenarios"], BODIES["scenarios"]]}
+    page = render(spec=spec(body=body), data=DATA, form="live")
+    names = re.findall(r'<input type="radio" name="([^"]*)"', page)
+    assert names == ["cases-1"] * 3 + ["cases-2"] * 3
+
+
+@pytest.mark.skipif(not Path(CHROME).exists(), reason="needs Chrome")
+@pytest.mark.parametrize("form", ["static", "live"])
+def test_a_forecasts_axis_labels_stay_inside_the_widget(form: Form) -> None:
+    # Twelve months over two years and three ahead: full labels such as "Jan 2027".
+    months = [f"2025-{m:02d}" for m in range(11, 13)] + [f"2026-{m:02d}" for m in range(1, 11)]
+    rows = [{"month": m, "net_chf": 100.0 * i, "kind": "actual"} for i, m in enumerate(months)]
+    rows += [
+        {"month": m, "net_chf": 900.0, "kind": "forecast", "low_chf": 800.0, "high_chf": 1000.0}
+        for m in ("2026-11", "2026-12", "2027-01")
+    ]
+    page = render(spec=spec(body=BODIES["forecast_chart"]), data={"forecast": rows}, form=form)
+    # How far any label leaves its chart's SVG, where it would be cut off.
+    measure = (
+        "var s=document.querySelector('.chart-area svg'),b=s.getBoundingClientRect(),worst=0;"
+        "s.querySelectorAll('text').forEach(function(t){var r=t.getBoundingClientRect();"
+        "if(r.width>0)worst=Math.max(worst,r.right-b.right,b.left-r.left);});"
+        "return Math.max(0,Math.round(worst));"
+    )
+    assert _at_widths(page=page, measure=measure) == sorted(f"{w}:0" for w in WIDTHS)

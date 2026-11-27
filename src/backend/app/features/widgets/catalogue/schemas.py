@@ -178,6 +178,9 @@ class ForecastChart(Component):
             raise ValueError("a range needs both low and high")
         return self
 
+    def range_fields(self) -> tuple[str, str] | None:
+        return None if self.low is None or self.high is None else (self.low, self.high)
+
 
 class ScenarioFigure(Component):
     label: Label

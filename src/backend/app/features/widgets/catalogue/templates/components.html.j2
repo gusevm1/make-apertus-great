@@ -94,16 +94,19 @@
 <section class="scenarios" data-component="scenarios" data-path="{{ n.path }}">
   {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
   {%- if n.form == "live" %}
-  <fieldset class="cases"><legend class="sr-only">Case</legend>
-    {%- for c in n.cases %}<label class="case-option"><input type="radio" name="cases-{{ n.path }}" value="{{ c.index }}"{% if loop.first %} checked{% endif %}><span>{{ c.label }}</span></label>{% endfor %}
+  <fieldset class="cases"><legend class="sr-only">{% if n.title is not none %}{{ n.title }}{% else %}Choose a case{% endif %}</legend>
+    {%- for c in n.cases %}<label class="case-option"><input type="radio" name="{{ n.group }}" value="{{ c.index }}"{% if loop.first %} checked{% endif %}><span>{{ c.label }}</span></label>{% endfor %}
   </fieldset>
+  {#- One live region that stays on the page, so a switch is announced. #}
+  <div class="case-panels" aria-live="polite">
   {%- for c in n.cases %}
-  <div class="stats case" data-case="{{ c.index }}" data-path="{{ c.path }}" aria-live="polite"{% if not loop.first %} hidden{% endif %}>
+  <div class="stats case" data-case="{{ c.index }}" data-path="{{ c.path }}"{% if not loop.first %} hidden{% endif %}>
     {%- for f in c.figures %}
     <div class="stat" data-component="scenario-figure" data-path="{{ f.path }}" data-value="{{ f.raw }}" data-booking-ids="{{ f.booking_ids }}"><span class="stat-label">{{ f.label }}</span><span class="stat-value">{{ f.text }}</span></div>
     {%- endfor %}
   </div>
   {%- endfor %}
+  </div>
   {%- else %}
   {%- set first = n.cases[0] %}
   <p class="case-shown">{{ first.label }}</p>

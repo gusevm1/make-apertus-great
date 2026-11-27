@@ -25,11 +25,15 @@ BAR_HEIGHT = 230
 LINE_HEIGHT = 220
 ROW_HEIGHT = 28
 LABEL_LIMIT = 160
+# Half the width of a month label such as "Jan 2027", kept free right of a forecast's last point.
+LAST_LABEL_ROOM = 30
 FONT = "Inter, system-ui, -apple-system, Segoe UI, sans-serif"
 ACCENT = "#2e6b66"
 ACCENT_LIGHT = "#cfe2df"
 ACCENT_MID = "#5f9c95"
 TEXT = "#12202a"
+# The widget's background (tokens.css --surface): the fill of a hollow forecast point.
+SURFACE = "#ffffff"
 MUTED = "#5b6870"
 GRID = "#e6e8e8"
 SERIES = [ACCENT, MUTED, "#9cc2be", "#7f9fb0", "#c2c8c8"]
@@ -247,13 +251,14 @@ def _check_forecast(component: ForecastChart, found: list[dict[str, Any]]) -> No
         if kind == "actual" and seen_forecast:
             raise BadRequestError(f"{where} is actual after a forecast row: actual rows come first")
         seen_forecast = seen_forecast or kind == "forecast"
-        if kind == "actual" or component.low is None or component.high is None:
+        ends = component.range_fields()
+        if kind == "actual" or ends is None:
             continue
-        low, high = row.get(component.low), row.get(component.high)
+        low, high = row.get(ends[0]), row.get(ends[1])
         if low is None or high is None or not is_number(value=low) or not is_number(value=high):
-            raise BadRequestError(f"{where} needs numbers in {component.low} and {component.high}")
+            raise BadRequestError(f"{where} needs numbers in {ends[0]} and {ends[1]}")
         if low > high:
-            raise BadRequestError(f"{where}.{component.low} is above {component.high}")
+            raise BadRequestError(f"{where}.{ends[0]} is above {ends[1]}")
     if not seen_forecast:
         raise BadRequestError(f"{component.data} has no forecast row: use a line_chart")
 
@@ -261,18 +266,28 @@ def _check_forecast(component: ForecastChart, found: list[dict[str, Any]]) -> No
 def _forecast_fields(
     component: ForecastChart, row: dict[str, Any], full: str, shown: str, path: str
 ) -> dict[str, Any]:
-    is_forecast = row[component.kind] == "forecast"
-    fields: dict[str, Any] = {"kind": row[component.kind], "low": None, "high": None, "range": ""}
-    if is_forecast:
-        fields["description"] = f"{full}, forecast {shown} ({path})"
-    if not is_forecast or component.low is None or component.high is None:
-        return fields
-    low, high = row[component.low], row[component.high]
-    return fields | {
+    kind = row[component.kind]
+    ends = component.range_fields()
+    if kind == "actual":
+        return {"kind": kind, "low": None, "high": None, "detail": "actual"}
+    if ends is None:
+        return {
+            "kind": kind,
+            "low": None,
+            "high": None,
+            "detail": "forecast",
+            "description": f"{full}, forecast {shown} ({path})",
+        }
+    low, high = row[ends[0]], row[ends[1]]
+    between = (
+        f"between {display(field=ends[0], value=low)} and {display(field=ends[1], value=high)}"
+    )
+    return {
+        "kind": kind,
         "low": low,
         "high": high,
-        "range": f"{display(field=component.low, value=low)} to "
-        f"{display(field=component.high, value=high)}",
+        "detail": f"forecast, {between}",
+        "description": f"{full}, forecast {shown}, {between} ({path})",
     }
 
 
@@ -402,7 +417,7 @@ def _line(
         "y1": 1,
         "x2": 1,
         "y2": 0,
-        "stops": [{"offset": 0, "color": "#ffffff"}, {"offset": 1, "color": "#9cc2be"}],
+        "stops": [{"offset": 0, "color": SURFACE}, {"offset": 1, "color": "#9cc2be"}],
     }
     return {
         "height": LINE_HEIGHT,
@@ -480,13 +495,25 @@ def _forecast(values: list[dict[str, Any]], has_range: bool) -> dict[str, Any]:
         "axis": {"labelOverlap": "greedy"},
     }
     y = {"field": "y", "type": "quantitative", "stack": None, "axis": {"format": ",.0f"}}
-    line = {"type": "line", "interpolate": "monotone", "strokeWidth": 2.5, "color": ACCENT}
+    # Lines, range and zero line carry no label of their own; the points name every figure.
+    line = {
+        "type": "line",
+        "interpolate": "monotone",
+        "strokeWidth": 2.5,
+        "color": ACCENT,
+        "aria": False,
+    }
     layers: list[dict[str, Any]] = []
     if has_range:
         layers.append(
             {
                 "data": {"values": forecast},
-                "mark": {"type": "area", "interpolate": "monotone", "color": ACCENT_LIGHT},
+                "mark": {
+                    "type": "area",
+                    "interpolate": "monotone",
+                    "color": ACCENT_LIGHT,
+                    "aria": False,
+                },
                 "encoding": {
                     "x": x,
                     "y": {**y, "field": "low"},
@@ -509,16 +536,12 @@ def _forecast(values: list[dict[str, Any]], has_range: bool) -> dict[str, Any]:
                 "x": x,
                 "y": y,
                 "fill": {
-                    "condition": {"test": "datum.kind === 'forecast'", "value": "#ffffff"},
+                    "condition": {"test": "datum.kind === 'forecast'", "value": SURFACE},
                     "value": ACCENT,
                 },
                 "stroke": {"value": ACCENT},
                 "description": {"field": "description"},
-                "tooltip": [
-                    *_tooltip(y_title="value"),
-                    {"field": "kind", "title": " "},
-                    {"field": "range", "title": "range"},
-                ],
+                "tooltip": [*_tooltip(y_title="value"), {"field": "detail", "title": " "}],
             },
         },
     ]
@@ -530,11 +553,17 @@ def _forecast(values: list[dict[str, Any]], has_range: bool) -> dict[str, Any]:
         layers.append(
             {
                 "data": {"values": [{}]},
-                "mark": {"type": "rule", "color": MUTED, "strokeDash": [2, 3]},
+                "mark": {"type": "rule", "color": MUTED, "strokeDash": [2, 3], "aria": False},
                 "encoding": {"y": {"datum": 0}},
             }
         )
-    return {"height": LINE_HEIGHT, "data": {"values": values}, "layer": layers}
+    return {
+        "height": LINE_HEIGHT,
+        # Room for half of the last month's label, which is centred on the last point.
+        "padding": {"left": 0, "right": LAST_LABEL_ROOM, "top": 10, "bottom": 0},
+        "data": {"values": values},
+        "layer": layers,
+    }
 
 
 def _comparison(values: list[dict[str, Any]], scale: dict[str, Any]) -> dict[str, Any]:

@@ -153,7 +153,7 @@ def specs(data: dict[str, Any]) -> dict[str, WidgetSpec]:
         },
         "forecast_chart": {
             "title": "Left over per month",
-            "subtitle": "The last 12 months and where the trend leads",
+            "subtitle": "The last 12 months and the trend; shaded: between trend and average",
             "body": {
                 "type": "forecast_chart",
                 "data": "forecast",
