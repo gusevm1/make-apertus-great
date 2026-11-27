@@ -1,7 +1,7 @@
 """add widgets and widget versions
 
 Revision ID: 900486728c67
-Revises: 586bf867a410
+Revises: 8e8e6d79deda
 Create Date: 2026-11-27 19:17:29.610374
 
 """
@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "900486728c67"
-down_revision: str | Sequence[str] | None = "586bf867a410"
+down_revision: str | Sequence[str] | None = "8e8e6d79deda"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
