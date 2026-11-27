@@ -159,7 +159,11 @@ async def test_a_search_finds_an_old_entry_the_full_list_leaves_out(session: Asy
         status="active",
         source="customer",
     )
-    (tool,) = context_entry_tools.get_tools(service=service, owner_id=DEMO_USER_ID)
+    (tool,) = [
+        tool
+        for tool in context_entry_tools.get_tools(service=service, owner_id=DEMO_USER_ID)
+        if tool.name == "list_context_entries"
+    ]
     assert tool.handler is not None
 
     newest = await tool.handler(tool.args_schema())
