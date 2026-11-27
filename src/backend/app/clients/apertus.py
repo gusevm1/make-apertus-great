@@ -305,7 +305,7 @@ class ApertusClient:
                 messages=_to_openai(messages=messages),
                 temperature=openai.omit if temperature is None else temperature,
                 response_format=openai.omit if response_format is None else response_format,
-                timeout=openai.omit if timeout_seconds is None else timeout_seconds,
+                timeout=openai.not_given if timeout_seconds is None else timeout_seconds,
             )
         except openai.APIError as exc:
             self._write_log(
