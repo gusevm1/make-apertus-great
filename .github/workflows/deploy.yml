@@ -1,0 +1,48 @@
+name: Deploy
+
+# A push to prod builds the backend image, swaps it in on the EC2 box (src/deploy/remote-deploy.sh)
+# and then builds both pages on Vercel. The pages build only here, never on a push by itself.
+# Secrets: EC2_HOST, EC2_SSH_KEY, VERCEL_HOOK_TRUSTROOM, VERCEL_HOOK_EBANKING.
+on:
+  push:
+    branches: [prod]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/gusevm1/trustroom-backend:sha-${{ github.sha }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and push the backend image
+        run: |
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build -t "$IMAGE" src/backend
+          docker push "$IMAGE"
+
+      - name: Deploy to the box
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          install -m 600 /dev/null key
+          echo "$EC2_SSH_KEY" > key
+          OPTIONS="-i key -o StrictHostKeyChecking=accept-new"
+          scp $OPTIONS -r src/deploy/. src/searxng "ubuntu@$EC2_HOST:/opt/trustroom/"
+          echo "$GITHUB_TOKEN" | ssh $OPTIONS "ubuntu@$EC2_HOST" "docker login ghcr.io -u $GITHUB_ACTOR --password-stdin"
+          ssh $OPTIONS "ubuntu@$EC2_HOST" "bash /opt/trustroom/remote-deploy.sh $IMAGE"
+
+      - name: Build both pages on Vercel
+        run: |
+          curl -fsS -X POST "${{ secrets.VERCEL_HOOK_TRUSTROOM }}"
+          curl -fsS -X POST "${{ secrets.VERCEL_HOOK_EBANKING }}"
