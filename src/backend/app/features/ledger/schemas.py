@@ -9,6 +9,12 @@ from app.core.prompts import load_prompts
 PROMPTS = load_prompts(prompts_py=__file__)
 ROWS_DEFAULT = 10
 ROWS_MAX = 20
+# Fewer points than this make a line that says nothing.
+MIN_TREND_MONTHS = 3
+MAX_TREND_MONTHS = 24
+TREND_MONTHS_DEFAULT = 12
+MAX_PROJECTED_MONTHS = 6
+PROJECTED_MONTHS_DEFAULT = 3
 TOP_COUNTERPARTIES = 15
 
 # own_transfer moves money between own accounts or into the depot; card_settlement is the card bill.
@@ -90,8 +96,18 @@ class SumByCounterpartyArgs(Filters):
 
 
 class ForecastMonthsArgs(Selection):
-    months_back: int = Field(default=12, ge=3, le=24, description=PROMPTS["months_back"])
-    months_ahead: int = Field(default=3, ge=1, le=6, description=PROMPTS["months_ahead"])
+    months_back: int = Field(
+        default=TREND_MONTHS_DEFAULT,
+        ge=MIN_TREND_MONTHS,
+        le=MAX_TREND_MONTHS,
+        description=PROMPTS["months_back"],
+    )
+    months_ahead: int = Field(
+        default=PROJECTED_MONTHS_DEFAULT,
+        ge=1,
+        le=MAX_PROJECTED_MONTHS,
+        description=PROMPTS["months_ahead"],
+    )
 
 
 GroupBy = Literal["quarter", "year", "weekday", "account", "kind"]

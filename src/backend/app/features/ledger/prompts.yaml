@@ -27,7 +27,9 @@ forecast_months: >-
   The trend of the customer's money movements over the last full months, and where a straight line
   through them leads in the next months. Returns `average_chf` per month, `trend_chf_per_month`, the
   trend in % of the average, and a `projection` with the trend value and the average for each coming
-  month. Amounts are signed, so for spending a negative trend means the spending grows. It is a
+  month. Without `kind` it adds spending and credits, which is the net cash flow: for a question about
+  spending pass kind spending. Amounts are signed, so for spending a negative trend means the
+  spending grows. It is a
   straight-line trend from past months, not a prediction: say so, and name the months it rests on.
   Takes the same filters as search_movements except the period. Use it for "is my spending going up"
   or "what will I spend per month if this continues".

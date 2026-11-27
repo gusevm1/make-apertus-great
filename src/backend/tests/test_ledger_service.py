@@ -390,11 +390,14 @@ async def test_the_trend_is_a_straight_line_through_the_full_months() -> None:
     )
 
     assert (trend.first_month, trend.last_month, trend.months_used) == ("2026-08", "2026-10", 3)
-    assert (trend.average_chf, trend.trend_chf_per_month) == (Decimal("-200.00"), Decimal("-100.0"))
+    assert (trend.average_chf, trend.trend_chf_per_month) == (
+        Decimal("-200.00"),
+        Decimal("-100.00"),
+    )
     assert trend.trend_percent_per_month == Decimal("-50.00")
     assert [(month.month, month.trend_chf) for month in trend.projection] == [
-        ("2026-11", Decimal("-400.0")),
-        ("2026-12", Decimal("-500.0")),
+        ("2026-11", Decimal("-400.00")),
+        ("2026-12", Decimal("-500.00")),
     ]
     assert "BK-NOV" not in [row_id for ids in trend.row_ids.values() for row_id in ids]
 
@@ -411,7 +414,7 @@ async def test_a_month_without_a_match_counts_as_0_in_the_trend() -> None:
     )
 
     assert [month.count for month in trend.months] == [1, 0, 1]
-    assert (trend.average_chf, trend.trend_chf_per_month) == (Decimal("-200.00"), Decimal("0.0"))
+    assert (trend.average_chf, trend.trend_chf_per_month) == (Decimal("-200.00"), Decimal("0.00"))
 
 
 async def test_a_trend_needs_three_months_the_ledger_covers() -> None:
@@ -461,3 +464,11 @@ async def test_every_weekday_is_listed_and_kinds_count_only_when_asked(
         "tuesday",
     }
     assert [group.group for group in kinds.groups] == ["own_transfer", "spending"]
+
+
+async def test_a_history_that_starts_this_month_is_not_enough_for_a_trend() -> None:
+    bookings = [_spending("BK-NOV", "2026-11-02", -50.0)]
+    ledger = _fake_ledger(bookings=bookings, purchases=[], pages_read=[])
+
+    with pytest.raises(BadRequestError, match="Only 0 full months"):
+        await ledger.forecast_months(token=TOKEN, args=ForecastMonthsArgs(), today=TODAY)

@@ -38,6 +38,7 @@
     - tool: forecast_months
       arguments:
         months_back: "(12)?"
+        kind: ".*spending.*"
 - question: What will I spend per month in the next 3 months if this continues?
   calls:
     - tool: forecast_months

@@ -11,6 +11,7 @@ from app.clients.banking import BankingClient
 from app.core.errors import BadRequestError
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import (
+    MIN_TREND_MONTHS,
     CounterpartySum,
     CounterpartySums,
     Filters,
@@ -36,8 +37,6 @@ PAGE_SIZE = 1000  # the banking API's maximum
 OWN_TRANSFER_TYPES = {"account_transfer", "securities_buy"}
 # Without a kind, nothing counts twice: no move between own accounts, no card bill.
 COUNTED_KINDS: set[Kind] = {"spending", "credit"}
-# Fewer points than this make a line that says nothing.
-MIN_TREND_MONTHS = 3
 WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 CENT = Decimal("0.01")
 # Every path the model's tools may read; `{}` is one segment. Nothing here changes the bank.
@@ -171,15 +170,22 @@ class LedgerService:
         last_day = today.replace(day=1) - timedelta(days=1)
         first_day = _month_start(month=_shift(month=_month(day=last_day), by=1 - args.months_back))
         if everything:
+            # The bank's history covers whole months, so the first booking's month counts in full.
             first_day = max(first_day, everything[0].date.replace(day=1))
+        # A history that starts this month leaves first_day after last_day: no month at all.
+        months_covered = (
+            0
+            if not everything or first_day > last_day
+            else _count_months(first=first_day, last=last_day)
+        )
+        if months_covered < MIN_TREND_MONTHS:
+            raise BadRequestError(PROMPTS["not_enough_months"].format(months=months_covered))
         filters = Filters(
             **args.model_dump(exclude={"months_back", "months_ahead"}),
             date_from=first_day,
             date_to=last_day,
         )
-        months = _months(filters=filters, rows=everything) if everything else []
-        if len(months) < MIN_TREND_MONTHS:
-            raise BadRequestError(PROMPTS["not_enough_months"].format(months=len(months)))
+        months = _months(filters=filters, rows=everything)
         by_month = _by_month(rows=await self._matching(token=token, filters=filters))
         sums = [_month_sum(month=month, rows=by_month[month]) for month in months]
         nets = [month.money_out_chf + month.money_in_chf for month in sums]
@@ -381,7 +387,11 @@ def _shift(month: str, by: int) -> str:
 
 def _cents(value: float) -> Decimal:
     # Through str, so the float's last digits don't end up in the figure.
-    return Decimal(str(round(value, 2)))
+    return Decimal(str(round(value, 2))).quantize(CENT)
+
+
+def _count_months(first: date, last: date) -> int:
+    return (last.year - first.year) * 12 + last.month - first.month + 1
 
 
 def _months(filters: Filters, rows: list[LedgerRow]) -> list[str]:
