@@ -1,0 +1,645 @@
+[
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 5.0,
+  "tokens_out": 54,
+  "chars": 125,
+  "failure": null,
+  "page": "catalogue_schema-smart-monthly-spending.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "upcoming_payments",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 7.5,
+  "tokens_out": 79,
+  "chars": 178,
+  "failure": null,
+  "page": "catalogue_schema-smart-upcoming-payments.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "pricier_subscriptions",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 14.9,
+  "tokens_out": 176,
+  "chars": 141,
+  "failure": null,
+  "page": "catalogue_schema-smart-pricier-subscriptions.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "fallback",
+  "last_error": "subscriptions[0].payee is a str, not a number"
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "year_vs_year",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 363.1,
+  "tokens_out": 0,
+  "chars": 105,
+  "failure": null,
+  "page": "catalogue_schema-smart-year-vs-year.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 820
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 820
+   }
+  ],
+  "outcome": "fallback",
+  "last_error": "Apertus returned 502"
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "liquidity",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 17.8,
+  "tokens_out": 245,
+  "chars": 465,
+  "failure": null,
+  "page": "catalogue_schema-smart-liquidity.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "repaired",
+  "last_error": "total_liquidity_chf is not a list of rows"
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "where_money_goes",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 7.4,
+  "tokens_out": 96,
+  "chars": 105,
+  "failure": null,
+  "page": "catalogue_schema-smart-where-money-goes.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "repaired",
+  "last_error": "payees[0] has no field kpi; fields: label, total_chf, booking_ids"
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": "red",
+  "mode": "rewrite",
+  "base_is_clean": true,
+  "seconds": 30.6,
+  "tokens_out": 44,
+  "chars": 125,
+  "failure": null,
+  "page": "catalogue_schema-smart-monthly-spending-red-rewrite.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": "red",
+  "mode": "edits",
+  "base_is_clean": true,
+  "seconds": 132.1,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "edit matches 0 times: '{\"type\": \"bar_chart\", \"data\": \"months\", \"x\": \"label\", \"y\": \"'",
+  "page": null,
+  "renders": [],
+  "outcome": null,
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": "last_3",
+  "mode": "rewrite",
+  "base_is_clean": true,
+  "seconds": 48.7,
+  "tokens_out": 67,
+  "chars": 163,
+  "failure": null,
+  "page": "catalogue_schema-smart-monthly-spending-last-3-rewrite.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": "last_3",
+  "mode": "edits",
+  "base_is_clean": true,
+  "seconds": 27.5,
+  "tokens_out": 32,
+  "chars": 135,
+  "failure": "invalid spec: 1 errors",
+  "page": null,
+  "renders": [],
+  "outcome": null,
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "monthly_spending",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 0.8,
+  "tokens_out": 58,
+  "chars": 142,
+  "failure": null,
+  "page": "catalogue_schema-fast-monthly-spending.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "upcoming_payments",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 361.5,
+  "tokens_out": 0,
+  "chars": 120,
+  "failure": null,
+  "page": "catalogue_schema-fast-upcoming-payments.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 859
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "fallback",
+  "last_error": "Apertus returned 502"
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "pricier_subscriptions",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 361.5,
+  "tokens_out": 0,
+  "chars": 141,
+  "failure": null,
+  "page": "catalogue_schema-fast-pricier-subscriptions.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "fallback",
+  "last_error": "Apertus returned 502"
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "year_vs_year",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 1.0,
+  "tokens_out": 67,
+  "chars": 135,
+  "failure": null,
+  "page": "catalogue_schema-fast-year-vs-year.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "liquidity",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 0.6,
+  "tokens_out": 62,
+  "chars": 142,
+  "failure": null,
+  "page": "catalogue_schema-fast-liquidity.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "where_money_goes",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 1.5,
+  "tokens_out": 141,
+  "chars": 344,
+  "failure": null,
+  "page": "catalogue_schema-fast-where-money-goes.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "monthly_spending",
+  "revision": "red",
+  "mode": "rewrite",
+  "base_is_clean": true,
+  "seconds": 3.8,
+  "tokens_out": 59,
+  "chars": 164,
+  "failure": null,
+  "page": "catalogue_schema-fast-monthly-spending-red-rewrite.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "first",
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "monthly_spending",
+  "revision": "red",
+  "mode": "edits",
+  "base_is_clean": true,
+  "seconds": 8.2,
+  "tokens_out": 23,
+  "chars": 142,
+  "failure": null,
+  "page": "catalogue_schema-fast-monthly-spending-red-edits.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": null,
+  "last_error": null
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "monthly_spending",
+  "revision": "last_3",
+  "mode": "rewrite",
+  "base_is_clean": true,
+  "seconds": 6.7,
+  "tokens_out": 103,
+  "chars": 164,
+  "failure": null,
+  "page": "catalogue_schema-fast-monthly-spending-last-3-rewrite.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ],
+  "outcome": "repaired",
+  "last_error": "months[3] is not a list of rows"
+ },
+ {
+  "variant": "catalogue_schema",
+  "model": "fast",
+  "task": "monthly_spending",
+  "revision": "last_3",
+  "mode": "edits",
+  "base_is_clean": true,
+  "seconds": 7.3,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "Model returned invalid Edits twice",
+  "page": null,
+  "renders": [],
+  "outcome": null,
+  "last_error": null
+ }
+]

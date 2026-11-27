@@ -99,3 +99,59 @@ Revisions count only where the first version was clean, so a broken first versio
 | shapes | fast | 0 of 6 (0%) | – | – | 0 of 0 |
 | jinja | smart | 0 of 6 (0%) | – | – | 0 of 2 |
 | jinja | fast | 0 of 6 (0%) | – | – | 0 of 2 |
+
+## Catalogue
+
+Run on 2026-11-27. The Keera gateway accepts `json_schema` with the WidgetSpec schema.
+
+Apertus returns a `WidgetSpec` through `structured`, which already gives it one round with a validation error. A spec whose path doesn't resolve goes back once with the error (`repaired`); after that the widget is `fallback(data)`, which counts as not clean. Edits change the spec's JSON and get no repair round.
+
+| Variant | Model | Task | Outcome | Clean | Seconds | 360 px | 1000 px | Last error |
+|---|---|---|---|---|---|---|---|---|
+| catalogue | smart | monthly_spending | first | yes | 9.4 | ok | ok | – |
+| catalogue | smart | upcoming_payments | first | yes | 11.3 | ok | ok | – |
+| catalogue | smart | pricier_subscriptions | fallback | no | 14.1 | ok | ok | subscriptions[0] has no field old_price; fields: payee, cadence, payments, last_date, last_paid_chf, paid_last_12_months_chf, next_expected, active, price_chang |
+| catalogue | smart | year_vs_year | first | yes | 12.7 | ok | ok | – |
+| catalogue | smart | liquidity | first | yes | 4.5 | ok | ok | – |
+| catalogue | smart | where_money_goes | first | yes | 4.7 | ok | ok | – |
+| catalogue | smart | monthly_spending + red (rewrite) | first | yes | 7.4 | ok | ok | – |
+| catalogue | smart | monthly_spending + red (edits) | – | no | 12.7 | edit matches 0 times: '{"type": "bar_chart", "data": "months", "x": "label", "y": "' |  | – |
+| catalogue | smart | monthly_spending + last_3 (rewrite) | first | yes | 4.0 | ok | ok | – |
+| catalogue | smart | monthly_spending + last_3 (edits) | – | no | 2.2 | invalid spec: 1 errors |  | – |
+| catalogue_schema | smart | monthly_spending | first | yes | 5.0 | ok | ok | – |
+| catalogue_schema | smart | upcoming_payments | first | yes | 7.5 | ok | ok | – |
+| catalogue_schema | smart | pricier_subscriptions | fallback | no | 14.9 | ok | ok | subscriptions[0].payee is a str, not a number |
+| catalogue_schema | smart | year_vs_year | fallback | no | 363.1 | ok | ok | Apertus returned 502 |
+| catalogue_schema | smart | liquidity | repaired | yes | 17.8 | ok | ok | total_liquidity_chf is not a list of rows |
+| catalogue_schema | smart | where_money_goes | repaired | yes | 7.4 | ok | ok | payees[0] has no field kpi; fields: label, total_chf, booking_ids |
+| catalogue_schema | smart | monthly_spending + red (rewrite) | first | yes | 30.6 | ok | ok | – |
+| catalogue_schema | smart | monthly_spending + red (edits) | – | no | 132.1 | edit matches 0 times: '{"type": "bar_chart", "data": "months", "x": "label", "y": "' |  | – |
+| catalogue_schema | smart | monthly_spending + last_3 (rewrite) | first | yes | 48.7 | ok | ok | – |
+| catalogue_schema | smart | monthly_spending + last_3 (edits) | – | no | 27.5 | invalid spec: 1 errors |  | – |
+| catalogue | fast | monthly_spending | first | yes | 1.6 | ok | ok | – |
+| catalogue | fast | upcoming_payments | first | yes | 2.7 | ok | ok | – |
+| catalogue | fast | pricier_subscriptions | fallback | no | 48.0 | ok | ok | Model returned invalid WidgetSpec twice |
+| catalogue | fast | year_vs_year | first | yes | 3.7 | ok | ok | – |
+| catalogue | fast | liquidity | fallback | no | 2.9 | ok | ok | none: DATA has no field none; fields: total_liquidity_chf, as_of, accounts |
+| catalogue | fast | where_money_goes | first | yes | 4.5 | ok | ok | – |
+| catalogue | fast | monthly_spending + red (rewrite) | first | yes | 0.7 | ok | ok | – |
+| catalogue | fast | monthly_spending + red (edits) | – | yes | 1.0 | ok | ok | – |
+| catalogue | fast | monthly_spending + last_3 (rewrite) | first | yes | 0.6 | ok | ok | – |
+| catalogue | fast | monthly_spending + last_3 (edits) | – | no | 1.0 | Model returned invalid Edits twice |  | – |
+| catalogue_schema | fast | monthly_spending | first | yes | 0.8 | ok | ok | – |
+| catalogue_schema | fast | upcoming_payments | fallback | no | 361.5 | ok | ok | Apertus returned 502 |
+| catalogue_schema | fast | pricier_subscriptions | fallback | no | 361.5 | ok | ok | Apertus returned 502 |
+| catalogue_schema | fast | year_vs_year | first | yes | 1.0 | ok | ok | – |
+| catalogue_schema | fast | liquidity | first | yes | 0.6 | ok | ok | – |
+| catalogue_schema | fast | where_money_goes | first | yes | 1.5 | ok | ok | – |
+| catalogue_schema | fast | monthly_spending + red (rewrite) | first | yes | 3.8 | ok | ok | – |
+| catalogue_schema | fast | monthly_spending + red (edits) | – | yes | 8.2 | ok | ok | – |
+| catalogue_schema | fast | monthly_spending + last_3 (rewrite) | repaired | yes | 6.7 | ok | ok | months[3] is not a list of rows |
+| catalogue_schema | fast | monthly_spending + last_3 (edits) | – | no | 7.3 | Model returned invalid Edits twice |  | – |
+
+| Variant | Model | First try | After one repair | Fallback | No page | Median seconds | Tasks clean |
+|---|---|---|---|---|---|---|---|
+| catalogue | smart | 7 of 8 | 0 | 1 | 2 | 8.4 | 5 of 6 (83%) |
+| catalogue_schema | smart | 4 of 8 | 2 | 2 | 2 | 16.4 | 4 of 6 (67%) |
+| catalogue | fast | 6 of 8 | 0 | 2 | 1 | 2.8 | 4 of 6 (67%) |
+| catalogue_schema | fast | 5 of 8 | 1 | 2 | 1 | 2.6 | 4 of 6 (67%) |
