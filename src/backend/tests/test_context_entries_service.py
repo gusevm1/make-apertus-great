@@ -66,6 +66,14 @@ async def test_only_the_first_of_two_changes_to_one_entry_wins(session: AsyncSes
     assert [entry.text for entry in active] == ["B"]
 
 
+async def test_patch_with_null_text_answers_422(client: httpx2.AsyncClient) -> None:
+    entry = (await client.post("/api/context-entries", json=GOAL)).json()
+
+    response = await client.patch(f"/api/context-entries/{entry['id']}", json={"text": None})
+
+    assert response.status_code == 422
+
+
 async def test_delete_removes_the_entry_and_its_earlier_versions(
     client: httpx2.AsyncClient,
 ) -> None:

@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Kind = Literal["goal", "fact", "preference"]
 Status = Literal["proposed", "active", "dismissed", "replaced"]
@@ -42,6 +42,13 @@ class RequestContextEntryUpdate(BaseModel):
     text: str | None = Field(default=None, min_length=1, max_length=TEXT_MAX_LENGTH)
     amount_chf: Decimal | None = Field(default=None, ge=0, le=AMOUNT_MAX, decimal_places=2)
     target_date: date | None = None
+
+    @field_validator("kind", "text")
+    @classmethod
+    def _not_null(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("Leave the field out to keep it, it cannot be null")
+        return value
 
 
 class ResponseContextEntry(BaseModel):
