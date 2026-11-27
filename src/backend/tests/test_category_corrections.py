@@ -2,6 +2,7 @@ from decimal import Decimal
 from typing import Any
 
 import httpx2
+import pytest
 
 from app.main import app
 from tests.conftest import FakeApertus
@@ -9,6 +10,7 @@ from tests.test_transaction_tags import (
     LUKAS_BOOKINGS,
     _bank_client,
     _booking,
+    _categorise_only,
     _tags,
     anna,  # noqa: F401
     lukas,  # noqa: F401
@@ -29,8 +31,9 @@ async def _summaries(api: httpx2.AsyncClient, **params: str) -> dict[str | None,
 
 async def test_a_payee_correction_changes_every_row_of_the_payee_and_no_other(
     lukas: httpx2.AsyncClient,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     response = await _correct(api=lukas, scope="payee", key="  MIGROS ", category="groceries")
 
@@ -53,8 +56,9 @@ async def test_a_payee_correction_changes_every_row_of_the_payee_and_no_other(
 async def test_a_payee_correction_holds_for_a_later_booking(
     lukas: httpx2.AsyncClient,  # noqa: F811
     apertus: FakeApertus,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
     await _correct(api=lukas, scope="payee", key="Migros", category="shopping")
     app.state.banking = _bank_client(
         bookings_by_token={
@@ -66,7 +70,7 @@ async def test_a_payee_correction_holds_for_a_later_booking(
     )
     apertus.requests.clear()
 
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     assert apertus.requests == []
     assert (await _tags(api=lukas))["BK-8"]["category"] == "shopping"
@@ -74,8 +78,9 @@ async def test_a_payee_correction_holds_for_a_later_booking(
 
 async def test_a_booking_correction_changes_that_row_only(
     lukas: httpx2.AsyncClient,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     response = await _correct(api=lukas, scope="booking", key="booking:BK-2", category="other")
 
@@ -89,8 +94,9 @@ async def test_a_booking_correction_changes_that_row_only(
 
 async def test_confirming_keeps_the_category_and_marks_it_confirmed(
     lukas: httpx2.AsyncClient,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     await _correct(api=lukas, scope="booking", key="card_transaction:CTX-1", category="restaurants")
 
@@ -135,6 +141,7 @@ async def test_an_unknown_category_is_refused(lukas: httpx2.AsyncClient) -> None
 
 async def test_each_row_names_the_usual_category_of_its_payee(
     lukas: httpx2.AsyncClient,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     app.state.banking = _bank_client(
         bookings_by_token={
@@ -144,7 +151,7 @@ async def test_each_row_names_the_usual_category_of_its_payee(
             )
         }
     )
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     tags = await _tags(api=lukas)
     assert tags["BK-2"]["category"] == "shopping"
@@ -157,8 +164,11 @@ async def test_each_row_names_the_usual_category_of_its_payee(
     assert (await _tags(api=lukas))["BK-1"]["payee_usual_category"] == "shopping"
 
 
-async def test_rows_carry_their_ledger_fields(lukas: httpx2.AsyncClient) -> None:  # noqa: F811
-    await lukas.post("/api/categorisations")
+async def test_rows_carry_their_ledger_fields(
+    lukas: httpx2.AsyncClient,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     tag = (await _tags(api=lukas))["BK-3"]
 
@@ -170,8 +180,9 @@ async def test_rows_carry_their_ledger_fields(lukas: httpx2.AsyncClient) -> None
 
 async def test_rows_filter_by_category_and_certainty(
     lukas: httpx2.AsyncClient,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
     await _correct(api=lukas, scope="booking", key="booking:BK-3", category="housing")
 
     by_category = await lukas.get("/api/transaction-tags", params={"category": "groceries"})
@@ -187,13 +198,14 @@ async def test_rows_filter_by_category_and_certainty(
 
 async def test_summaries_add_up_the_ledger_rows_and_count_certainty(
     lukas: httpx2.AsyncClient,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     before = await _summaries(api=lukas)
     assert set(before) == {None}
     assert Decimal(before[None]["total_chf"]) == Decimal("3340.5")
     assert before[None]["row_count"] == 5
 
-    await lukas.post("/api/categorisations")
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
     await _correct(api=lukas, scope="booking", key="booking:BK-2", category="groceries")
 
     summaries = await _summaries(api=lukas)
@@ -205,8 +217,11 @@ async def test_summaries_add_up_the_ledger_rows_and_count_certainty(
     assert sum(Decimal(summary["total_chf"]) for summary in summaries.values()) == Decimal("3340.5")
 
 
-async def test_summaries_keep_to_the_period(lukas: httpx2.AsyncClient) -> None:  # noqa: F811
-    await lukas.post("/api/categorisations")
+async def test_summaries_keep_to_the_period(
+    lukas: httpx2.AsyncClient,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
 
     october_20 = await _summaries(api=lukas, **{"from": "2026-10-01", "to": "2026-10-25"})
 

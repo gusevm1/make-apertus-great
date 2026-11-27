@@ -11,6 +11,7 @@ from app.features.transaction_tags.dependencies import (
     OwnedPersonalTagDep,
     PersonalTagServiceDep,
     SeverityServiceDep,
+    TransactionTagServiceDep,
 )
 from app.features.transaction_tags.schemas import (
     AssignedRow,
