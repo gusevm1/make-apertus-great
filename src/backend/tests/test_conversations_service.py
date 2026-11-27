@@ -29,6 +29,9 @@ RESULT = LLMResult(content="ok", model="fake", latency_ms=1, tokens_in=None, tok
 CALL_A_TOOL = ToolDecision(
     plan="Look it up.", calls=[ToolRequest(reason="Look it up.", tool=LOOKUP.name)]
 )
+INVENTED = LLMResult(
+    content="CHF 39.90", model="fake", latency_ms=1, tokens_in=None, tokens_out=None
+)
 NO_TOOL = ToolDecision(plan="Nothing to look up.")
 OK_CHECK = GuardrailCheck(category=GuardrailCategory.OK, language="en")
 
@@ -38,6 +41,7 @@ class RecordingApertus:
         self.session = session
         self.decisions: list[ToolDecision] = []
         self.in_transaction: list[bool] = []
+        self.reply = RESULT
 
     async def structured(
         self, messages: list[Message], *, schema: type[BaseModel], model: Model, purpose: str
@@ -58,10 +62,10 @@ class RecordingApertus:
     def stream_chat(self, messages: list[Message], *, model: Model, purpose: str) -> LLMStream:
         async def chunks() -> AsyncIterator[str]:
             self.in_transaction.append(self.session.in_transaction())
-            yield RESULT.content
+            yield self.reply.content
 
         stream = LLMStream(chunks=chunks())
-        stream.result = RESULT
+        stream.result = self.reply
         return stream
 
 
@@ -112,6 +116,17 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
     ):
         pass
     assert apertus.in_transaction == [False, False, False, False]
+
+    # A figure in no source adds the correction call.
+    apertus.in_transaction = []
+    apertus.decisions = [CALL_A_TOOL, NO_TOOL]
+    apertus.reply = INVENTED
+    await service.create_message(
+        conversation_id=conversation.id,
+        data=RequestMessageCreate(content="Hi"),
+        owner_id=conversation.owner_id,
+    )
+    assert apertus.in_transaction == [False, False, False, False, False]
 
 
 async def test_prompt_never_starts_with_a_reply(session: AsyncSession) -> None:

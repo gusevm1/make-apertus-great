@@ -30,6 +30,8 @@ class FigureCorrectionService:
             pass
         if stream.result is None:
             raise UpstreamError("Apertus stream ended without a result")
+        if stream.result.content.strip() == "":
+            raise UpstreamError("Apertus returned an empty correction")
         return stream.result
 
 
