@@ -1,16 +1,16 @@
 from decimal import Decimal
 
-from app.clients.banking import BankingClient
 from app.features.accounts.schemas import AccountBalance, AccountBalances
+from app.features.ledger.service import LedgerService
 
 
 class AccountService:
-    def __init__(self, banking: BankingClient) -> None:
-        self.banking = banking
+    def __init__(self, ledger: LedgerService) -> None:
+        self.ledger = ledger
 
     async def list_balances(self, token: str) -> AccountBalances:
         """The customer's accounts with their balances in CHF, and the sum, added up here."""
-        data = await self.banking.get(path="/accounts", token=token)
+        data = await self.ledger.read(path="/accounts", token=token)
         accounts = [
             AccountBalance(
                 account_id=item["account_id"],

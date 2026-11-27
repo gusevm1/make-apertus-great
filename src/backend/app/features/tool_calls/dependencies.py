@@ -4,7 +4,6 @@ from typing import Annotated, Any
 from fastapi import Depends
 
 from app.clients.apertus import ApertusClientDep
-from app.clients.banking import BankingClientDep
 from app.clients.tavily import TavilyClientDep
 from app.core.auth import CurrentUserDep
 from app.core.db import SessionDep
@@ -13,6 +12,7 @@ from app.features.accounts import tools as account_tools
 from app.features.accounts.dependencies import AccountServiceDep
 from app.features.bank_data import tools as bank_data_tools
 from app.features.bank_data.dependencies import BankDataServiceDep
+from app.features.ledger.dependencies import LedgerServiceDep
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.service import ToolCallService
 from app.features.web_search import tools as web_search_tools
@@ -42,10 +42,9 @@ def get_tools(
     ]
 
 
-async def get_today(banking: BankingClientDep) -> date:
+async def get_today(ledger: LedgerServiceDep) -> date:
     # ponytail: asked once per turn; cache it when the banking API gets slow
-    info = await banking.get(path="/system/info")
-    return date.fromisoformat(info["today"])
+    return await ledger.get_today()
 
 
 def get_tool_call_service(

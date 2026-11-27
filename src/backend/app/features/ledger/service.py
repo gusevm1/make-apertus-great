@@ -1,23 +1,64 @@
+import re
+from datetime import date
 from decimal import Decimal
 from typing import Any
 from urllib.parse import quote
 
 from app.clients.banking import BankingClient
+from app.core.errors import BadRequestError
 from app.features.ledger.schemas import Kind, LedgerRow
 
 PAGE_SIZE = 1000  # the banking API's maximum
 OWN_TRANSFER_TYPES = {"account_transfer", "securities_buy"}
+# Every path the model's tools may read; `{}` is one segment. Nothing here changes the bank.
+READ_PATHS = [
+    "/customer",
+    "/accounts",
+    "/accounts/{}/balance-preview",
+    "/asset-overview",
+    "/bookings",
+    "/payments",
+    "/upcoming-payments",
+    "/payees",
+    "/standing-orders",
+    "/cards",
+    "/cards/{}/statements",
+    "/cards/{}/transactions",
+    "/portfolio",
+    "/portfolio/positions",
+    "/portfolio/performance",
+    "/portfolio/transactions",
+    "/loans",
+    "/loan-transactions",
+    "/fx-rates",
+]
+# A segment is quoted already; `.` and `..` survive quoting and would climb to another path.
+_SEGMENT = r"(?!\.\.?(?:/|$))[^/?#]+"
+_READ_PATTERNS = [
+    re.compile("^" + _SEGMENT.join(map(re.escape, path.split("{}"))) + "$") for path in READ_PATHS
+]
 
 
 class LedgerService:
     def __init__(self, banking: BankingClient) -> None:
         self.banking = banking
 
+    async def read(self, path: str, token: str, params: dict[str, Any] | None = None) -> Any:
+        """One read from the banking API as the customer, only on a path of `READ_PATHS`."""
+        if not any(pattern.match(path) for pattern in _READ_PATTERNS):
+            raise BadRequestError(f"{path} is not a read the bank data allows")
+        return await self.banking.get(path=path, token=token, params=params)
+
+    async def get_today(self) -> date:
+        """The e-banking's date, which the demo data ends on; the server clock may differ."""
+        info = await self.banking.get(path="/system/info")
+        return date.fromisoformat(info["today"])
+
     async def list_rows(self, token: str) -> list[LedgerRow]:
         """Every booking and credit card purchase of the customer, oldest first."""
-        accounts = await self.banking.get(path="/accounts", token=token)
+        accounts = await self.read(path="/accounts", token=token)
         own_ibans = {_compact(iban=account["iban"]) for account in accounts["items"]}
-        charges = await self.banking.get(path="/loan-transactions", token=token)
+        charges = await self.read(path="/loan-transactions", token=token)
         charge_by_booking = {charge["booking_id"]: charge for charge in charges["items"]}
 
         rows = [
@@ -28,7 +69,7 @@ class LedgerService:
             )
             for booking in await self._all_pages(path="/bookings", token=token)
         ]
-        cards = await self.banking.get(path="/cards", token=token)
+        cards = await self.read(path="/cards", token=token)
         for card in cards["items"]:
             # Debit card payments are bookings already; only a credit card has its own list.
             if card["type"] != "credit":
@@ -45,7 +86,7 @@ class LedgerService:
     async def _all_pages(self, path: str, token: str) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         while True:
-            page = await self.banking.get(
+            page = await self.read(
                 path=path, token=token, params={"limit": PAGE_SIZE, "offset": len(items)}
             )
             items += page["items"]

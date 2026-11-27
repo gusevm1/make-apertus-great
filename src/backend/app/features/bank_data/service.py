@@ -1,8 +1,8 @@
 import json
 from typing import Any
 
-from app.clients.banking import BankingClient
 from app.features.bank_data.schemas import BankData
+from app.features.ledger.service import LedgerService
 
 # The tool loop cuts a result at 6000 characters; rows stop earlier so the sums always fit.
 ROWS_MAX_CHARS = 5000
@@ -10,12 +10,12 @@ ROW_LISTS = ("items", "points")
 
 
 class BankDataService:
-    def __init__(self, banking: BankingClient) -> None:
-        self.banking = banking
+    def __init__(self, ledger: LedgerService) -> None:
+        self.ledger = ledger
 
     async def read(self, path: str, token: str, params: dict[str, Any]) -> BankData:
         """One read from the banking API as the customer, shortened to fit a tool result."""
-        data = await self.banking.get(path=path, token=token, params=params)
+        data = await self.ledger.read(path=path, token=token, params=params)
         return BankData(root=fit(data=data))
 
 
