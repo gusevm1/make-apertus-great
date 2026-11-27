@@ -1,4 +1,3 @@
-import json
 from collections import Counter
 from typing import Any
 from uuid import uuid4
@@ -268,7 +267,7 @@ def fake_backend_that_proposes_the_japan_goal() -> httpx.MockTransport:
         if method == "GET" and path == "/api/context-entries":
             assert request.url.params["status"] == "proposed"
             entries = [{"id": key, **entry} for key, entry in proposals.items()]
-            return httpx.Response(200, content=json.dumps(entries))
+            return httpx.Response(200, json=entries)
         if method == "DELETE" and path.startswith("/api/context-entries/"):
             del proposals[path.rsplit("/", 1)[1]]
             return httpx.Response(204)

@@ -172,12 +172,12 @@ def describe(calls: list[ActualCall]) -> str:
 
 async def delete_proposals(client: httpx.AsyncClient, conversation_path: str) -> None:
     # Deleting the conversation empties source_id, so this runs first.
-    tool_calls = await client.get(f"{conversation_path}/tool-calls")
+    tool_calls = (await client.get(f"{conversation_path}/tool-calls")).raise_for_status()
     call_ids = {call["id"] for call in tool_calls.json()}
     proposals = await client.get("/api/context-entries", params={"status": "proposed"})
-    for entry in proposals.json():
+    for entry in proposals.raise_for_status().json():
         if entry["source_id"] in call_ids:
-            await client.delete(f"/api/context-entries/{entry['id']}")
+            (await client.delete(f"/api/context-entries/{entry['id']}")).raise_for_status()
 
 
 async def ask(client: httpx.AsyncClient, question: Question) -> Answer:
