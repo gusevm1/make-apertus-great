@@ -1,0 +1,413 @@
+[
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 167.9,
+  "tokens_out": 1533,
+  "chars": 2232,
+  "failure": null,
+  "page": "shapes-smart-monthly-spending.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [
+     "3 of 6 found; not found: 15'645, 7'030, 17'273"
+    ],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [
+     "3 of 6 found; not found: 15'645, 7'030, 17'273"
+    ],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "upcoming_payments",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 317.2,
+  "tokens_out": 2416,
+  "chars": 3810,
+  "failure": null,
+  "page": "shapes-smart-upcoming-payments.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "pricier_subscriptions",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 55.1,
+  "tokens_out": 874,
+  "chars": 1369,
+  "failure": null,
+  "page": "shapes-smart-pricier-subscriptions.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "year_vs_year",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 113.6,
+  "tokens_out": 1074,
+  "chars": 1679,
+  "failure": null,
+  "page": "shapes-smart-year-vs-year.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "liquidity",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 52.0,
+  "tokens_out": 1139,
+  "chars": 1722,
+  "failure": null,
+  "page": "shapes-smart-liquidity.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 1333
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "where_money_goes",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 176.5,
+  "tokens_out": 2183,
+  "chars": 3108,
+  "failure": null,
+  "page": "shapes-smart-where-money-goes.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 1333
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": "red",
+  "mode": "rewrite",
+  "base_is_clean": false,
+  "seconds": 101.4,
+  "tokens_out": 1651,
+  "chars": 2232,
+  "failure": null,
+  "page": "shapes-smart-monthly-spending-red-rewrite.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [
+     "3 of 6 found; not found: 15'645, 7'030, 17'273"
+    ],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [
+     "3 of 6 found; not found: 15'645, 7'030, 17'273"
+    ],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": "red",
+  "mode": "edits",
+  "base_is_clean": false,
+  "seconds": 7.4,
+  "tokens_out": 127,
+  "chars": 2232,
+  "failure": null,
+  "page": "shapes-smart-monthly-spending-red-edits.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [
+     "3 of 6 found; not found: 15'645, 7'030, 17'273"
+    ],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [
+     "3 of 6 found; not found: 15'645, 7'030, 17'273"
+    ],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": "last_3",
+  "mode": "rewrite",
+  "base_is_clean": false,
+  "seconds": 34.6,
+  "tokens_out": 1222,
+  "chars": 1653,
+  "failure": null,
+  "page": "shapes-smart-monthly-spending-last-3-rewrite.html",
+  "renders": [
+   {
+    "width": 360,
+    "errors": [],
+    "drawn": true,
+    "figures": [
+     "0 of 4 found; not found: 17'273, 10'598, 12'345, 14'567.89"
+    ],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   },
+   {
+    "width": 1000,
+    "errors": [],
+    "drawn": true,
+    "figures": [
+     "0 of 4 found; not found: 17'273, 10'598, 12'345, 14'567.89"
+    ],
+    "overflows": false,
+    "uses_canvas": false,
+    "height": 813
+   }
+  ]
+ },
+ {
+  "variant": "shapes",
+  "model": "smart",
+  "task": "monthly_spending",
+  "revision": "last_3",
+  "mode": "edits",
+  "base_is_clean": false,
+  "seconds": 45.6,
+  "tokens_out": 828,
+  "chars": 1083,
+  "failure": "invalid shapes: 1 errors",
+  "page": null,
+  "renders": []
+ },
+ {
+  "variant": "shapes",
+  "model": "fast",
+  "task": "monthly_spending",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 8.5,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "Model returned invalid Scene twice",
+  "page": null,
+  "renders": []
+ },
+ {
+  "variant": "shapes",
+  "model": "fast",
+  "task": "upcoming_payments",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 8.9,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "Model returned invalid Scene twice",
+  "page": null,
+  "renders": []
+ },
+ {
+  "variant": "shapes",
+  "model": "fast",
+  "task": "pricier_subscriptions",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 9.0,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "Model returned invalid Scene twice",
+  "page": null,
+  "renders": []
+ },
+ {
+  "variant": "shapes",
+  "model": "fast",
+  "task": "year_vs_year",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 8.8,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "Model returned invalid Scene twice",
+  "page": null,
+  "renders": []
+ },
+ {
+  "variant": "shapes",
+  "model": "fast",
+  "task": "liquidity",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 15.1,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "Model returned invalid Scene twice",
+  "page": null,
+  "renders": []
+ },
+ {
+  "variant": "shapes",
+  "model": "fast",
+  "task": "where_money_goes",
+  "revision": null,
+  "mode": null,
+  "base_is_clean": null,
+  "seconds": 8.6,
+  "tokens_out": null,
+  "chars": null,
+  "failure": "Model returned invalid Scene twice",
+  "page": null,
+  "renders": []
+ }
+]

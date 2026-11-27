@@ -105,7 +105,8 @@ class Run:
     failure: str | None = None
     page: str | None = None
     renders: list[Render] = field(default_factory=list)
-    # Catalogue only: "first", "repaired" (after one round with the error) or "fallback".
+    # Catalogue only: "first", "repaired" (after one round with the error), "fallback", or
+    # "gateway_error" when the gateway failed (502, timeout), which says nothing about the model.
     outcome: str | None = None
     # Catalogue only: the error the last failed spec got, so a fallback can be read afterwards.
     last_error: str | None = None
@@ -120,7 +121,7 @@ class Run:
     def is_clean(self) -> bool:
         return (
             self.failure is None
-            and self.outcome != "fallback"
+            and self.outcome not in ("fallback", "gateway_error")
             and len(self.renders) == len(WIDTHS)
             and all(not r.errors and r.drawn and not r.figures for r in self.renders)
         )
@@ -138,6 +139,8 @@ class Bench:
         self.apertus = apertus
         self.apertus_schema = apertus_schema
         self.data = data
+        # The static page a catalogue spec was checked with, so it isn't rendered twice.
+        self.rendered: dict[int, str] = {}
         self.d3 = d3
         self.llm_slots = asyncio.Semaphore(parallel)
         self.chrome_slots = asyncio.Semaphore(CHROME_PARALLEL)
@@ -155,6 +158,9 @@ class Bench:
 
     async def revise(self, run: Run, code: str, revision: str, mode: prompts.Mode) -> str | None:
         variant = run.variant
+        if variant in CATALOGUE:
+            # Edits quote the spec as shown; indented JSON is what a model quotes back exactly.
+            code = json.dumps(json.loads(code), indent=2, ensure_ascii=False)
         messages = prompts.revise_messages(
             variant=variant,
             mode=mode,
@@ -171,7 +177,7 @@ class Bench:
             )
 
         async def edit() -> tuple[str, int | None]:
-            result = await self.apertus.structured(
+            result = await self._client(run=run).structured(
                 messages=messages,
                 schema=Edits,
                 model=Model(run.model),
@@ -225,27 +231,31 @@ class Bench:
             )
         )
 
+    def _client(self, run: Run) -> ApertusClient:
+        return self.apertus_schema if run.variant == "catalogue_schema" else self.apertus
+
     async def _catalogue(self, run: Run, messages: list[Message]) -> tuple[str, int | None]:
         """A spec that draws: one round with the error if not, else the fallback from DATA."""
-        client = self.apertus_schema if run.variant == "catalogue_schema" else self.apertus
         data = self.data[run.task]
-        tokens_out = 0
+        tokens_out: int | None = None
         for attempt in range(2):
             try:
-                result = await client.structured(
+                result = await self._client(run=run).structured(
                     messages=messages,
                     schema=WidgetSpec,
                     model=Model(run.model),
                     purpose=f"widget_bench_{run.variant}",
                 )
             except UpstreamError as error:
-                # structured already gave the model one round with its validation error.
                 run.last_error = str(error)[:200]
-                break
-            tokens_out += result.tokens_out if result.tokens_out is not None else 0
+                # An OpenAI error underneath means the gateway failed, not the model's spec;
+                # without one, structured already gave the model a round with its validation error.
+                run.outcome = "gateway_error" if error.__cause__ is not None else "fallback"
+                return fallback(data=data).model_dump_json(exclude_none=True), tokens_out
+            tokens_out = _add(total=tokens_out, more=result.tokens_out)
             code = result.content.model_dump_json(exclude_none=True)
             try:
-                await asyncio.to_thread(
+                static = await asyncio.to_thread(
                     render_widget, spec=result.content, data=data, form="static"
                 )
             except BadRequestError as error:
@@ -257,6 +267,7 @@ class Bench:
                 ]
                 continue
             run.outcome = "first" if attempt == 0 else "repaired"
+            self.rendered[id(run)] = static
             return code, tokens_out
         run.outcome = "fallback"
         return fallback(data=data).model_dump_json(exclude_none=True), tokens_out
@@ -265,7 +276,9 @@ class Bench:
         data = self.data[run.task]
         try:
             spec = WidgetSpec.model_validate_json(code)
-            static = await asyncio.to_thread(render_widget, spec=spec, data=data, form="static")
+            static = self.rendered.pop(id(run), None)
+            if static is None:
+                static = await asyncio.to_thread(render_widget, spec=spec, data=data, form="static")
             live = await asyncio.to_thread(render_widget, spec=spec, data=data, form="live")
         except ValidationError as error:
             run.failure = f"invalid spec: {error.error_count()} errors"
@@ -278,6 +291,9 @@ class Bench:
         await asyncio.to_thread(path.write_text, checked, encoding="utf-8")
         live_path = path.with_name(f"{path.stem}-live.html")
         await asyncio.to_thread(live_path.write_text, live, encoding="utf-8")
+        # Catalogue pages carry no window.DATA, so --recheck reads the run's DATA from here.
+        data_path = path.with_suffix(".data.json")
+        await asyncio.to_thread(data_path.write_text, json.dumps(data), encoding="utf-8")
         run.page = path.name
         await self.check(run=run, path=path, data=data)
 
@@ -467,9 +483,13 @@ def catalogue_markdown(runs: list[Run], schema_note: str) -> str:
         f"Run on {date.today().isoformat()}. {schema_note}",
         "",
         "Apertus returns a `WidgetSpec` through `structured`, which already gives it one round "
-        "with a validation error. A spec whose path doesn't resolve goes back once with the error "
-        "(`repaired`); after that the widget is `fallback(data)`, which counts as not clean. "
-        "Edits change the spec's JSON and get no repair round.",
+        "with a validation error, so a spec counted as valid may already have had that round. A "
+        "spec whose path doesn't resolve goes back once with the error (`repaired`); after that "
+        "the widget is `fallback(data)`, which counts as not clean. A failed call to the gateway "
+        "(502, timeout) is a `gateway_error`: it says nothing about the model, so it is left out "
+        "of every count, the median and the clean share, and listed in its own column. The "
+        "outcome columns count the 6 first versions and the 2 rewrites, so 8 per row. Edits "
+        "change the spec's JSON, shown indented, and get no repair round.",
         "",
         "| Variant | Model | Task | Outcome | Clean | Seconds | 360 px | 1000 px | Last error |",
         "|---|---|---|---|---|---|---|---|---|",
@@ -486,28 +506,31 @@ def catalogue_markdown(runs: list[Run], schema_note: str) -> str:
         )
     lines += [
         "",
-        "| Variant | Model | First try | After one repair | Fallback | No page | "
-        "Median seconds | Tasks clean |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Variant | Model | Valid without path repair | Valid after one repair | Fallback | "
+        "Gateway errors | Edits without a page | Median seconds | Tasks clean |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for variant, model in dict.fromkeys((run.variant, run.model) for run in runs):
         pair = [run for run in runs if run.variant == variant and run.model == model]
-        filled = [run for run in pair if run.outcome is not None]
-        tasks = [run for run in pair if run.revision is None]
-        timed = [run.seconds for run in filled if run.seconds is not None]
-        counts = [sum(run.outcome == name for run in filled) for name in ("first", "repaired")]
-        fallbacks = sum(run.outcome == "fallback" for run in filled)
+        gateway = [run for run in pair if run.outcome == "gateway_error"]
+        counted = [run for run in pair if run.outcome not in (None, "gateway_error")]
+        tasks = [run for run in pair if run.revision is None and run.outcome != "gateway_error"]
+        timed = [run.seconds for run in counted if run.seconds is not None]
+        valid, repaired, fallbacks = (
+            sum(run.outcome == name for run in counted)
+            for name in ("first", "repaired", "fallback")
+        )
         lines.append(
-            f"| {variant} | {model} | {counts[0]} of {len(filled)} | {counts[1]} | {fallbacks} | "
-            f"{sum(run.failure is not None for run in pair)} | "
+            f"| {variant} | {model} | {valid} of {len(counted)} | {repaired} | {fallbacks} | "
+            f"{len(gateway)} | {sum(run.failure is not None for run in pair)} | "
             f"{_or_dash(round(statistics.median(timed), 1) if len(timed) > 0 else None)} | "
             f"{_share(runs=tasks)} |"
         )
     return "\n".join(lines) + "\n"
 
 
-async def schema_probe(bench: Bench) -> str | None:
-    """None when the gateway takes `json_schema` with the WidgetSpec schema, else its error."""
+async def schema_probe(bench: Bench) -> tuple[bool, str]:
+    """Whether the gateway refuses `json_schema` with the WidgetSpec schema, and a note on it."""
     messages = prompts.generate_messages(
         variant="catalogue_schema", task="liquidity", data=bench.data["liquidity"]
     )
@@ -519,10 +542,13 @@ async def schema_probe(bench: Bench) -> str | None:
             purpose="widget_bench_schema_probe",
         )
     except UpstreamError as error:
-        # The gateway's own words are on the OpenAI error underneath.
         cause = error.__cause__
-        return str(error) if cause is None else f"{error}: {cause}"[:400]
-    return None
+        # Only a 4xx is the gateway refusing the request; a 502 or an invalid spec is not.
+        status = getattr(cause, "status_code", None)
+        if isinstance(status, int) and 400 <= status < 500:
+            return True, f"The Keera gateway refuses `json_schema`: {error}: {cause}"[:400]
+        return False, f"The `json_schema` probe failed ({error}), so the variant ran anyway."
+    return False, "The Keera gateway accepts `json_schema` with the WidgetSpec schema."
 
 
 def _share(runs: list[Run]) -> str:
@@ -600,21 +626,23 @@ async def bench_all(args: argparse.Namespace, d3: str | None) -> int:
         print(f"login failed: {login.status_code} {login.text[:200]}")  # noqa: T201
         return 1
     banking = BankingClient(settings=settings)
-    apertus = ApertusClient(settings=settings)
+    # Whatever the environment says, `catalogue` asks without json_schema and the other with it.
+    plain = settings.model_copy(update={"apertus_json_schema_supported": False})
+    apertus = ApertusClient(settings=plain)
     schema_settings = settings.model_copy(update={"apertus_json_schema_supported": True})
     apertus_schema = ApertusClient(settings=schema_settings)
     variants = list(args.variants)
     schema_note = "`catalogue_schema` was not run."
+    if args.recheck:
+        schema_note = "Saved pages checked again with `--recheck`; no call to the gateway."
     try:
         data = await build_all(ledger=LedgerService(banking=banking), token=login.json()["token"])
         bench = Bench(
             apertus=apertus, apertus_schema=apertus_schema, data=data, d3=d3, parallel=args.parallel
         )
         if "catalogue_schema" in variants and not args.recheck:
-            refusal = await schema_probe(bench=bench)
-            schema_note = "The Keera gateway accepts `json_schema` with the WidgetSpec schema."
-            if refusal is not None:
-                schema_note = f"The Keera gateway refuses `json_schema`: {refusal}"
+            refused, schema_note = await schema_probe(bench=bench)
+            if refused:
                 variants.remove("catalogue_schema")
             print(schema_note, flush=True)  # noqa: T201
         if args.recheck:
@@ -646,7 +674,9 @@ async def bench_all(args: argparse.Namespace, d3: str | None) -> int:
         kept = RESULTS_MD.read_text(encoding="utf-8").split(CATALOGUE_SECTION)[0].rstrip()
         RESULTS_MD.write_text(f"{kept}\n\n{catalogue}", encoding="utf-8")
     else:
-        full = results_markdown(runs=runs, settings=settings)
+        # Catalogue runs follow their own rules; the first table would count them twice.
+        others = [run for run in runs if run.variant not in CATALOGUE]
+        full = results_markdown(runs=others, settings=settings)
         RESULTS_MD.write_text(f"{full}\n{catalogue}", encoding="utf-8")
     print(f"Wrote {RESULTS_MD} and {RESULTS / 'index.html'}")  # noqa: T201
     return 0
@@ -661,6 +691,12 @@ async def recheck(bench: Bench) -> list[Run]:
         if run.page is None:
             continue
         path = RESULTS / "pages" / run.page
+        data_path = path.with_suffix(".data.json")
+        if data_path.exists():
+            checks.append(
+                bench.check(run=run, path=path, data=json.loads(data_path.read_text("utf-8")))
+            )
+            continue
         match = SAVED_DATA.search(path.read_text(encoding="utf-8"))
         if match is None:
             run.failure = "the saved page has no DATA"
@@ -676,6 +712,13 @@ async def recheck(bench: Bench) -> list[Run]:
         if run.revision is not None:
             run.base_is_clean = firsts[(run.variant, run.model)].is_clean
     return runs
+
+
+def _add(total: int | None, more: int | None) -> int | None:
+    """Tokens of two calls; unknown when neither call reported them."""
+    if more is None:
+        return total
+    return more if total is None else total + more
 
 
 def _request(run: Run) -> str:

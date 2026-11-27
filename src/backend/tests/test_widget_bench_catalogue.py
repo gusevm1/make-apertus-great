@@ -6,7 +6,7 @@ import httpx2
 from app.clients.apertus import ApertusClient
 from app.core.config import get_settings
 from app.features.widgets.catalogue.schemas import Kpi, WidgetSpec
-from evals.widgets.run import Bench, Run
+from evals.widgets.run import Bench, Run, catalogue_markdown
 from tests.conftest import FAKE_USAGE
 
 DATA = {
@@ -19,18 +19,42 @@ GOOD = WidgetSpec(title="Liquidity", body=Kpi(type="kpi", label="Total", value="
 BAD = WidgetSpec(title="Liquidity", body=Kpi(type="kpi", label="Total", value="missing_chf"))
 
 
-def bench(answers: list[WidgetSpec], requests: list[dict[str, Any]]) -> Bench:
+def bench(answers: list[WidgetSpec], requests: list[dict[str, Any]], status: int = 200) -> Bench:
     """A bench whose Apertus answers with the given specs in order, faked at the HTTP level."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
         requests.append(json.loads(request.content))
+        if status != 200:
+            return httpx2.Response(status, json={"error": {"message": "fake gateway failure"}})
         message = {"role": "assistant", "content": answers.pop(0).model_dump_json()}
         choice = {"index": 0, "finish_reason": "stop", "message": message}
         return httpx2.Response(200, json={"choices": [choice], "usage": FAKE_USAGE})
 
     fake_http = httpx2.AsyncClient(transport=httpx2.MockTransport(handle))
-    client = ApertusClient(settings=get_settings(), http_client=fake_http)
+    settings = get_settings().model_copy(update={"apertus_max_retries": 0})
+    client = ApertusClient(settings=settings, http_client=fake_http)
     return Bench(apertus=client, apertus_schema=client, data=DATA, d3=None, parallel=1)
+
+
+async def test_a_gateway_failure_is_not_counted_as_the_models() -> None:
+    run = Run(variant="catalogue", model="fast", task="liquidity")
+    _, tokens_out = await bench(answers=[], requests=[], status=502)._catalogue(
+        run=run, messages=[]
+    )
+    assert run.outcome == "gateway_error"
+    assert tokens_out is None
+    assert not run.is_clean
+
+
+def test_the_summary_leaves_gateway_errors_out_of_counts_and_median() -> None:
+    runs = [
+        Run(variant="catalogue", model="fast", task="a", outcome="first", seconds=2.0),
+        Run(variant="catalogue", model="fast", task="b", outcome="repaired", seconds=4.0),
+        Run(variant="catalogue", model="fast", task="c", outcome="fallback", seconds=6.0),
+        Run(variant="catalogue", model="fast", task="d", outcome="gateway_error", seconds=361.0),
+    ]
+    row = catalogue_markdown(runs=runs, schema_note="").splitlines()[-1]
+    assert row.startswith("| catalogue | fast | 1 of 3 | 1 | 1 | 1 | 0 | 4.0 | 0 of 3 (0%) |")
 
 
 async def test_a_spec_that_draws_counts_as_first_try() -> None:
