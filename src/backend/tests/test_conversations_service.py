@@ -13,11 +13,14 @@ from app.features.conversations.service import ConversationService, is_quoted
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
 from app.features.figure_checks.service import FigureCheckService
+from app.features.guardrails.schemas import GuardrailCategory, GuardrailCheck
+from app.features.guardrails.service import GuardrailService
+from app.features.ledger.service import LedgerService
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
 from app.features.tool_calls.service import ToolCallService
-from tests.conftest import TODAY, fake_banking_client, fake_ocr_client
+from tests.conftest import CUSTOMER_TOKEN, TODAY, fake_banking_client, fake_ocr_client
 from tests.factories import make_conversation, make_message
 from tests.lookup_tool import LOOKUP
 
@@ -26,6 +29,7 @@ CALL_A_TOOL = ToolDecision(
     plan="Look it up.", calls=[ToolRequest(reason="Look it up.", tool=LOOKUP.name)]
 )
 NO_TOOL = ToolDecision(plan="Nothing to look up.")
+OK_CHECK = GuardrailCheck(category=GuardrailCategory.OK, language="en")
 
 
 class RecordingApertus:
@@ -36,10 +40,10 @@ class RecordingApertus:
 
     async def structured(
         self, messages: list[Message], *, schema: type[BaseModel], model: Model, purpose: str
-    ) -> LLMResult[ToolDecision]:
+    ) -> LLMResult[BaseModel]:
         self.in_transaction.append(self.session.in_transaction())
         return LLMResult(
-            content=self.decisions.pop(0),
+            content=OK_CHECK if schema is GuardrailCheck else self.decisions.pop(0),
             model="fake",
             latency_ms=1,
             tokens_in=None,
@@ -81,6 +85,11 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
             apertus=cast(ApertusClient, apertus),
         ),
         figure_checks=FigureCheckService(),
+        guardrails=GuardrailService(
+            apertus=cast(ApertusClient, apertus),
+            ledger=LedgerService(banking=fake_banking_client()),
+            token=CUSTOMER_TOKEN,
+        ),
     )
 
     apertus.decisions = [CALL_A_TOOL, NO_TOOL]
@@ -89,7 +98,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
         data=RequestMessageCreate(content="Hi"),
         owner_id=conversation.owner_id,
     )
-    assert apertus.in_transaction == [False, False, False]
+    assert apertus.in_transaction == [False, False, False, False]
 
     apertus.in_transaction = []
     apertus.decisions = [CALL_A_TOOL, NO_TOOL]
@@ -99,7 +108,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
         owner_id=conversation.owner_id,
     ):
         pass
-    assert apertus.in_transaction == [False, False, False]
+    assert apertus.in_transaction == [False, False, False, False]
 
 
 async def test_prompt_never_starts_with_a_reply(session: AsyncSession) -> None:

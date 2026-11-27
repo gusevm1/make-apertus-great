@@ -7,7 +7,7 @@ import anyio
 
 from app.core.errors import BadRequestError, NotFoundError
 from app.core.provenance import Provenance
-from app.core.streaming import DoneEvent, StreamEvent
+from app.core.streaming import DoneEvent, StreamEvent, TokenEvent
 from app.features.conversations.prompts import chat_prompt
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import (
@@ -21,6 +21,8 @@ from app.features.conversations.schemas import (
 from app.features.documents.schemas import Document
 from app.features.documents.service import DocumentService
 from app.features.figure_checks.service import FigureCheckService
+from app.features.guardrails.schemas import Guardrail
+from app.features.guardrails.service import GuardrailService
 from app.features.tool_calls.service import ToolCallService
 
 HISTORY_LIMIT = 20
@@ -48,12 +50,14 @@ class ConversationService:
         tool_calls: ToolCallService,
         documents: DocumentService,
         figure_checks: FigureCheckService,
+        guardrails: GuardrailService,
     ) -> None:
         self.conversations = conversations
         self.messages = messages
         self.tool_calls = tool_calls
         self.documents = documents
         self.figure_checks = figure_checks
+        self.guardrails = guardrails
 
     async def create_conversation(
         self, data: RequestConversationCreate, owner_id: UUID
@@ -102,22 +106,27 @@ class ConversationService:
             conversation_id=conversation_id, data=data, owner_id=owner_id
         )
         try:
-            messages = chat_prompt(history=history, page=data.page, documents=documents)
-            content, provenance = await self.tool_calls.create_answer(
-                conversation_id=conversation_id,
-                message_id=history[-1].id,
-                messages=messages,
-            )
+            guardrail = await self.guardrails.check_message(text=data.content)
+            if guardrail.decline is not None:
+                content, provenance = guardrail.decline, guardrail.provenance
+            else:
+                messages = chat_prompt(history=history, page=data.page, documents=documents)
+                answer, answer_provenance = await self.tool_calls.create_answer(
+                    conversation_id=conversation_id,
+                    message_id=history[-1].id,
+                    messages=messages,
+                )
+                checked = await self._check_figures(
+                    conversation_id=conversation_id,
+                    content=answer,
+                    provenance=answer_provenance,
+                    history=history,
+                    documents=documents,
+                )
+                content, provenance = _guarded(answer=(answer, checked), guardrail=guardrail)
         except Exception:
             await self.messages.delete(entity_id=history[-1].id)
             raise
-        provenance = await self._check_figures(
-            conversation_id=conversation_id,
-            content=content,
-            provenance=provenance,
-            history=history,
-            documents=documents,
-        )
         return await self._store_reply(
             conversation_id=conversation_id, content=content, provenance=provenance
         )
@@ -129,26 +138,34 @@ class ConversationService:
         history, documents = await self._add_user_message(
             conversation_id=conversation_id, data=data, owner_id=owner_id
         )
-        messages = chat_prompt(history=history, page=data.page, documents=documents)
-        events = self.tool_calls.stream_answer(
-            conversation_id=conversation_id,
-            message_id=history[-1].id,
-            messages=messages,
-        )
         is_stored = False
         try:
-            async for event in events:
-                if not isinstance(event, DoneEvent):
-                    yield event
-                    continue
-                content, provenance = event.result
-            provenance = await self._check_figures(
-                conversation_id=conversation_id,
-                content=content,
-                provenance=provenance,
-                history=history,
-                documents=documents,
-            )
+            guardrail = await self.guardrails.check_message(text=data.content)
+            if guardrail.decline is not None:
+                yield TokenEvent(text=guardrail.decline)
+                content, provenance = guardrail.decline, guardrail.provenance
+            else:
+                events = self.tool_calls.stream_answer(
+                    conversation_id=conversation_id,
+                    message_id=history[-1].id,
+                    messages=chat_prompt(history=history, page=data.page, documents=documents),
+                )
+                async for event in events:
+                    if not isinstance(event, DoneEvent):
+                        yield event
+                        continue
+                    answer, answer_provenance = event.result
+                    checked = await self._check_figures(
+                        conversation_id=conversation_id,
+                        content=answer,
+                        provenance=answer_provenance,
+                        history=history,
+                        documents=documents,
+                    )
+                    content, provenance = _guarded(answer=(answer, checked), guardrail=guardrail)
+                pointer = _pointer_text(guardrail=guardrail)
+                if pointer != "":
+                    yield TokenEvent(text=pointer)
             reply = await self._store_reply(
                 conversation_id=conversation_id, content=content, provenance=provenance
             )
@@ -228,3 +245,17 @@ class ConversationService:
             content=content,
             provenance=provenance.model_dump(),
         )
+
+
+def _pointer_text(guardrail: Guardrail) -> str:
+    """The server's pointer as it follows the answer, or nothing."""
+    return "" if guardrail.pointer is None else f"\n\n{guardrail.pointer}"
+
+
+def _guarded(answer: tuple[str, Provenance], guardrail: Guardrail) -> tuple[str, Provenance]:
+    """The answer followed by the server's pointer, with the guardrail check in its provenance."""
+    content, provenance = answer
+    checks = [*provenance.checks, *guardrail.provenance.checks]
+    return content + _pointer_text(guardrail=guardrail), provenance.model_copy(
+        update={"checks": checks}
+    )

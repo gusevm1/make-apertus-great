@@ -16,6 +16,8 @@ from tests.factories import make_conversation
 from tests.lookup_tool import LOOKUP
 from tests.sse import sse_events
 
+GUARDRAIL_OK = {"name": "guardrail", "passed": True, "detail": "ok"}
+
 pytestmark = pytest.mark.usefixtures("lookup_tool")
 PAGES = ["https://example.ch/Zurich", "https://example.ch/shared"]
 
@@ -47,7 +49,8 @@ async def test_message_uses_a_tool_then_gets_its_reply(
     assert provenance["model"] == FAKE_MODEL
     assert [source["id"] for source in provenance["sources"]] == PAGES
     assert provenance["checks"] == [
-        {"name": "tool_calls_valid", "passed": True, "detail": "1 of 1"}
+        {"name": "tool_calls_valid", "passed": True, "detail": "1 of 1"},
+        GUARDRAIL_OK,
     ]
 
     messages = (await client.get(f"{url}/messages")).json()
@@ -77,7 +80,7 @@ async def test_message_without_a_tool_leaves_no_tool_calls(
 
     assert reply.status_code == 201
     assert reply.json()["provenance"]["sources"] == []
-    assert reply.json()["provenance"]["checks"] == []
+    assert reply.json()["provenance"]["checks"] == [GUARDRAIL_OK]
     assert (await client.get(f"{url}/tool-calls")).json() == []
     assert len(apertus.requests) == 2
 
@@ -92,7 +95,7 @@ async def test_empty_tool_name_counts_as_no_tool(
     reply = await client.post(f"{url}/messages", json={"content": "Hallo"})
 
     assert reply.status_code == 201
-    assert reply.json()["provenance"]["checks"] == []
+    assert reply.json()["provenance"]["checks"] == [GUARDRAIL_OK]
     assert (await client.get(f"{url}/tool-calls")).json() == []
 
 
@@ -131,7 +134,8 @@ async def test_wrong_tool_call_goes_back_to_the_model_as_an_error(
     assert reply.status_code == 201
     assert reply.json()["provenance"]["sources"] == []
     assert reply.json()["provenance"]["checks"] == [
-        {"name": "tool_calls_valid", "passed": False, "detail": "0 of 3"}
+        {"name": "tool_calls_valid", "passed": False, "detail": "0 of 3"},
+        GUARDRAIL_OK,
     ]
     calls = (await client.get(f"{url}/tool-calls")).json()
     assert [call["result"] for call in calls] == [None, None, None]

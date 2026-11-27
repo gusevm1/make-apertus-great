@@ -19,6 +19,10 @@ from app.core.config import Settings
 FAKE_REPLY = "Fake reply"
 FAKE_MODEL = "fake-smart"
 NO_TOOL_DECISION = '{"plan": "Nothing to look up.", "calls": []}'
+GUARDRAIL_SCHEMA = "GuardrailCheck"
+OK_GUARDRAIL = '{"category": "ok", "language": "en"}'
+ADVISOR_NAME = "Nadine Frei"
+ADVISOR_PHONE = "+41 44 555 01 23"
 FAKE_USAGE = {"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3}
 
 # Apertus is faked for now (no API key yet), so tests need no Apertus values in the environment.
@@ -73,12 +77,15 @@ class FakeApertus:
     """The fake Apertus API: `requests` is what it got, `status` fails it, `decisions` script it.
 
     `reply` is the text of every answer.
+    Guardrail checks are kept apart: `guardrail_requests` and the `guardrails` script.
     """
 
     requests: list[dict[str, Any]] = field(default_factory=list)
     status: int = 200
     decisions: list[str] = field(default_factory=list)
     reply: str = FAKE_REPLY
+    guardrail_requests: list[dict[str, Any]] = field(default_factory=list)
+    guardrails: list[str] = field(default_factory=list)
 
 
 @pytest.fixture
@@ -188,7 +195,14 @@ def fake_banking_client() -> BankingClient:
         if request.headers.get("authorization") != f"Bearer {CUSTOMER_TOKEN}":
             return httpx2.Response(401, json={"detail": "Not authenticated"})
         if request.url.path == "/api/customer":
-            return httpx2.Response(200, json={"customer_id": CUSTOMER_ID})
+            return httpx2.Response(
+                200,
+                json={
+                    "customer_id": CUSTOMER_ID,
+                    "advisor_name": ADVISOR_NAME,
+                    "advisor_phone": ADVISOR_PHONE,
+                },
+            )
         if request.url.path == "/api/documents" and request.method == "POST":
             return httpx2.Response(201, json={"id": "DOC-0001"})
         if request.url.path == "/api/bookings":
@@ -234,6 +248,12 @@ async def client(
 
     def handle(request: httpx2.Request) -> httpx2.Response:
         body = json.loads(request.content)
+        if GUARDRAIL_SCHEMA in request.content.decode():
+            apertus.guardrail_requests.append(body)
+            if apertus.status != 200:
+                return httpx2.Response(apertus.status, json={"error": {"message": "fake failure"}})
+            check = apertus.guardrails.pop(0) if apertus.guardrails else OK_GUARDRAIL
+            return _fake_completion(body=body, content=check)
         apertus.requests.append(body)
         if apertus.status != 200:
             return httpx2.Response(apertus.status, json={"error": {"message": "fake failure"}})
