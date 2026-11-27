@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import BadRequestError
+from app.features.ledger.service import LedgerService
 from app.features.payments.service import Method, PaymentService
 from app.features.payments.tools import WRITE_TOOLS, get_tools
 from app.features.tool_calls import service as tool_call_service
@@ -126,8 +127,13 @@ async def _allowed_turn(
     return events, call
 
 
+def _service() -> PaymentService:
+    banking = fake_banking_client()
+    return PaymentService(banking=banking, ledger=LedgerService(banking=banking))
+
+
 def test_every_tool_that_writes_to_the_bank_asks_first() -> None:
-    tools = get_tools(service=PaymentService(banking=fake_banking_client()), token=CUSTOMER_TOKEN)
+    tools = get_tools(service=_service(), token=CUSTOMER_TOKEN)
 
     assert [tool.name for tool in tools] == [write[0] for write in WRITES]
     for tool in tools:
@@ -236,15 +242,15 @@ async def test_write_with_wrong_arguments_asks_nobody_and_never_reaches_the_bank
 async def test_dot_id_never_reaches_the_bank(
     client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus, payment_id: str
 ) -> None:
-    _, call = await _allowed_turn(
-        client=client,
-        session=session,
-        apertus=apertus,
-        decision=_decision("delete_payment", {"payment_id": payment_id}),
-    )
+    conversation = await make_conversation(session=session)
+    url = f"/api/conversations/{conversation.id}"
+    apertus.decisions = [_decision("delete_payment", {"payment_id": payment_id})]
+
+    await _stream(client=client, url=url)
 
     assert BANK_WRITES == []
-    assert call["error"] == f"DELETE /payments/{payment_id} is not a change the payments allow"
+    (call,) = (await client.get(f"{url}/tool-calls")).json()
+    assert call["error"].startswith(f"{payment_id} is not one of the customer's pending payments")
 
 
 @pytest.mark.parametrize(
@@ -260,7 +266,7 @@ async def test_dot_id_never_reaches_the_bank(
     ],
 )
 async def test_write_off_the_allow_list_never_reaches_the_bank(method: Method, path: str) -> None:
-    service = PaymentService(banking=fake_banking_client())
+    service = _service()
 
     with pytest.raises(BadRequestError):
         await service.write(method=method, path=path, token=CUSTOMER_TOKEN, body={})

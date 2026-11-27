@@ -188,7 +188,7 @@ BOOKINGS = [
 BANKING_QUERIES: list[str] = []
 # Every request but a GET the fake bank got, as (method, path, JSON body or None), newest last.
 BANK_WRITES: list[tuple[str, str, Any]] = []
-# A payment that was already paid, so the bank refuses to change it.
+# Listed as pending, but paid by the time the customer allows a change, so the bank refuses it.
 COMPLETED_PAYMENT_ID = "PAY-0001"
 # The default dashboard comes second, so a test sees it chosen by `is_default`, not by order.
 DASHBOARDS = [
@@ -199,6 +199,62 @@ DASHBOARDS = [
 DASHBOARD_TILES: set[str] = set()
 # A tile whose change the fake bank refuses with 422, as it does for an invalid body.
 INVALID_TILE_ID = "W-INVALID"
+PAYMENTS = [
+    {
+        "payment_id": "PAY-0232",
+        "payment_type": "ebill",
+        "status": "pending",
+        "execution_date": "2027-01-15",
+        "debit_account_id": "ACC-PRIV",
+        "payee_name": "EKZ Elektrizitätswerke des Kantons Zürich",
+        "payee_iban": "CH17 0070 0000 0004 7711 4",
+        "amount": 168.25,
+        "currency": "CHF",
+        "message": "Strom Q4 2026",
+        "credit_account_id": None,
+        "reference": None,
+    },
+    {
+        "payment_id": COMPLETED_PAYMENT_ID,
+        "payment_type": "domestic",
+        "status": "pending",
+        "execution_date": "2026-11-27",
+        "debit_account_id": "ACC-PRIV",
+        "payee_name": "Migros",
+        "payee_iban": "CH93 0076 2011 6238 5295 7",
+        "amount": 42.0,
+        "currency": "CHF",
+    },
+    {
+        "payment_id": "PAY-0100",
+        "payment_type": "domestic",
+        "status": "completed",
+        "execution_date": "2026-10-01",
+        "debit_account_id": "ACC-PRIV",
+        "payee_name": "Swisscom (Schweiz) AG",
+        "payee_iban": "CH25 0070 0000 0003 1818 1",
+        "amount": 94.0,
+        "currency": "CHF",
+    },
+]
+STANDING_ORDERS = [
+    {
+        "standing_order_id": "SO-RENT",
+        "debit_account_id": "ACC-PRIV",
+        "credit_account_id": None,
+        "payee_name": "Wohnbau Sihlfeld AG",
+        "payee_iban": "CH41 0023 5000 0001 5558 2",
+        "amount": 2800.0,
+        "currency": "CHF",
+        "frequency": "monthly",
+        "day": 28,
+        "start_date": "2021-03-28",
+        "end_date": None,
+        "next_execution_date": "2026-11-28",
+        "message": "Miete",
+        "status": "active",
+    },
+]
 
 
 @pytest.fixture(autouse=True)
@@ -274,6 +330,12 @@ def fake_banking_client() -> BankingClient:
             return httpx2.Response(200, json={"items": ACCOUNTS})
         if request.url.path == "/api/dashboards":
             return httpx2.Response(200, json={"items": DASHBOARDS})
+        if request.url.path == "/api/payments":
+            status = request.url.params.get("status")
+            listed = [row for row in PAYMENTS if status is None or row["status"] == status]
+            return httpx2.Response(200, json={"items": listed, "total": len(listed)})
+        if request.url.path == "/api/standing-orders":
+            return httpx2.Response(200, json={"items": STANDING_ORDERS})
         return httpx2.Response(404, json={"detail": "Not found"})
 
     fake_http = httpx2.AsyncClient(

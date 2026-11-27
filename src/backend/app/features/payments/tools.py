@@ -118,4 +118,5 @@ def _tool(write: Write, service: PaymentService, token: str) -> Tool[Any]:
         args_schema=write.args,
         handler=handler,
         confirmation=write.confirmation,
+        sheet=lambda args: service.sheet(args=args, token=token),
     )

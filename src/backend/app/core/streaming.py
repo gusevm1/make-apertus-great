@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.core.errors import AppError, ErrorResponse
+from app.core.tools import SheetLine
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,8 @@ class ToolCallEvent:
     plan: str
     # Set while the call waits for the customer to allow it.
     confirmation: str | None
+    # What the sheet lists while it waits; None: the raw arguments.
+    lines: list[SheetLine] | None
 
 
 @dataclass(frozen=True)

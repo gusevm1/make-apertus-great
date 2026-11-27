@@ -127,13 +127,15 @@ PAYMENTS = Tool(
 
 
 def _service(session: AsyncSession, apertus: ScriptedApertus) -> WidgetService:
+    banking = fake_banking_client()
+    ledger = LedgerService(banking=banking)
     return WidgetService(
         widgets=WidgetRepository(session=session),
         versions=WidgetVersionRepository(session=session),
         apertus=cast(ApertusClient, apertus),
         figure_checks=FigureCheckService(),
-        ledger=LedgerService(banking=fake_banking_client()),
-        payments=PaymentService(banking=fake_banking_client()),
+        ledger=ledger,
+        payments=PaymentService(banking=banking, ledger=ledger),
     )
 
 

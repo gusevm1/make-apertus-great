@@ -19,7 +19,7 @@ from app.core.streaming import (
     ToolCallEvent,
     ToolResultEvent,
 )
-from app.core.tools import Tool, Turn, TurnResult
+from app.core.tools import SheetLine, Tool, Turn, TurnResult
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.prompts import (
     ToolRound,
@@ -191,6 +191,8 @@ class ToolCallService:
                 title, icon = self._label(name=request.tool)
                 confirmation = self._confirmation(request=request)
                 is_asked = confirmation is not None and can_ask and request.tool not in refused
+                lines, refusal = await self._sheet(request=request) if is_asked else (None, None)
+                is_asked = is_asked and refusal is None
                 yield ToolCallEvent(
                     id=call_id,
                     tool_name=request.tool,
@@ -201,6 +203,7 @@ class ToolCallService:
                     round=round_number,
                     plan=decision.plan,
                     confirmation=confirmation if is_asked else None,
+                    lines=lines,
                 )
                 is_allowed = confirmation is None or (
                     is_asked
@@ -210,7 +213,9 @@ class ToolCallService:
                         timeout_seconds=CONFIRMATION_TIMEOUT_SECONDS,
                     )
                 )
-                if is_allowed:
+                if refusal is not None:
+                    output, error = None, refusal
+                elif is_allowed:
                     output, error = await self._run_tool(
                         call_id=call_id,
                         name=request.tool,
@@ -260,6 +265,16 @@ class ToolCallService:
     def _builds_on_turn(self, name: str) -> bool:
         tool = self.tools.get(name)
         return tool is not None and tool.turn_handler is not None
+
+    # The lines the customer reads, or why the call is refused before they are asked.
+    async def _sheet(self, request: ToolRequest) -> tuple[list[SheetLine] | None, str | None]:
+        tool = self.tools[request.tool]
+        if tool.sheet is None:
+            return None, None
+        try:
+            return await tool.sheet(tool.args_schema.model_validate(request.arguments)), None
+        except AppError as exc:
+            return None, str(exc)
 
     def _label(self, name: str) -> tuple[str, str]:
         tool = self.tools.get(name)

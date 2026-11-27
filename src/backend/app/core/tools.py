@@ -20,6 +20,15 @@ class Turn:
     results: list[TurnResult]
 
 
+# One line of the confirmation sheet, such as "Debit account: Privatkonto".
+@dataclass(frozen=True)
+class SheetLine:
+    label: str
+    value: str
+    # A second, quieter line, such as the account's IBAN.
+    detail: str | None = None
+
+
 @dataclass(frozen=True)
 class Tool[ArgsT: BaseModel]:
     name: str
@@ -34,6 +43,8 @@ class Tool[ArgsT: BaseModel]:
     turn_handler: Callable[[ArgsT, Turn], Awaitable[BaseModel]] | None = None
     # What the customer reads before allowing a call in the page; None: it runs without asking.
     confirmation: str | None = None
+    # Lines the sheet shows instead of the arguments; an AppError refuses the call before asking.
+    sheet: Callable[[ArgsT], Awaitable[list[SheetLine]]] | None = None
 
     def __post_init__(self) -> None:
         if (self.handler is None) == (self.turn_handler is None):
