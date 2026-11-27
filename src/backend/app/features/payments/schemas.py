@@ -34,8 +34,8 @@ def _check_iban(iban: str) -> str:
         or int("".join(str(int(character, 36)) for character in rearranged)) % 97 != 1
     ):
         raise ValueError(
-            "Not a valid IBAN: its check digits do not match. Send it exactly as list_payees"
-            " gives it, or ask the customer for it."
+            "Not a valid IBAN: wrong check digits or format. Send it in capitals exactly as"
+            " list_payees gives it, or ask the customer for it."
         )
     return iban
 

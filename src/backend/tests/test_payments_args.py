@@ -22,6 +22,11 @@ UPDATE = {"standing_order_id": "SO-RENT"}
         ),
         (
             "create_payment",
+            {**PAYMENT, "payee_iban": "ch93 0076 2011 6238 5295 7"},
+            "Invalid arguments. payee_iban: Value error, Not a valid IBAN",
+        ),
+        (
+            "create_payment",
             {**PAYMENT, "payee_iban": "CH93-0076-2011-6238-5295-7"},
             "Invalid arguments. payee_iban: Value error, Not a valid IBAN",
         ),
@@ -99,7 +104,7 @@ async def test_argument_the_bank_cannot_take_gets_no_sheet_and_no_write(
         ),
     ],
 )
-async def test_allowed_write_sends_the_bank_only_what_the_customer_saw(
+async def test_allowed_write_sends_the_bank_only_the_fields_that_change(
     client: httpx2.AsyncClient,
     session: AsyncSession,
     apertus: FakeApertus,
