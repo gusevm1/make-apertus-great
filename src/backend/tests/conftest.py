@@ -146,6 +146,24 @@ ACCOUNTS = [
 ]
 
 
+BOOKINGS = {
+    "items": [
+        {
+            "booking_id": "BK-00101",
+            "booking_date": "2026-10-30",
+            "amount": -212.1,
+            "counterparty_name": "Migros",
+            "counterparty_iban": None,
+        }
+    ],
+    "total": 51,
+    "sum_credit": 0.0,
+    "sum_debit": -989.6,
+}
+# The query strings the fake bank got for /bookings, newest last.
+BANKING_QUERIES: list[str] = []
+
+
 def fake_banking_client() -> BankingClient:
     """A banking client faked at the HTTP level: one customer, known by `CUSTOMER_TOKEN`."""
 
@@ -158,6 +176,11 @@ def fake_banking_client() -> BankingClient:
             return httpx2.Response(200, json={"customer_id": CUSTOMER_ID})
         if request.url.path == "/api/documents" and request.method == "POST":
             return httpx2.Response(201, json={"id": "DOC-0001"})
+        if request.url.path == "/api/bookings":
+            BANKING_QUERIES.append(str(request.url.query, "ascii"))
+            return httpx2.Response(200, json=BOOKINGS)
+        if request.url.path == "/api/accounts/ACC-PRIV/balance-preview":
+            return httpx2.Response(200, json={"account_id": "ACC-PRIV", "points": []})
         if request.url.path == "/api/accounts":
             return httpx2.Response(200, json={"items": ACCOUNTS})
         return httpx2.Response(404, json={"detail": "Not found"})
