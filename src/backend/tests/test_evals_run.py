@@ -1,13 +1,17 @@
+from collections import Counter
 from typing import Any
 
 from evals.run import (
+    FIGURES_PATH,
     GUARDRAILS_PATH,
     QUESTIONS_PATH,
     ActualCall,
+    EvalSettings,
     Question,
     answer_problems,
     find_problems,
     load_questions,
+    password_for,
     spelling_problems,
 )
 
@@ -93,3 +97,41 @@ def test_answer_must_match_its_pattern() -> None:
     assert answer_problems(question=question, answer="Your biggest payment was CHF 2400.") == []
     assert answer_problems(question=question, answer="Deine grösste Zahlung war CHF 2400.") != []
     assert answer_problems(question=Question(question="Hi"), answer="Hallo") == []
+
+
+def test_figures_ask_the_four_core_questions_of_each_customer() -> None:
+    questions = load_questions(path=FIGURES_PATH)
+
+    customers = Counter(question.customer for question in questions)
+    assert customers == {"lukas": 4, "jana": 4, "daniela": 4, "marco": 4}
+    assert all(question.answer is not None for question in questions)
+
+
+def test_a_figure_passes_in_de_ch_and_plain_form_and_a_wrong_one_fails() -> None:
+    (online_shops,) = [
+        question
+        for question in load_questions(path=FIGURES_PATH)
+        if question.customer == "lukas" and "online" in question.question
+    ]
+
+    assert answer_problems(question=online_shops, answer="You spent CHF 1'210.60.") == []
+    assert answer_problems(question=online_shops, answer="Gesamt: 1269.60 CHF") == []
+    assert answer_problems(question=online_shops, answer="You spent CHF 1'201.60.") != []
+
+
+def test_marco_passes_only_when_the_answer_says_he_pays_no_rent() -> None:
+    (rent,) = [
+        question
+        for question in load_questions(path=FIGURES_PATH)
+        if question.customer == "marco" and "rent" in question.question
+    ]
+
+    assert answer_problems(question=rent, answer="You don't pay rent, you own your house.") == []
+    assert answer_problems(question=rent, answer="Yes, CHF 2'800 each month.") != []
+
+
+def test_each_customer_logs_in_with_the_demo_password() -> None:
+    settings = EvalSettings(evals_username="lukas", evals_password="secret")
+
+    assert password_for(customer="lukas", settings=settings) == "secret"
+    assert password_for(customer="jana", settings=settings) == "jana2026"

@@ -15,6 +15,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 QUESTIONS_PATH = Path(__file__).with_name("questions.yaml")
 GUARDRAILS_PATH = Path(__file__).with_name("guardrails.yaml")
+FIGURES_PATH = Path(__file__).with_name("figures.yaml")
 TURN_TIMEOUT_SECONDS = 180
 DEFAULT_MIN_PASS_RATE = 0.9
 
@@ -51,12 +52,30 @@ class Question(BaseModel):
     rule: str | None = None
     # A passage of the reply to the last `before` message, quoted in `question`.
     quote: str | None = None
+    # The demo login the question runs as; None is the eval customer from the settings.
+    customer: str | None = None
 
 
 class ActualCall(BaseModel):
     tool_name: str
     arguments: dict[str, Any]
     error: str | None
+
+
+def password_for(customer: str, settings: EvalSettings) -> str:
+    # The demo logins in starter/README.md follow one pattern, such as jana / jana2026.
+    if customer == settings.evals_username:
+        return settings.evals_password
+    return f"{customer}2026"
+
+
+async def log_in(bank: httpx.AsyncClient, customer: str, settings: EvalSettings) -> str:
+    login = await bank.post(
+        f"{settings.banking_api_url}/auth/login",
+        json={"username": customer, "password": password_for(customer=customer, settings=settings)},
+    )
+    login.raise_for_status()
+    return login.json()["token"]
 
 
 def load_questions(path: Path) -> list[Question]:
@@ -188,19 +207,20 @@ async def main() -> int:
     passed = 0
     passed_by_rule: dict[str, list[bool]] = {}
     # The e-banking issues the token our backend expects, as it does for the iframe.
-    async with httpx.AsyncClient(timeout=TURN_TIMEOUT_SECONDS) as bank:
-        login = await bank.post(
-            f"{settings.banking_api_url}/auth/login",
-            json={"username": settings.evals_username, "password": settings.evals_password},
-        )
-    if login.status_code != 200:
-        parser.error(f"login failed: {login.status_code} {login.text[:200]}")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
-    async with httpx.AsyncClient(
-        base_url=args.base_url, timeout=TURN_TIMEOUT_SECONDS, headers=headers
-    ) as client:
+    tokens: dict[str, str] = {}
+    async with (
+        httpx.AsyncClient(timeout=TURN_TIMEOUT_SECONDS) as bank,
+        httpx.AsyncClient(base_url=args.base_url, timeout=TURN_TIMEOUT_SECONDS) as client,
+    ):
         # ponytail: one question after the other, gentle on the prepaid Apertus credit
         for question in questions:
+            customer = settings.evals_username if question.customer is None else question.customer
+            if customer not in tokens:
+                try:
+                    tokens[customer] = await log_in(bank=bank, customer=customer, settings=settings)
+                except httpx.HTTPError as error:
+                    parser.error(f"login as {customer} failed: {error!r}")
+            client.headers["Authorization"] = f"Bearer {tokens[customer]}"
             is_passed, line = await run_question(client=client, question=question)
             passed += is_passed
             if question.rule is not None:

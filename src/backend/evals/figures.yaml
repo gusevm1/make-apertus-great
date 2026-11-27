@@ -1,0 +1,95 @@
+# The four core questions for each demo customer, with the figure the answer must contain.
+# Run them with --questions evals/figures.yaml. The figures come from `python -m evals.reference`,
+# computed from the seed CSVs; the summary prints passed and total per customer.
+# Where refunds make a difference, the net and the gross figure both pass: the ledger tools return
+# money out and money in apart. A figure may be written 1'210.60, 1’210.60, 1,210.60 or 1210.60.
+# Today is 27.11.2026, so last month is October and the next 30 days are 27.11. to 26.12.2026.
+
+patterns:
+  - &no_online_shops 'CHF\s?0(?:\.00)?\b|\b(?:no|keine?)\b[^.]{0,30}\b(?:online|purchases?|Einkäufe|shops?)|\b(?:nothing|nichts)\b|didn[''’]t (?:spend|buy|find)'
+  - &no_rent '\b(?:no|keine?|not|nicht|don[''’]t|didn[''’]t)\b[^.]{0,40}\b(?:rent|Miete)|\bowns?\b|\bEigentum'
+
+questions:
+  - question: How much did I spend at online shops last month?
+    customer: lukas
+    rule: lukas
+    any_calls: true
+    answer: '1[''’, ]?210\.60|1[''’, ]?269\.60'
+  - question: Did I pay my rent in each of the last 3 months?
+    customer: lukas
+    rule: lukas
+    any_calls: true
+    answer: '2[''’, ]?800'
+  - question: Can you show me my monthly spending over the last 6 months?
+    customer: lukas
+    rule: lukas
+    any_calls: true
+    answer: '(?=[\s\S]*15[''’, ]?645\.56)(?=[\s\S]*10[''’, ]?(?:539\.77|598\.77))'
+  - question: Which payments are due in the next 30 days, and how much is that in total?
+    customer: lukas
+    rule: lukas
+    any_calls: true
+    answer: '8[''’, ]?302\.59'
+
+  - question: How much did I spend at online shops last month?
+    customer: jana
+    rule: jana
+    any_calls: true
+    answer: '419\.75'
+  - question: Did I pay my rent in each of the last 3 months?
+    customer: jana
+    rule: jana
+    any_calls: true
+    answer: '1[''’, ]?390'
+  - question: Can you show me my monthly spending over the last 6 months?
+    customer: jana
+    rule: jana
+    any_calls: true
+    answer: '(?=[\s\S]*5[''’, ]?771\.55)(?=[\s\S]*5[''’, ]?997\.64)'
+  - question: Which payments are due in the next 30 days, and how much is that in total?
+    customer: jana
+    rule: jana
+    any_calls: true
+    answer: '3[''’, ]?155\.45'
+
+  - question: How much did I spend at online shops last month?
+    customer: daniela
+    rule: daniela
+    any_calls: true
+    answer: *no_online_shops
+  - question: Did I pay my rent in each of the last 3 months?
+    customer: daniela
+    rule: daniela
+    any_calls: true
+    answer: '1[''’, ]?640'
+  - question: Can you show me my monthly spending over the last 6 months?
+    customer: daniela
+    rule: daniela
+    any_calls: true
+    answer: '(?=[\s\S]*4[''’, ]?152\.76)(?=[\s\S]*4[''’, ]?636\.02)'
+  - question: Which payments are due in the next 30 days, and how much is that in total?
+    customer: daniela
+    rule: daniela
+    any_calls: true
+    answer: '2[''’, ]?950\.20?'
+
+  - question: How much did I spend at online shops last month?
+    customer: marco
+    rule: marco
+    any_calls: true
+    answer: *no_online_shops
+  - question: Did I pay my rent in each of the last 3 months?
+    customer: marco
+    rule: marco
+    any_calls: true
+    answer: *no_rent
+  - question: Can you show me my monthly spending over the last 6 months?
+    customer: marco
+    rule: marco
+    any_calls: true
+    answer: '(?=[\s\S]*6[''’, ]?849\.10?)(?=[\s\S]*8[''’, ]?515\.29)'
+  - question: Which payments are due in the next 30 days, and how much is that in total?
+    customer: marco
+    rule: marco
+    any_calls: true
+    answer: '6[''’, ]?566'
