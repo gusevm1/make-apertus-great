@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import date
@@ -69,11 +70,15 @@ async def session() -> AsyncIterator[AsyncSession]:
 
 @dataclass
 class FakeApertus:
-    """The fake Apertus API: `requests` is what it got, `status` fails it, `decisions` script it."""
+    """The fake Apertus API: `requests` is what it got, `status` fails it, `decisions` script it.
+
+    `reply` is the text of every answer.
+    """
 
     requests: list[dict[str, Any]] = field(default_factory=list)
     status: int = 200
     decisions: list[str] = field(default_factory=list)
+    reply: str = FAKE_REPLY
 
 
 @pytest.fixture
@@ -84,7 +89,8 @@ def apertus() -> FakeApertus:
 def _fake_completion(body: dict[str, Any], content: str) -> httpx2.Response:
     if body.get("stream"):
         chunks: list[dict[str, Any]] = [
-            {"choices": [{"index": 0, "delta": {"content": word}}]} for word in ("Fake ", "reply")
+            {"choices": [{"index": 0, "delta": {"content": word}}]}
+            for word in re.findall(r"\S+\s*", content)
         ]
         chunks.append({"choices": [], "usage": FAKE_USAGE})
         events = "".join(f"data: {json.dumps(chunk)}\n\n" for chunk in chunks)
@@ -233,7 +239,7 @@ async def client(
             return httpx2.Response(apertus.status, json={"error": {"message": "fake failure"}})
         # Only `structured` sets a temperature, which marks a tool decision request.
         if "temperature" not in body:
-            return _fake_completion(body=body, content=FAKE_REPLY)
+            return _fake_completion(body=body, content=apertus.reply)
         decision = apertus.decisions.pop(0) if apertus.decisions else NO_TOOL_DECISION
         return _fake_completion(body=body, content=decision)
 

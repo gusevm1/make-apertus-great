@@ -12,6 +12,7 @@ from app.features.conversations.schemas import RequestMessageCreate
 from app.features.conversations.service import ConversationService, is_quoted
 from app.features.documents.repository import DocumentRepository
 from app.features.documents.service import DocumentService
+from app.features.figure_checks.service import FigureCheckService
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
@@ -78,6 +79,7 @@ async def test_no_transaction_is_open_during_the_llm_call(session: AsyncSession)
             banking=fake_banking_client(),
             ocr=fake_ocr_client(),
         ),
+        figure_checks=FigureCheckService(),
     )
 
     apertus.decisions = [CALL_A_TOOL, NO_TOOL]

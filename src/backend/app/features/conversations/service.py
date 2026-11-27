@@ -1,3 +1,4 @@
+import json
 import re
 from collections.abc import AsyncIterator
 from uuid import UUID
@@ -19,6 +20,7 @@ from app.features.conversations.schemas import (
 )
 from app.features.documents.schemas import Document
 from app.features.documents.service import DocumentService
+from app.features.figure_checks.service import FigureCheckService
 from app.features.tool_calls.service import ToolCallService
 
 HISTORY_LIMIT = 20
@@ -45,11 +47,13 @@ class ConversationService:
         messages: MessageRepository,
         tool_calls: ToolCallService,
         documents: DocumentService,
+        figure_checks: FigureCheckService,
     ) -> None:
         self.conversations = conversations
         self.messages = messages
         self.tool_calls = tool_calls
         self.documents = documents
+        self.figure_checks = figure_checks
 
     async def create_conversation(
         self, data: RequestConversationCreate, owner_id: UUID
@@ -107,6 +111,13 @@ class ConversationService:
         except Exception:
             await self.messages.delete(entity_id=history[-1].id)
             raise
+        provenance = await self._check_figures(
+            conversation_id=conversation_id,
+            content=content,
+            provenance=provenance,
+            history=history,
+            documents=documents,
+        )
         return await self._store_reply(
             conversation_id=conversation_id, content=content, provenance=provenance
         )
@@ -131,6 +142,13 @@ class ConversationService:
                     yield event
                     continue
                 content, provenance = event.result
+            provenance = await self._check_figures(
+                conversation_id=conversation_id,
+                content=content,
+                provenance=provenance,
+                history=history,
+                documents=documents,
+            )
             reply = await self._store_reply(
                 conversation_id=conversation_id, content=content, provenance=provenance
             )
@@ -180,6 +198,26 @@ class ConversationService:
                 raise NotFoundError("Quoted message not found in this conversation")
             if not is_quoted(text=quote.text, content=content):
                 raise BadRequestError("Quoted text not found in the quoted message")
+
+    async def _check_figures(
+        self,
+        conversation_id: UUID,
+        content: str,
+        provenance: Provenance,
+        history: list[Message],
+        documents: list[Document],
+    ) -> Provenance:
+        # Earlier turns count too, so a follow-up may repeat a figure it was shown before.
+        calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
+        sources = [
+            json.dumps(call.result, ensure_ascii=False) for call in calls if call.result is not None
+        ]
+        sources += [document.markdown for document in documents]
+        sources += [message.content for message in history if message.role == "user"]
+        check = self.figure_checks.check_figures(answer=content, sources=sources)
+        if check is None:
+            return provenance
+        return provenance.model_copy(update={"checks": [*provenance.checks, check]})
 
     async def _store_reply(
         self, conversation_id: UUID, content: str, provenance: Provenance
