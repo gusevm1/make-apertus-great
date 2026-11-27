@@ -7,7 +7,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.features.ledger.schemas import Kind
 
-CATEGORIES = (
+Certainty = Literal["low", "medium", "high"]
+CERTAINTIES = get_args(Certainty)
+Severity = Literal["negligible", "minor", "moderate", "major", "critical"]
+SEVERITIES = get_args(Severity)
+RowSource = Literal["booking", "card_transaction"]
+CorrectionScope = Literal["payee", "booking"]
+CertaintyFilter = Literal["low", "medium", "high", "unknown"]
+Category = Literal[
     "housing",
     "groceries",
     "loan_leasing",
@@ -21,14 +28,8 @@ CATEGORIES = (
     "taxes",
     "children",
     "other",
-)
-Certainty = Literal["low", "medium", "high"]
-CERTAINTIES = get_args(Certainty)
-Severity = Literal["negligible", "minor", "moderate", "major", "critical"]
-SEVERITIES = get_args(Severity)
-RowSource = Literal["booking", "card_transaction"]
-CorrectionScope = Literal["payee", "booking"]
-CertaintyFilter = Literal["low", "medium", "high", "unknown"]
+]
+CATEGORIES = get_args(Category)
 SetBy = Literal["rule", "model", "customer"]
 SeverityScope = Literal["category", "payee", "booking"]
 SeveritySource = Literal["booking", "payee", "category", "default"]
@@ -86,7 +87,7 @@ class RatedTransactionTag(TransactionTag):
 
 class RequestCategoryCorrectionCreate(BaseModel):
     scope: CorrectionScope
-    key: str = Field(min_length=1)  # a payee name, or `<row_source>:<row_id>` for a booking
+    key: str = Field(min_length=1, max_length=200)  # a payee, or `<row_source>:<row_id>`
     category: str = Field(json_schema_extra={"enum": list(CATEGORIES)})
 
     @field_validator("category")

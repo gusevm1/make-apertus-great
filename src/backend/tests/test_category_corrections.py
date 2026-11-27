@@ -177,10 +177,12 @@ async def test_rows_filter_by_category_and_certainty(
     by_category = await lukas.get("/api/transaction-tags", params={"category": "groceries"})
     unknown = await lukas.get("/api/transaction-tags", params={"certainty": "unknown"})
     bad = await lukas.get("/api/transaction-tags", params={"certainty": "maybe"})
+    misspelt = await lukas.get("/api/transaction-tags", params={"category": "grocery"})
 
     assert [tag["row_id"] for tag in by_category.json()] == ["BK-1"]
     assert sorted(tag["row_id"] for tag in unknown.json()) == ["BK-1", "BK-2", "CTX-1"]
     assert bad.status_code == 422
+    assert misspelt.status_code == 422
 
 
 async def test_summaries_add_up_the_ledger_rows_and_count_certainty(

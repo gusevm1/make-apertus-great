@@ -162,8 +162,10 @@ class TransactionTagService:
             summary = summaries.setdefault(category, _empty_summary(category=category))
             summary.total_chf -= row.amount_chf
             summary.row_count += 1
-            if tag is None or tag.category_confirmed:
-                summary.confirmed += 0 if tag is None else 1
+            if tag is None:
+                continue
+            if tag.category_confirmed:
+                summary.confirmed += 1
                 continue
             certainty = "unknown" if tag.category_certainty is None else tag.category_certainty
             setattr(summary, certainty, getattr(summary, certainty) + 1)

@@ -14,6 +14,7 @@ from app.features.transaction_tags.dependencies import (
 from app.features.transaction_tags.schemas import (
     AssignedRow,
     Categorisation,
+    Category,
     CategoryCorrectionResult,
     CategorySummary,
     CertaintyFilter,
@@ -63,7 +64,7 @@ async def list_transaction_tags(
     user: CurrentUserDep,
     service: SeverityServiceDep,
     sort: str | None = None,
-    category: str | None = None,
+    category: Category | None = None,
     certainty: CertaintyFilter | None = None,
 ) -> list[ResponseTransactionTag]:
     """List your categorised rows with their severity, filtered by category or certainty."""
