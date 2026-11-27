@@ -34,6 +34,14 @@ test("links only web addresses and shows where they go", () => {
   expect(html("[click](javascript:alert(1))")).not.toContain("<a");
 });
 
+test("links a view of the TrustRoom itself in the same frame", () => {
+  expect(html("Check them in the [category center](#categories).")).toContain(
+    '<a href="#categories">category center</a>.',
+  );
+  expect(html("[x](#javascript:alert(1))")).not.toContain("<a");
+  expect(html("[x](#Categories)")).not.toContain("<a");
+});
+
 test("shows a fenced block as text, HTML and markdown inside it untouched", () => {
   expect(
     html(

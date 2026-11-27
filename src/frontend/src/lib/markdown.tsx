@@ -5,7 +5,7 @@ const ITEM = /^(\s*)(?:[-*+]|(\d+)[.)])\s+(.*)$/;
 const FENCE = /^\s*```/;
 // Code, http(s) link, bold, italic. A link to any other scheme stays text.
 const INLINE =
-  /`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*(.+?)\*\*|__(.+?)__|(?<![\w*])\*(?![\s*])(.+?)(?<![\s*])\*(?![\w*])|(?<!\w)_(?![\s_])(.+?)(?<![\s_])_(?!\w)/g;
+  /`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+|#[a-z-]+)\)|\*\*(.+?)\*\*|__(.+?)__|(?<![\w*])\*(?![\s*])(.+?)(?<![\s*])\*(?![\w*])|(?<!\w)_(?![\s_])(.+?)(?<![\s_])_(?!\w)/g;
 
 type Item = { text: string; children: List | null };
 type List = { isOrdered: boolean; start: number; items: Item[] };
@@ -121,6 +121,8 @@ function listOf(list: List, key: number): ReactNode {
   );
 }
 
+const IN_PAGE_LINK = /^#[a-z-]+$/;
+
 function inlineOf(text: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   let last = 0;
@@ -130,6 +132,13 @@ function inlineOf(text: string): ReactNode[] {
       match;
     const key = match.index;
     if (code !== undefined) nodes.push(<code key={key}>{code}</code>);
+    else if (url !== undefined && IN_PAGE_LINK.test(url))
+      // A link to a view of the TrustRoom itself, like #categories, stays in this frame.
+      nodes.push(
+        <a key={key} href={url}>
+          {inlineOf(label)}
+        </a>,
+      );
     else if (url !== undefined && URL.canParse(url))
       // The host is shown, so a label like "your e-banking" cannot hide where the link goes.
       nodes.push(
