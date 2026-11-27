@@ -57,6 +57,18 @@ compare_periods: >-
   Use it for "how has my spending changed since ...", "since I started working" or "this summer
   against last summer", and never subtract sums yourself. A job starts with its first salary: find
   it with search_movements (kind credit, sort oldest), then compare before and after it.
+explain_balance_change: >-
+  How the balance of one account changed over a period, from its bookings: `start_balance_chf`
+  before the first booking of `date_from`, `end_balance_chf` after the last booking of `date_to`,
+  the `change_chf`, the money in and out between them, and the 5 counterparties that paid in and
+  took out the most, the rest as `others_in` and `others_out`. It counts every booking of the
+  account, also transfers between own accounts and card bills, because they all move the balance.
+  Credit card purchases count only through the bill that paid them. `unexplained_chf` is 0 when
+  start plus money in plus money out gives the end balance; when it is not 0, say so. Use it for
+  "why is my account lower than a month ago" or "where did my savings go since June", with the
+  account id from list_accounts. Use these figures and never add or subtract balances yourself.
+unknown_account: >-
+  The ledger has no bookings of {account_id}. Pass one of these account ids: {account_ids}.
 not_enough_months: >-
   Only {months} full months of bookings exist for this, and a trend needs at least 3. Answer with the
   monthly sums from sum_by_month instead.
@@ -68,6 +80,8 @@ date_from: "First day of the period, as YYYY-MM-DD."
 date_to: "Last day of the period, as YYYY-MM-DD."
 text: "Words to look for in the text and the counterparty, such as merchant names. A movement matches when it contains any of them."
 kind: "Which kinds to count: spending (money out), credit (money in), own_transfer (between own accounts or into the depot), card_settlement (the bill of a credit card, whose purchases count already). Leave it out for spending and credit."
+balance_date_from: "First day of the period, as YYYY-MM-DD. The start balance is the one before this day's bookings."
+balance_date_to: "Last day of the period, as YYYY-MM-DD. The end balance is the one after this day's bookings."
 account_id: "An account id from list_accounts, such as ACC-PRIV."
 card_id: "A card id from list_cards."
 amount_min: "Smallest amount in CHF, without a sign."

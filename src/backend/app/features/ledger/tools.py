@@ -4,6 +4,8 @@ from typing import Any
 from app.core.prompts import load_prompts
 from app.core.tools import Tool
 from app.features.ledger.schemas import (
+    BalanceChange,
+    BalanceChangeArgs,
     ComparePeriodsArgs,
     CounterpartySums,
     Filters,
@@ -44,6 +46,9 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
 
     async def compare_periods(args: ComparePeriodsArgs) -> PeriodComparison:
         return await service.compare_periods(token=token, args=args)
+
+    async def explain_balance_change(args: BalanceChangeArgs) -> BalanceChange:
+        return await service.explain_balance_change(token=token, args=args)
 
     return [
         Tool(
@@ -101,5 +106,13 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
             description=PROMPTS["find_unusual_movements"],
             args_schema=Filters,
             handler=find_unusual_movements,
+        ),
+        Tool(
+            name="explain_balance_change",
+            title="Explain a balance change",
+            icon="scale",
+            description=PROMPTS["explain_balance_change"],
+            args_schema=BalanceChangeArgs,
+            handler=explain_balance_change,
         ),
     ]

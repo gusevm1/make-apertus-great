@@ -18,6 +18,8 @@ MAX_PROJECTED_MONTHS = 6
 PROJECTED_MONTHS_DEFAULT = 3
 TOP_COUNTERPARTIES = 15
 DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+# Per side of a balance change; the rest is added up as `others`.
+TOP_BALANCE_COUNTERPARTIES = 5
 
 # own_transfer moves money between own accounts or into the depot; card_settlement is the card bill.
 Kind = Literal["spending", "credit", "own_transfer", "card_settlement"]
@@ -39,6 +41,8 @@ class LedgerRow(BaseModel):
     loan_id: str | None = None
     loan_charge: Literal["interest", "amortisation"] | None = None
     kind: Kind
+    # Only a booking carries the account's balance after it.
+    balance_after_chf: Decimal | None = None
     # A purchase on a credit card statement that is still open; its bill can change.
     provisional: bool = False
 
@@ -121,6 +125,20 @@ class ComparePeriodsArgs(Selection):
                 raise ValueError(
                     f"{name}_from is after {name}_to. The period starts on {name}_from."
                 )
+        return self
+
+
+class BalanceChangeArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    account_id: str = Field(description=PROMPTS["account_id"])
+    date_from: datetime.date = Field(description=PROMPTS["balance_date_from"])
+    date_to: datetime.date = Field(description=PROMPTS["balance_date_to"])
+
+    @model_validator(mode="after")
+    def _in_order(self) -> Self:
+        if self.date_from > self.date_to:
+            raise ValueError("date_from is after date_to. The period starts on date_from.")
         return self
 
 
@@ -303,3 +321,24 @@ class GroupSums(BaseModel):
     provisional_in_chf: Decimal
     groups: list[GroupSum]
     row_ids: dict[str, list[str]]
+
+
+class BalanceChange(BaseModel):
+    account_id: str
+    date_from: datetime.date
+    date_to: datetime.date
+    # Before the first booking of date_from, and after the last booking of date_to.
+    start_balance_chf: Decimal
+    end_balance_chf: Decimal
+    change_chf: Decimal
+    count: int
+    money_in_chf: Decimal
+    money_out_chf: Decimal
+    # 0 when start plus money in plus money out (negative) gives the end balance.
+    unexplained_chf: Decimal
+    largest_in: list[CounterpartySum]
+    others_in: CounterpartySum | None
+    largest_out: list[CounterpartySum]
+    others_out: CounterpartySum | None
+    # Last, so a cut in the tool result drops ids before any figure.
+    row_ids: dict[str, dict[str, list[str]]]

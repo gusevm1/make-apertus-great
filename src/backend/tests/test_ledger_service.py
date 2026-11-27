@@ -12,6 +12,7 @@ from app.features.bank_data.service import BankDataService
 from app.features.bank_data.tools import get_tools
 from app.features.ledger import service as ledger_service
 from app.features.ledger.schemas import (
+    BalanceChangeArgs,
     ComparePeriodsArgs,
     Filters,
     ForecastMonthsArgs,
@@ -750,3 +751,102 @@ async def test_a_period_outside_the_history_has_no_months_and_no_rows() -> None:
 async def test_a_placeholder_instead_of_a_date_asks_to_find_the_date_first() -> None:
     with pytest.raises(ValueError, match="is not a date.*search_movements"):
         _compare(first=("<first_salary_date>", "2025-08-31"), second=("2025-09-01", "2026-11-27"))
+
+
+def _balanced(booking_id: str, day: str, amount: float, balance: float, name: str) -> dict:
+    return _booking(
+        booking_id,
+        "debit_card" if amount < 0 else "salary",
+        amount,
+        booking_date=day,
+        balance_after=balance,
+        counterparty_name=name,
+    )
+
+
+BALANCED = [
+    _balanced("BK-01", "2026-09-30", 5000.0, 5000.0, "Arbeitgeber AG"),
+    _balanced("BK-02", "2026-10-01", -1000.0, 4000.0, "Vermieter"),
+    _balanced("BK-03", "2026-10-02", -20.0, 3980.0, "Migros"),
+    _balanced("BK-04", "2026-10-03", -30.0, 3950.0, "Coop"),
+    _balanced("BK-05", "2026-10-04", -40.0, 3910.0, "Denner"),
+    _balanced("BK-06", "2026-10-05", -50.0, 3860.0, "Lidl"),
+    _balanced("BK-07", "2026-10-06", -5.0, 3855.0, "Kiosk"),
+    _balanced("BK-08", "2026-10-07", -6.0, 3849.0, "Bäckerei"),
+    _balanced("BK-09", "2026-10-25", 5000.0, 8849.0, "Arbeitgeber AG"),
+    _balanced("BK-10", "2026-10-25", -500.0, 8349.0, "Vermieter"),
+    _balanced("BK-11", "2026-11-02", -100.0, 8249.0, "Migros"),
+]
+
+
+def _balance_args(date_from: str, date_to: str, account_id: str = "ACC-PRIV") -> BalanceChangeArgs:
+    return BalanceChangeArgs.model_validate(
+        {"account_id": account_id, "date_from": date_from, "date_to": date_to}
+    )
+
+
+async def test_the_parts_of_a_balance_change_add_up_to_it() -> None:
+    ledger = _fake_ledger(bookings=BALANCED, purchases=PURCHASES, statements=[], pages_read=[])
+
+    change = await ledger.explain_balance_change(
+        token=TOKEN, args=_balance_args(date_from="2026-10-01", date_to="2026-10-31")
+    )
+
+    assert (change.start_balance_chf, change.end_balance_chf) == (
+        Decimal("5000.0"),
+        Decimal("8349.0"),
+    )
+    assert change.change_chf == Decimal("3349.0")
+    assert (change.count, change.money_in_chf, change.money_out_chf) == (
+        9,
+        Decimal("5000.0"),
+        Decimal("-1651.0"),
+    )
+    assert change.unexplained_chf == 0
+    assert [part.counterparty for part in change.largest_out] == [
+        "Vermieter",
+        "Lidl",
+        "Denner",
+        "Coop",
+        "Migros",
+    ]
+    assert change.largest_out[0].money_out_chf == Decimal("-1500.0")
+    assert change.others_out is not None
+    assert (change.others_out.count, change.others_out.money_out_chf) == (2, Decimal("-11.0"))
+    assert (change.largest_in[0].counterparty, change.others_in) == ("Arbeitgeber AG", None)
+    parts = sum(part.money_out_chf for part in change.largest_out) + change.others_out.money_out_chf
+    assert parts == change.money_out_chf
+    assert change.row_ids["out"]["Vermieter"] == ["BK-02", "BK-10"]
+    assert change.row_ids["out"]["others"] == ["BK-07", "BK-08"]
+    assert change.row_ids["in"] == {"Arbeitgeber AG": ["BK-09"]}
+
+
+async def test_a_balance_change_before_the_first_booking_starts_at_the_opening_balance() -> None:
+    ledger = _fake_ledger(bookings=BALANCED, purchases=[], statements=[], pages_read=[])
+
+    change = await ledger.explain_balance_change(
+        token=TOKEN, args=_balance_args(date_from="2026-01-01", date_to="2026-09-30")
+    )
+
+    assert (change.start_balance_chf, change.end_balance_chf) == (Decimal(0), Decimal("5000.0"))
+    assert change.unexplained_chf == 0
+
+
+async def test_a_balance_that_does_not_add_up_says_by_how_much() -> None:
+    gap = [*BALANCED[:2], _balanced("BK-03", "2026-10-02", -20.0, 3900.0, "Migros")]
+    ledger = _fake_ledger(bookings=gap, purchases=[], statements=[], pages_read=[])
+
+    change = await ledger.explain_balance_change(
+        token=TOKEN, args=_balance_args(date_from="2026-10-01", date_to="2026-10-31")
+    )
+
+    assert change.unexplained_chf == Decimal("-80.0")
+
+
+async def test_an_account_without_bookings_names_the_ones_there_are() -> None:
+    ledger = _fake_ledger(bookings=BALANCED, purchases=[], statements=[], pages_read=[])
+
+    with pytest.raises(BadRequestError, match="ACC-NOPE.*ACC-PRIV"):
+        await ledger.explain_balance_change(
+            token=TOKEN, args=_balance_args("2026-10-01", "2026-10-31", account_id="ACC-NOPE")
+        )

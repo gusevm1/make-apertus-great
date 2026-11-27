@@ -79,3 +79,11 @@
         limit: "5"
 - question: What is my savings goal?
   answer: Japan
+- question: Why is my private account lower than a month ago?
+  calls:
+    - tool: explain_balance_change
+      arguments:
+        account_id: ACC-PRIV
+        date_from: '2026-10-2\d'
+        date_to: '2026-11-2\d'
+  not_called: [search_web]

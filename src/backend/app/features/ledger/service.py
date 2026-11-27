@@ -13,6 +13,9 @@ from app.core.errors import BadRequestError
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import (
     MIN_TREND_MONTHS,
+    TOP_BALANCE_COUNTERPARTIES,
+    BalanceChange,
+    BalanceChangeArgs,
     ComparePeriodsArgs,
     CounterpartySum,
     CounterpartySums,
@@ -182,6 +185,48 @@ class LedgerService:
                 change=average_in_change, base=earlier_sum.average_in_chf
             ),
             row_ids={"earlier": earlier_ids, "later": later_ids},
+        )
+
+    async def explain_balance_change(self, token: str, args: BalanceChangeArgs) -> BalanceChange:
+        """An account's balance at both ends of a period, and the bookings that moved it."""
+        rows = await self.list_rows(token=token)
+        # Card purchases reach the balance only through their bill, which is a booking.
+        bookings = [row for row in rows if row.source == "booking"]
+        account = [row for row in bookings if row.account_id == args.account_id]
+        if not account:
+            account_ids = ", ".join(sorted({row.account_id for row in bookings}))
+            raise BadRequestError(
+                PROMPTS["unknown_account"].format(
+                    account_id=args.account_id, account_ids=account_ids
+                )
+            )
+        before = [row for row in account if row.date < args.date_from]
+        until_end = [row for row in account if row.date <= args.date_to]
+        period = [row for row in until_end if row.date >= args.date_from]
+        opening = _balance_before(row=account[0])
+        start = opening if not before else _balance(row=before[-1])
+        end = opening if not until_end else _balance(row=until_end[-1])
+        out, received = _sums(rows=period)
+        largest_in, others_in, ids_in = _largest(rows=[row for row in period if row.amount_chf > 0])
+        largest_out, others_out, ids_out = _largest(
+            rows=[row for row in period if row.amount_chf < 0]
+        )
+        return BalanceChange(
+            account_id=args.account_id,
+            date_from=args.date_from,
+            date_to=args.date_to,
+            start_balance_chf=start,
+            end_balance_chf=end,
+            change_chf=end - start,
+            count=len(period),
+            money_in_chf=received,
+            money_out_chf=out,
+            unexplained_chf=end - (start + received + out),
+            largest_in=largest_in,
+            others_in=others_in,
+            largest_out=largest_out,
+            others_out=others_out,
+            row_ids={"in": ids_in, "out": ids_out},
         )
 
     async def sum_by_counterparty(
@@ -494,6 +539,38 @@ def _percent(change: Decimal, base: Decimal) -> Decimal | None:
     return (change / abs(base) * 100).quantize(TENTH, rounding=ROUND_HALF_UP)
 
 
+def _balance(row: LedgerRow) -> Decimal:
+    if row.balance_after_chf is None:
+        raise BadRequestError(f"Booking {row.id} carries no balance.")
+    return row.balance_after_chf
+
+
+def _balance_before(row: LedgerRow) -> Decimal:
+    return _balance(row=row) - row.amount_chf
+
+
+def _largest(
+    rows: list[LedgerRow],
+) -> tuple[list[CounterpartySum], CounterpartySum | None, dict[str, list[str]]]:
+    by_counterparty: dict[str, list[LedgerRow]] = defaultdict(list)
+    for row in rows:
+        by_counterparty[row.counterparty or row.text].append(row)
+    names = sorted(
+        by_counterparty,
+        key=lambda name: abs(sum(row.amount_chf for row in by_counterparty[name])),
+        reverse=True,
+    )
+    top, rest = names[:TOP_BALANCE_COUNTERPARTIES], names[TOP_BALANCE_COUNTERPARTIES:]
+    largest = [_counterparty_sum(counterparty=name, rows=by_counterparty[name]) for name in top]
+    ids = {name: [row.id for row in by_counterparty[name]] for name in top}
+    if not rest:
+        return largest, None, ids
+    rest_names = set(rest)
+    rest_rows = [row for row in rows if (row.counterparty or row.text) in rest_names]
+    ids["others"] = [row.id for row in rest_rows]
+    return largest, _counterparty_sum(counterparty="others", rows=rest_rows), ids
+
+
 def _counterparty_sum(counterparty: str, rows: list[LedgerRow]) -> CounterpartySum:
     out, received = _sums(rows=rows)
     return CounterpartySum(
@@ -602,6 +679,7 @@ def _booking_row(
         loan_id=None if loan_charge is None else loan_charge["loan_id"],
         loan_charge=None if loan_charge is None else loan_charge["type"],
         kind=_booking_kind(booking=booking, own_ibans=own_ibans),
+        balance_after_chf=_chf_or_none(amount=booking.get("balance_after")),
     )
 
 
