@@ -19,8 +19,8 @@ CUSTOMERS = {
 LAST_MONTH = "2026-10"
 RENT_MONTHS = ["2026-08", "2026-09", "2026-10", "2026-11"]
 SPENDING_MONTHS = ["2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"]
-DUE_FROM, DUE_TO = "2026-11-27", "2026-12-26"
 TODAY = "2026-11-27"
+DUE_FROM, DUE_TO = TODAY, "2026-12-26"
 SALARY_MONTH = "2026-11"
 INTEREST_YEAR = "2025"
 # Online shops and marketplaces; IKEA and Interdiscount count only for their online orders.
@@ -205,14 +205,16 @@ def mortgage(folder: Path) -> Answer:
         return Answer(question="Mortgage", figure="no loan interest booked", ids=[])
     paid = sum((Decimal(row["amount"]) for row in interest), Decimal(0))
     loans = read_rows(folder=folder, name="loans")
-    next_loan = min(
-        (row for row in loans if row["maturity_date"] >= TODAY),
-        key=lambda row: row["maturity_date"],
+    running = [row for row in loans if row["maturity_date"] >= TODAY]
+    next_loan = min(running, key=lambda row: row["maturity_date"], default=None)
+    maturity = (
+        "no tranche still running"
+        if next_loan is None
+        else f"next {next_loan['number']} on {next_loan['maturity_date']}"
     )
     return Answer(
         question=f"Mortgage interest paid in {INTEREST_YEAR}, next tranche to mature",
-        figure=f"{chf(amount=paid)} in {len(interest)} bookings; next {next_loan['number']} "
-        f"on {next_loan['maturity_date']}",
+        figure=f"{chf(amount=paid)} in {len(interest)} bookings; {maturity}",
         ids=[row["booking_id"] for row in interest],
     )
 
