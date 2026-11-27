@@ -37,6 +37,18 @@ jinja: |
   - Positions may be computed in expressions, such as y="{{{{ loop.index0 * 40 + 60 }}}}".
   - Put axis tick labels inside elements with class "tick".
 
+catalogue: |
+  You build one widget for a customer of a Swiss bank. You don't draw it: you return a spec that names components from the catalogue below, and our code draws them in the e-banking's look.
+  - Name every figure by its path in DATA below, and name fields exactly as DATA spells them.
+  - Never write an amount, a date or a count yourself, also not in a title or a label.
+  - Give the widget a short title.
+
+  {catalogue}
+
+catalogue_repair: |
+  That spec can't be drawn: {error}
+  Return the whole corrected spec.
+
 generate: |
   The customer's request: {request}
 

@@ -21,12 +21,16 @@ from pydantic import ValidationError
 from app.clients.apertus import ApertusClient, Message, Model
 from app.clients.banking import BankingClient
 from app.core.config import Settings
-from app.core.errors import UpstreamError
+from app.core.errors import BadRequestError, UpstreamError
 from app.features.ledger.service import LedgerService
+from app.features.widgets.catalogue.render import fallback
+from app.features.widgets.catalogue.render import render as render_widget
+from app.features.widgets.catalogue.schemas import WidgetSpec
 from evals.run import EvalSettings
 from evals.widgets import prompts
 from evals.widgets.data import build_all
 from evals.widgets.page import (
+    BRIDGE,
     EditError,
     Edits,
     Scene,
@@ -43,7 +47,17 @@ HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
 RESULTS_MD = HERE / "results.md"
 D3_PATH = HERE / "vendor" / "d3.v7.min.js"
-VARIANTS: list[prompts.Variant] = ["html_svg", "html_d3", "shapes", "jinja"]
+VARIANTS: list[prompts.Variant] = [
+    "html_svg",
+    "html_d3",
+    "shapes",
+    "jinja",
+    "catalogue",
+    "catalogue_schema",
+]
+# Apertus fills the catalogue of #117; catalogue_schema holds it to the schema as it writes.
+CATALOGUE = {"catalogue", "catalogue_schema"}
+CATALOGUE_SECTION = "\n## Catalogue"
 MODES: list[prompts.Mode] = ["rewrite", "edits"]
 REVISED_TASK = "monthly_spending"
 WIDTHS = (360, 1000)
@@ -90,6 +104,10 @@ class Run:
     failure: str | None = None
     page: str | None = None
     renders: list[Render] = field(default_factory=list)
+    # Catalogue only: "first", "repaired" (after one round with the error) or "fallback".
+    outcome: str | None = None
+    # Catalogue only: the error the last failed spec got, so a fallback can be read afterwards.
+    last_error: str | None = None
 
     @property
     def name(self) -> str:
@@ -101,6 +119,7 @@ class Run:
     def is_clean(self) -> bool:
         return (
             self.failure is None
+            and self.outcome != "fallback"
             and len(self.renders) == len(WIDTHS)
             and all(not r.errors and r.drawn and not r.figures for r in self.renders)
         )
@@ -108,9 +127,15 @@ class Run:
 
 class Bench:
     def __init__(
-        self, apertus: ApertusClient, data: dict[str, dict[str, Any]], d3: str | None, parallel: int
+        self,
+        apertus: ApertusClient,
+        apertus_schema: ApertusClient,
+        data: dict[str, dict[str, Any]],
+        d3: str | None,
+        parallel: int,
     ) -> None:
         self.apertus = apertus
+        self.apertus_schema = apertus_schema
         self.data = data
         self.d3 = d3
         self.llm_slots = asyncio.Semaphore(parallel)
@@ -121,6 +146,8 @@ class Bench:
         messages = prompts.generate_messages(
             variant=run.variant, task=run.task, data=self.data[run.task]
         )
+        if run.variant in CATALOGUE:
+            return await self._timed(run=run, call=self._catalogue(run=run, messages=messages))
         return await self._timed(
             run=run, call=self._write(variant=run.variant, model=run.model, messages=messages)
         )
@@ -135,6 +162,8 @@ class Bench:
             code=code,
             revision=revision,
         )
+        if mode == "rewrite" and variant in CATALOGUE:
+            return await self._timed(run=run, call=self._catalogue(run=run, messages=messages))
         if mode == "rewrite":
             return await self._timed(
                 run=run, call=self._write(variant=variant, model=run.model, messages=messages)
@@ -155,6 +184,9 @@ class Bench:
         path = RESULTS / "pages" / f"{run.variant}-{run.model}-{_slug(text=run.name)}.html"
         # The model's code as it came, also when it fails, so a failure can be read afterwards.
         path.with_suffix(".code.txt").write_text(code, encoding="utf-8")
+        if run.variant in CATALOGUE:
+            await self._render_catalogue(run=run, code=code, path=path)
+            return
         body = code
         try:
             if run.variant == "shapes":
@@ -191,6 +223,62 @@ class Bench:
                 )
             )
         )
+
+    async def _catalogue(self, run: Run, messages: list[Message]) -> tuple[str, int | None]:
+        """A spec that draws: one round with the error if not, else the fallback from DATA."""
+        client = self.apertus_schema if run.variant == "catalogue_schema" else self.apertus
+        data = self.data[run.task]
+        tokens_out = 0
+        for attempt in range(2):
+            try:
+                result = await client.structured(
+                    messages=messages,
+                    schema=WidgetSpec,
+                    model=Model(run.model),
+                    purpose=f"widget_bench_{run.variant}",
+                )
+            except UpstreamError as error:
+                # structured already gave the model one round with its validation error.
+                run.last_error = str(error)[:200]
+                break
+            tokens_out += result.tokens_out if result.tokens_out is not None else 0
+            code = result.content.model_dump_json(exclude_none=True)
+            try:
+                await asyncio.to_thread(
+                    render_widget, spec=result.content, data=data, form="static"
+                )
+            except BadRequestError as error:
+                run.last_error = str(error)[:200]
+                messages = [
+                    *messages,
+                    Message(role="assistant", content=code),
+                    prompts.repair_message(error=str(error)),
+                ]
+                continue
+            run.outcome = "first" if attempt == 0 else "repaired"
+            return code, tokens_out
+        run.outcome = "fallback"
+        return fallback(data=data).model_dump_json(exclude_none=True), tokens_out
+
+    async def _render_catalogue(self, run: Run, code: str, path: Path) -> None:
+        data = self.data[run.task]
+        try:
+            spec = WidgetSpec.model_validate_json(code)
+            static = await asyncio.to_thread(render_widget, spec=spec, data=data, form="static")
+            live = await asyncio.to_thread(render_widget, spec=spec, data=data, form="live")
+        except ValidationError as error:
+            run.failure = f"invalid spec: {error.error_count()} errors"
+            return
+        except BadRequestError as error:
+            run.failure = str(error)[:200]
+            return
+        # The benchmark's bridge reports into the page for headless Chrome; the widget keeps its.
+        checked = static.replace("</head>", f"<script>{BRIDGE}</script></head>", 1)
+        await asyncio.to_thread(path.write_text, checked, encoding="utf-8")
+        live_path = path.with_name(f"{path.stem}-live.html")
+        await asyncio.to_thread(live_path.write_text, live, encoding="utf-8")
+        run.page = path.name
+        await self.check(run=run, path=path, data=data)
 
     async def _write(
         self, variant: prompts.Variant, model: str, messages: list[Message]
@@ -369,6 +457,73 @@ def results_markdown(runs: list[Run], settings: Settings) -> str:
     return "\n".join(lines) + "\n"
 
 
+def catalogue_markdown(runs: list[Run], schema_note: str) -> str:
+    """The catalogue variants (#127): how often Apertus returns a spec that draws."""
+    runs = [run for run in runs if run.variant in CATALOGUE]
+    lines = [
+        CATALOGUE_SECTION.strip(),
+        "",
+        f"Run on {date.today().isoformat()}. {schema_note}",
+        "",
+        "Apertus returns a `WidgetSpec` through `structured`, which already gives it one round "
+        "with a validation error. A spec whose path doesn't resolve goes back once with the error "
+        "(`repaired`); after that the widget is `fallback(data)`, which counts as not clean. "
+        "Edits change the spec's JSON and get no repair round.",
+        "",
+        "| Variant | Model | Task | Outcome | Clean | Seconds | 360 px | 1000 px | Last error |",
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for run in runs:
+        cells = [_render_cell(render=render, limit=SHOWN_MISSING) for render in run.renders]
+        if len(cells) == 0:
+            cells = [run.failure if run.failure is not None else "not rendered", ""]
+        lines.append(
+            f"| {run.variant} | {run.model} | {run.name} | {_or_dash(run.outcome)} | "
+            f"{'yes' if run.is_clean else 'no'} | {_or_dash(run.seconds)} | "
+            f"{_cell(text=cells[0])} | {_cell(text=cells[1])} | "
+            f"{_cell(text=_or_dash(run.last_error))} |"
+        )
+    lines += [
+        "",
+        "| Variant | Model | First try | After one repair | Fallback | No page | "
+        "Median seconds | Tasks clean |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for variant, model in dict.fromkeys((run.variant, run.model) for run in runs):
+        pair = [run for run in runs if run.variant == variant and run.model == model]
+        filled = [run for run in pair if run.outcome is not None]
+        tasks = [run for run in pair if run.revision is None]
+        timed = [run.seconds for run in filled if run.seconds is not None]
+        counts = [sum(run.outcome == name for run in filled) for name in ("first", "repaired")]
+        fallbacks = sum(run.outcome == "fallback" for run in filled)
+        lines.append(
+            f"| {variant} | {model} | {counts[0]} of {len(filled)} | {counts[1]} | {fallbacks} | "
+            f"{sum(run.failure is not None for run in pair)} | "
+            f"{_or_dash(round(statistics.median(timed), 1) if len(timed) > 0 else None)} | "
+            f"{_share(runs=tasks)} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+async def schema_probe(bench: Bench) -> str | None:
+    """None when the gateway takes `json_schema` with the WidgetSpec schema, else its error."""
+    messages = prompts.generate_messages(
+        variant="catalogue_schema", task="liquidity", data=bench.data["liquidity"]
+    )
+    try:
+        await bench.apertus_schema.structured(
+            messages=messages,
+            schema=WidgetSpec,
+            model=Model.FAST,
+            purpose="widget_bench_schema_probe",
+        )
+    except UpstreamError as error:
+        # The gateway's own words are on the OpenAI error underneath.
+        cause = error.__cause__
+        return str(error) if cause is None else f"{error}: {cause}"[:400]
+    return None
+
+
 def _share(runs: list[Run]) -> str:
     if len(runs) == 0:
         return "–"
@@ -445,13 +600,26 @@ async def bench_all(args: argparse.Namespace, d3: str | None) -> int:
         return 1
     banking = BankingClient(settings=settings)
     apertus = ApertusClient(settings=settings)
+    schema_settings = settings.model_copy(update={"apertus_json_schema_supported": True})
+    apertus_schema = ApertusClient(settings=schema_settings)
+    variants = list(args.variants)
+    schema_note = "`catalogue_schema` was not run."
     try:
         data = await build_all(ledger=LedgerService(banking=banking), token=login.json()["token"])
-        bench = Bench(apertus=apertus, data=data, d3=d3, parallel=args.parallel)
+        bench = Bench(
+            apertus=apertus, apertus_schema=apertus_schema, data=data, d3=d3, parallel=args.parallel
+        )
+        if "catalogue_schema" in variants and not args.recheck:
+            refusal = await schema_probe(bench=bench)
+            schema_note = "The Keera gateway accepts `json_schema` with the WidgetSpec schema."
+            if refusal is not None:
+                schema_note = f"The Keera gateway refuses `json_schema`: {refusal}"
+                variants.remove("catalogue_schema")
+            print(schema_note, flush=True)  # noqa: T201
         if args.recheck:
             runs = await recheck(bench=bench)
         else:
-            pairs = [(variant, model) for model in args.models for variant in args.variants]
+            pairs = [(variant, model) for model in args.models for variant in variants]
             results = await asyncio.gather(
                 *(run_pair(bench=bench, variant=v, model=m, tasks=args.tasks) for v, m in pairs)
             )
@@ -459,11 +627,19 @@ async def bench_all(args: argparse.Namespace, d3: str | None) -> int:
     finally:
         await banking.close()
         await apertus.close()
+        await apertus_schema.close()
     (RESULTS / "runs.json").write_text(
         json.dumps([asdict(run) for run in runs], indent=1), encoding="utf-8"
     )
     (RESULTS / "index.html").write_text(gallery(runs=runs), encoding="utf-8")
-    RESULTS_MD.write_text(results_markdown(runs=runs, settings=settings), encoding="utf-8")
+    catalogue = catalogue_markdown(runs=runs, schema_note=schema_note)
+    if set(args.variants) <= CATALOGUE:
+        # Only catalogue variants ran: keep the committed results of the others, replace this part.
+        kept = RESULTS_MD.read_text(encoding="utf-8").split(CATALOGUE_SECTION)[0].rstrip()
+        RESULTS_MD.write_text(f"{kept}\n\n{catalogue}", encoding="utf-8")
+    else:
+        full = results_markdown(runs=runs, settings=settings)
+        RESULTS_MD.write_text(f"{full}\n{catalogue}", encoding="utf-8")
     print(f"Wrote {RESULTS_MD} and {RESULTS / 'index.html'}")  # noqa: T201
     return 0
 

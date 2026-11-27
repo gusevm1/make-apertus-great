@@ -16,8 +16,8 @@
     var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
         var parent = node.parentElement;
-        // Axis ticks are scale labels, not figures from the data.
-        if (parent === null || parent.closest("script, style, noscript, template, title, .tick, .axis")) {
+        // Axis ticks are scale labels, not figures from the data (Vega puts them in .role-axis).
+        if (parent === null || parent.closest("script, style, noscript, template, title, .tick, .axis, .role-axis")) {
           return NodeFilter.FILTER_REJECT;
         }
         return node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
