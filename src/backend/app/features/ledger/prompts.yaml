@@ -93,7 +93,7 @@ text_not_found: >-
   about, such as {{"text": ["Krankenversicherung", "Assura", "CSS"], "date_from": "<first day>",
   "date_to": "<last day>"}}: its money_out_chf is then the sum.
 
-date_from: "First day of the period, as YYYY-MM-DD."
+date_from: "First day of the period, as YYYY-MM-DD. For one month, such as \"last month\", its own first day: the period then covers that month and no other."
 date_to: "Last day of the period, as YYYY-MM-DD."
 text: "Words to look for in the text and the counterparty, such as merchant names. A movement matches when it contains any of them."
 kind: "Which kinds to count: spending (money out), credit (money in), own_transfer (between own accounts or into the depot), card_settlement (the bill of a credit card, whose purchases count already). Leave it out for spending and credit."
