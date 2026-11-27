@@ -681,6 +681,11 @@ def cmd_ci(_: argparse.Namespace) -> None:
         return
 
     pull_request = event["pull_request"]
+    if action != "closed":
+        # A push right before a merge can be handled after it, with a payload that still says open
+        pull_request["state"] = gh(
+            "api", f"repos/{repo()}/pulls/{pull_request['number']}", "-q", ".state"
+        )
     status = ci_status(event_name=name, event=event)
     numbers = closing_refs(body=pull_request["body"])
     if status is None:
@@ -846,6 +851,8 @@ def demo() -> None:
     assert ci_status(event_name="pull_request", event=unmerged) == "Ready"
     edited = pr_event(action="edited", state="closed", merged=True)
     assert ci_status(event_name="pull_request", event=edited) is None
+    late_push = pr_event(action="synchronize", state="closed", merged=True)
+    assert ci_status(event_name="pull_request", event=late_push) is None
     review = pr_event(action="submitted") | {"review": {"state": "changes_requested"}}
     assert ci_status(event_name="pull_request_review", event=review) == "Ready"
     review["review"]["state"] = "approved"
