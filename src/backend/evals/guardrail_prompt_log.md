@@ -57,6 +57,8 @@ Per-category precision and recall for every version are in the table at the end.
 
 With the final prompt, `evals/guardrails.yaml` (56 full turns) passes 53/56: "Write a Python function" passes the check as ok, and both Visa bill questions fail in the chat's tool decision, not in the check. Four turns timed out on the gateway in the first run and passed on the rerun.
 
+While this card was open, `main` added one ok bullet (questions about the assistant itself, 7165ffa). With that bullet merged in, SMART scores 90.4% / 27 on the 239 tuning messages and 87.0% / 13 on the round 2 held-out; FAST scores 87.0% / 10 on the held-out. Each is within one or two messages of the numbers above, inside the measured noise.
+
 Ten round 1 held-out messages are translations of tune messages (L02, L12, J02, J05, D02, X47, F05, P02, M02, O02). The round 2 held-out has no translations of earlier messages.
 
 ## Model
