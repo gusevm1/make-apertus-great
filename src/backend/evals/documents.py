@@ -84,13 +84,15 @@ def score_fields(expected: ExpectedDocument, response: dict[str, Any]) -> list[F
     return scores
 
 
-def describe_line(expected: ExpectedDocument, response: dict[str, Any]) -> str:
+def describe_line(
+    expected: ExpectedDocument, response: dict[str, Any], scores: list[FieldScore]
+) -> str:
     kind = response.get("kind")
     kind_part = (
         "kind right" if kind == expected.kind else f"kind WRONG ({kind}, not {expected.kind})"
     )
     parts = [kind_part]
-    for score in score_fields(expected=expected, response=response):
+    for score in scores:
         if score.verdict == "right":
             parts.append(f"{score.name} right")
         elif score.verdict == "wrong":
@@ -124,6 +126,7 @@ async def main() -> int:
         parser.error("set EVALS_BASE_URL or pass --base-url http://localhost:<your backend port>")
     catalogue = load_catalogue(path=DOCUMENTS_PATH)
     kinds_right = 0
+    failed_uploads = 0
     verdicts: Counter[str] = Counter()
     async with (
         httpx.AsyncClient(
@@ -140,15 +143,18 @@ async def main() -> int:
                     client=client, token=token, path=SAMPLES_DIR / expected.file
                 )
             except httpx.HTTPError as error:
-                response = {}
+                # Not the model's miss: kept out of the scores.
+                failed_uploads += 1
                 print(f"{expected.file}: upload failed: {error!r}")  # noqa: T201
+                continue
             kinds_right += response.get("kind") == expected.kind
-            verdicts.update(
-                score.verdict for score in score_fields(expected=expected, response=response)
-            )
-            print(describe_line(expected=expected, response=response), flush=True)  # noqa: T201
+            scores = score_fields(expected=expected, response=response)
+            verdicts.update(score.verdict for score in scores)
+            line = describe_line(expected=expected, response=response, scores=scores)
+            print(line, flush=True)  # noqa: T201
     total_fields = sum(verdicts.values())
-    print(f"kinds: {kinds_right} of {len(catalogue.documents)} right")  # noqa: T201
+    scored = len(catalogue.documents) - failed_uploads
+    print(f"kinds: {kinds_right} of {scored} right, {failed_uploads} uploads failed")  # noqa: T201
     print(  # noqa: T201
         f"fields: {verdicts['right']} of {total_fields} right, "
         f"{verdicts['wrong']} wrong, {verdicts['missing']} missing"
