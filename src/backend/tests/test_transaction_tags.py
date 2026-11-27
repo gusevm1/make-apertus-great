@@ -461,7 +461,7 @@ async def test_a_severity_outside_the_five_or_for_an_unknown_category_is_dropped
         ]
         return json.dumps({"categories": answers})
 
-    apertus.reply = reply
+    apertus.structured_reply = reply
 
     response = await lukas.post("/api/severity-proposals")
 
