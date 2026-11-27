@@ -50,6 +50,8 @@ class BuiltWidget(BaseModel):
     widget_id: UUID
     version_number: int
     title: str
+    # What the answer may say about the widget, from prompts.yaml.
+    note: str
     checks: list[Check]
 
 

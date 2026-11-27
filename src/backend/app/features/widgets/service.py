@@ -16,6 +16,7 @@ from app.features.widgets.catalogue.schemas import FIELD_PATTERN, WidgetSpec
 from app.features.widgets.prompts import repair_messages, spec_messages
 from app.features.widgets.repository import WidgetRepository, WidgetVersionRepository
 from app.features.widgets.schemas import (
+    PROMPTS,
     BuildWidgetArgs,
     BuiltWidget,
     Form,
@@ -57,8 +58,8 @@ class WidgetService:
         used = [result for result in results if result.tool_name != BUILD_WIDGET]
         if len(used) == 0:
             raise BadRequestError(
-                "No earlier tool call of this turn returned figures. Call the tools that fetch "
-                "them first, then build_widget in a later round."
+                "No earlier tool call of this turn returned figures. List the tools that fetch "
+                "them before build_widget."
             )
         data = widget_data(results=used)
         started = time.perf_counter()
@@ -89,7 +90,11 @@ class WidgetService:
             },
         )
         return BuiltWidget(
-            widget_id=widget.id, version_number=version.number, title=widget.title, checks=checks
+            widget_id=widget.id,
+            version_number=version.number,
+            title=widget.title,
+            note=PROMPTS["built_note"],
+            checks=checks,
         )
 
     async def get_widget(self, widget_id: UUID, owner_id: UUID) -> Widget:
@@ -201,7 +206,14 @@ def _numbers(value: Any, key: str) -> Any:
     if isinstance(value, list):
         return [_numbers(value=item, key=key) for item in value]
     if isinstance(value, str) and key.endswith(AMOUNT_SUFFIXES) and _DECIMAL.match(value):
-        return float(value)
+        value = float(value)
+    # The ledger writes money out as negative; a field named money_out already says the direction.
+    if (
+        key.startswith("money_out")
+        and isinstance(value, int | float)
+        and not isinstance(value, bool)
+    ):
+        return abs(value)
     return value
 
 

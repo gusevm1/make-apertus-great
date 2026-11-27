@@ -209,7 +209,7 @@ async def test_a_widget_needs_earlier_results_of_the_turn(session: AsyncSession)
     conversation = await make_conversation(session=session)
     widgets = _service(session=session, apertus=ScriptedApertus(decisions=[], specs=[]))
 
-    with pytest.raises(BadRequestError, match="Call the tools that fetch"):
+    with pytest.raises(BadRequestError, match="List the tools that fetch"):
         await widgets.build_widget(
             owner_id=DEMO_USER_ID, conversation_id=conversation.id, args=_args(), results=[]
         )
@@ -263,6 +263,18 @@ def test_a_figure_shows_the_name_of_its_own_row() -> None:
     page = render(spec=spec, data=data, form="static")
 
     assert "October · Jan 2026" in page
+
+
+def test_money_out_is_drawn_as_a_positive_amount() -> None:
+    month = {"month": "2026-10", "money_out_chf": "-10598.77", "money_in_chf": "7412.55"}
+    results = [
+        TurnResult(tool_call_id=uuid4(), tool_name="sum_by_month", result={"months": [month]})
+    ]
+
+    data = widget_data(results=results)
+
+    assert data["months"][0]["money_out_chf"] == 10598.77
+    assert data["months"][0]["money_in_chf"] == 7412.55
 
 
 async def test_only_the_owner_reads_a_widget_version(

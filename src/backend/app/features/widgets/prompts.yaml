@@ -1,8 +1,11 @@
 build_widget: >-
-  Draws the figures of this turn's earlier tool calls as a chart, table or other widget on the
-  customer's canvas, and keeps it. Use it when the customer asks for a chart, a graph, a widget,
-  a table or a visual. It fetches nothing itself: first call the tools that fetch the figures,
-  then call build_widget in a later round. It draws every earlier result of this turn.
+  Draws figures as a chart, table or other widget on the customer's canvas and keeps it. Whenever
+  the message asks for a chart, graph, diagram, widget, visual or a table to keep, call it: without
+  it nothing is drawn. It fetches nothing itself, so list it after the calls that fetch the
+  figures, in the same list; it runs last and draws every result of this turn.
+built_note: >-
+  The widget is drawn on the canvas beside this chat, where the customer sees it now. It is not on
+  the e-banking dashboard. Say in one sentence that it is on the canvas; never name its id.
 arg_title: A short heading for the widget in the customer's language, without figures.
 arg_request: What the customer asked to see, in their own words.
 
