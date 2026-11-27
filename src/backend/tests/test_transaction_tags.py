@@ -223,6 +223,7 @@ async def test_tags_every_spending_row_and_nothing_else(lukas: httpx2.AsyncClien
     assert response.status_code == 201
     assert response.json() == {
         "tagged_by_rule": 1,
+        "tagged_by_correction": 0,
         "tagged_by_model": 4,
         "already_tagged": 0,
         "skipped": 0,
@@ -286,6 +287,7 @@ async def test_a_second_call_sends_no_tagged_row(
     assert apertus.requests == []
     assert response.json() == {
         "tagged_by_rule": 0,
+        "tagged_by_correction": 0,
         "tagged_by_model": 0,
         "already_tagged": 5,
         "skipped": 0,

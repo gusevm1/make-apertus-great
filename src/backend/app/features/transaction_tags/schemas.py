@@ -24,7 +24,6 @@ CATEGORIES = (
 )
 Certainty = Literal["low", "medium", "high"]
 CERTAINTIES = get_args(Certainty)
-MAX_CORRECTION_EXAMPLES = 30
 Severity = Literal["negligible", "minor", "moderate", "major", "critical"]
 SEVERITIES = get_args(Severity)
 RowSource = Literal["booking", "card_transaction"]
@@ -66,7 +65,8 @@ class CategoryCorrection(BaseModel):
 
 
 class Categorisation(BaseModel):
-    tagged_by_rule: int  # by loan rule or by the customer's correction of the payee
+    tagged_by_rule: int
+    tagged_by_correction: int  # from the customer's correction of the payee
     tagged_by_model: int
     already_tagged: int
     skipped: int  # rows Apertus gave no valid category, so they stay untagged for the next call
@@ -129,6 +129,7 @@ class ResponseTransactionTag(BaseModel):
 
 class ResponseCategorisation(BaseModel):
     tagged_by_rule: int
+    tagged_by_correction: int
     tagged_by_model: int
     already_tagged: int
     skipped: int

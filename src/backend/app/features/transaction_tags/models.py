@@ -28,8 +28,6 @@ class TransactionTagORM(Base):
 
 
 class CategoryCorrectionORM(Base):
-    """The customer's category for a payee, given to its later rows without asking Apertus."""
-
     __tablename__ = "category_corrections"
     __table_args__ = (UniqueConstraint("owner_id", "payee"),)
 

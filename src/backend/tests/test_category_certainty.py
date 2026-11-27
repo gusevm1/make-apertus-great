@@ -85,7 +85,7 @@ async def test_a_corrected_payee_is_categorised_without_apertus(
 
     response = await lukas.post("/api/categorisations")
 
-    assert response.json()["tagged_by_rule"] == 3
+    assert response.json()["tagged_by_correction"] == 2
     (request,) = apertus.requests
     sent = {
         row["counterparty"]
@@ -99,6 +99,7 @@ async def test_a_corrected_payee_is_categorised_without_apertus(
         assert tags[row_id]["category_set_by"] == "customer"
         assert tags[row_id]["category_confirmed"] is True
         assert tags[row_id]["category_model"] is None
+        assert tags[row_id]["category_certainty"] == "high"
 
 
 async def test_a_correction_of_another_customer_changes_nothing(

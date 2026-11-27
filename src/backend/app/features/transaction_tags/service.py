@@ -13,16 +13,17 @@ from app.features.transaction_tags.repository import (
 from app.features.transaction_tags.schemas import (
     CATEGORIES,
     CERTAINTIES,
-    MAX_CORRECTION_EXAMPLES,
     BatchCategories,
     Categorisation,
     CategoryCorrection,
     RowCategory,
+    SetBy,
 )
 from app.features.transaction_tags.severity import payee_key
 
 BATCH_SIZE = 50
 MAX_PARALLEL_BATCHES = 16
+MAX_CORRECTION_EXAMPLES = 30
 
 
 class TransactionTagService:
@@ -56,11 +57,13 @@ class TransactionTagService:
         ]
         tagged_by_rule = await self.tags.create_many(
             values=[
-                _rule_values(owner_id=owner_id, row=row, category="loan_leasing", set_by="rule")
+                _fixed_values(owner_id=owner_id, row=row, category="loan_leasing", set_by="rule")
                 for row in by_rule
             ]
-            + [
-                _rule_values(
+        )
+        tagged_by_correction = await self.tags.create_many(
+            values=[
+                _fixed_values(
                     owner_id=owner_id,
                     row=row,
                     category=corrected[payee_key(row=row)],
@@ -99,6 +102,7 @@ class TransactionTagService:
             raise UpstreamError("Apertus categorised no batch")
         return Categorisation(
             tagged_by_rule=tagged_by_rule,
+            tagged_by_correction=tagged_by_correction,
             tagged_by_model=tagged_by_model,
             already_tagged=len(spending) - len(untagged),
             skipped=len(by_model) - tagged_by_model,
@@ -131,7 +135,9 @@ class TransactionTagService:
         return [(refs[ref], answer, result.model) for ref, answer in answers.items()]
 
 
-def _rule_values(owner_id: UUID, row: LedgerRow, category: str, set_by: str) -> dict[str, object]:
+def _fixed_values(
+    owner_id: UUID, row: LedgerRow, category: str, set_by: SetBy
+) -> dict[str, object]:
     return {
         "owner_id": owner_id,
         "row_source": row.source,
