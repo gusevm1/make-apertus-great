@@ -3,17 +3,25 @@ import re
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 import pytest
 from pydantic import ValidationError
 
 from app.core.errors import BadRequestError
 from app.features.widgets.catalogue import render as render_module
-from app.features.widgets.catalogue.charts import LABEL_LIMIT, chart_spec
+from app.features.widgets.catalogue.charts import ACCENT, LABEL_LIMIT, PALETTE, chart_spec
 from app.features.widgets.catalogue.prompts import NOT_COMPONENTS, PROMPTS, catalogue_prompt
 from app.features.widgets.catalogue.render import Form, fallback, render
-from app.features.widgets.catalogue.schemas import COMPONENTS, BarChart, WidgetSpec
+from app.features.widgets.catalogue.schemas import (
+    COMPONENTS,
+    AreaChart,
+    BarChart,
+    ColourName,
+    Comparison,
+    LineChart,
+    WidgetSpec,
+)
 from app.features.widgets.catalogue.values import display, resolve
 
 SNAPSHOTS = Path(__file__).with_name("snapshots") / "widget_catalogue"
@@ -356,6 +364,75 @@ def test_a_timeline_needs_dates_in_order() -> None:
 def test_a_comparison_needs_its_period_field() -> None:
     with pytest.raises(ValidationError):
         spec(body={key: value for key, value in BODIES["comparison"].items() if key != "series"})
+
+
+def _contrast_on_white(colour: str) -> float:
+    channels = [int(colour[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+    return 1.05 / (luminance + 0.05)
+
+
+def test_every_palette_colour_is_a_name_apertus_may_use_and_readable_on_white() -> None:
+    assert set(PALETTE) == set(get_args(ColourName))
+    for name, colour in PALETTE.items():
+        assert _contrast_on_white(colour=colour) >= 3, name
+
+
+@pytest.mark.parametrize("name", ["line_chart", "area_chart", "comparison"])
+def test_the_newest_period_gets_the_accent_colour_in_both_forms(name: str) -> None:
+    chart = spec(body=BODIES[name]).body
+    assert isinstance(chart, LineChart | AreaChart | Comparison)
+    scale = chart_spec(component=chart, data=DATA, live=False)["encoding"]["color"]["scale"]
+    assert scale == {"domain": ["2026", "2025"], "range": [ACCENT, PALETTE["grey_light"]]}
+    for form in ("live", "static"):
+        assert ACCENT in render(spec=spec(body=BODIES[name]), data=DATA, form=form)
+
+
+def test_series_that_are_not_periods_keep_their_order() -> None:
+    accounts = {
+        "years": [
+            {"month": "09", "year": "Savings", "total_chf": 1.0},
+            {"month": "09", "year": "Private", "total_chf": 2.0},
+        ]
+    }
+    chart = spec(body=BODIES["line_chart"]).body
+    assert isinstance(chart, LineChart)
+    scale = chart_spec(component=chart, data=accounts, live=False)["encoding"]["color"]["scale"]
+    assert scale["domain"] == ["Private", "Savings"]
+
+
+def test_a_chosen_colour_draws_its_bar_in_both_forms() -> None:
+    body = {**BODIES["bar_chart"], "colors": {"2026-10": "red"}}
+    for form in ("live", "static"):
+        assert PALETTE["red"] in render(spec=spec(body=body), data=DATA, form=form)
+
+
+def test_a_chosen_colour_changes_a_series_and_a_donut_part_with_its_legend() -> None:
+    line = {**BODIES["line_chart"], "colors": {"2025": "blue"}}
+    chart = spec(body=line).body
+    assert isinstance(chart, LineChart)
+    scale = chart_spec(component=chart, data=DATA, live=False)["encoding"]["color"]["scale"]
+    assert scale["range"] == [ACCENT, PALETTE["blue"]]
+    donut = {**BODIES["donut"], "colors": {"2026-09": "amber"}}
+    page = render(spec=spec(body=donut), data=DATA, form="static")
+    # The legend's swatch matches the slice the customer coloured.
+    assert f'style="background: {PALETTE["amber"]}"' in page
+
+
+def test_an_unknown_colour_or_label_is_refused_with_what_is_allowed() -> None:
+    with pytest.raises(ValidationError, match="red_light"):
+        spec(body={**BODIES["bar_chart"], "colors": {"2026-10": "purple"}})
+    with pytest.raises(BadRequestError, match="colors names '2026-12'.*2026-09, 2026-10"):
+        body = {**BODIES["bar_chart"], "colors": {"2026-12": "red"}}
+        render(spec=spec(body=body), data=DATA, form="static")
+
+
+def test_the_prompt_names_the_palette_and_how_to_colour_a_bar() -> None:
+    prompt = catalogue_prompt()
+    assert "colors (map from a label or series value" in prompt
+    assert "amber_light" in prompt
+    assert '"colors": {"2026-10": "red"}' in prompt
 
 
 def test_callout_and_timeline_text_is_escaped() -> None:
