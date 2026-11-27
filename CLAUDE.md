@@ -9,9 +9,9 @@ Five people and their agents work in parallel, so the conventions below matter m
 - Our code lives in `src/`. Never rename or move the template files (`README.md`, `technical_report.md`,
   `challenge_description.md`, `LICENSE`, `starter/`).
 - The model is Apertus v1.5 through the Keera gateway, configured by `LLM_NAME`, `LLM_BASE_URL` and
-  `LLM_API_KEY`. An optional `LLM_NAME_FAST` names the smaller Apertus model for small tasks such as
-  transcription; without it everything runs on `LLM_NAME`. No closed model and no proprietary AI API
-  at runtime.
+  `LLM_API_KEY`. An optional `LLM_NAME_FAST` names the smaller Apertus model for small tasks; without
+  it everything runs on `LLM_NAME`. Transcription uses `LLM_NAME`, because the smaller model translated
+  German speech into English. No closed model and no proprietary AI API at runtime.
 - Customer data stays inside: nothing the customer types, uploads or owns goes to a service outside
   the stack in `starter/docker-compose.yml`, except the model gateway.
 - Web search is the one exception. It runs through our own SearXNG, exists only when `SEARXNG_URL`
