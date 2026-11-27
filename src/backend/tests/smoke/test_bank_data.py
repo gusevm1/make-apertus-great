@@ -48,7 +48,8 @@ async def test_the_ledger_tools_add_up_on_the_server_and_read_the_bank_once(
             "count": 1,
             "money_out_chf": "-2800.0",
             "money_in_chf": "0",
-            "provisional_chf": "0",
+            "provisional_out_chf": "0",
+            "provisional_in_chf": "0",
         }
     ]
     names = [group["counterparty"] for group in counterparties["result"]["counterparties"]]

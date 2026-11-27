@@ -100,7 +100,8 @@ class MovementSearch(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
-    provisional_chf: Decimal
+    provisional_out_chf: Decimal
+    provisional_in_chf: Decimal
     rows: list[Movement]
     rows_not_listed: int
     # Last, so a cut in the tool result drops ids before any figure.
@@ -112,14 +113,16 @@ class MonthSum(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
-    provisional_chf: Decimal
+    provisional_out_chf: Decimal
+    provisional_in_chf: Decimal
 
 
 class MonthSums(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
-    provisional_chf: Decimal
+    provisional_out_chf: Decimal
+    provisional_in_chf: Decimal
     months: list[MonthSum]
     row_ids: dict[str, list[str]]
 
@@ -135,7 +138,8 @@ class CounterpartySums(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
-    provisional_chf: Decimal
+    provisional_out_chf: Decimal
+    provisional_in_chf: Decimal
     counterparties: list[CounterpartySum]
     others: CounterpartySum | None
     row_ids: dict[str, list[str]]

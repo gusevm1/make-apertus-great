@@ -93,7 +93,7 @@ class LedgerService:
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
-            provisional_chf=_provisional(rows=rows),
+            **_provisional(rows=rows),
             rows=[Movement.model_validate(row, from_attributes=True) for row in listed],
             rows_not_listed=len(rows) - len(listed),
             row_ids=[row.id for row in rows],
@@ -112,7 +112,7 @@ class LedgerService:
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
-            provisional_chf=_provisional(rows=rows),
+            **_provisional(rows=rows),
             months=[_month_sum(month=month, rows=by_month[month]) for month in months],
             row_ids={month: [row.id for row in by_month[month]] for month in months},
         )
@@ -140,7 +140,7 @@ class LedgerService:
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
-            provisional_chf=_provisional(rows=rows),
+            **_provisional(rows=rows),
             counterparties=top,
             others=None if not rest else _counterparty_sum(counterparty="others", rows=rest_rows),
             row_ids={
@@ -239,8 +239,9 @@ def _sums(rows: Iterable[LedgerRow]) -> tuple[Decimal, Decimal]:
     return out, received
 
 
-def _provisional(rows: Iterable[LedgerRow]) -> Decimal:
-    return sum((row.amount_chf for row in rows if row.provisional), Decimal(0))
+def _provisional(rows: Iterable[LedgerRow]) -> dict[str, Decimal]:
+    out, received = _sums(rows=(row for row in rows if row.provisional))
+    return {"provisional_out_chf": out, "provisional_in_chf": received}
 
 
 def _counterparty_sum(counterparty: str, rows: list[LedgerRow]) -> CounterpartySum:
@@ -257,7 +258,7 @@ def _month_sum(month: str, rows: list[LedgerRow]) -> MonthSum:
         count=len(rows),
         money_out_chf=out,
         money_in_chf=received,
-        provisional_chf=_provisional(rows=rows),
+        **_provisional(rows=rows),
     )
 
 

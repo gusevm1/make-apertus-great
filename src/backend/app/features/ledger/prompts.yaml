@@ -8,20 +8,21 @@ search_movements: >-
   `text` finds nothing. Pass the names of the merchants or the landlord instead, and when you do not
   know them, call sum_by_counterparty first to see who the customer pays. Use it for "how much did I
   spend at Migros" or "show my largest payments". A row marked `provisional` is a credit card purchase
-  on a statement that is still open, and `provisional_chf` is how much of a sum such rows make up.
-  When it is not 0, say in the answer that this part is provisional until the card statement closes.
+  on a statement that is still open. `provisional_out_chf` is the part of `money_out_chf` from such
+  rows, `provisional_in_chf` the part of `money_in_chf`. When either is not 0, say in the answer
+  that this part is provisional until the card statement closes.
 sum_by_month: >-
   The customer's money movements added up per month: for each month of the period its `count`,
   `money_out_chf` and `money_in_chf`, also months with no match, as 0. Takes the same filters as
   search_movements, also the names in `text`. Use it for "my spending per month", "did I pay my rent
   each month" (with the landlord's name) or "when did the child support come in". Each month and the
-  total have `provisional_chf`, as in search_movements.
+  total have `provisional_out_chf` and `provisional_in_chf`, as in search_movements.
 sum_by_counterparty: >-
   The customer's money movements added up per counterparty, such as a shop, a landlord or a person,
   the largest first (up to `limit`, 15 at most) and the rest as `others`. Takes the same filters as search_movements. Use it
   for "where does my money go", and first when a question names a category instead of a merchant
   (rent, online shops, insurance), to find the names to pass to the other tools. The total has
-  `provisional_chf`, as in search_movements.
+  `provisional_out_chf` and `provisional_in_chf`, as in search_movements.
 text_not_found: >-
   No movement in the whole ledger contains {words}. Movements carry no category: call
   sum_by_counterparty for the period to see who the customer pays, then search for those names.

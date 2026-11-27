@@ -340,12 +340,15 @@ async def test_purchases_on_an_open_statement_are_provisional_and_the_sums_say_h
 
     provisional = {row.id for row in search.rows if row.provisional}
     assert provisional == {"CTX-1", "CTX-2"}
-    assert search.provisional_chf == Decimal("29.04")
-    assert months.months[0].provisional_chf == Decimal("29.04")
+    assert (search.provisional_out_chf, search.provisional_in_chf) == (
+        Decimal("-10.96"),
+        Decimal("40.0"),
+    )
+    assert months.months[0].provisional_out_chf == Decimal("-10.96")
 
 
 async def test_purchases_on_a_settled_statement_are_final(ledger: LedgerService) -> None:
     search = await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs(limit=20))
 
     assert not any(row.provisional for row in search.rows)
-    assert search.provisional_chf == Decimal(0)
+    assert (search.provisional_out_chf, search.provisional_in_chf) == (Decimal(0), Decimal(0))
