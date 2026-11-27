@@ -1,0 +1,66 @@
+{% macro node(n) -%}
+{%- if n.type == "kpi" -%}
+<section class="kpi" data-component="kpi" data-path="{{ n.path }}" data-value="{{ n.raw }}">
+  <span class="kpi-label">{{ n.label }}</span>
+  <span class="kpi-value">{{ n.text }}</span>
+  {%- if n.compare_text is not none %}
+  <span class="kpi-compare" data-component="kpi-compare" data-path="{{ n.compare_path }}" data-value="{{ n.compare_raw }}">{{ n.compare_label }} {{ n.compare_text }}</span>
+  {%- endif %}
+</section>
+{%- elif n.type == "stat_row" -%}
+<section class="stats" data-component="stat_row">
+  {%- for s in n.stats %}
+  <div class="stat" data-component="stat" data-path="{{ s.path }}" data-value="{{ s.raw }}">
+    <span class="stat-label">{{ s.label }}</span>
+    <span class="stat-value">{{ s.text }}</span>
+  </div>
+  {%- endfor %}
+</section>
+{%- elif n.type == "table" -%}
+<section class="table-wrap" data-component="table" data-path="{{ n.path }}">
+  {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
+  <div class="table-scroll">
+  <table>
+    <thead><tr>{% for c in n.columns %}<th{% if c.numeric %} class="num"{% endif %}>{{ c.title }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {%- for r in n.rows %}
+      <tr data-component="table-row" data-path="{{ r.path }}" data-values="{{ r.row_values }}" data-booking-ids="{{ r.booking_ids }}">
+        {%- for cell in r.cells %}<td{% if n.columns[loop.index0].numeric %} class="num"{% elif n.columns[loop.index0].date %} class="date"{% endif %}>{{ cell }}</td>{% endfor %}
+      </tr>
+    {%- endfor %}
+    </tbody>
+    {%- if n.total_text is not none %}
+    <tfoot><tr data-component="table-total" data-path="{{ n.total_path }}" data-value="{{ n.total_raw }}">
+      <td>Total</td>{% for c in n.columns[1:] %}<td{% if c.numeric %} class="num"{% endif %}>{% if loop.last %}{{ n.total_text }}{% endif %}</td>{% endfor %}
+    </tr></tfoot>
+    {%- endif %}
+  </table>
+  </div>
+</section>
+{%- elif n.type == "list" -%}
+<section class="list" data-component="list" data-path="{{ n.path }}">
+  {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
+  <ul>
+  {%- for i in n.entries %}
+    <li data-component="list-item" data-path="{{ i.path }}" data-values="{{ i.row_values }}" data-booking-ids="{{ i.booking_ids }}">
+      <span class="item-main"><span class="item-label">{{ i.label }}</span>{% if i.detail is not none %}<span class="item-detail">{{ i.detail }}</span>{% endif %}</span>
+      <span class="item-value">{{ i.value }}</span>
+    </li>
+  {%- endfor %}
+  </ul>
+</section>
+{%- elif n.type in ("bar_chart", "line_chart") -%}
+<section class="chart" data-component="{{ n.type }}" data-path="{{ n.path }}">
+  {%- if n.title is not none %}<h2>{{ n.title }}</h2>{% endif %}
+  <div class="chart-area" id="{{ n.id }}">{% if n.svg is not none %}{{ n.svg | safe }}{% endif %}</div>
+</section>
+{%- elif n.type == "stack" -%}
+<div class="stack" data-component="stack">
+  {%- for child in n.children %}{{ node(child) }}{% endfor %}
+</div>
+{%- elif n.type == "grid" -%}
+<div class="grid cols-{{ n.columns }}" data-component="grid">
+  {%- for child in n.children %}{{ node(child) }}{% endfor %}
+</div>
+{%- endif -%}
+{%- endmacro %}

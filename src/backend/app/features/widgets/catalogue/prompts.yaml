@@ -1,0 +1,29 @@
+intro: |
+  You build a widget by choosing components from this catalogue and filling them in. Our code draws them in the e-banking's look.
+  Every figure comes from DATA. A field marked "path into DATA" names where a value is, such as "months[5].total_chf" or "payments"; never write a figure yourself. Labels and titles are your own words.
+  Return one widget: {"title": ..., "subtitle": optional, "body": one component}. Put several components into a stack or a grid.
+
+kpi:
+  description: One figure, large, with an optional second figure to compare it with.
+  example: {"type": "kpi", "label": "Spending in October", "value": "months[5].total_chf", "compare": "months[4].total_chf", "compare_label": "September"}
+stat_row:
+  description: Two to four small figures side by side, each with a label.
+  example: {"type": "stat_row", "stats": [{"label": "Rent", "value": "payees[0].total_chf"}, {"label": "Taxes", "value": "payees[1].total_chf"}]}
+table:
+  description: Rows of a list in DATA with the columns you choose, and an optional total that DATA already holds.
+  example: {"type": "table", "title": "Due in the next 30 days", "rows": "payments", "columns": ["due_date", "payee", "amount_chf"], "total": "total_chf"}
+list:
+  description: A compact list for narrow spaces, one line per row with a label, an optional detail and a value.
+  example: {"type": "list", "rows": "payments", "label": "payee", "detail": "due_date", "value": "amount_chf"}
+bar_chart:
+  description: Bars for one value per label, such as spending per month. `horizontal` suits long labels such as payee names. `highlight` names one label to draw in the accent colour.
+  example: {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf", "highlight": "2026-10"}
+line_chart:
+  description: A line over labels in order, such as months; `series` draws one line per value of that field, such as one per year.
+  example: {"type": "line_chart", "data": "years", "x": "month", "y": "total_chf", "series": "year"}
+stack:
+  description: Components one below the other.
+  example: {"type": "stack", "children": [{"type": "kpi", "label": "Total", "value": "months_total"}, {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf"}]}
+grid:
+  description: Two or three columns side by side on wide screens, one column on a phone.
+  example: {"type": "grid", "columns": 2, "children": [{"type": "kpi", "label": "October", "value": "months[5].total_chf"}, {"type": "kpi", "label": "September", "value": "months[4].total_chf"}]}

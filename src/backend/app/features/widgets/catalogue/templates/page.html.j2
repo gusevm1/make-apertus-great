@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="{{ csp }}">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<style>{{ css | safe }}</style>
+</head>
+<body>
+<main class="widget" data-component="widget" data-form="{{ form }}">
+  <header class="widget-head">
+    <h1>{{ title }}</h1>
+    {% if subtitle is not none %}<p class="widget-sub">{{ subtitle }}</p>{% endif %}
+  </header>
+  {{ components.node(body) }}
+</main>
+<script>{{ bridge | safe }}</script>
+{% if form == "live" %}
+<script>{{ runtime | safe }}</script>
+<script>window.trustroomCharts({{ charts_json | safe }});</script>
+{% endif %}
+</body>
+</html>

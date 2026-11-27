@@ -1,0 +1,55 @@
+/* The e-banking's tokens (src/frontend/src/tokens.css); the page is light, like the dashboard. */
+:root {
+  --primary: #2e6b66;
+  --primary-soft: #e7f0ef;
+  --background: #f2f3f3;
+  --surface: #ffffff;
+  --surface-muted: #f7f8f8;
+  --border: #e6e8e8;
+  --text: #12202a;
+  --muted: #5b6870;
+  --radius-sm: 8px;
+  --radius: 12px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--surface); color: var(--text); font: 14px/1.5 var(--font); }
+.widget { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px; min-width: 0; }
+.widget-head h1 { font-size: 1rem; font-weight: 600; margin: 0; text-wrap: balance; }
+.widget-sub { margin: 2px 0 0; font-size: 0.8rem; color: var(--muted); }
+h2 { font-size: 0.85rem; font-weight: 600; margin: 0 0 6px; color: var(--muted); }
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.grid { display: grid; gap: 16px; min-width: 0; }
+.grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 560px) { .grid.cols-2, .grid.cols-3 { grid-template-columns: minmax(0, 1fr); } }
+.kpi { display: grid; gap: 2px; min-width: 0; }
+.kpi-label { font-size: 0.8rem; color: var(--muted); }
+.kpi-value { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kpi-compare { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 10px; }
+.stat { background: var(--surface-muted); border-radius: var(--radius-sm); padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.stat-label { font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
+.stat-value { font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.table-wrap, .list, .chart { min-width: 0; }
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: top; overflow-wrap: anywhere; }
+th { font-weight: 500; font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+td.num, th.num { text-align: right; white-space: nowrap; overflow-wrap: normal; }
+td.date { white-space: nowrap; overflow-wrap: normal; }
+tfoot td { font-weight: 700; border-bottom: 0; }
+.list ul { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.list li:last-child { border-bottom: 0; }
+.item-main { display: grid; min-width: 0; }
+.item-label { overflow-wrap: anywhere; }
+.item-detail { font-size: 0.78rem; color: var(--muted); }
+.item-value { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chart-area { width: 100%; min-width: 0; }
+.chart-area svg { display: block; width: 100%; height: auto; max-width: 720px; }
+.chart-area .vega-embed { display: block; width: 100%; }
+.chart-area .vega-embed summary { display: none; }
+[data-path] { cursor: pointer; }
+[data-selected="true"] { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+#vg-tooltip-element.vg-tooltip { font-family: var(--font); font-size: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 6px 9px; box-shadow: 0 4px 14px rgb(18 32 42 / 0.12); }
