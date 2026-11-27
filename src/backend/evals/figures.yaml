@@ -88,3 +88,14 @@ questions:
     rule: marco
     any_calls: true
     answer: '(?<![\d''’,])6[''’,\s]?566(?:\.00)?(?![\d]|[.,]\d)'
+
+  - question: How much have I spent on my credit card in November so far?
+    customer: lukas
+    rule: provisional
+    any_calls: true
+    answer: '(?=[\s\S]*(?<![\d''’,])3[''’,\s]?301\.74(?![\d]|[.,]\d))(?=[\s\S]*(?:provisional|vorläufig|provisorisch|not (?:yet )?final|(?:can|may|might) (?:still )?change|still open|noch offen))'
+  - question: How much mortgage interest is due at the end of December?
+    customer: marco
+    rule: provisional
+    any_calls: true
+    answer: '(?=[\s\S]*(?<![\d''’,])225(?:\.00)?(?![\d]|[.,]\d))(?=[\s\S]*(?:provisional|vorläufig|provisorisch|not (?:yet )?final|(?:can|may|might) (?:still )?change|(?:set|fixed) at the end of the quarter|Quartalsende))'

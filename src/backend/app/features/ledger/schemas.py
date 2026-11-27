@@ -31,6 +31,8 @@ class LedgerRow(BaseModel):
     loan_id: str | None = None
     loan_charge: Literal["interest", "amortisation"] | None = None
     kind: Kind
+    # A purchase on a credit card statement that is still open; its bill can change.
+    provisional: bool = False
 
 
 class Filters(BaseModel):
@@ -91,12 +93,14 @@ class Movement(BaseModel):
     kind: Kind
     account_id: str
     card_id: str | None
+    provisional: bool
 
 
 class MovementSearch(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
+    provisional_chf: Decimal
     rows: list[Movement]
     rows_not_listed: int
     # Last, so a cut in the tool result drops ids before any figure.
@@ -108,12 +112,14 @@ class MonthSum(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
+    provisional_chf: Decimal
 
 
 class MonthSums(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
+    provisional_chf: Decimal
     months: list[MonthSum]
     row_ids: dict[str, list[str]]
 
@@ -129,6 +135,7 @@ class CounterpartySums(BaseModel):
     count: int
     money_out_chf: Decimal
     money_in_chf: Decimal
+    provisional_chf: Decimal
     counterparties: list[CounterpartySum]
     others: CounterpartySum | None
     row_ids: dict[str, list[str]]

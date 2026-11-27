@@ -93,6 +93,7 @@ class LedgerService:
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
+            provisional_chf=_provisional(rows=rows),
             rows=[Movement.model_validate(row, from_attributes=True) for row in listed],
             rows_not_listed=len(rows) - len(listed),
             row_ids=[row.id for row in rows],
@@ -111,6 +112,7 @@ class LedgerService:
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
+            provisional_chf=_provisional(rows=rows),
             months=[_month_sum(month=month, rows=by_month[month]) for month in months],
             row_ids={month: [row.id for row in by_month[month]] for month in months},
         )
@@ -138,6 +140,7 @@ class LedgerService:
             count=len(rows),
             money_out_chf=out,
             money_in_chf=received,
+            provisional_chf=_provisional(rows=rows),
             counterparties=top,
             others=None if not rest else _counterparty_sum(counterparty="others", rows=rest_rows),
             row_ids={
@@ -178,11 +181,20 @@ class LedgerService:
             # Debit card payments are bookings already; only a credit card has its own list.
             if card["type"] != "credit":
                 continue
-            purchases = await self._all_pages(
-                path=f"/cards/{quote(card['card_id'], safe='')}/transactions", token=token
-            )
+            card_path = f"/cards/{quote(card['card_id'], safe='')}"
+            statements = await self.read(path=f"{card_path}/statements", token=token)
+            open_statements = {
+                statement["statement_id"]
+                for statement in statements["items"]
+                if statement["status"] == "open"
+            }
+            purchases = await self._all_pages(path=f"{card_path}/transactions", token=token)
             rows += [
-                _card_row(purchase=purchase, account_id=card["linked_account"])
+                _card_row(
+                    purchase=purchase,
+                    account_id=card["linked_account"],
+                    open_statements=open_statements,
+                )
                 for purchase in purchases
             ]
         return sorted(rows, key=lambda row: (row.date, row.id))
@@ -227,6 +239,10 @@ def _sums(rows: Iterable[LedgerRow]) -> tuple[Decimal, Decimal]:
     return out, received
 
 
+def _provisional(rows: Iterable[LedgerRow]) -> Decimal:
+    return sum((row.amount_chf for row in rows if row.provisional), Decimal(0))
+
+
 def _counterparty_sum(counterparty: str, rows: list[LedgerRow]) -> CounterpartySum:
     out, received = _sums(rows=rows)
     return CounterpartySum(
@@ -236,7 +252,13 @@ def _counterparty_sum(counterparty: str, rows: list[LedgerRow]) -> CounterpartyS
 
 def _month_sum(month: str, rows: list[LedgerRow]) -> MonthSum:
     out, received = _sums(rows=rows)
-    return MonthSum(month=month, count=len(rows), money_out_chf=out, money_in_chf=received)
+    return MonthSum(
+        month=month,
+        count=len(rows),
+        money_out_chf=out,
+        money_in_chf=received,
+        provisional_chf=_provisional(rows=rows),
+    )
 
 
 def _months(filters: Filters, rows: list[LedgerRow]) -> list[str]:
@@ -286,7 +308,7 @@ def _booking_kind(booking: dict[str, Any], own_ibans: set[str]) -> Kind:
     return "credit" if booking["amount"] > 0 else "spending"
 
 
-def _card_row(purchase: dict[str, Any], account_id: str) -> LedgerRow:
+def _card_row(purchase: dict[str, Any], account_id: str, open_statements: set[str]) -> LedgerRow:
     # The card lists a charge as positive; the ledger uses the sign of a booking.
     amount = -_chf(amount=purchase["amount_chf"])
     original = _chf_or_none(amount=purchase.get("original_amount"))
@@ -303,6 +325,7 @@ def _card_row(purchase: dict[str, Any], account_id: str) -> LedgerRow:
         original_currency=purchase.get("original_currency"),
         statement_id=purchase.get("statement_id"),
         kind="credit" if amount > 0 else "spending",
+        provisional=purchase.get("statement_id") in open_statements,
     )
 
 

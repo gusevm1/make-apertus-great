@@ -64,6 +64,7 @@ def _statements(october_total: float) -> list[dict]:
         {
             "statement_id": "STMT-2023-11",
             "card_id": "CARD-VISA",
+            "status": "settled",
             "period_to": "2023-11-30",
             "total_chf": 2264.35,
             "booking_id": None,
@@ -71,6 +72,7 @@ def _statements(october_total: float) -> list[dict]:
         {
             "statement_id": "STMT-2026-09",
             "card_id": "CARD-VISA",
+            "status": "settled",
             "period_to": "2026-09-30",
             "total_chf": 279.85,
             "booking_id": "BK-3",
@@ -78,6 +80,7 @@ def _statements(october_total: float) -> list[dict]:
         {
             "statement_id": "STMT-2026-10",
             "card_id": "CARD-VISA",
+            "status": "settled",
             "period_to": "2026-10-31",
             "total_chf": october_total,
             "booking_id": None,

@@ -102,7 +102,9 @@ def test_answer_must_match_its_pattern() -> None:
 def test_figures_ask_the_four_core_questions_of_each_customer() -> None:
     questions = load_questions(path=FIGURES_PATH)
 
-    customers = Counter(question.customer for question in questions)
+    customers = Counter(
+        question.customer for question in questions if question.rule != "provisional"
+    )
     assert customers == {"lukas": 4, "jana": 4, "daniela": 4, "marco": 4}
     assert all(question.answer is not None for question in questions)
 

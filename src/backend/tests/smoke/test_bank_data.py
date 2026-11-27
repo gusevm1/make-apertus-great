@@ -43,7 +43,13 @@ async def test_the_ledger_tools_add_up_on_the_server_and_read_the_bank_once(
     assert search["result"]["money_out_chf"] == "-212.1"
     assert search["result"]["row_ids"] == ["BK-00101"]
     assert months["result"]["months"] == [
-        {"month": "2026-10", "count": 1, "money_out_chf": "-2800.0", "money_in_chf": "0"}
+        {
+            "month": "2026-10",
+            "count": 1,
+            "money_out_chf": "-2800.0",
+            "money_in_chf": "0",
+            "provisional_chf": "0",
+        }
     ]
     names = [group["counterparty"] for group in counterparties["result"]["counterparties"]]
     assert names == ["Wohnbau Sihlfeld AG", "Migros"]

@@ -120,6 +120,8 @@ async def found(bank: Bank) -> RecurringPayments:
             return httpx2.Response(200, json={"items": [card]})
         if path == "/bookings":
             return _page(items=bank.bookings, request=request)
+        if path == "/cards/CARD-VISA/statements":
+            return httpx2.Response(200, json={"items": []})
         if path == "/cards/CARD-VISA/transactions":
             return _page(items=bank.purchases, request=request)
         return httpx2.Response(404, json={"detail": "Not found"})

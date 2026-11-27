@@ -88,7 +88,12 @@ def pages_read() -> list[str]:
 
 
 @pytest.fixture
-def ledger(pages_read: list[str]) -> LedgerService:
+def statements() -> list[dict]:
+    return [{"statement_id": "STMT-2026-10", "card_id": "CARD-VISA", "status": "settled"}]
+
+
+@pytest.fixture
+def ledger(pages_read: list[str], statements: list[dict]) -> LedgerService:
     """The ledger over a bank faked at the HTTP level; an unknown path is a 404 and fails."""
 
     def handle(request: httpx2.Request) -> httpx2.Response:
@@ -108,6 +113,8 @@ def ledger(pages_read: list[str]) -> LedgerService:
         if path == "/bookings":
             pages_read.append(f"bookings offset={request.url.params['offset']}")
             return _page(items=BOOKINGS, request=request)
+        if path == "/cards/CARD-VISA/statements":
+            return httpx2.Response(200, json={"items": statements})
         if path == "/cards/CARD-VISA/transactions":
             pages_read.append(f"card offset={request.url.params['offset']}")
             return _page(items=PURCHASES, request=request)
@@ -320,3 +327,25 @@ async def test_without_a_period_the_months_run_from_the_first_to_the_last_row(
 
     assert [month.month for month in sums.months] == ["2026-10"]
     assert sums.months[0].count == 6
+
+
+async def test_purchases_on_an_open_statement_are_provisional_and_the_sums_say_how_much(
+    ledger: LedgerService, statements: list[dict]
+) -> None:
+    statements[0]["status"] = "open"
+    october = Filters(date_from=date(2026, 10, 1), date_to=date(2026, 10, 31))
+
+    search = await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs(limit=20))
+    months = await ledger.sum_by_month(token=TOKEN, filters=october)
+
+    provisional = {row.id for row in search.rows if row.provisional}
+    assert provisional == {"CTX-1", "CTX-2"}
+    assert search.provisional_chf == Decimal("29.04")
+    assert months.months[0].provisional_chf == Decimal("29.04")
+
+
+async def test_purchases_on_a_settled_statement_are_final(ledger: LedgerService) -> None:
+    search = await ledger.search_movements(token=TOKEN, args=SearchMovementsArgs(limit=20))
+
+    assert not any(row.provisional for row in search.rows)
+    assert search.provisional_chf == Decimal(0)
