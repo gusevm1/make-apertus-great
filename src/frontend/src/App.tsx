@@ -43,6 +43,7 @@ function Chat({ context }: { context: HostContext }) {
   const [isUploading, setIsUploading] = useState(false);
   const chatRef = useRef<HTMLElement>(null);
   const isFollowing = useRef(true);
+  const lastScrollTop = useRef(0);
   const stream = useStream<Message>();
   const voice = useVoiceInput({
     token,
@@ -92,7 +93,11 @@ function Chat({ context }: { context: HostContext }) {
     const chat = chatRef.current;
     if (chat === null) return;
     const distance = chat.scrollHeight - chat.scrollTop - chat.clientHeight;
-    isFollowing.current = distance < FOLLOW_DISTANCE;
+    // Only the customer moves the chat up. New text that arrives before this event must not
+    // count as scrolling away, or a tall chunk would stop the following for good.
+    if (chat.scrollTop < lastScrollTop.current) isFollowing.current = false;
+    if (distance < FOLLOW_DISTANCE) isFollowing.current = true;
+    lastScrollTop.current = chat.scrollTop;
   }
 
   async function handleSubmit(event: FormEvent) {
