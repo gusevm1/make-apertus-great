@@ -3,6 +3,7 @@ import {
   type FormEvent,
   Fragment,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import {
@@ -39,6 +40,8 @@ function Chat({ context }: { context: HostContext }) {
   const [isOpening, setIsOpening] = useState(false);
   const [attached, setAttached] = useState<DocumentRef[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const chatRef = useRef<HTMLElement>(null);
+  const isFollowing = useRef(true);
   const stream = useStream<Message>();
   const voice = useVoiceInput({
     token,
@@ -56,6 +59,13 @@ function Chat({ context }: { context: HostContext }) {
     setMessages(storedMessages);
     setToolCalls(storedCalls);
   }
+
+  // The chat follows new text until the customer scrolls up, and again once they are back down.
+  useEffect(() => {
+    const chat = chatRef.current;
+    if (chat !== null && isFollowing.current)
+      chat.scrollTop = chat.scrollHeight;
+  }, [messages, pending, stream.text, stream.toolCalls.length]);
 
   // The stored chats come back after a reload, and are the same in the panel and the full page.
   useEffect(() => {
@@ -77,11 +87,19 @@ function Chat({ context }: { context: HostContext }) {
     // Runs once per customer: Chat is keyed by the customer, and the token only changes with them.
   }, []);
 
+  function handleChatScroll() {
+    const chat = chatRef.current;
+    if (chat === null) return;
+    const distance = chat.scrollHeight - chat.scrollTop - chat.clientHeight;
+    isFollowing.current = distance < FOLLOW_DISTANCE;
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     const content = question.trim();
     if (content === "" || stream.status === "streaming") return;
     const documents = attached;
+    isFollowing.current = true;
     setQuestion("");
     setAttached([]);
     setPending(content);
@@ -206,7 +224,12 @@ function Chat({ context }: { context: HostContext }) {
         </button>
       </nav>
 
-      <section className="chat" aria-live="polite">
+      <section
+        ref={chatRef}
+        className="chat"
+        aria-live="polite"
+        onScroll={handleChatScroll}
+      >
         {messages.length === 0 && pending === null && (
           <p className="hint">
             Ask about your finances, e.g. “How much money do I have?”
@@ -320,6 +343,8 @@ function Chat({ context }: { context: HostContext }) {
 }
 
 const TITLE_LENGTH = 60;
+// Within this many pixels of the end, the chat counts as scrolled to the end.
+const FOLLOW_DISTANCE = 40;
 // The backend takes at most three documents per message.
 const DOCUMENTS_PER_MESSAGE = 3;
 // The backend takes a page title of 1 to 200 characters.
