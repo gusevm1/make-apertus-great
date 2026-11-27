@@ -16,3 +16,4 @@ reference: "A QR bill's reference number."
 payment_id: "From list_payments with status pending."
 standing_order_id: "From list_standing_orders."
 day: "Day of the month."
+end_date: 'A date, or "none" to remove the end date so that the order runs until deleted.'
