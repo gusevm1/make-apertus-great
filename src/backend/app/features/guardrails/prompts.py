@@ -19,11 +19,7 @@ def check_prompt(text: str) -> list[LLMMessage]:
 
 
 def advisor_pointer(advisor: Advisor, language: Language) -> str:
-    if advisor.advisor_name is None or advisor.advisor_phone is None:
-        return PROMPTS[f"advisor_unknown_{language}"]
-    return PROMPTS[f"advisor_{language}"].format(
-        name=advisor.advisor_name, phone=advisor.advisor_phone
-    )
+    return PROMPTS[f"advisor_{language}"].format(name=advisor.name, phone=advisor.phone)
 
 
 def counselling_pointer(language: Language) -> str:

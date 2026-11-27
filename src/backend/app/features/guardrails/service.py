@@ -11,7 +11,7 @@ from app.features.guardrails.prompts import (
     decline,
 )
 from app.features.guardrails.schemas import (
-    Advisor,
+    CustomerAdvisor,
     Guardrail,
     GuardrailCategory,
     GuardrailCheck,
@@ -84,5 +84,5 @@ class GuardrailService:
         if check.category not in ADVISOR_CATEGORIES:
             return None
         customer = await self.ledger.read(path="/customer", token=self.token)
-        advisor = Advisor.model_validate(customer)
+        advisor = CustomerAdvisor.model_validate(customer).advisor
         return advisor_pointer(advisor=advisor, language=check.language)

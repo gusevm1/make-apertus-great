@@ -199,8 +199,7 @@ def fake_banking_client() -> BankingClient:
                 200,
                 json={
                     "customer_id": CUSTOMER_ID,
-                    "advisor_name": ADVISOR_NAME,
-                    "advisor_phone": ADVISOR_PHONE,
+                    "advisor": {"name": ADVISOR_NAME, "phone": ADVISOR_PHONE},
                 },
             )
         if request.url.path == "/api/documents" and request.method == "POST":

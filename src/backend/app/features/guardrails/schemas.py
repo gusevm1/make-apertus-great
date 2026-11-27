@@ -33,8 +33,12 @@ class GuardrailCheck(BaseModel):
 
 
 class Advisor(BaseModel):
-    advisor_name: str | None = None
-    advisor_phone: str | None = None
+    name: str
+    phone: str
+
+
+class CustomerAdvisor(BaseModel):
+    advisor: Advisor
 
 
 class Guardrail(BaseModel):

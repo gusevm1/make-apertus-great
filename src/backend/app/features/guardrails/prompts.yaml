@@ -35,10 +35,6 @@ advisor_de: >-
   {name}, {phone}.
 advisor_en: >-
   For a recommendation that fits your situation, talk to your advisor at the bank: {name}, {phone}.
-advisor_unknown_de: >-
-  Eine Empfehlung, die zu Ihrer Situation passt, erhalten Sie von Ihrer Beratung bei der Bank.
-advisor_unknown_en: >-
-  For a recommendation that fits your situation, talk to your advisor at the bank.
 counselling_de: >-
   Wenn Rechnungen oder Schulden drücken: Die Budgetberatung Schweiz berät kostenlos und vertraulich,
   budgetberatung.ch.
