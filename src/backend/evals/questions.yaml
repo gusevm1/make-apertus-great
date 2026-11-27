@@ -133,3 +133,13 @@
         group_by: personal_tag
         personal_tag: ".*japan.*"
   not_called: [search_web]
+- question: I want to save CHF 6'000 for Japan by 30 June 2027
+  calls:
+    - tool: propose_context_entry
+      arguments:
+        kind: "goal"
+        amount_chf: '6000(\.0+)?'
+        target_date: "2027-06-30"
+- question: How much did I spend at Migros?
+  any_calls: true
+  not_called: [propose_context_entry]
