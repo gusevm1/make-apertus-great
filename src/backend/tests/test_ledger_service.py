@@ -6,6 +6,7 @@ import pytest
 
 from app.clients.banking import BankingClient
 from app.core.config import get_settings
+from app.core.errors import BadRequestError
 from app.features.ledger import service as ledger_service
 from app.features.ledger.service import LedgerService
 
@@ -168,3 +169,17 @@ async def test_every_page_is_read_once(
         "bookings offset=6",
         "card offset=0",
     ]
+
+
+async def test_a_read_off_the_list_never_reaches_the_bank(
+    ledger: LedgerService, pages_read: list[str]
+) -> None:
+    for path in ["/admin/reset", "/auth/login", "/accounts/../bookings", "/cards/./transactions"]:
+        with pytest.raises(BadRequestError, match="is not a read the bank data allows"):
+            await ledger.read(path=path, token=TOKEN)
+
+    assert pages_read == []
+
+
+async def test_a_read_on_the_list_answers_as_the_bank_does(ledger: LedgerService) -> None:
+    assert await ledger.read(path="/accounts", token=TOKEN) == {"items": ACCOUNTS}
