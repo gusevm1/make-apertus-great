@@ -53,10 +53,8 @@ OWNS = re.compile(
 )
 # Files several cards add to at once. land-card merges them, so they never count as overlap.
 SHARED = (
-    "frontend/src/api/schema.ts",
-    "backend/migrations/versions",
-    "docs/repo-structure.md",
-    "docs/database.md",
+    "src/backend/migrations/versions",
+    "src/backend/app/main.py",
     ".gitignore",
     "CLAUDE.md",
 )
@@ -888,7 +886,7 @@ def demo() -> None:
     assert keeps_status(card={"status": "In review", "open": False}, status="Ready")
     assert keeps_status(card={"status": "In review", "open": True}, status="Ready") is False
 
-    owns = "## Owns\n`backend/app/features/transfers/` (new), `docs/repo-structure.md`, `npm run shots`\n## Check\nx"
+    owns = "## Owns\n`backend/app/features/transfers/` (new), `src/backend/app/main.py`, `npm run shots`\n## Check\nx"
     assert owned_paths(body=owns) == ["backend/app/features/transfers"]
     assert owned_paths(body="## Owns\nfrontend/src/**, Composer.tsx and tests\n") == [
         "frontend/src",
@@ -898,6 +896,12 @@ def demo() -> None:
     assert shared_path(mine=["frontend/src"], theirs=["frontend/src/lib/a.ts"]) is not None
     assert shared_path(mine=["Composer.tsx"], theirs=["frontend/src/Composer.tsx"]) is not None
     assert shared_path(mine=["backend/app"], theirs=["backend/apps", "frontend"]) is None
+    owns = "## Owns\n`src/backend/migrations/versions/`, `src/backend/app/main.py`, `src/backend/app/features/{0}/`\n"
+    first, second = owned_paths(body=owns.format("documents")), owned_paths(body=owns.format("context_entries"))
+    assert first == ["src/backend/app/features/documents"]
+    assert shared_path(mine=first, theirs=second) is None
+    assert shared_path(mine=first, theirs=owned_paths(body=owns.format("documents"))) is not None
+    assert all((Path(__file__).parents[3] / shared).exists() for shared in SHARED)
 
     def card(number: int, status: str, **extra) -> dict:
         return {
