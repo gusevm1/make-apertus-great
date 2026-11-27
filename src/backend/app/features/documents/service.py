@@ -212,14 +212,14 @@ class DocumentService:
         return await self.documents.list(owner_id=owner_id)
 
     async def list_summaries(self, owner_id: UUID) -> DocumentList:
-        """What the customer's newest documents are and the fields read from them, for the chat."""
+        """The newest documents and their fields that fit, at least one, for the chat."""
         documents = await self.documents.list(owner_id=owner_id)
         summaries: list[DocumentSummary] = []
         used = 0
         for document in documents:
             summary = DocumentSummary.model_validate(document, from_attributes=True)
             used += len(summary.model_dump_json())
-            if used > LIST_MAX_CHARS:
+            if used > LIST_MAX_CHARS and summaries:
                 break
             summaries.append(summary)
         return DocumentList(documents=summaries, left_out=len(documents) - len(summaries))
