@@ -1,0 +1,992 @@
+# Gold figure questions on 27.11.2026, scored by `python -m evals.score`.
+# Each figure is a spec that `python -m evals.gold` computes from the banking API, checks against a
+# second path and freezes in gold_figures.json. Never type a figure here and never change a frozen one.
+# `split` was fixed before the first baseline run: tune on `tune`, report `held_out` only. About a
+# third is held out, spread over every category and customer, and a question asked of several
+# customers (`template`) stays on one side.
+# Spec fields: source (ledger, bookings, card, accounts, loans, upcoming), measure (out, in, net,
+# count, sum), date_from, date_to, text (word starts, any), kind (ledger), type, account, card,
+# plus and minus (other specs added or taken away).
+
+questions:
+  # ---------------------------------------------------------------- Lukas
+  - id: l01
+    customer: lukas
+    template: total_balance
+    category: balance
+    split: tune
+    question: What is my total balance across all my accounts right now?
+    call_sets:
+      - [{tool: list_accounts}]
+    example: [{tool: list_accounts}]
+    figures:
+      - {name: total, source: accounts, measure: sum}
+      - {name: private, source: accounts, measure: sum, account: [ACC-PRIV], required: false}
+      - {name: pillar_3a, source: accounts, measure: sum, account: [ACC-3A], required: false}
+      - {name: long_term, source: accounts, measure: sum, account: [ACC-LT], required: false}
+      - {name: reserves, source: accounts, measure: sum, account: [ACC-RES], required: false}
+      - {name: taxes, source: accounts, measure: sum, account: [ACC-TAX], required: false}
+    decoys:
+      - name: without_3a
+        failure: in_source_but_wrong
+        source: accounts
+        measure: sum
+        account: [ACC-PRIV, ACC-TAX, ACC-RES, ACC-LT]
+    traps:
+      - Adding the balances in the answer instead of quoting total_balance_chf.
+      - Giving the asset overview, which adds the depot, as the account total.
+
+  - id: l02
+    customer: lukas
+    category: period_spending
+    split: tune
+    question: Wie viel habe ich im Oktober bei der Migros ausgegeben?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*migros.*', date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_month, arguments: {text: '.*migros.*', date_from: '2026-(0\d|10)-01', date_to: 2026-10-31}}]
+    example: [{tool: search_movements, arguments: {text: [Migros], date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: migros, source: ledger, text: [Migros], date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: on_account, source: bookings, measure: out, text: [Migros], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+      - {name: on_card, source: card, measure: out, text: [Migros], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+    traps:
+      - The Migros Take Away purchase is on the Visa card, so the account alone gives 413.77.
+      - Adding the card purchase to the account figure in the answer step.
+
+  - id: l03
+    customer: lukas
+    category: card
+    split: tune
+    question: How much did I spend with my Visa credit card in October?
+    call_sets:
+      - [{tool: search_movements, arguments: {card_id: CARD-VISA, date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_month, arguments: {card_id: CARD-VISA, date_to: 2026-10-31}}]
+    example: [{tool: search_movements, arguments: {card_id: CARD-VISA, date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: purchases, group: visa_october, source: ledger, card: CARD-VISA, date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: statement, group: visa_october, source: ledger, card: CARD-VISA, measure: net, date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: refund, source: ledger, card: CARD-VISA, measure: in, date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+    decoys:
+      - {name: bill_booked_in_october, failure: wrong_date_range, source: bookings, measure: out, type: [card_settlement], date_from: 2026-10-01, date_to: 2026-10-31}
+    traps:
+      - The card bill booked in October pays the September purchases.
+      - Gross purchases and the statement total differ by the Digitec refund; either is right if named.
+
+  - id: l04
+    customer: lukas
+    category: card
+    split: held_out
+    question: Wie hoch war die Visa-Abrechnung, die im November von meinem Konto abgebucht wurde?
+    call_sets:
+      - [{tool: search_movements, arguments: {kind: '.*card_settlement.*', date_from: '2026-11-.*'}}]
+      - [{tool: sum_by_month, arguments: {kind: '.*card_settlement.*', date_to: '2026-11-.*'}}]
+    example: [{tool: search_movements, arguments: {kind: [card_settlement], date_from: 2026-11-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: bill, source: bookings, measure: out, type: [card_settlement], date_from: 2026-11-01, date_to: 2026-11-27}
+    decoys:
+      - {name: november_purchases, failure: wrong_date_range, source: card, measure: net, date_from: 2026-11-01, date_to: 2026-11-27}
+    traps:
+      - The bill debited on 20.11. is the October statement, not the open November one.
+      - Card bills are kind card_settlement, so search_movements without that kind finds nothing.
+
+  - id: l05
+    customer: lukas
+    category: card
+    split: tune
+    question: How much have I spent on my Visa card so far this month?
+    call_sets:
+      - [{tool: search_movements, arguments: {card_id: CARD-VISA, date_from: 2026-11-01}}]
+      - [{tool: sum_by_month, arguments: {card_id: CARD-VISA, date_from: 2026-11-01}}]
+    example: [{tool: search_movements, arguments: {card_id: CARD-VISA, date_from: 2026-11-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: purchases, source: ledger, card: CARD-VISA, date_from: 2026-11-01, date_to: 2026-11-27}
+    decoys:
+      - {name: bill_booked_in_november, failure: wrong_date_range, source: bookings, measure: out, type: [card_settlement], date_from: 2026-11-01, date_to: 2026-11-27}
+    traps:
+      - The November statement is still open, so the figure is provisional and has to say so.
+      - The bill debited this month pays October, not this month's purchases.
+
+  - id: l06
+    customer: lukas
+    template: spending_last_month
+    category: period_spending
+    split: tune
+    question: How much did I spend in total last month?
+    call_sets:
+      - [{tool: sum_by_month, arguments: {date_from: '2026-(0\d|10)-01', date_to: 2026-10-31}}]
+      - [{tool: search_movements, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_group, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    not_called: [list_card_statements]
+    example: [{tool: sum_by_month, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: spent, group: spending, source: ledger, kind: [spending], date_from: 2026-10-01, date_to: 2026-10-31}
+      - name: spent_net
+        group: spending
+        source: ledger
+        kind: [spending]
+        date_from: 2026-10-01
+        date_to: 2026-10-31
+        minus: [{source: ledger, card: CARD-VISA, measure: in, date_from: 2026-10-01, date_to: 2026-10-31}]
+    decoys:
+      - name: with_card_bill
+        failure: double_counting
+        source: ledger
+        kind: [spending]
+        date_from: 2026-10-01
+        date_to: 2026-10-31
+        plus: [{source: bookings, measure: out, type: [card_settlement], date_from: 2026-10-01, date_to: 2026-10-31}]
+      - name: with_own_transfers
+        failure: double_counting
+        source: ledger
+        kind: [spending]
+        date_from: 2026-10-01
+        date_to: 2026-10-31
+        plus: [{source: ledger, kind: [own_transfer], account: [ACC-PRIV], date_from: 2026-10-01, date_to: 2026-10-31}]
+    traps:
+      - Card purchases replace the card bill; counting both double counts CHF 4'375.10.
+      - Savings standing orders, pillar 3a and the ETF plan are own transfers, not spending.
+
+  - id: l07
+    customer: lukas
+    category: own_transfer
+    split: held_out
+    question: How much did I move into my savings accounts, my pillar 3a and my depot in October?
+    call_sets:
+      - [{tool: search_movements, arguments: {kind: '.*own_transfer.*', date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_counterparty, arguments: {kind: '.*own_transfer.*', date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_group, arguments: {kind: '.*own_transfer.*', date_from: 2026-10-01, date_to: 2026-10-31}}]
+    example: [{tool: search_movements, arguments: {kind: [own_transfer], account_id: ACC-PRIV, date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: moved, source: bookings, measure: out, account: [ACC-PRIV], text: [Sparkonto, Vorsorgekonto, Depot], date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: depot, source: bookings, measure: out, type: [securities_buy], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+    traps:
+      - Without kind own_transfer the ledger tools leave these movements out and report nothing.
+      - The same money arrives on the savings accounts; adding both sides doubles it.
+
+  - id: l08
+    customer: lukas
+    template: pillar_3a_this_year
+    category: own_transfer
+    split: tune
+    question: How much have I paid into my pillar 3a this year?
+    call_sets:
+      - [{tool: tax_year_summary, arguments: {year: '2026'}}]
+      - [{tool: search_movements, arguments: {kind: '.*own_transfer.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {kind: '.*own_transfer.*', date_from: 2026-01-01}}]
+    example: [{tool: tax_year_summary, arguments: {year: 2026}}]
+    figures:
+      - {name: paid, source: bookings, measure: in, account: [ACC-3A], type: [standing_order], date_from: 2026-01-01, date_to: 2026-11-27}
+    decoys:
+      - {name: last_year, failure: wrong_date_range, source: bookings, measure: in, account: [ACC-3A], type: [standing_order], date_from: 2025-01-01, date_to: 2025-12-31}
+    traps:
+      - 3a payments are own transfers; the default kinds of the ledger tools leave them out.
+      - The planned top-up to the yearly maximum is upcoming, not paid.
+
+  - id: l09
+    customer: lukas
+    category: own_transfer
+    split: tune
+    question: Wie viel habe ich dieses Jahr in Wertschriften investiert?
+    call_sets:
+      - [{tool: search_movements, arguments: {kind: '.*own_transfer.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {kind: '.*own_transfer.*', date_from: 2026-01-01}}]
+      - [{tool: list_portfolio_transactions, arguments: {date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {kind: [own_transfer], text: [Depot], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: invested, source: bookings, measure: out, type: [securities_buy], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Securities buys are own transfers into the depot, not spending, and need kind own_transfer.
+      - The depot's value is not what was invested.
+
+  - id: l10
+    customer: lukas
+    category: fx
+    split: tune
+    question: What did the deposit to Masseria Ulivo cost me in Swiss francs?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*masseria.*'}}]
+    example: [{tool: search_movements, arguments: {text: [Masseria]}}]
+    figures:
+      - {name: deposit, source: bookings, measure: out, text: [Masseria]}
+    decoys:
+      - {name: in_euro, failure: wrong_currency, source: bookings, measure: original, text: [Masseria]}
+    traps:
+      - The booking was EUR 400; the CHF amount is what left the account.
+
+  - id: l11
+    customer: lukas
+    category: fx
+    split: held_out
+    question: How much did my Etsy order on 1 November cost me in CHF, fees included?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*etsy.*'}}]
+    example: [{tool: search_movements, arguments: {text: [Etsy], date_from: 2026-11-01, date_to: 2026-11-01}}]
+    figures:
+      - {name: paid, source: ledger, text: [Etsy], date_from: 2026-11-01, date_to: 2026-11-01}
+    decoys:
+      - {name: in_dollars, failure: wrong_currency, source: card, measure: original, text: [Etsy], date_from: 2026-11-01, date_to: 2026-11-01}
+      - name: without_fee
+        failure: wrong_currency
+        source: card
+        measure: out
+        text: [Etsy]
+        date_from: 2026-11-01
+        date_to: 2026-11-01
+        minus: [{source: card, measure: fee, text: [Etsy], date_from: 2026-11-01, date_to: 2026-11-01}]
+    traps:
+      - The card's amount_chf already holds the 1.75 % fee; the fee itself is in no tool result.
+      - USD 65.40 is the original amount, not what was charged.
+
+  - id: l12
+    customer: lukas
+    category: fx
+    split: tune
+    question: How much did I pay in foreign currency fees on my Visa card in July?
+    call_sets:
+      - []
+    example: [{tool: search_movements, arguments: {card_id: CARD-VISA, date_from: 2026-07-01, date_to: 2026-07-31}}]
+    figures: []
+    decoys:
+      - {name: fees, failure: invented_figure, source: card, measure: fee, date_from: 2026-07-01, date_to: 2026-07-31}
+    traps:
+      - No tool returns the fx fee; the answer has to say it cannot see the fee separately.
+      - Working out 1.75 % of the purchases in the answer is a figure no tool computed.
+
+  - id: l13
+    customer: lukas
+    category: refund
+    split: tune
+    question: How much has my health insurer refunded me this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*mythen.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Mythen], kind: [credit], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: refunded, source: bookings, measure: in, text: [Mythen], date_from: 2026-01-01, date_to: 2026-11-27}
+    decoys:
+      - {name: premiums, failure: wrong_sign, source: bookings, measure: out, text: [Mythen], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - The insurer is also the payee of the premiums; refunds are money in.
+
+  - id: l14
+    customer: lukas
+    category: refund
+    split: tune
+    question: Did I get money back from Digitec in October, and how much?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*digitec.*'}}]
+    example: [{tool: search_movements, arguments: {text: [Digitec], date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: refund, source: ledger, card: CARD-VISA, measure: in, text: [Digitec], date_from: 2026-10-01, date_to: 2026-10-31}
+    traps:
+      - A card refund is a negative amount_chf on the card, money in for the ledger.
+
+  - id: l15
+    customer: lukas
+    category: refund
+    split: tune
+    question: Wie viel Spesen hat mir mein Arbeitgeber dieses Jahr zurückerstattet?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*limmatblau.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Limmatblau], kind: [credit], amount_max: 1000, date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: expenses, source: bookings, measure: in, text: [Limmatblau], type: [incoming_transfer], date_from: 2026-01-01, date_to: 2026-11-27}
+    decoys:
+      - {name: with_salary, failure: in_source_but_wrong, source: bookings, measure: in, text: [Limmatblau], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - The salary comes from the same employer; only the incoming transfers are expenses.
+
+  - id: l16
+    customer: lukas
+    category: period_spending
+    split: held_out
+    question: What did I pay for Netflix this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*netflix.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {text: '.*netflix.*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Netflix], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: paid, source: ledger, text: [Netflix], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Netflix is on the Visa card, so it shows only among card purchases.
+
+  - id: l17
+    customer: lukas
+    category: multi_call
+    split: tune
+    question: How much did I spend at Migros, Coop and Denner together last month?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '(?=.*migros)(?=.*coop)(?=.*denner).*', date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_month, arguments: {text: '(?=.*migros)(?=.*coop)(?=.*denner).*', date_to: 2026-10-31}}]
+      - - {tool: search_movements, arguments: {text: '.*migros.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+        - {tool: search_movements, arguments: {text: '.*coop.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+        - {tool: search_movements, arguments: {text: '.*denner.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+    example: [{tool: search_movements, arguments: {text: [Migros, Coop, Denner], date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: together, source: ledger, text: [Migros, Coop, Denner], date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: migros, source: ledger, text: [Migros], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+      - {name: coop, source: ledger, text: [Coop], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+      - {name: denner, source: ledger, text: [Denner], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+    traps:
+      - One call with all three names gives the total; three calls make the answer add them up.
+      - Coop Pronto is a Coop shop and counts.
+
+  - id: l18
+    customer: lukas
+    template: shop_last_6_months
+    category: relative_date
+    split: tune
+    question: How much did I spend at Coop in the last 6 months?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*coop.*', date_from: '2026-0[56]-.*'}}]
+      - [{tool: sum_by_month, arguments: {text: '.*coop.*', date_from: '2026-0[56]-.*'}}]
+    example: [{tool: sum_by_month, arguments: {text: [Coop], date_from: 2026-05-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: may_to_october, group: six_months, source: ledger, text: [Coop], date_from: 2026-05-01, date_to: 2026-10-31}
+      - {name: june_to_today, group: six_months, source: ledger, text: [Coop], date_from: 2026-06-01, date_to: 2026-11-27}
+      - {name: rolling, group: six_months, source: ledger, text: [Coop], date_from: 2026-05-27, date_to: 2026-11-27}
+    traps:
+      - The today block names no "last 6 months"; the answer has to say which months it counted.
+
+  - id: l19
+    customer: lukas
+    category: multi_call
+    split: held_out
+    question: Wie viel hat mir Sara dieses Jahr überwiesen, und wie viel Miete habe ich bezahlt?
+    call_sets:
+      - - {tool: search_movements, arguments: {text: '.*sara.*', date_from: 2026-01-01}}
+        - {tool: search_movements, arguments: {text: '.*(wohnbau|sihlfeld|miete).*', date_from: 2026-01-01}}
+      - [{tool: sum_by_counterparty, arguments: {date_from: 2026-01-01}}]
+    example:
+      - {tool: search_movements, arguments: {text: [Sara Keller], date_from: 2026-01-01, date_to: 2026-11-27}}
+      - {tool: search_movements, arguments: {text: [Wohnbau Sihlfeld], date_from: 2026-01-01, date_to: 2026-11-27}}
+    figures:
+      - {name: from_sara, source: bookings, measure: in, text: [Sara Keller], date_from: 2026-01-01, date_to: 2026-11-27}
+      - {name: rent, source: bookings, measure: out, text: [Wohnbau Sihlfeld], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Sara pays by bank transfer and by TWINT; both count.
+      - Rent is booked at the end of the month before the one it pays for.
+      - The difference of the two is arithmetic no tool did.
+
+  - id: l20
+    customer: lukas
+    category: relative_date
+    split: held_out
+    question: Compare my spending in October 2026 with October 2025.
+    call_sets:
+      - [{tool: compare_periods, arguments: {first_from: '2026-10-01|2025-10-01', second_from: '2026-10-01|2025-10-01'}}]
+      - [{tool: sum_by_group, arguments: {group_by: year}}]
+      - - {tool: sum_by_month, arguments: {date_to: 2026-10-31}}
+    example: [{tool: compare_periods, arguments: {first_from: 2025-10-01, first_to: 2025-10-31, second_from: 2026-10-01, second_to: 2026-10-31, kind: [spending]}}]
+    figures:
+      - {name: october_2026, source: ledger, kind: [spending], date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: october_2025, source: ledger, kind: [spending], date_from: 2025-10-01, date_to: 2025-10-31}
+      - name: change
+        required: false
+        source: ledger
+        kind: [spending]
+        date_from: 2026-10-01
+        date_to: 2026-10-31
+        minus: [{source: ledger, kind: [spending], date_from: 2025-10-01, date_to: 2025-10-31}]
+    decoys:
+      - name: with_card_bill_2026
+        failure: double_counting
+        source: ledger
+        kind: [spending]
+        date_from: 2026-10-01
+        date_to: 2026-10-31
+        plus: [{source: bookings, measure: out, type: [card_settlement], date_from: 2026-10-01, date_to: 2026-10-31}]
+    traps:
+      - The change comes from compare_periods, never from subtracting in the answer.
+
+  - id: l21
+    customer: lukas
+    category: balance
+    split: tune
+    question: Wie viel ist auf meinem Rücklagenkonto?
+    call_sets:
+      - [{tool: list_accounts}]
+    example: [{tool: list_accounts}]
+    figures:
+      - {name: reserves, source: accounts, measure: sum, account: [ACC-RES]}
+    traps:
+      - The reserves account is ACC-RES, «Sparkonto Rücklagen».
+
+  - id: l22
+    customer: lukas
+    category: fx
+    split: tune
+    question: How much cash did I withdraw abroad in October, in francs?
+    call_sets:
+      - [{tool: search_movements, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    example: [{tool: search_movements, arguments: {text: [Bargeldbezug Ausland], date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: cash, source: bookings, measure: out, type: [atm], text: [Bargeldbezug Ausland], date_from: 2026-10-01, date_to: 2026-10-31}
+    decoys:
+      - {name: in_euro, failure: wrong_currency, source: bookings, measure: original, type: [atm], text: [Bargeldbezug Ausland], date_from: 2026-10-01, date_to: 2026-10-31}
+    traps:
+      - The withdrawal was EUR 100 in Munich; the CHF amount is what left the account.
+
+  - id: l23
+    customer: lukas
+    category: period_spending
+    split: held_out
+    question: What went out of my tax savings account this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {account_id: ACC-TAX, date_from: 2026-01-01}}]
+      - [{tool: explain_balance_change, arguments: {account_id: ACC-TAX, date_from: 2026-01-01}}]
+      - [{tool: sum_by_group, arguments: {group_by: account, date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {account_id: ACC-TAX, date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: paid_out, source: bookings, measure: out, account: [ACC-TAX], date_from: 2026-01-01, date_to: 2026-11-27}
+    decoys:
+      - {name: paid_in, failure: wrong_sign, source: bookings, measure: in, account: [ACC-TAX], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Tax bills are paid from ACC-TAX, not from the private account.
+
+  # ---------------------------------------------------------------- Jana
+  - id: j01
+    customer: jana
+    template: total_balance
+    category: balance
+    split: tune
+    question: What is my total balance across all my accounts right now?
+    call_sets:
+      - [{tool: list_accounts}]
+    example: [{tool: list_accounts}]
+    figures:
+      - {name: total, source: accounts, measure: sum}
+      - {name: private, source: accounts, measure: sum, account: [ACC-PRIV], required: false}
+      - {name: savings, source: accounts, measure: sum, account: [ACC-SAV], required: false}
+      - {name: pillar_3a, source: accounts, measure: sum, account: [ACC-3A], required: false}
+    traps:
+      - Adding the balances in the answer instead of quoting total_balance_chf.
+
+  - id: j02
+    customer: jana
+    category: relative_date
+    split: tune
+    question: Wie viel zahle ich seit Januar 2026 pro Monat für die Krankenkasse, und wie viel war es vorher?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*(kpt|krankenkasse).*'}}]
+      - [{tool: sum_by_month, arguments: {text: '.*(kpt|krankenkasse).*'}}]
+    example: [{tool: search_movements, arguments: {text: [KPT], date_from: 2025-11-01, date_to: 2026-01-31}}]
+    figures:
+      - {name: now, source: bookings, measure: out, text: [KPT], date_from: 2026-11-01, date_to: 2026-11-30}
+      - {name: before, source: bookings, measure: out, text: [KPT], date_from: 2025-11-01, date_to: 2025-11-30}
+    traps:
+      - The premium is paid in the month before; the booking of 24.12.2025 is the January premium.
+      - The difference of the two is arithmetic no tool did.
+
+  - id: j03
+    customer: jana
+    template: spending_last_month
+    category: period_spending
+    split: tune
+    question: How much did I spend in total last month?
+    call_sets:
+      - [{tool: sum_by_month, arguments: {date_from: '2026-(0\d|10)-01', date_to: 2026-10-31}}]
+      - [{tool: search_movements, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_group, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    example: [{tool: sum_by_month, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: spent, source: ledger, kind: [spending], date_from: 2026-10-01, date_to: 2026-10-31}
+    decoys:
+      - name: with_own_transfers
+        failure: double_counting
+        source: ledger
+        kind: [spending]
+        date_from: 2026-10-01
+        date_to: 2026-10-31
+        plus: [{source: ledger, kind: [own_transfer], account: [ACC-PRIV], date_from: 2026-10-01, date_to: 2026-10-31}]
+    traps:
+      - The savings and pillar 3a standing orders are own transfers, not spending.
+
+  - id: j04
+    customer: jana
+    template: pillar_3a_this_year
+    category: own_transfer
+    split: tune
+    question: Wie viel habe ich 2026 in die Säule 3a einbezahlt?
+    call_sets:
+      - [{tool: tax_year_summary, arguments: {year: '2026'}}]
+      - [{tool: search_movements, arguments: {kind: '.*own_transfer.*', date_from: 2026-01-01}}]
+      - [{tool: list_accounts}]
+    example: [{tool: tax_year_summary, arguments: {year: 2026}}]
+    figures:
+      - {name: paid, source: bookings, measure: in, account: [ACC-3A], type: [standing_order], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - 3a payments are own transfers; the default kinds of the ledger tools leave them out.
+
+  - id: j05
+    customer: jana
+    category: own_transfer
+    split: held_out
+    question: How much did I put into my savings account this year, and how much did I take back out?
+    call_sets:
+      - [{tool: explain_balance_change, arguments: {account_id: ACC-SAV, date_from: 2026-01-01}}]
+      - [{tool: search_movements, arguments: {account_id: ACC-SAV, kind: '.*own_transfer.*', date_from: 2026-01-01}}]
+    example: [{tool: explain_balance_change, arguments: {account_id: ACC-SAV, date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: put_in, source: bookings, measure: in, account: [ACC-SAV], date_from: 2026-01-01, date_to: 2026-11-27}
+      - {name: taken_out, source: bookings, measure: out, account: [ACC-SAV], date_from: 2026-01-01, date_to: 2026-11-27, required: false}
+    traps:
+      - Transfers to and from savings are own transfers; search_movements needs kind own_transfer.
+
+  - id: j06
+    customer: jana
+    category: multi_call
+    split: tune
+    question: Wie viel habe ich im Oktober bei Coop und Migros zusammen ausgegeben?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '(?=.*migros)(?=.*coop).*', date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_month, arguments: {text: '(?=.*migros)(?=.*coop).*', date_to: 2026-10-31}}]
+      - - {tool: search_movements, arguments: {text: '.*coop.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+        - {tool: search_movements, arguments: {text: '.*migros.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+    example: [{tool: search_movements, arguments: {text: [Coop, Migros], date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: together, source: ledger, text: [Coop, Migros], date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: coop, source: ledger, text: [Coop], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+      - {name: migros, source: ledger, text: [Migros], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+    traps:
+      - Migros Take Away is a Migros shop and counts.
+      - Two calls make the answer add the totals; one call with both names does not.
+
+  - id: j07
+    customer: jana
+    category: relative_date
+    split: held_out
+    question: Did I spend more at Lidl last month or the month before?
+    call_sets:
+      - [{tool: sum_by_month, arguments: {text: '.*lidl.*', date_from: '2026-(0\d)-01', date_to: 2026-10-31}}]
+      - [{tool: compare_periods, arguments: {text: '.*lidl.*'}}]
+      - - {tool: search_movements, arguments: {text: '.*lidl.*', date_from: 2026-09-01, date_to: 2026-09-30}}
+        - {tool: search_movements, arguments: {text: '.*lidl.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+    example: [{tool: sum_by_month, arguments: {text: [Lidl], date_from: 2026-09-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: october, source: ledger, text: [Lidl], date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: september, source: ledger, text: [Lidl], date_from: 2026-09-01, date_to: 2026-09-30}
+    decoys:
+      - {name: november, failure: wrong_date_range, source: ledger, text: [Lidl], date_from: 2026-11-01, date_to: 2026-11-27}
+    traps:
+      - Last month is October and the month before September; November is this month.
+
+  - id: j08
+    customer: jana
+    category: period_spending
+    split: tune
+    question: How much have I paid to Klarna this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*klarna.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {text: '.*klarna.*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Klarna], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: paid, source: ledger, text: [Klarna], date_from: 2026-01-01, date_to: 2026-11-27}
+    decoys:
+      - {name: last_12_months, failure: wrong_date_range, source: ledger, text: [Klarna], date_from: 2025-11-27, date_to: 2026-11-27}
+    traps:
+      - This year starts on 01.01.2026; the IKEA instalments of late 2025 do not count.
+
+  - id: j09
+    customer: jana
+    template: ricardo_income
+    category: refund
+    split: held_out
+    question: How much did I earn selling things on Ricardo this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*ricardo.*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Ricardo], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: earned, source: bookings, measure: in, text: [Ricardo], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Sales on Ricardo are money in; purchases on Ricardo are money out.
+
+  - id: j10
+    customer: jana
+    category: period_spending
+    split: held_out
+    question: How much have I paid to the Bern tax office in 2026?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*steuer.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Steuerverwaltung], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: paid, source: ledger, text: [Steuerverwaltung], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - The payee is «Steuerverwaltung des Kantons Bern»; the word "tax" finds nothing.
+
+  # ---------------------------------------------------------------- Daniela
+  - id: d01
+    customer: daniela
+    template: total_balance
+    category: balance
+    split: tune
+    question: What is my total balance across all my accounts right now?
+    call_sets:
+      - [{tool: list_accounts}]
+    example: [{tool: list_accounts}]
+    figures:
+      - {name: total, source: accounts, measure: sum}
+      - {name: private, source: accounts, measure: sum, account: [ACC-PRIV], required: false}
+      - {name: emergency, source: accounts, measure: sum, account: [ACC-SAV], required: false}
+      - {name: lina, source: accounts, measure: sum, account: [ACC-KID], required: false}
+    traps:
+      - Lina's youth savings account is in the total; the answer should say so.
+
+  - id: d02
+    customer: daniela
+    category: period_spending
+    split: tune
+    question: How much child support have I received this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*(patrick|unterhalt).*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {text: '.*(patrick|unterhalt).*', date_from: 2026-01-01}}]
+    example: [{tool: sum_by_month, arguments: {text: [Unterhalt], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: received, source: bookings, measure: in, text: [Unterhalt], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - March came in two parts; November has not come yet, and nothing may be assumed for it.
+
+  - id: d03
+    customer: daniela
+    category: own_transfer
+    split: tune
+    question: How much money did I take from my emergency fund this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {kind: '.*own_transfer.*', date_from: 2026-01-01}}]
+      - [{tool: explain_balance_change, arguments: {account_id: ACC-SAV, date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {kind: '.*own_transfer.*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {account_id: ACC-SAV, kind: [own_transfer], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: taken, source: bookings, measure: out, account: [ACC-SAV], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Transfers from the emergency fund are own transfers; the default kinds leave them out.
+
+  - id: d04
+    customer: daniela
+    category: multi_call
+    split: held_out
+    question: Wie viel habe ich im Oktober bei Aldi, Lidl und Denner ausgegeben?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '(?=.*aldi)(?=.*lidl)(?=.*denner).*', date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - - {tool: search_movements, arguments: {text: '.*aldi.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+        - {tool: search_movements, arguments: {text: '.*lidl.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+        - {tool: search_movements, arguments: {text: '.*denner.*', date_from: 2026-10-01, date_to: 2026-10-31}}
+    example: [{tool: search_movements, arguments: {text: [Aldi, Lidl, Denner], date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: together, source: ledger, text: [Aldi, Lidl, Denner], date_from: 2026-10-01, date_to: 2026-10-31}
+      - {name: aldi, source: ledger, text: [Aldi], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+      - {name: lidl, source: ledger, text: [Lidl], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+      - {name: denner, source: ledger, text: [Denner], date_from: 2026-10-01, date_to: 2026-10-31, required: false}
+    traps:
+      - Per-shop sums from separate calls make the answer add them up.
+
+  - id: d05
+    customer: daniela
+    template: spending_last_month
+    category: period_spending
+    split: tune
+    question: How much did I spend in total last month?
+    call_sets:
+      - [{tool: sum_by_month, arguments: {date_from: '2026-(0\d|10)-01', date_to: 2026-10-31}}]
+      - [{tool: search_movements, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_group, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    example: [{tool: sum_by_month, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: spent, source: ledger, kind: [spending], date_from: 2026-10-01, date_to: 2026-10-31}
+    decoys:
+      - name: with_own_transfers
+        failure: double_counting
+        source: ledger
+        kind: [spending]
+        date_from: 2026-10-01
+        date_to: 2026-10-31
+        plus: [{source: ledger, kind: [own_transfer], date_from: 2026-10-01, date_to: 2026-10-31}]
+    traps:
+      - Moving money from the emergency fund to the private account is not spending.
+
+  - id: d06
+    customer: daniela
+    category: period_spending
+    split: held_out
+    question: How much have I paid in washing machine instalments so far?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*ratenwerk.*'}}]
+      - [{tool: sum_by_month, arguments: {text: '.*ratenwerk.*'}}]
+    example: [{tool: search_movements, arguments: {text: [Ratenwerk]}}]
+    figures:
+      - {name: paid, source: ledger, text: [Ratenwerk]}
+    traps:
+      - The instalments go to «Ratenwerk Finanz AG»; the word "washing machine" finds nothing.
+
+  - id: d07
+    customer: daniela
+    template: health_insurance_this_year
+    category: period_spending
+    split: tune
+    question: Wie viel Krankenkassenprämie habe ich dieses Jahr bezahlt?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*(assura|krankenkasse|prämie).*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {text: '.*(assura|krankenkasse|prämie).*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Assura], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: paid, source: ledger, text: [Assura], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Premiums are booked in the month before; the booking of 24.11.2026 is the December premium.
+
+  - id: d08
+    customer: daniela
+    category: period_spending
+    split: held_out
+    question: How much cash did I withdraw last month?
+    call_sets:
+      - [{tool: search_movements, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_counterparty, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    example: [{tool: search_movements, arguments: {text: [Bargeldbezug], date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: cash, source: bookings, measure: out, type: [atm], date_from: 2026-10-01, date_to: 2026-10-31}
+    traps:
+      - Cash withdrawals read «Bargeldbezug» or «Bancomat», not "ATM".
+
+  - id: d09
+    customer: daniela
+    template: ricardo_income
+    category: refund
+    split: held_out
+    question: How much did I earn selling things on Ricardo this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*ricardo.*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Ricardo], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: earned, source: bookings, measure: in, text: [Ricardo], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Sales on Ricardo are money in.
+
+  - id: d10
+    customer: daniela
+    template: shop_last_6_months
+    category: relative_date
+    split: tune
+    question: How much did I spend at Aldi in the last 6 months?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*aldi.*', date_from: '2026-0[56]-.*'}}]
+      - [{tool: sum_by_month, arguments: {text: '.*aldi.*', date_from: '2026-0[56]-.*'}}]
+    example: [{tool: sum_by_month, arguments: {text: [Aldi], date_from: 2026-05-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: may_to_october, group: six_months, source: ledger, text: [Aldi], date_from: 2026-05-01, date_to: 2026-10-31}
+      - {name: june_to_today, group: six_months, source: ledger, text: [Aldi], date_from: 2026-06-01, date_to: 2026-11-27}
+      - {name: rolling, group: six_months, source: ledger, text: [Aldi], date_from: 2026-05-27, date_to: 2026-11-27}
+    traps:
+      - The today block names no "last 6 months"; the answer has to say which months it counted.
+
+  # ---------------------------------------------------------------- Marco
+  - id: m01
+    customer: marco
+    category: loan
+    split: tune
+    question: How much mortgage interest did we pay in 2025?
+    call_sets:
+      - [{tool: list_loan_transactions, arguments: {type: interest, date_from: 2025-01-01, date_to: 2025-12-31}}]
+      - [{tool: tax_year_summary, arguments: {year: '2025'}}]
+    example: [{tool: tax_year_summary, arguments: {year: 2025}}]
+    figures:
+      - {name: interest, source: loans, measure: sum, type: [interest], date_from: 2025-01-01, date_to: 2025-12-31}
+    decoys:
+      - {name: with_amortisation, failure: in_source_but_wrong, source: loans, measure: sum, date_from: 2025-01-01, date_to: 2025-12-31}
+      - {name: this_year, failure: wrong_date_range, source: loans, measure: sum, type: [interest], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Amortisation is a repayment, not interest.
+      - Each charge is also a booking; loan transactions and bookings are the same money.
+
+  - id: m02
+    customer: marco
+    category: loan
+    split: held_out
+    question: Wie viel Hypothek haben wir dieses Jahr zurückbezahlt?
+    call_sets:
+      - [{tool: list_loan_transactions, arguments: {type: amortisation, date_from: 2026-01-01}}]
+      - [{tool: search_movements, arguments: {text: '.*amorti.*', date_from: 2026-01-01}}]
+    example: [{tool: list_loan_transactions, arguments: {type: amortisation, date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: repaid, source: loans, measure: sum, type: [amortisation], date_from: 2026-01-01, date_to: 2026-11-27}
+    decoys:
+      - {name: interest, failure: in_source_but_wrong, source: loans, measure: sum, type: [interest], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Only LOAN-03 amortises, CHF 1'250 a quarter; the December charge is still upcoming.
+
+  - id: m03
+    customer: marco
+    category: loan
+    split: tune
+    question: How much mortgage interest was charged at the end of September?
+    call_sets:
+      - [{tool: list_loan_transactions, arguments: {type: interest}}]
+      - [{tool: list_loan_transactions}]
+    example: [{tool: list_loan_transactions, arguments: {type: interest, date_from: 2026-09-30, date_to: 2026-09-30}}]
+    figures:
+      - {name: interest, source: loans, measure: sum, type: [interest], date_from: 2026-09-30, date_to: 2026-09-30}
+    decoys:
+      - {name: with_amortisation, failure: in_source_but_wrong, source: loans, measure: sum, date_from: 2026-09-30, date_to: 2026-09-30}
+    traps:
+      - Three tranches are charged on the same day, and LOAN-03 also amortises then.
+
+  - id: m04
+    customer: marco
+    category: period_spending
+    split: tune
+    question: How much have I paid for the car lease this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*leasing.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {text: '.*leasing.*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Seeblick Auto-Leasing], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: paid, source: ledger, text: [Seeblick Auto-Leasing], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - The lease is with an external company, so it is a debit, not a loan in /loans.
+
+  - id: m05
+    customer: marco
+    category: period_spending
+    split: held_out
+    question: What did we pay out of the house savings account this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {account_id: ACC-HOUSE, date_from: 2026-01-01}}]
+      - [{tool: explain_balance_change, arguments: {account_id: ACC-HOUSE, date_from: 2026-01-01}}]
+      - [{tool: sum_by_group, arguments: {group_by: account, date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {account_id: ACC-HOUSE, date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: paid, source: bookings, measure: out, account: [ACC-HOUSE], date_from: 2026-01-01, date_to: 2026-11-27}
+    decoys:
+      - {name: paid_in, failure: wrong_sign, source: bookings, measure: in, account: [ACC-HOUSE], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - The facade and other house costs are paid from ACC-HOUSE, not from the private account.
+
+  - id: m06
+    customer: marco
+    template: spending_last_month
+    category: period_spending
+    split: tune
+    question: How much did I spend in total last month?
+    call_sets:
+      - [{tool: sum_by_month, arguments: {date_from: '2026-(0\d|10)-01', date_to: 2026-10-31}}]
+      - [{tool: search_movements, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+      - [{tool: sum_by_group, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    example: [{tool: sum_by_month, arguments: {date_from: 2026-10-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: spent, source: ledger, kind: [spending], date_from: 2026-10-01, date_to: 2026-10-31}
+    decoys:
+      - name: with_own_transfers
+        failure: double_counting
+        source: ledger
+        kind: [spending]
+        date_from: 2026-10-01
+        date_to: 2026-10-31
+        plus: [{source: ledger, kind: [own_transfer], account: [ACC-PRIV], date_from: 2026-10-01, date_to: 2026-10-31}]
+    traps:
+      - Transfers to the house, family and 3a accounts are own transfers, not spending.
+
+  - id: m07
+    customer: marco
+    category: period_spending
+    split: tune
+    question: Wie viel hat Simone dieses Jahr an den Haushalt überwiesen?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*simone.*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {text: '.*simone.*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Simone Baumann], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: received, source: bookings, measure: in, text: [Simone Baumann], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Simone's contribution is money in, not spending.
+
+  - id: m08
+    customer: marco
+    template: total_balance
+    category: balance
+    split: tune
+    question: What is my total balance across all my accounts right now?
+    call_sets:
+      - [{tool: list_accounts}]
+    example: [{tool: list_accounts}]
+    figures:
+      - {name: total, source: accounts, measure: sum}
+      - {name: private, source: accounts, measure: sum, account: [ACC-PRIV], required: false}
+      - {name: house, source: accounts, measure: sum, account: [ACC-HOUSE], required: false}
+      - {name: family, source: accounts, measure: sum, account: [ACC-SAV], required: false}
+      - {name: pillar_3a, source: accounts, measure: sum, account: [ACC-3A], required: false}
+    traps:
+      - The mortgage is a debt, not a negative balance of an account.
+
+  - id: m09
+    customer: marco
+    template: health_insurance_this_year
+    category: period_spending
+    split: tune
+    question: How much has health insurance cost us this year?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*(helsana|krankenkasse|versicherung).*', date_from: 2026-01-01}}]
+      - [{tool: sum_by_month, arguments: {text: '.*(helsana|krankenkasse|versicherung).*', date_from: 2026-01-01}}]
+    example: [{tool: search_movements, arguments: {text: [Helsana], date_from: 2026-01-01, date_to: 2026-11-27}}]
+    figures:
+      - {name: paid, source: ledger, text: [Helsana], date_from: 2026-01-01, date_to: 2026-11-27}
+    traps:
+      - Premiums are booked in the month before; the AXA car insurance is no health insurance.
+
+  - id: m10
+    customer: marco
+    category: balance
+    split: held_out
+    question: What will be debited from my accounts between today and the end of the year?
+    call_sets:
+      - [{tool: list_upcoming_payments, arguments: {date_to: 2026-12-31}}]
+    example: [{tool: list_upcoming_payments, arguments: {date_to: 2026-12-31}}]
+    figures:
+      - {name: due, source: upcoming, measure: sum, date_from: 2026-11-27, date_to: 2026-12-31}
+    decoys:
+      - {name: next_60_days, failure: wrong_date_range, source: upcoming, measure: sum, date_from: 2026-11-27, date_to: 2027-01-26}
+    traps:
+      - Upcoming debits come from list_upcoming_payments, not from past bookings.
+      - The default window is 60 days; the question asks until 31.12.2026.
+
+  - id: m11
+    customer: marco
+    template: shop_last_6_months
+    category: relative_date
+    split: tune
+    question: How much did we spend at Migros in the last 6 months?
+    call_sets:
+      - [{tool: search_movements, arguments: {text: '.*migros.*', date_from: '2026-0[56]-.*'}}]
+      - [{tool: sum_by_month, arguments: {text: '.*migros.*', date_from: '2026-0[56]-.*'}}]
+    example: [{tool: sum_by_month, arguments: {text: [Migros], date_from: 2026-05-01, date_to: 2026-10-31}}]
+    figures:
+      - {name: may_to_october, group: six_months, source: ledger, text: [Migros], date_from: 2026-05-01, date_to: 2026-10-31}
+      - {name: june_to_today, group: six_months, source: ledger, text: [Migros], date_from: 2026-06-01, date_to: 2026-11-27}
+      - {name: rolling, group: six_months, source: ledger, text: [Migros], date_from: 2026-05-27, date_to: 2026-11-27}
+    traps:
+      - Migrolino is not Migros for the word filter; the answer has to say which months it counted.
+
+  - id: m12
+    customer: marco
+    category: multi_call
+    split: tune
+    question: Was hat uns das Haus dieses Jahr gekostet, mit Hypothekarzins, Amortisation und den Zahlungen vom Hauskonto?
+    call_sets:
+      - - {tool: list_loan_transactions, arguments: {date_from: 2026-01-01}}
+        - {tool: search_movements, arguments: {account_id: ACC-HOUSE, date_from: 2026-01-01}}
+      - - {tool: list_loan_transactions, arguments: {date_from: 2026-01-01}}
+        - {tool: explain_balance_change, arguments: {account_id: ACC-HOUSE, date_from: 2026-01-01}}
+    example:
+      - {tool: list_loan_transactions, arguments: {type: interest, date_from: 2026-01-01, date_to: 2026-11-27}}
+      - {tool: list_loan_transactions, arguments: {type: amortisation, date_from: 2026-01-01, date_to: 2026-11-27}}
+      - {tool: search_movements, arguments: {account_id: ACC-HOUSE, date_from: 2026-01-01, date_to: 2026-11-27}}
+    figures:
+      - {name: interest, source: loans, measure: sum, type: [interest], date_from: 2026-01-01, date_to: 2026-11-27}
+      - {name: amortisation, source: loans, measure: sum, type: [amortisation], date_from: 2026-01-01, date_to: 2026-11-27}
+      - {name: house_account, source: bookings, measure: out, account: [ACC-HOUSE], date_from: 2026-01-01, date_to: 2026-11-27}
+    decoys:
+      - {name: last_year_interest, failure: wrong_date_range, source: loans, measure: sum, type: [interest], date_from: 2025-01-01, date_to: 2025-12-31}
+    traps:
+      - The three parts come from different tools; a grand total is arithmetic no tool did.
+      - The house account's transfers in from the private account are not costs.

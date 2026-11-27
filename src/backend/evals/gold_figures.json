@@ -1,0 +1,498 @@
+{
+ "d01": {
+  "emergency": {
+   "count": 1,
+   "value": "284.25"
+  },
+  "lina": {
+   "count": 1,
+   "value": "3470.50"
+  },
+  "private": {
+   "count": 1,
+   "value": "3075.16"
+  },
+  "total": {
+   "count": 3,
+   "value": "6829.91"
+  }
+ },
+ "d02": {
+  "received": {
+   "count": 11,
+   "value": "10500.00"
+  }
+ },
+ "d03": {
+  "taken": {
+   "count": 7,
+   "value": "1800.00"
+  }
+ },
+ "d04": {
+  "aldi": {
+   "count": 12,
+   "value": "511.94"
+  },
+  "denner": {
+   "count": 12,
+   "value": "290.04"
+  },
+  "lidl": {
+   "count": 8,
+   "value": "431.65"
+  },
+  "together": {
+   "count": 32,
+   "value": "1233.63"
+  }
+ },
+ "d05": {
+  "spent": {
+   "count": 62,
+   "value": "4636.02"
+  }
+ },
+ "d06": {
+  "paid": {
+   "count": 20,
+   "value": "1556.00"
+  }
+ },
+ "d07": {
+  "paid": {
+   "count": 11,
+   "value": "2985.40"
+  }
+ },
+ "d08": {
+  "cash": {
+   "count": 3,
+   "value": "260.00"
+  }
+ },
+ "d09": {
+  "earned": {
+   "count": 3,
+   "value": "115.00"
+  }
+ },
+ "d10": {
+  "june_to_today": {
+   "count": 49,
+   "value": "1925.00"
+  },
+  "may_to_october": {
+   "count": 49,
+   "value": "1877.48"
+  },
+  "rolling": {
+   "count": 49,
+   "value": "1925.00"
+  }
+ },
+ "j01": {
+  "pillar_3a": {
+   "count": 1,
+   "value": "3300.00"
+  },
+  "private": {
+   "count": 1,
+   "value": "8519.38"
+  },
+  "savings": {
+   "count": 1,
+   "value": "4919.20"
+  },
+  "total": {
+   "count": 3,
+   "value": "16738.58"
+  }
+ },
+ "j02": {
+  "before": {
+   "count": 1,
+   "value": "296.80"
+  },
+  "now": {
+   "count": 1,
+   "value": "399.40"
+  }
+ },
+ "j03": {
+  "spent": {
+   "count": 82,
+   "value": "5997.64"
+  }
+ },
+ "j04": {
+  "paid": {
+   "count": 11,
+   "value": "3300.00"
+  }
+ },
+ "j05": {
+  "put_in": {
+   "count": 11,
+   "value": "2750.00"
+  },
+  "taken_out": {
+   "count": 0,
+   "value": "0"
+  }
+ },
+ "j06": {
+  "coop": {
+   "count": 9,
+   "value": "374.60"
+  },
+  "migros": {
+   "count": 9,
+   "value": "192.84"
+  },
+  "together": {
+   "count": 18,
+   "value": "567.44"
+  }
+ },
+ "j07": {
+  "october": {
+   "count": 6,
+   "value": "302.99"
+  },
+  "september": {
+   "count": 2,
+   "value": "77.47"
+  }
+ },
+ "j08": {
+  "paid": {
+   "count": 9,
+   "value": "1358.70"
+  }
+ },
+ "j09": {
+  "earned": {
+   "count": 2,
+   "value": "155.00"
+  }
+ },
+ "j10": {
+  "paid": {
+   "count": 3,
+   "value": "3285.30"
+  }
+ },
+ "l01": {
+  "long_term": {
+   "count": 1,
+   "value": "37566.29"
+  },
+  "pillar_3a": {
+   "count": 1,
+   "value": "55899.65"
+  },
+  "private": {
+   "count": 1,
+   "value": "9716.33"
+  },
+  "reserves": {
+   "count": 1,
+   "value": "6779.02"
+  },
+  "taxes": {
+   "count": 1,
+   "value": "4638.04"
+  },
+  "total": {
+   "count": 5,
+   "value": "114599.33"
+  }
+ },
+ "l02": {
+  "migros": {
+   "count": 10,
+   "value": "430.05"
+  },
+  "on_account": {
+   "count": 9,
+   "value": "413.77"
+  },
+  "on_card": {
+   "count": 1,
+   "value": "16.28"
+  }
+ },
+ "l03": {
+  "purchases": {
+   "count": 48,
+   "value": "2975.35"
+  },
+  "refund": {
+   "count": 1,
+   "value": "59.00"
+  },
+  "statement": {
+   "count": 49,
+   "value": "2916.35"
+  }
+ },
+ "l04": {
+  "bill": {
+   "count": 1,
+   "value": "2916.35"
+  }
+ },
+ "l05": {
+  "purchases": {
+   "count": 38,
+   "value": "3301.74"
+  }
+ },
+ "l06": {
+  "spent": {
+   "count": 93,
+   "value": "10598.77"
+  },
+  "spent_net": {
+   "count": 94,
+   "value": "10539.77"
+  }
+ },
+ "l07": {
+  "depot": {
+   "count": 1,
+   "value": "600.00"
+  },
+  "moved": {
+   "count": 5,
+   "value": "3700.00"
+  }
+ },
+ "l08": {
+  "paid": {
+   "count": 11,
+   "value": "6600.00"
+  }
+ },
+ "l09": {
+  "invested": {
+   "count": 12,
+   "value": "10600.00"
+  }
+ },
+ "l10": {
+  "deposit": {
+   "count": 1,
+   "value": "377.96"
+  }
+ },
+ "l11": {
+  "paid": {
+   "count": 1,
+   "value": "54.19"
+  }
+ },
+ "l13": {
+  "refunded": {
+   "count": 3,
+   "value": "429.40"
+  }
+ },
+ "l14": {
+  "refund": {
+   "count": 1,
+   "value": "59.00"
+  }
+ },
+ "l15": {
+  "expenses": {
+   "count": 5,
+   "value": "1127.36"
+  }
+ },
+ "l16": {
+  "paid": {
+   "count": 11,
+   "value": "222.90"
+  }
+ },
+ "l17": {
+  "coop": {
+   "count": 7,
+   "value": "337.96"
+  },
+  "denner": {
+   "count": 1,
+   "value": "27.95"
+  },
+  "migros": {
+   "count": 10,
+   "value": "430.05"
+  },
+  "together": {
+   "count": 18,
+   "value": "795.96"
+  }
+ },
+ "l18": {
+  "june_to_today": {
+   "count": 46,
+   "value": "2150.53"
+  },
+  "may_to_october": {
+   "count": 39,
+   "value": "1828.02"
+  },
+  "rolling": {
+   "count": 49,
+   "value": "2354.67"
+  }
+ },
+ "l19": {
+  "from_sara": {
+   "count": 13,
+   "value": "23326.30"
+  },
+  "rent": {
+   "count": 10,
+   "value": "28000.00"
+  }
+ },
+ "l20": {
+  "change": {
+   "count": 182,
+   "value": "2144.38"
+  },
+  "october_2025": {
+   "count": 89,
+   "value": "8454.39"
+  },
+  "october_2026": {
+   "count": 93,
+   "value": "10598.77"
+  }
+ },
+ "l21": {
+  "reserves": {
+   "count": 1,
+   "value": "6779.02"
+  }
+ },
+ "l22": {
+  "cash": {
+   "count": 1,
+   "value": "93.51"
+  }
+ },
+ "l23": {
+  "paid_out": {
+   "count": 4,
+   "value": "18800.00"
+  }
+ },
+ "m01": {
+  "interest": {
+   "count": 12,
+   "value": "8673.38"
+  }
+ },
+ "m02": {
+  "repaid": {
+   "count": 3,
+   "value": "3750.00"
+  }
+ },
+ "m03": {
+  "interest": {
+   "count": 3,
+   "value": "2108.75"
+  }
+ },
+ "m04": {
+  "paid": {
+   "count": 11,
+   "value": "5379.00"
+  }
+ },
+ "m05": {
+  "paid": {
+   "count": 11,
+   "value": "22665.21"
+  }
+ },
+ "m06": {
+  "spent": {
+   "count": 43,
+   "value": "8515.29"
+  }
+ },
+ "m07": {
+  "received": {
+   "count": 11,
+   "value": "28600.00"
+  }
+ },
+ "m08": {
+  "family": {
+   "count": 1,
+   "value": "64134.60"
+  },
+  "house": {
+   "count": 1,
+   "value": "19350.30"
+  },
+  "pillar_3a": {
+   "count": 1,
+   "value": "70107.25"
+  },
+  "private": {
+   "count": 1,
+   "value": "18338.26"
+  },
+  "total": {
+   "count": 4,
+   "value": "171930.41"
+  }
+ },
+ "m09": {
+  "paid": {
+   "count": 11,
+   "value": "13184.60"
+  }
+ },
+ "m10": {
+  "due": {
+   "count": 16,
+   "value": "12922.25"
+  }
+ },
+ "m11": {
+  "june_to_today": {
+   "count": 33,
+   "value": "4583.63"
+  },
+  "may_to_october": {
+   "count": 32,
+   "value": "4321.21"
+  },
+  "rolling": {
+   "count": 34,
+   "value": "4661.93"
+  }
+ },
+ "m12": {
+  "amortisation": {
+   "count": 3,
+   "value": "3750.00"
+  },
+  "house_account": {
+   "count": 11,
+   "value": "22665.21"
+  },
+  "interest": {
+   "count": 9,
+   "value": "6333.75"
+  }
+ }
+}
