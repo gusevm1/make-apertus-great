@@ -133,20 +133,28 @@ async def test_an_unknown_category_is_refused(lukas: httpx2.AsyncClient) -> None
     assert response.status_code == 422
 
 
-async def test_a_payee_in_two_categories_is_mixed_until_corrected(
+async def test_each_row_names_the_usual_category_of_its_payee(
     lukas: httpx2.AsyncClient,  # noqa: F811
 ) -> None:
+    app.state.banking = _bank_client(
+        bookings_by_token={
+            "customer-token": (
+                "CUST-001",
+                [*LUKAS_BOOKINGS, _booking("BK-8", -9.0, "Einkauf", counterparty_name="Migros")],
+            )
+        }
+    )
     await lukas.post("/api/categorisations")
 
     tags = await _tags(api=lukas)
-    assert tags["BK-1"]["payee_mixed"] is True
-    assert tags["BK-2"]["payee_mixed"] is True
-    assert tags["BK-3"]["payee_mixed"] is False
+    assert tags["BK-2"]["category"] == "shopping"
+    assert tags["BK-2"]["payee_usual_category"] == "groceries"
+    assert tags["BK-1"]["payee_usual_category"] == "groceries"
+    assert tags["BK-3"]["payee_usual_category"] == "housing"
 
-    await _correct(api=lukas, scope="payee", key="Migros", category="groceries")
+    await _correct(api=lukas, scope="payee", key="Migros", category="shopping")
 
-    tags = await _tags(api=lukas)
-    assert tags["BK-1"]["payee_mixed"] is False
+    assert (await _tags(api=lukas))["BK-1"]["payee_usual_category"] == "shopping"
 
 
 async def test_rows_carry_their_ledger_fields(lukas: httpx2.AsyncClient) -> None:  # noqa: F811

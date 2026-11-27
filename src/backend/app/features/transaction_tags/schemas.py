@@ -81,7 +81,7 @@ class RatedTransactionTag(TransactionTag):
     text: str
     payee: str
     amount_chf: Decimal
-    payee_mixed: bool  # the payee's unconfirmed rows sit in more than one category
+    payee_usual_category: str  # the most common category of the payee's rows
 
 
 class RequestCategoryCorrectionCreate(BaseModel):
@@ -183,7 +183,7 @@ class ResponseTransactionTag(BaseModel):
     text: str
     payee: str
     amount_chf: Decimal
-    payee_mixed: bool
+    payee_usual_category: str
     created_at: datetime
     updated_at: datetime
 

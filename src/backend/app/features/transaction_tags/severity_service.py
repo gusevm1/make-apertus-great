@@ -1,3 +1,4 @@
+from collections import Counter
 from datetime import timedelta
 from decimal import Decimal
 from uuid import UUID
@@ -64,10 +65,9 @@ class SeverityService:
             for tag in tags
             if (tag.row_source, tag.row_id) in rows
         ]
-        categories_by_payee: dict[str, set[str]] = {}
+        categories_by_payee: dict[str, Counter[str]] = {}
         for tag, row in present:
-            if not tag.category_confirmed:
-                categories_by_payee.setdefault(payee_key(row=row), set()).add(tag.category)
+            categories_by_payee.setdefault(payee_key(row=row), Counter())[tag.category] += 1
         rated = []
         for tag, row in present:
             tag_certainty = "unknown" if tag.category_certainty is None else tag.category_certainty
@@ -91,7 +91,7 @@ class SeverityService:
                     text=row.text,
                     payee=payee,
                     amount_chf=abs(row.amount_chf),
-                    payee_mixed=len(categories_by_payee.get(payee, set())) > 1,
+                    payee_usual_category=_most_common(counts=categories_by_payee[payee]),
                 )
             )
         return rated
@@ -180,3 +180,8 @@ class SeverityService:
                 for category, (severity, reason) in answers.items()
             ]
         )
+
+
+def _most_common(counts: Counter[str]) -> str:
+    """The category with the most rows; a tie goes to the name first in the alphabet."""
+    return min(counts, key=lambda category: (-counts[category], category))
