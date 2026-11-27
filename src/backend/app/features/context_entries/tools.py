@@ -9,11 +9,15 @@ from app.features.context_entries.schemas import ContextEntryList
 from app.features.context_entries.service import ContextEntryService
 
 PROMPTS = load_prompts(prompts_py=__file__)
+SEARCH_MAX_LENGTH = 200
 
 
 class ListContextEntriesArgs(BaseModel):
     text: str | None = Field(
-        default=None, min_length=1, description=PROMPTS["list_context_entries_text"]
+        default=None,
+        min_length=1,
+        max_length=SEARCH_MAX_LENGTH,
+        description=PROMPTS["list_context_entries_text"],
     )
 
 

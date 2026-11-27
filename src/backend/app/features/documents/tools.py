@@ -9,10 +9,16 @@ from app.features.documents.schemas import READ_DOCUMENTS_MAX, DocumentList, Doc
 from app.features.documents.service import DocumentService
 
 PROMPTS = load_prompts(prompts_py=__file__)
+SEARCH_MAX_LENGTH = 200
 
 
 class ListDocumentsArgs(BaseModel):
-    text: str | None = Field(default=None, min_length=1, description=PROMPTS["list_documents_text"])
+    text: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=SEARCH_MAX_LENGTH,
+        description=PROMPTS["list_documents_text"],
+    )
 
 
 class ReadDocumentArgs(BaseModel):

@@ -14,8 +14,9 @@ from app.features.context_entries.schemas import (
     RequestContextEntryCreate,
 )
 from app.features.context_entries.service import ContextEntryService
+from app.features.documents import tools as document_tools
 from app.features.documents.repository import DocumentRepository
-from app.features.documents.schemas import LIST_MAX_CHARS
+from app.features.documents.schemas import LIST_MAX_CHARS, DocumentList
 from app.features.documents.service import DocumentService
 from app.features.tool_calls.schemas import ToolDecision, ToolRequest
 from tests.conftest import FakeApertus, fake_banking_client, fake_ocr_client
@@ -98,13 +99,17 @@ async def test_the_oldest_documents_are_left_out_when_the_list_is_full(
             session=session, name=f"doc-{number:02}.pdf", owner_id=DEMO_USER_ID, title="x" * 200
         )
     service = _document_service(session=session)
+    (tool, _) = document_tools.get_tools(service=service, owner_id=DEMO_USER_ID)
+    assert tool.handler is not None
 
-    listing = await service.list_summaries(owner_id=DEMO_USER_ID, text=None)
+    listing = await tool.handler(tool.args_schema())
 
+    assert isinstance(listing, DocumentList)
     assert 0 < len(listing.documents) < 30
     assert listing.left_out == 30 - len(listing.documents)
     assert sum(len(document.model_dump_json()) for document in listing.documents) <= LIST_MAX_CHARS
     assert listing.documents[0].name == "doc-29.pdf"
+    assert listing.note is not None and f"{listing.left_out} older documents" in listing.note
 
 
 async def _entry_service(session: AsyncSession, texts: list[str]) -> ContextEntryService:
@@ -165,6 +170,7 @@ async def test_a_search_finds_an_old_entry_the_full_list_leaves_out(session: Asy
     assert "Norwegen" not in newest.model_dump_json()
     assert newest.note is not None and f"{newest.left_out} older entries" in newest.note
     assert found.entries[0].text == "Velo-Ferien in Norwegen 2028"
+    assert "Someone else in Norwegen" not in found.model_dump_json()
 
 
 async def test_a_document_search_matches_the_issuer_and_escapes_wildcards(
