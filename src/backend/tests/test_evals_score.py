@@ -145,7 +145,7 @@ def test_a_figure_the_context_check_flags_counts_as_flagged() -> None:
     context = Check(
         name="figures_in_context",
         passed=False,
-        detail="0 of 1 fit; money moved written with a minus: 430.05",
+        detail="0 of 1 fit; a sum written with a minus: 430.05",
     )
     turn = _turn(answer="Ausgaben: CHF -430.05").model_copy(
         update={"checks": [*_turn(answer="").checks, context]}

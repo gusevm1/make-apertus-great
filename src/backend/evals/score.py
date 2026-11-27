@@ -30,7 +30,7 @@ from evals.gold import (
 from evals.run import TURN_TIMEOUT_SECONDS, ActualCall, EvalSettings, log_in, matches
 
 RESULTS_PATH = Path(__file__).with_name("logs") / "gold"
-# The checks on the stored answer whose flagged figures count; not the draft before a correction.
+# The final checks whose flags count, not the draft's before a correction.
 CHECK_NAMES = ("figures_found", "figures_in_context")
 # Sums of more answer figures than this are not tried, since the subsets grow as 2^n.
 MAX_ADDENDS = 12

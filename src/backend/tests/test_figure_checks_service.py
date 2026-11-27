@@ -387,6 +387,8 @@ def test_a_minus_on_a_movement_a_balance_or_a_change_passes(answer: str, result:
     [
         "Bei der Migros:\n- CHF 430.05 insgesamt\n- CHF 413.77 auf dem Konto",
         "You spent CHF 430.05 at Migros.",
+        "Ausgaben bei Migros:\n- 430.05 CHF",
+        "Migros - 430.05 CHF",
         "The total (money_out_chf – 430.05) is CHF 430.05.",
     ],
 )

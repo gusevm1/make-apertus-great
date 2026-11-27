@@ -83,11 +83,10 @@ _SPAN_WORDS = re.compile(
 )
 # Where the words that belong to a figure end: a sentence end, a semicolon or a new line.
 _CLAUSE_END = re.compile(r"[.!?;]\s|\n")
-# A minus right before the number or after its currency; a list's "- CHF 430.05" is no sign.
-# An en dash also separates a label from its figure, so it is no minus.
-_MINUS_BEFORE = re.compile(r"(?<![\w.,])[-\u2212\u2011]\s?$|CHF\s?[-\u2212\u2011]\s?$")
-# Sums of money moved, which the ledger signs negative when it went out; the answer says spent.
-SUM_KEYS = {
+# A minus touching the number or after its currency; a list dash and an en dash are no sign.
+_MINUS_BEFORE = re.compile(r"(?<![\w.,])[-\u2212\u2011]$|CHF\s?[-\u2212\u2011]\s?$")
+# Sums of money moved, which the ledger signs negative for money out.
+_SUM_KEYS = {
     "money_out_chf",
     "money_in_chf",
     "provisional_out_chf",
@@ -145,10 +144,7 @@ class FigureCheckService:
     def check_context(
         self, answer: str, calls: list[tuple[dict[str, Any], dict[str, Any]]], today: date
     ) -> Check | None:
-        """Whether a figure tied to a month or written with a minus fits the results holding it.
-
-        `calls` are the arguments and the result of each tool call.
-        """
+        """Whether a figure tied to a month or a minus fits the (arguments, result) holding it."""
         leaves = [
             leaf
             for arguments, result in calls
@@ -395,7 +391,7 @@ def _context_reasons(
             reasons.append("from another period")
     if _MINUS_BEFORE.search(answer[max(0, figure.start - CURRENCY_BEFORE_CHARS) : figure.start]):
         is_judged = True
-        if all(leaf.key in SUM_KEYS for leaf in holding):
+        if all(leaf.key in _SUM_KEYS for leaf in holding):
             reasons.append("a sum written with a minus")
     return reasons if is_judged else None
 
