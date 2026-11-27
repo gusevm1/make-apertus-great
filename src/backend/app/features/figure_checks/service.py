@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
+from typing import Any
 
 from app.core.provenance import Check
 
@@ -24,6 +25,32 @@ _DATES = re.compile(
     rf"\b\d{{4}}-\d{{2}}-\d{{2}}\b|\b\d{{1,2}}\.\d{{1,2}}\.\d{{2,4}}\b"
     rf"|\b\d{{1,2}}\.?\s+(?:{_MONTHS})\b|\b(?:{_MONTHS})\b\.?\s+(?:\d{{4}}|\d{{1,2}})\b"
 )
+# Only dates with a day: 2026-12-15, 15.12.2026, 15 December, 15. Dezember, December 15.
+_DAY_DATES = re.compile(
+    rf"\b(?P<iso_year>\d{{4}})-(?P<iso_month>\d{{2}})-(?P<iso_day>\d{{2}})(?!\d)"
+    rf"|\b(?P<dot_day>\d{{1,2}})\.(?P<dot_month>\d{{1,2}})\.(?P<dot_year>\d{{2,4}})\b"
+    rf"|\b(?P<day>\d{{1,2}})\.?\s+(?P<month>{_MONTHS})\b(?:\s+(?P<year>\d{{4}})\b)?"
+    rf"|\b(?P<month_first>{_MONTHS})\.?\s+(?P<day_after>\d{{1,2}})\b(?:,?\s+(?P<year_after>\d{{4}})\b)?"
+)
+_MONTH_NUMBERS = {
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "m\u00e4r": 3,
+    "mae": 3,
+    "apr": 4,
+    "mai": 5,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "okt": 10,
+    "oct": 10,
+    "nov": 11,
+    "dez": 12,
+    "dec": 12,
+}
 # Thousands written with an apostrophe or a typographic space, never with a plain space.
 _THOUSANDS = "'\u2019\u00a0\u202f\u2009"
 # 2'916.35, 2 916.35 with a narrow space, 114,599.33, 2916.35, 0,95, 12 %, 9.8k
@@ -60,6 +87,35 @@ class FigureCheckService:
         if missing:
             detail += "; not found: " + ", ".join(missing[:NOT_FOUND_LISTED])
         return Check(name="figures_found", passed=not missing, detail=detail)
+
+    def check_dates(
+        self, answer: str, results: list[dict[str, Any]], texts: list[str]
+    ) -> Check | None:
+        """Whether each line with one amount and one date has a source row with both."""
+        rows = [_Row.of(text=row) for result in results for row in _result_rows(value=result)]
+        rows += [_Row.of(text=line) for text in texts for line in text.splitlines()]
+        dated = [line.strip() for line in answer.splitlines() if _amount_and_date(line=line)]
+        if not dated:
+            return None
+        missing = [line for line in dated if not _has_row(line=line, rows=rows)]
+        detail = f"{len(dated) - len(missing)} of {len(dated)} matched"
+        if missing:
+            detail += "; not matched: " + " | ".join(missing[:NOT_FOUND_LISTED])
+        return Check(name="dates_match", passed=not missing, detail=detail)
+
+
+# (year or None when not written, month, day)
+DayDate = tuple[int | None, int, int]
+
+
+@dataclass(frozen=True)
+class _Row:
+    values: set[Decimal]
+    dates: set[DayDate]
+
+    @classmethod
+    def of(cls, text: str) -> "_Row":
+        return cls(values={f.value for f in _figures(text=text)}, dates=_day_dates(text=text))
 
 
 def _figures(text: str) -> list[Figure]:
@@ -103,4 +159,61 @@ def _found(figure: Figure, values: set[Decimal]) -> bool:
     return any(
         (value / scale).quantize(step, rounding=ROUND_HALF_UP) == figure.value
         for value in candidates
+    )
+
+
+def _result_rows(value: Any) -> list[str]:
+    """Each dict of a tool result as one row of its own plain values."""
+    if isinstance(value, list):
+        return [row for item in value for row in _result_rows(value=item)]
+    if not isinstance(value, dict):
+        return []
+    plain = [str(item) for item in value.values() if isinstance(item, str | int | float)]
+    nested = [row for item in value.values() for row in _result_rows(value=item)]
+    return [" ".join(plain), *nested] if plain else nested
+
+
+def _day_dates(text: str) -> set[DayDate]:
+    dates: set[DayDate] = set()
+    for match in _DAY_DATES.finditer(text):
+        parts = {name: part for name, part in match.groupdict().items() if part is not None}
+        year = parts.get("iso_year") or parts.get("dot_year") or parts.get("year")
+        year = year or parts.get("year_after")
+        day = int(
+            parts.get("iso_day") or parts.get("dot_day") or parts.get("day") or parts["day_after"]
+        )
+        month_name = parts.get("month") or parts.get("month_first")
+        if month_name is None:
+            month = int(parts.get("iso_month") or parts["dot_month"])
+        else:
+            month = _MONTH_NUMBERS[month_name.lower()[:3]]
+        if not (1 <= month <= 12 and 1 <= day <= 31):
+            continue
+        if year is not None and len(year) == 2:
+            year = f"20{year}"
+        dates.add((None if year is None else int(year), month, day))
+    return dates
+
+
+def _amounts(line: str) -> list[Figure]:
+    return [f for f in _figures(text=line) if not _is_count_or_year(f) and not f.is_percent]
+
+
+def _amount_and_date(line: str) -> bool:
+    return len(_amounts(line=line)) == 1 and len(_day_dates(text=line)) == 1
+
+
+def _same_day(written: DayDate, source: DayDate) -> bool:
+    if written[0] is not None and source[0] is not None and written[0] != source[0]:
+        return False
+    return written[1:] == source[1:]
+
+
+def _has_row(line: str, rows: list[_Row]) -> bool:
+    amount = _amounts(line=line)[0]
+    (date,) = _day_dates(text=line)
+    return any(
+        _found(amount, values=row.values)
+        and any(_same_day(written=date, source=row_date) for row_date in row.dates)
+        for row in rows
     )

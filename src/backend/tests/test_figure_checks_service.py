@@ -110,3 +110,89 @@ def test_a_figure_after_a_narrow_space_is_checked() -> None:
 
     assert result is not None
     assert result.detail == "1 of 2 found; not found: 39.90"
+
+
+check_dates = FigureCheckService().check_dates
+SWISSCOM = {"date": "2026-12-14", "amount_chf": -94.0, "counterparty": "Swisscom"}
+GLUECKSKETTE = {"date": "2026-12-15", "amount_chf": -50.0, "counterparty": "Glückskette"}
+
+
+def test_an_amount_beside_another_rows_date_fails() -> None:
+    result = check_dates(
+        answer=(
+            "Due next month:\n- December 15: CHF 94.00, Swisscom\n- 15.12.2026: CHF 50, Glückskette"
+        ),
+        results=[{"rows": [SWISSCOM, GLUECKSKETTE]}],
+        texts=[],
+    )
+
+    assert result is not None
+    assert (result.name, result.passed) == ("dates_match", False)
+    assert result.detail == "1 of 2 matched; not matched: - December 15: CHF 94.00, Swisscom"
+
+
+def test_an_amount_beside_its_own_rows_date_passes() -> None:
+    swisscom = {**SWISSCOM, "date": "2026-12-15"}
+
+    result = check_dates(
+        answer="December 15: CHF 94.00, Swisscom", results=[{"rows": [swisscom]}], texts=[]
+    )
+
+    assert result is not None
+    assert (result.passed, result.detail) == (True, "1 of 1 matched")
+
+
+@pytest.mark.parametrize(
+    "written", ["2026-12-15", "15.12.2026", "15 December", "15. Dezember", "December 15"]
+)
+def test_each_way_of_writing_a_date_is_read(written: str) -> None:
+    rows = [{"rows": [SWISSCOM, {**SWISSCOM, "date": "2026-12-15", "amount_chf": -61.0}]}]
+
+    matched = check_dates(answer=f"{written}: CHF 61.00", results=rows, texts=[])
+    other_day = check_dates(answer=f"{written}: CHF 94.00", results=rows, texts=[])
+
+    assert matched is not None and matched.passed
+    assert other_day is not None and not other_day.passed
+
+
+def test_a_written_year_must_match_the_rows_year() -> None:
+    result = check_dates(
+        answer="15.12.2025: CHF 50.00", results=[{"rows": [GLUECKSKETTE]}], texts=[]
+    )
+
+    assert result is not None
+    assert not result.passed
+
+
+def test_a_document_line_with_amount_and_date_counts_as_a_row() -> None:
+    result = check_dates(
+        answer="Due 30.11.2026: CHF 1'250.00",
+        results=[],
+        texts=["| Fällig | Betrag |\n| 30.11.2026 | 1'250.00 |"],
+    )
+
+    assert result is not None
+    assert result.passed
+
+
+def test_lines_without_a_date_add_no_failure() -> None:
+    result = check_dates(
+        answer="December 15: CHF 50.00\nIn total CHF 144.00.\nIn December 2026 CHF 7.00.",
+        results=[{"rows": [GLUECKSKETTE]}],
+        texts=[],
+    )
+
+    assert result is not None
+    assert (result.passed, result.detail) == (True, "1 of 1 matched")
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        "You spent CHF 2'916.35 in October 2026.",
+        "Your rent was paid on 1 December.",
+        "On 14 and 15 December: CHF 94.00 and CHF 50.00.",
+    ],
+)
+def test_an_answer_without_a_line_of_one_amount_and_one_date_gets_no_check(answer: str) -> None:
+    assert check_dates(answer=answer, results=[{"rows": [SWISSCOM]}], texts=[]) is None

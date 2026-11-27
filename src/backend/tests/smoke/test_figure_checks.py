@@ -36,3 +36,27 @@ async def test_the_stored_and_the_streamed_answer_carry_the_check(
     name, done = sse_events(response=streamed)[-1]
     assert name == "done"
     assert done["provenance"]["checks"][-1] == expected
+
+
+@pytest.mark.usefixtures("lookup_tool")
+async def test_the_stored_and_the_streamed_answer_carry_the_date_check(
+    client: httpx2.AsyncClient, session: AsyncSession, apertus: FakeApertus
+) -> None:
+    conversation = await make_conversation(session=session)
+    url = f"/api/conversations/{conversation.id}/messages"
+    apertus.reply = "December 15: CHF 94.00, Swisscom"
+
+    apertus.decisions = [_lookup(query="Swisscom 2026-12-14 94.00")]
+    stored = (await client.post(url, json={"content": "What is due next month?"})).json()
+    apertus.decisions = [_lookup(query="Swisscom 2026-12-14 94.00")]
+    streamed = await client.post(url, params={"stream": "true"}, json={"content": "Again?"})
+
+    expected = {
+        "name": "dates_match",
+        "passed": False,
+        "detail": "0 of 1 matched; not matched: December 15: CHF 94.00, Swisscom",
+    }
+    assert stored["provenance"]["checks"][-1] == expected
+    name, done = sse_events(response=streamed)[-1]
+    assert name == "done"
+    assert done["provenance"]["checks"][-1] == expected

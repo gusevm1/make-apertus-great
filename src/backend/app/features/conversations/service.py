@@ -256,16 +256,17 @@ class ConversationService:
     ) -> Provenance:
         # Earlier turns count too, so a follow-up may repeat a figure it was shown before.
         calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
-        sources = [
-            json.dumps(call.result, ensure_ascii=False) for call in calls if call.result is not None
+        results = [call.result for call in calls if call.result is not None]
+        texts = [document.markdown for document in documents]
+        texts.append(customer)
+        texts += [message.content for message in history if message.role == "user"]
+        sources = [json.dumps(result, ensure_ascii=False) for result in results]
+        checks = [
+            self.figure_checks.check_figures(answer=content, sources=[*sources, *texts]),
+            self.figure_checks.check_dates(answer=content, results=results, texts=texts),
         ]
-        sources += [document.markdown for document in documents]
-        sources.append(customer)
-        sources += [message.content for message in history if message.role == "user"]
-        check = self.figure_checks.check_figures(answer=content, sources=sources)
-        if check is None:
-            return provenance
-        return provenance.model_copy(update={"checks": [*provenance.checks, check]})
+        made = [check for check in checks if check is not None]
+        return provenance.model_copy(update={"checks": [*provenance.checks, *made]})
 
     async def _store_reply(
         self, conversation_id: UUID, content: str, provenance: Provenance
