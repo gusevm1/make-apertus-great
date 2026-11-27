@@ -66,3 +66,5 @@
       arguments:
         sort: "largest"
         limit: "5"
+- question: What is my savings goal?
+  answer: Japan
