@@ -47,7 +47,8 @@ CLOSING_REF = re.compile(
 CLAIM = re.compile(r"^Claimed by ([\w.-]+)$")
 # ponytail: claims this close before mine count as the same race; a card re-claimed within it misfires
 CLAIM_RACE = timedelta(seconds=30)
-AFTER_REF = re.compile(r"\bafter\s+#(\d+)", re.IGNORECASE)
+# ponytail: every number up to the sentence end counts, also one named for another reason
+AFTER_REF = re.compile(r"\bafter\s+(#\d+.*?)(?:[.!?](?:\s|$)|$)", re.IGNORECASE | re.MULTILINE)
 OWNS = re.compile(
     r"^##[ \t]+Owns[ \t]*\n(.*?)(?=^##[ \t]|\Z)", re.IGNORECASE | re.MULTILINE | re.DOTALL
 )
@@ -107,6 +108,13 @@ def dash(value: str | None) -> str:
 def closing_refs(body: str | None) -> list[int]:
     """The issue numbers a PR body closes ('Closes #12', 'fixes: #3')."""
     return [int(number) for number in CLOSING_REF.findall(text(value=body))]
+
+
+def after_refs(body: str | None) -> list[int]:
+    """The cards a card waits for ('after #12, #3 and #4'), up to the end of each sentence."""
+    sentences = AFTER_REF.findall(text(value=body))
+    numbers = [int(number) for sentence in sentences for number in re.findall(r"#(\d+)", sentence)]
+    return list(dict.fromkeys(numbers))
 
 
 def inside(path: str, folder: str) -> bool:
@@ -214,7 +222,7 @@ def load_cards() -> list[dict]:
                     "open": issue["state"] == "OPEN",
                     "updated": issue["updatedAt"],
                     "url": issue["url"],
-                    "after": [int(n) for n in AFTER_REF.findall(text(value=issue["body"]))],
+                    "after": after_refs(body=issue["body"]),
                     "owns": owned_paths(body=issue["body"]),
                 }
             )
@@ -829,6 +837,13 @@ def demo() -> None:
     """Self-check of the pure rules: python3 board.py --demo"""
     assert closing_refs(body="Closes #12, fixes: #3 and after #4") == [12, 3]
     assert closing_refs(body=None) == []
+    assert after_refs(body="after #1, #2 and #3") == [1, 2, 3]
+    assert after_refs(body="Starts after #1 and #2 (for the chart).") == [1, 2]
+    assert after_refs(body="After #1, #2, #3 and #4 the panel can go.") == [1, 2, 3, 4]
+    assert after_refs(body="after #212. It runs alone among (#90, #229)") == [212]
+    assert after_refs(body="after #212, after #90") == [212, 90]
+    assert after_refs(body="after #5\n#6 is unrelated. Only after #5.") == [5]
+    assert after_refs(body=None) == []
     assert is_card(labels=["bug"])
     assert is_card(labels=[DECISIONS_LABEL]) is False
     assert is_card(labels=[SPRINT_LOG_LABEL]) is False
