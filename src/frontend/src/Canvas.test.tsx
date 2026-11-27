@@ -6,11 +6,15 @@ import {
   captionOf,
   EXAMPLE_QUESTIONS,
   frameHeightOf,
+  publishStatusOf,
   shownViewOf,
   type Visual,
 } from "./Canvas";
 
 const SAMPLE: Visual = {
+  widgetId: "6f1c8b0e-0000-4000-8000-000000000001",
+  version: 2,
+  publishedVersion: 1,
   title: "Monthly spending",
   html: '<!doctype html><p>CHF 10\'598.77</p><script>parent.postMessage({source: "trustroom-widget", type: "widget-height", height: 240}, "*")</script>',
   caption: "apertus-70b · 8.4 s · figures checked",
@@ -23,6 +27,7 @@ function html(visual: Visual | null, isLoading = false) {
       isLoading={isLoading}
       isBusy={false}
       onAsk={() => undefined}
+      onPublish={async () => undefined}
     />,
   );
 }
@@ -111,6 +116,7 @@ test("the caption says who drew the widget and whether its labels' figures check
     model: "apertus-70b",
     latency_ms: 8400,
     checks: [{ name: "figures_found", passed: false, detail: "1 of 2 found" }],
+    published_version: null,
   };
 
   expect(captionOf(version)).toBe(
@@ -134,4 +140,26 @@ test("a waiting question or an error shows the chat in a narrow frame", () => {
   expect(shownViewOf({ view: "chat", isWaiting: false, hasError: false })).toBe(
     "chat",
   );
+});
+
+test("a widget offers to put its version on the dashboard and says which one is there", () => {
+  const page = html(SAMPLE);
+
+  expect(page).toContain(">Put v2 on dashboard</button>");
+  expect(page).toContain("Your dashboard shows v1.");
+});
+
+test("the status beside the button says what the dashboard shows", () => {
+  expect(
+    publishStatusOf({ state: "idle", version: 2, publishedVersion: null }),
+  ).toBe("");
+  expect(
+    publishStatusOf({ state: "idle", version: 2, publishedVersion: 2 }),
+  ).toBe("v2 is on your dashboard.");
+  expect(
+    publishStatusOf({ state: "idle", version: 3, publishedVersion: 2 }),
+  ).toBe("Your dashboard shows v2.");
+  expect(
+    publishStatusOf({ state: "done", version: 3, publishedVersion: 2 }),
+  ).toBe("v3 is on your dashboard.");
 });

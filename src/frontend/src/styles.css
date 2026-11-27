@@ -902,6 +902,50 @@ main,
   box-shadow: var(--shadow-card);
 }
 
+/* "Put v2 on dashboard": the customer's yes to a change on the e-banking dashboard. */
+.canvas-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.canvas-actions .publish {
+  min-height: 44px;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-sidebar-text);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.canvas-actions .publish:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.canvas-actions .publish:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.canvas-actions .publish:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.publish-status {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.canvas-actions .error-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .canvas-pane {
     animation: appear 180ms ease-out;

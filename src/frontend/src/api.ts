@@ -37,6 +37,15 @@ export interface WidgetVersion {
   model: string | null;
   latency_ms: number;
   checks: { name: string; passed: boolean; detail: string | null }[];
+  /** The version the customer's e-banking dashboard shows, or null. */
+  published_version: number | null;
+}
+
+export interface WidgetPublication {
+  widget_id: string;
+  version_number: number;
+  dashboard_id: string | null;
+  dashboard_widget_id: string | null;
 }
 
 export interface Conversation {

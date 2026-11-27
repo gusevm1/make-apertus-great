@@ -4,6 +4,10 @@ import { Icon } from "./Icon";
 
 /** A widget page from our renderer, shown in a sandboxed frame. */
 export interface Visual {
+  widgetId: string;
+  version: number;
+  /** The version on the e-banking dashboard, or null. */
+  publishedVersion: number | null;
   title: string;
   html: string;
   /** Who drew it and what was checked, such as "apertus-70b · 8.4 s · figures checked". */
@@ -22,11 +26,14 @@ export function Canvas({
   isLoading,
   isBusy,
   onAsk,
+  onPublish,
 }: {
   visual: Visual | null;
   isLoading: boolean;
   isBusy: boolean;
   onAsk: (question: string) => void;
+  /** Puts the shown version on the e-banking dashboard; the click is the customer's yes. */
+  onPublish: () => Promise<void>;
 }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(FRAME_HEIGHT_DEFAULT);
@@ -86,8 +93,83 @@ export function Canvas({
         sandbox="allow-scripts"
         style={{ height }}
       />
+      <PublishButton
+        key={`${visual.widgetId}-${visual.version}`}
+        version={visual.version}
+        publishedVersion={visual.publishedVersion}
+        onPublish={onPublish}
+      />
     </section>
   );
+}
+
+/** "Put v2 on dashboard", with its sending, error and done states. */
+export function PublishButton({
+  version,
+  publishedVersion,
+  onPublish,
+}: {
+  version: number;
+  publishedVersion: number | null;
+  onPublish: () => Promise<void>;
+}) {
+  const [state, setState] = useState<"idle" | "sending" | "done">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  async function publish() {
+    setState("sending");
+    setError(null);
+    try {
+      await onPublish();
+      setState("done");
+    } catch (failure) {
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : "The dashboard didn't take the widget.",
+      );
+      setState("idle");
+    }
+  }
+
+  return (
+    <div className="canvas-actions">
+      <button
+        type="button"
+        className="publish"
+        onClick={() => void publish()}
+        disabled={state === "sending"}
+      >
+        {state === "sending"
+          ? "Putting it on your dashboard…"
+          : `Put v${version} on dashboard`}
+      </button>
+      <span className="publish-status" aria-live="polite">
+        {publishStatusOf({ state, version, publishedVersion })}
+      </span>
+      {error !== null && (
+        <p className="error-note" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The line beside the button: what the dashboard shows now. */
+export function publishStatusOf({
+  state,
+  version,
+  publishedVersion,
+}: {
+  state: "idle" | "sending" | "done";
+  version: number;
+  publishedVersion: number | null;
+}): string {
+  if (state === "done") return `v${version} is on your dashboard.`;
+  if (publishedVersion === null) return "";
+  if (publishedVersion === version) return `v${version} is on your dashboard.`;
+  return `Your dashboard shows v${publishedVersion}.`;
 }
 
 export type View = "chat" | "visual";

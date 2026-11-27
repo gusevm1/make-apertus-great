@@ -13,9 +13,10 @@ import {
   json,
   type Message,
   type ToolCall,
+  type WidgetPublication,
   type WidgetVersion,
 } from "./api";
-import { type HostContext, useHostContext } from "./host";
+import { type HostContext, sendToHost, useHostContext } from "./host";
 import {
   builtWidgetOf,
   Canvas,
@@ -153,6 +154,9 @@ function Chat({
       );
       if (request !== visualRequest.current) return;
       setVisual({
+        widgetId: widget.widgetId,
+        version: version.number,
+        publishedVersion: version.published_version,
         title: version.title,
         html: version.html,
         caption: captionOf(version),
@@ -161,6 +165,26 @@ function Chat({
     } finally {
       if (request === visualRequest.current) setIsLoadingVisual(false);
     }
+  }
+
+  // The customer's click on "Put on dashboard"; the e-banking reloads an open dashboard.
+  async function publishVisual() {
+    if (visual === null) return;
+    const publication = await api<WidgetPublication>(
+      `/api/widgets/${visual.widgetId}/publications`,
+      token,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dashboard_id: context.dashboard_id }),
+      },
+    );
+    sendToHost("widgets-changed", { dashboard_id: publication.dashboard_id });
+    setVisual((current) =>
+      current !== null && current.widgetId === publication.widget_id
+        ? { ...current, publishedVersion: publication.version_number }
+        : current,
+    );
   }
 
   function clearVisual() {
@@ -439,6 +463,7 @@ function Chat({
             isLoading={isLoadingVisual}
             isBusy={isBusy}
             onAsk={(text) => void ask(text)}
+            onPublish={publishVisual}
           />
         </div>
 
