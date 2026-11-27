@@ -71,7 +71,7 @@ async def test_message_uses_a_tool_then_gets_its_reply(
     decision, next_decision, answer = apertus.requests
     assert LOOKUP.name in decision["messages"][0]["content"]
     assert f'<tool_result tool="{LOOKUP.name}">' in next_decision["messages"][-2]["content"]
-    assert answer["messages"][1] == {"role": "user", "content": "Was steht über Zürich?"}
+    assert answer["messages"][1]["content"].endswith("</customer>\nWas steht über Zürich?")
     assert "Page about Zurich" in answer["messages"][-1]["content"]
 
 
@@ -116,11 +116,11 @@ async def test_follow_up_sees_the_earlier_turns(
 
     decision, answer = apertus.requests[-2:]
     for history in (decision["messages"][1:-1], answer["messages"][1:-1]):
-        assert [(message["role"], message["content"]) for message in history] == [
+        assert [(message["role"], message["content"]) for message in history[:-1]] == [
             ("user", "Was steht über New York?"),
             ("assistant", FAKE_REPLY),
-            ("user", "Und über Tokyo?"),
         ]
+        assert history[-1]["content"].endswith("</customer>\nUnd über Tokyo?")
 
 
 async def test_wrong_tool_call_goes_back_to_the_model_as_an_error(
