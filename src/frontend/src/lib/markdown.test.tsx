@@ -27,13 +27,24 @@ test("keeps HTML in the answer as text", () => {
   expect(output).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
 });
 
-test("links only web addresses", () => {
-  expect(html("[bank](https://example.ch/a)")).toContain(
-    '<a href="https://example.ch/a" target="_blank" rel="noreferrer">bank</a>',
+test("links only web addresses and shows where they go", () => {
+  expect(html("[your e-banking](https://evil.ch/login)")).toContain(
+    '<a href="https://evil.ch/login" target="_blank" rel="noreferrer">your e-banking</a> <span class="link-host">(evil.ch)</span>',
   );
   expect(html("[click](javascript:alert(1))")).not.toContain("<a");
 });
 
+test("nests indented items under their category, across blank lines", () => {
+  const answer =
+    "* **Accounts** (CHF 58,699.68)  \n  - Privatkonto: CHF 9,716.33  \n  - Sparkonto Steuern: CHF 4,638.04  \n\n* **Pension** (CHF 55,899.65)  \n  - Vorsorgekonto Säule 3a: CHF 55,899.65";
+
+  expect(html(answer)).toBe(
+    '<div class="markdown"><ul>' +
+      "<li><strong>Accounts</strong> (CHF 58,699.68)<ul><li>Privatkonto: CHF 9,716.33</li><li>Sparkonto Steuern: CHF 4,638.04</li></ul></li>" +
+      "<li><strong>Pension</strong> (CHF 55,899.65)<ul><li>Vorsorgekonto Säule 3a: CHF 55,899.65</li></ul></li>" +
+      "</ul></div>",
+  );
+});
 test("shows headings, numbered lists, code and italics", () => {
   expect(html("## Plan\n1. one\n2. *two* and `x_y`")).toBe(
     '<div class="markdown"><p><strong>Plan</strong></p>' +

@@ -73,6 +73,11 @@ main {
   color: var(--color-primary);
 }
 
+.markdown .link-host {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
 .msg.error {
   align-self: flex-start;
   color: var(--color-error);

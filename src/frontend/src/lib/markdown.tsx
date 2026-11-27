@@ -1,15 +1,15 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 const HEADING = /^#{1,6}\s+(.*)$/;
-const BULLET = /^\s*[-*+]\s+(.*)$/;
-const NUMBERED = /^\s*(\d+)[.)]\s+(.*)$/;
+const ITEM = /^(\s*)(?:[-*+]|(\d+)[.)])\s+(.*)$/;
 // Code, http(s) link, bold, italic. A link to any other scheme stays text.
 const INLINE =
   /`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*(.+?)\*\*|__(.+?)__|(?<![\w*])\*(?![\s*])(.+?)(?<![\s*])\*(?![\w*])|(?<!\w)_(?![\s_])(.+?)(?<![\s_])_(?!\w)/g;
 
-type List = { isOrdered: boolean; start: number; items: string[] };
+type Item = { text: string; children: List | null };
+type List = { isOrdered: boolean; start: number; items: Item[] };
 
-/** Model text as formatting. Only React elements are made, so HTML in the text stays text. */
+// Only React elements are made from the text, so HTML in a model answer stays text.
 export function Markdown({ text }: { text: string }) {
   return <div className="markdown">{blocksOf(text)}</div>;
 }
@@ -19,72 +19,82 @@ function blocksOf(text: string): ReactNode[] {
   let paragraph: string[] = [];
   let list: List | null = null;
 
-  function flush() {
-    if (paragraph.length > 0) {
-      blocks.push(
-        <p key={blocks.length}>
-          {paragraph.flatMap((line, index) => [
-            index > 0 && <br key={`br${index}`} />,
-            ...inlineOf(line),
-          ])}
-        </p>,
-      );
-      paragraph = [];
-    }
-    if (list !== null) {
-      const items = list.items.map((item, index) => (
-        <li key={index}>{inlineOf(item)}</li>
-      ));
-      blocks.push(
-        list.isOrdered ? (
-          <ol key={blocks.length} start={list.start}>
-            {items}
-          </ol>
-        ) : (
-          <ul key={blocks.length}>{items}</ul>
-        ),
-      );
-      list = null;
-    }
+  function flushParagraph() {
+    if (paragraph.length === 0) return;
+    blocks.push(
+      <p key={blocks.length}>
+        {paragraph.map((line, index) => (
+          <Fragment key={index}>
+            {index > 0 && <br />}
+            {inlineOf(line)}
+          </Fragment>
+        ))}
+      </p>,
+    );
+    paragraph = [];
   }
 
-  // ponytail: nested lists come out flat, indent them when answers need it
+  function flushList() {
+    if (list === null) return;
+    blocks.push(listOf(list, blocks.length));
+    list = null;
+  }
+
+  // ponytail: one level of nesting, deeper items join that level
   for (const raw of text.split("\n")) {
     const line = raw.trimEnd();
     const heading = HEADING.exec(line);
-    const numbered = NUMBERED.exec(line);
-    const item = numbered?.[2] ?? BULLET.exec(line)?.[1];
-    if (line.trim() === "") {
-      flush();
+    const item = ITEM.exec(line);
+    if (line === "") {
+      // A blank line between items keeps the list together.
+      flushParagraph();
     } else if (heading !== null) {
-      flush();
+      flushParagraph();
+      flushList();
       blocks.push(
         <p key={blocks.length}>
           <strong>{inlineOf(heading[1])}</strong>
         </p>,
       );
-    } else if (item !== undefined) {
-      const isOrdered = numbered !== null;
-      if (
-        paragraph.length > 0 ||
-        (list !== null && list.isOrdered !== isOrdered)
-      )
-        flush();
-      if (list === null) {
-        list = {
-          isOrdered,
-          start: numbered === null ? 1 : Number(numbered[1]),
-          items: [],
-        };
+    } else if (item !== null) {
+      const [, indent, number, itemText] = item;
+      const entry = {
+        isOrdered: number !== undefined,
+        start: Number(number ?? 1),
+      };
+      const parent = list?.items.at(-1);
+      if (indent.length >= 2 && parent !== undefined) {
+        parent.children ??= { ...entry, items: [] };
+        parent.children.items.push({ text: itemText, children: null });
+        continue;
       }
-      list.items.push(item);
+      flushParagraph();
+      if (list !== null && list.isOrdered !== entry.isOrdered) flushList();
+      list ??= { ...entry, items: [] };
+      list.items.push({ text: itemText, children: null });
     } else {
-      if (list !== null) flush();
+      flushList();
       paragraph.push(line);
     }
   }
-  flush();
+  flushParagraph();
+  flushList();
   return blocks;
+}
+
+function listOf(list: List, key: number): ReactNode {
+  const items = list.items.map((item, index) => (
+    <li key={index}>
+      {inlineOf(item.text)}
+      {item.children !== null && listOf(item.children, 0)}
+    </li>
+  ));
+  if (!list.isOrdered) return <ul key={key}>{items}</ul>;
+  return (
+    <ol key={key} start={list.start}>
+      {items}
+    </ol>
+  );
 }
 
 function inlineOf(text: string): ReactNode[] {
@@ -96,12 +106,17 @@ function inlineOf(text: string): ReactNode[] {
       match;
     const key = match.index;
     if (code !== undefined) nodes.push(<code key={key}>{code}</code>);
-    else if (url !== undefined)
+    else if (url !== undefined && URL.canParse(url))
+      // The host is shown, so a label like "your e-banking" cannot hide where the link goes.
       nodes.push(
-        <a key={key} href={url} target="_blank" rel="noreferrer">
-          {inlineOf(label)}
-        </a>,
+        <Fragment key={key}>
+          <a href={url} target="_blank" rel="noreferrer">
+            {inlineOf(label)}
+          </a>{" "}
+          <span className="link-host">({new URL(url).hostname})</span>
+        </Fragment>,
       );
+    else if (url !== undefined) nodes.push(match[0]);
     else if (bold !== undefined || boldUnderscore !== undefined)
       nodes.push(<strong key={key}>{inlineOf(bold ?? boldUnderscore)}</strong>);
     else nodes.push(<em key={key}>{inlineOf(italic ?? italicUnderscore)}</em>);
