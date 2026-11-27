@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from collections import defaultdict
 from datetime import date, timedelta
@@ -32,7 +33,10 @@ from app.features.transaction_tags.schemas import (
     RequestPersonalTagUpdate,
 )
 
+logger = logging.getLogger(__name__)
+
 BATCH_SIZE = 50
+PAYEE_TEXT_LENGTH = 40
 MAX_PARALLEL_BATCHES = 16
 SPENDING_DAYS = 365
 PAYEES_PER_CATEGORY = 5
@@ -87,14 +91,16 @@ class PersonalTagService:
     async def update_tag(
         self, tag: PersonalTag, token: str, data: RequestPersonalTagUpdate
     ) -> PersonalTagSummary:
+        cleaned: dict[str, str] = {}
         if data.name is not None:
-            data.name = data.name.strip()
+            cleaned["name"] = data.name.strip()
             if await self.personal.name_taken(
-                owner_id=tag.owner_id, name=data.name, except_id=tag.id
+                owner_id=tag.owner_id, name=cleaned["name"], except_id=tag.id
             ):
-                raise ConflictError(f"You have a tag '{data.name}' already")
+                raise ConflictError(f"You have a tag '{cleaned['name']}' already")
         if data.description is not None:
-            data.description = _one_line(text=data.description)
+            cleaned["description"] = _one_line(text=data.description)
+        data = RequestPersonalTagUpdate(**cleaned)
         updated = await self.personal.update(entity_id=tag.id, data=data)
         if updated is None:
             raise NotFoundError(f"No personal tag '{tag.id}'")
@@ -250,6 +256,13 @@ class PersonalTagService:
                     for row, _ in judged
                 ]
             )
+        if failed_batches > 0:
+            logger.error(
+                "Personal tags: %s of %s batches failed for %s",
+                failed_batches,
+                len(batches),
+                owner_id,
+            )
         if batches and failed_batches == len(batches):
             raise UpstreamError("Apertus judged no batch")
 
@@ -349,7 +362,7 @@ def _top_payees(
         category = categories.get((row.source, row.id))
         if category is None or row.kind != "spending" or row.date <= start:
             continue
-        payee = row.counterparty or row.text[:40]
+        payee = row.counterparty or row.text[:PAYEE_TEXT_LENGTH]
         totals[category][payee] -= row.amount_chf
     return {
         category: [
