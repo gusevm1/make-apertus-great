@@ -993,6 +993,7 @@ async def test_a_tax_year_sums_interest_and_3a_and_takes_the_balances_of_31_dece
     ]
     assert summary.row_ids["ACC-PRIV"] == ["BK-3A-12"]
     assert summary.portfolio_value_chf == Decimal("64165.28")
+    assert "not tax advice" in summary.note
 
 
 async def test_a_year_without_a_loan_has_no_interest_and_3a_over_the_limit_says_by_how_much() -> (

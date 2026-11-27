@@ -396,5 +396,6 @@ class TaxYearSummary(BaseModel):
     year_end_balances: list[YearEndBalance]
     # On 31 December; None when the portfolio's history has no value for that day.
     portfolio_value_chf: Decimal | None
+    note: str
     # Last, so a cut in the tool result drops ids before any figure.
     row_ids: dict[str, list[str]]

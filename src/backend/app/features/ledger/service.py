@@ -280,6 +280,7 @@ class LedgerService:
                 for account_id, row in sorted(last_by_account.items())
             ],
             portfolio_value_chf=await self._portfolio_value(token=token, day=year_end),
+            note=PROMPTS["tax_year_note"],
             row_ids={
                 "mortgage_interest": [row.id for row in interest],
                 "pillar_3a": [row.id for row in pillar_3a],

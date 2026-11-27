@@ -74,8 +74,10 @@ tax_year_summary: >-
   exceed it, each account's balance after its last booking of the year, and the portfolio value on
   31 December. Amounts paid are positive. When `until` is before 31 December, the year is not over
   and the figures are so far. Use it for "what do I need for my tax return" or "how much did I pay
-  into my 3a in 2025". Say in the answer that these are figures from the bank, not tax advice, and
-  that no tax was computed. Dividends are not included.
+  into my 3a in 2025". Dividends are not included. Pass on its `note` in the answer.
+tax_year_note: >-
+  Say in the answer, in the customer's language, that these are figures from the bank for the tax
+  return, not tax advice, and that no tax was computed.
 unknown_account: >-
   The ledger has no bookings of {account_id}. Pass one of these account ids: {account_ids}.
 not_enough_months: >-
