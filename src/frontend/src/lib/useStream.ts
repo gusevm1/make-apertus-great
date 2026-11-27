@@ -27,6 +27,8 @@ export interface StreamToolCall {
   confirmation: string | null;
   /** What the sheet lists, built by the server; null: the raw arguments. */
   lines: SheetLine[] | null;
+  /** The customer may change the text arguments before allowing the call. */
+  is_editable: boolean;
   result: Record<string, unknown> | null;
   error: string | null;
   isRunning: boolean;
@@ -44,8 +46,13 @@ type ToolCallEvent = Pick<
   | "plan"
   | "confirmation"
   | "lines"
+  | "is_editable"
 >;
-type ToolResultEvent = Pick<StreamToolCall, "id" | "result" | "error">;
+/** `arguments` are what the call ran with, the customer's edit included. */
+type ToolResultEvent = Pick<
+  StreamToolCall,
+  "id" | "arguments" | "result" | "error"
+>;
 
 interface SseEvent {
   event: string;

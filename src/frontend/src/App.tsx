@@ -352,11 +352,15 @@ function Chat({
     setAttached((current) => (current.length === 0 ? documents : current));
   }
 
-  async function handleConfirmation(toolCallId: string, isAllowed: boolean) {
+  async function handleConfirmation(
+    toolCallId: string,
+    isAllowed: boolean,
+    edited: Record<string, unknown> | null,
+  ) {
     await api<void>(
       `/api/conversations/${conversationId}/tool-calls/${toolCallId}/confirmations`,
       token,
-      json({ is_allowed: isAllowed }),
+      json({ is_allowed: isAllowed, arguments: edited }),
     );
   }
 
@@ -602,8 +606,8 @@ function Chat({
             <Confirmation
               key={toolCall.id}
               toolCall={toolCall}
-              onAnswer={(isAllowed) =>
-                handleConfirmation(toolCall.id, isAllowed)
+              onAnswer={(isAllowed, edited) =>
+                handleConfirmation(toolCall.id, isAllowed, edited)
               }
             />
           ))}

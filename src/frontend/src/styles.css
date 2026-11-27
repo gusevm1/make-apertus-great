@@ -729,6 +729,8 @@ main,
 }
 
 .facts dd {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -737,6 +739,19 @@ main,
   display: block;
   font-weight: 400;
   color: var(--color-text-muted);
+}
+
+.facts div:has(input) {
+  align-items: center;
+}
+
+.facts input {
+  width: 100%;
+  padding: 6px 8px;
+  font-weight: 600;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
 }
 
 .sheet > .hint {
