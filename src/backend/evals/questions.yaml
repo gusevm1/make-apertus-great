@@ -60,9 +60,6 @@
       arguments:
         date_from: "2026-09-01"
   answer: "Digitec"
-- question: Was I charged twice for anything last month?
-  calls:
-    - tool: find_unusual_movements
 - question: How much came in and went out last month?
   calls:
     - tool: sum_by_group
