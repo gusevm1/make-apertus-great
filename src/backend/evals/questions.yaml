@@ -126,3 +126,26 @@
   # The profile names the mortgage tranche, but the answer has to come from a read.
   calls:
     - tool: list_loans
+- question: How much did I spend on groceries in 2025?
+  calls:
+    - tool: sum_spending
+      arguments:
+        group_by: category
+        category: groceries
+        date_from: "2025-01-01"
+        date_to: "2025-12-31"
+  not_called: [search_web]
+- question: What has the Japan trip cost me so far?
+  calls:
+    - tool: sum_spending
+      arguments:
+        group_by: personal_tag
+        personal_tag: ".*japan.*"
+  not_called: [search_web]
+- question: Where could I save money?
+  customer: jana
+  calls:
+    - tool: sum_spending
+      arguments:
+        group_by: severity
+  not_called: [search_web]

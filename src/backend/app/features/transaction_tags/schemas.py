@@ -5,7 +5,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.core.prompts import load_prompts
 from app.features.ledger.schemas import Kind
+
+PROMPTS = load_prompts(prompts_py=__file__)
 
 Certainty = Literal["low", "medium", "high"]
 CERTAINTIES = get_args(Certainty)
@@ -346,3 +349,45 @@ class RowPersonalTags(BaseModel):
 
 class BatchPersonalTags(BaseModel):
     rows: list[RowPersonalTags]
+
+
+SpendingGroupBy = Literal["category", "personal_tag", "severity"]
+AnswerLanguage = Literal["de", "en", "fr", "it"]
+# The group of spending rows that have no category yet, or no personal tag.
+NOT_CATEGORISED = "not_categorised"
+NO_PERSONAL_TAG = "no_personal_tag"
+
+
+class SumSpendingArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    group_by: SpendingGroupBy = Field(description=PROMPTS["group_by"])
+    date_from: date | None = Field(default=None, description=PROMPTS["date_from"])
+    date_to: date | None = Field(default=None, description=PROMPTS["date_to"])
+    category: Category | None = Field(default=None, description=PROMPTS["category"])
+    personal_tag: str | None = Field(
+        default=None, min_length=1, description=PROMPTS["personal_tag"]
+    )
+    severity: Severity | None = Field(default=None, description=PROMPTS["severity"])
+    language: AnswerLanguage = Field(default="de", description=PROMPTS["language"])
+
+
+class SpendingGroup(BaseModel):
+    group: str
+    spent_chf: Decimal
+    count: int
+    # Model categories with low or no certainty that the customer has not confirmed.
+    uncertain_count: int
+    # Only per personal tag: money moved to own accounts for it, not counted as spent.
+    saved_chf: Decimal | None
+
+
+class SpendingSums(BaseModel):
+    group_by: SpendingGroupBy
+    spent_chf: Decimal
+    count: int
+    uncertain_count: int
+    groups: list[SpendingGroup]
+    language: AnswerLanguage
+    # Last, so a cut in the tool result drops ids before any figure.
+    row_ids: dict[str, list[str]]

@@ -58,3 +58,24 @@ assign_tags_input: |
   <rows>
   {rows}
   </rows>
+sum_spending: >-
+  The customer's spending added up per `category`, `personal_tag` (their own tags such as a trip or
+  a child) or `severity` (how much they can do without it: critical, major, moderate, minor,
+  negligible), with an optional filter on one category, tag or severity. Each group has `spent_chf`,
+  its `count` and `uncertain_count`, the bookings whose category the model is not sure of. Rows
+  without a category yet are their own group, `not_categorised`. Per personal tag, `saved_chf` is
+  what went to own savings for it, apart from what was spent. A booking can carry several personal
+  tags, so never add up tag groups. These sums are final: use them as they are and never add rows
+  yourself. Use it for "how much do I spend on groceries", "what has the Japan trip cost me" and
+  "where could I save": saving starts from negligible and minor spending, never from critical.
+group_by: "What to add up per: category, personal_tag or severity."
+date_from: "First day of the period, as YYYY-MM-DD. Leave it out for the whole history."
+date_to: "Last day of the period, as YYYY-MM-DD."
+category: "Only this category, such as groceries."
+personal_tag: "Only the bookings of this personal tag, by its name, such as Japan."
+severity: "Only this severity, such as negligible."
+language: "The language of the customer's question: de, en, fr or it."
+uncertain_pointer_de: "{count} Buchungen in dieser Zahl sind vielleicht falsch kategorisiert. Prüfen Sie sie im [Kategorien-Center](#categories)."
+uncertain_pointer_en: "{count} bookings in this figure may be in the wrong category. Check them in the [category center](#categories)."
+uncertain_pointer_fr: "{count} écritures de ce montant sont peut-être mal catégorisées. Vérifiez-les dans le [centre des catégories](#categories)."
+uncertain_pointer_it: "{count} registrazioni di questa cifra potrebbero essere nella categoria sbagliata. Verificatele nel [centro categorie](#categories)."

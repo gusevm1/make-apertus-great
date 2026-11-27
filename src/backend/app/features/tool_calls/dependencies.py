@@ -16,6 +16,7 @@ from app.features.context_entries import tools as context_entry_tools
 from app.features.context_entries.dependencies import ContextEntryServiceDep
 from app.features.documents import tools as document_tools
 from app.features.documents.dependencies import DocumentServiceDep
+from app.features.figure_checks.dependencies import FigureCheckServiceDep
 from app.features.ledger import tools as ledger_tools
 from app.features.ledger.dependencies import LedgerServiceDep
 from app.features.payments import tools as payment_tools
@@ -23,6 +24,8 @@ from app.features.payments.dependencies import PaymentServiceDep
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.service import ToolCallService
+from app.features.transaction_tags import tools as transaction_tag_tools
+from app.features.transaction_tags.dependencies import SpendingServiceDep
 from app.features.web_search import tools as web_search_tools
 from app.features.web_search.service import WebSearchService
 from app.features.widgets import tools as widget_tools
@@ -51,6 +54,8 @@ def get_tools(
     ledger: LedgerServiceDep,
     payments: PaymentServiceDep,
     widgets: WidgetServiceDep,
+    spending: SpendingServiceDep,
+    figure_checks: FigureCheckServiceDep,
     today: Annotated[date, Depends(get_today)],
 ) -> list[Tool[Any]]:
     # A feature whose tools read the customer's bank data adds its service dependency here.
@@ -63,6 +68,9 @@ def get_tools(
         *widget_tools.get_tools(service=widgets, owner_id=user.id),
         # Changes to the bank: each one waits for the customer's yes in the page.
         *payment_tools.get_tools(service=payments, token=user.token),
+        *transaction_tag_tools.get_tools(
+            service=spending, figure_checks=figure_checks, owner_id=user.id, token=user.token
+        ),
         # Web search sends the query outside the bank, so it needs SearXNG's address to exist.
         *(
             []

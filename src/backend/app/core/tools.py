@@ -45,6 +45,8 @@ class Tool[ArgsT: BaseModel]:
     confirmation: str | None = None
     # Lines the sheet shows instead of the arguments; an AppError refuses the call before asking.
     sheet: Callable[[ArgsT], Awaitable[list[SheetLine]]] | None = None
+    # A line the server adds under an answer built on this tool's result, or None.
+    pointer: Callable[[dict[str, Any], str], str | None] | None = None
 
     def __post_init__(self) -> None:
         if (self.handler is None) == (self.turn_handler is None):

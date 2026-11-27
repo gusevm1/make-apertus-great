@@ -102,7 +102,8 @@ class ToolCallService:
         if stream.result is None:
             raise UpstreamError("Apertus stream ended without a result")
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
-        return SwissSpelling().feed(text=stream.result.content), provenance
+        answer = SwissSpelling().feed(text=stream.result.content)
+        return answer + self._pointers(calls=calls, answer=answer), provenance
 
     async def stream_answer(
         self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage]
@@ -136,7 +137,11 @@ class ToolCallService:
         if stream.result is None:
             raise UpstreamError("Apertus stream ended without a result")
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
-        yield DoneEvent(result=(SwissSpelling().feed(text=stream.result.content), provenance))
+        answer = SwissSpelling().feed(text=stream.result.content)
+        pointers = self._pointers(calls=calls, answer=answer)
+        if pointers != "":
+            yield TokenEvent(text=pointers)
+        yield DoneEvent(result=(answer + pointers, provenance))
 
     async def list_tool_calls(self, conversation_id: UUID) -> list[ToolCall]:
         """List the tool calls made in a conversation, oldest first."""
@@ -250,6 +255,18 @@ class ToolCallService:
             if not round_calls or len(calls) == MAX_TOOL_CALLS:
                 break
             rounds.append((decision, round_calls))
+
+    def _pointers(self, calls: list[ToolCall], answer: str) -> str:
+        """The lines the called tools add under this answer, each once."""
+        lines: list[str] = []
+        for call in calls:
+            tool = self.tools.get(call.tool_name)
+            if tool is None or tool.pointer is None or call.result is None:
+                continue
+            line = tool.pointer(call.result, answer)
+            if line is not None and line not in lines:
+                lines.append(line)
+        return "".join(f"\n\n{line}" for line in lines)
 
     def _confirmation(self, request: ToolRequest) -> str | None:
         """What the customer has to allow first; a call that cannot run needs no answer."""

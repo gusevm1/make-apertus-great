@@ -19,6 +19,7 @@ from app.features.transaction_tags.repository import (
 from app.features.transaction_tags.schemas import PersonalTag
 from app.features.transaction_tags.service import TransactionTagService
 from app.features.transaction_tags.severity_service import SeverityService
+from app.features.transaction_tags.spending_service import SpendingService
 
 
 def get_transaction_tag_repo(session: SessionDep) -> TransactionTagRepository:
@@ -84,3 +85,12 @@ async def get_owned_personal_tag(
 
 
 OwnedPersonalTagDep = Annotated[PersonalTag, Depends(get_owned_personal_tag)]
+
+
+def get_spending_service(
+    ledger: LedgerServiceDep, severities: SeverityServiceDep, personal: PersonalTagServiceDep
+) -> SpendingService:
+    return SpendingService(ledger=ledger, severities=severities, personal=personal)
+
+
+SpendingServiceDep = Annotated[SpendingService, Depends(get_spending_service)]
