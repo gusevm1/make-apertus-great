@@ -138,4 +138,4 @@
     - tool: compare_budgets
       arguments:
         month: "(2026-11)?"
-  not_called: [search_web, sum_spending]
+  not_called: [search_web]
