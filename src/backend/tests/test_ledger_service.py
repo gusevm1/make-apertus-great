@@ -491,18 +491,15 @@ async def test_each_group_says_how_much_of_it_is_provisional(
 OCTOBER = Filters(date_from=date(2026, 10, 1), date_to=date(2026, 10, 31))
 
 
-def _payment(
-    booking_id: str, day: str, amount: float, counterparty: str = "Digitec", **fields: Any
-) -> dict:
-    return (
-        _booking(booking_id, "debit_card", amount, booking_date=day, counterparty_name=counterparty)
-        | fields
+def _payment(booking_id: str, day: str, amount: float, counterparty: str = "Digitec") -> dict:
+    return _booking(
+        booking_id, "debit_card", amount, booking_date=day, counterparty_name=counterparty
     )
 
 
 def _history(median: float, count: int = 5, counterparty: str = "Digitec") -> list[dict]:
     return [
-        _payment(f"BK-H{index}", f"2026-0{index % 9 + 1}-05", -median, counterparty)
+        _payment(f"BK-{counterparty}-{index}", f"2026-0{index % 9 + 1}-05", -median, counterparty)
         for index in range(count)
     ]
 
@@ -599,7 +596,7 @@ async def test_without_a_period_the_last_full_month_is_checked_largest_first() -
     assert [flag.movement.id for flag in found.movements] == ["BK-B", "BK-A"]
 
 
-async def test_only_20_flags_are_listed_but_all_are_counted() -> None:
+async def test_only_10_flags_are_listed_but_all_are_counted() -> None:
     bookings = [
         _payment(f"BK-{index}", "2026-10-10", -100.0 - index, counterparty=f"Shop {index}")
         for index in range(25)
@@ -608,6 +605,6 @@ async def test_only_20_flags_are_listed_but_all_are_counted() -> None:
 
     found = await ledger.find_unusual_movements(token=TOKEN, filters=OCTOBER, today=TODAY)
 
-    assert (found.flagged, len(found.movements), found.not_listed) == (25, 20, 5)
+    assert (found.flagged, len(found.movements), found.not_listed) == (25, 10, 15)
     assert found.movements[0].movement.id == "BK-24"
     assert len(found.row_ids) == 25

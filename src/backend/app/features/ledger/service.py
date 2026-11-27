@@ -12,7 +12,6 @@ from app.core.errors import BadRequestError
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import (
     MIN_TREND_MONTHS,
-    ROWS_MAX,
     CounterpartySum,
     CounterpartySums,
     Filters,
@@ -50,6 +49,8 @@ UNUSUAL_HISTORY_MIN = 5
 UNUSUAL_HISTORY_DAYS = 365
 FIRST_PAYMENT_MIN_CHF = Decimal(100)
 SAME_DAY_MIN_CHF = Decimal(20)
+# A flag is about twice a movement's size, so 20 would pass the 6000 characters of a tool result.
+UNUSUAL_LISTED = 10
 # Planned or cash: neither is a charge the customer would want to check.
 NOT_CHECKED_TYPES = {"standing_order", "atm"}
 # Every path the model's tools may read; `{}` is one segment. Nothing here changes the bank.
@@ -285,8 +286,8 @@ class LedgerService:
             date_to=filters.date_to,
             checked=checked,
             flagged=len(flags),
-            movements=flags[:ROWS_MAX],
-            not_listed=max(len(flags) - ROWS_MAX, 0),
+            not_listed=max(len(flags) - UNUSUAL_LISTED, 0),
+            movements=flags[:UNUSUAL_LISTED],
             row_ids=[flag.movement.id for flag in flags],
         )
 

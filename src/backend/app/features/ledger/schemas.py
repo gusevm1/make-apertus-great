@@ -158,8 +158,8 @@ class UnusualMovements(BaseModel):
     date_to: datetime.date | None
     checked: int
     flagged: int
-    movements: list[UnusualMovement]
     not_listed: int
+    movements: list[UnusualMovement]
     row_ids: list[str]
 
 
