@@ -67,6 +67,16 @@ async def test_scores_right_wrong_and_missing_fields_of_a_faked_backend() -> Non
     assert requests == ["POST /api/documents", f"DELETE /api/documents/{DOCUMENT_ID}"]
 
 
+def test_an_undescribed_document_prints_the_reason() -> None:
+    check = {"name": "described", "passed": False, "detail": "Apertus timed out"}
+    response = {"kind": None, "fields": [], "provenance": {"checks": [check]}}
+    scores = score_fields(expected=REMINDER, response=response)
+
+    line = describe_line(expected=REMINDER, response=response, scores=scores)
+
+    assert "NOT DESCRIBED (Apertus timed out)" in line
+
+
 def test_catalogue_names_all_13_pdfs_with_a_login_each() -> None:
     catalogue = load_catalogue(path=DOCUMENTS_PATH)
     assert len(catalogue.documents) == 13

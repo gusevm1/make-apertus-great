@@ -17,7 +17,8 @@ from evals.run import EvalSettings
 
 DOCUMENTS_PATH = Path(__file__).with_name("documents.yaml")
 SAMPLES_DIR = Path(__file__).parents[3] / "starter/resources/Demodaten/Dokumente"
-UPLOAD_TIMEOUT_SECONDS = 300
+# Three describe attempts of 150 s each, and the corrective call.
+UPLOAD_TIMEOUT_SECONDS = 600
 
 Value = float | date | str
 Verdict = Literal["right", "wrong", "missing"]
@@ -84,9 +85,12 @@ def score_fields(expected: ExpectedDocument, response: dict[str, Any]) -> list[F
     return scores
 
 
+def _checks(response: dict[str, Any]) -> list[dict[str, Any]]:
+    return (response.get("provenance") or {}).get("checks", [])
+
+
 def _check_detail(response: dict[str, Any]) -> str:
-    checks = (response.get("provenance") or {}).get("checks", [])
-    return " ".join(check.get("detail") or "" for check in checks)
+    return " ".join(check.get("detail") or "" for check in _checks(response=response))
 
 
 def describe_line(
@@ -97,6 +101,9 @@ def describe_line(
         "kind right" if kind == expected.kind else f"kind WRONG ({kind}, not {expected.kind})"
     )
     parts = [kind_part]
+    for check in _checks(response=response):
+        if check.get("name") == "described" and check.get("passed") is False:
+            parts.append(f"NOT DESCRIBED ({check['detail']})")
     for score in scores:
         if score.verdict == "right":
             parts.append(f"{score.name} right")
