@@ -45,7 +45,8 @@ list_loan_transactions: >-
   to. Returns `sum_chf` over all matching payments, so "interest paid in 2025" is one call with
   type interest and the year as period.
 get_fx_rates: >-
-  Monthly exchange rates against CHF for EUR, USD and GBP.
+  Monthly exchange rates for EUR, USD and GBP, each as CHF per one unit. Leave out the currency
+  for all three.
 
 date_from: "First day of the period, as YYYY-MM-DD."
 date_to: "Last day of the period, as YYYY-MM-DD."

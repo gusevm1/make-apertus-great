@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, model_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator, model_validator
 
 from app.core.prompts import load_prompts
 
@@ -90,4 +90,12 @@ class LoanTransactionsArgs(Period):
 
 class FxRatesArgs(Args):
     month: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")
-    currency: Literal["EUR", "USD", "GBP"] | None = None
+    currency: Literal["CHF", "EUR", "USD", "GBP"] | None = None
+
+    @field_validator("currency")
+    @classmethod
+    def _chf_is_the_base(cls, currency: str | None) -> str | None:
+        # Every rate is quoted in CHF, so asking for CHF means asking for all of them.
+        if currency == "CHF":
+            return None
+        return currency

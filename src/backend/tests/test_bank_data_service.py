@@ -25,9 +25,11 @@ def test_rows_beyond_the_room_are_counted_not_listed() -> None:
 class _Recorder(BankDataService):
     def __init__(self) -> None:
         self.paths: list[str] = []
+        self.params: dict[str, Any] = {}
 
     async def read(self, path: str, token: str, params: dict[str, Any]) -> BankData:
         self.paths.append(path)
+        self.params = params
         return BankData(root={})
 
 
@@ -40,3 +42,14 @@ async def test_an_id_cannot_reach_another_path_of_the_banking_api() -> None:
     await preview.handler(preview.args_schema(account_id="../customer?x="))
 
     assert recorder.paths == ["/accounts/..%2Fcustomer%3Fx%3D/balance-preview"]
+
+
+async def test_asking_for_chf_rates_asks_for_all_rates_against_chf() -> None:
+    recorder = _Recorder()
+    tools = {tool.name: tool for tool in get_tools(service=recorder, token="token")}
+    rates = tools["get_fx_rates"]
+    assert rates.handler is not None
+
+    await rates.handler(rates.args_schema.model_validate({"currency": "CHF", "month": "2025-06"}))
+
+    assert recorder.params == {"month": "2025-06"}
