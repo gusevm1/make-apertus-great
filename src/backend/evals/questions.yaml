@@ -80,6 +80,8 @@
         sort: "largest"
         limit: "5"
 - question: What is my savings goal?
+  calls:
+    - tool: get_customer
   answer: Japan
 - question: Why is my private account lower than a month ago?
   calls:
@@ -118,3 +120,9 @@
 - question: Was kannst du für mich tun?
   answer: Zahlung|Buchung|Dauerauftrag
   answer_not: keinen Zugriff|kein Zugriff
+- question: Tell me about my mortgage
+  customer: marco
+  rule: tools-only
+  # The profile names the mortgage tranche, but the answer has to come from a read.
+  calls:
+    - tool: list_loans

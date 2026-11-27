@@ -14,9 +14,8 @@ def chat_prompt(
     history: list[Message],
     page: PageContext | None = None,
     documents: Sequence[Document] = (),
-    customer: str = "",
 ) -> list[LLMMessage]:
-    """The chat for Apertus; `page`, `documents` and the `customer` block go with the last one."""
+    """The chat for Apertus; `page` and `documents` go with the last message."""
     # A truncated history can start with a reply; chat templates expect a user turn first.
     while history and history[0].role == "assistant":
         history = history[1:]
@@ -26,7 +25,8 @@ def chat_prompt(
     turns: list[LLMMessage] = [{"role": m.role, "content": m.content} for m in earlier]
     # The page goes with the question, not into the system message: the tool decision only
     # sees the turns, and what the browser sends has no place in the system role.
-    blocks = customer + "".join(_document(document=document) for document in documents)
+    # Only what the customer sent with this message; everything else the model reads by a tool.
+    blocks = "".join(_document(document=document) for document in documents)
     blocks += _page(page=page)
     return [system, *turns, {"role": last.role, "content": blocks + _text(message=last)}]
 

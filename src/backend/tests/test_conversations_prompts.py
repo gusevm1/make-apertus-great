@@ -3,7 +3,6 @@ from uuid import uuid4
 
 from app.features.conversations.prompts import DOCUMENT_MAX_CHARS, chat_prompt
 from app.features.conversations.schemas import Message
-from app.features.customer_contexts.prompts import customer_block
 from app.features.documents.schemas import Document
 from app.features.tool_calls.prompts import question_language
 
@@ -61,12 +60,8 @@ def test_document_name_cannot_leave_its_attribute() -> None:
     assert str(question).count("</document>") == 1
 
 
-def test_the_customer_block_goes_first_and_leaves_the_language_to_the_question() -> None:
-    block = customer_block(profile={"employer": "Limmatblau"}, documents=[], entries=[])
+def test_a_question_carries_no_customer_data_the_customer_did_not_send() -> None:
+    prompt = chat_prompt(history=[_question(content="Was ist mein Sparziel?")])
 
-    prompt = chat_prompt(history=[_question(content="Was ist mein Sparziel?")], customer=block)
-
-    question = str(prompt[-1]["content"])
-    assert question.startswith(block)
-    assert question.endswith("Was ist mein Sparziel?")
+    assert prompt[-1]["content"] == "Was ist mein Sparziel?"
     assert question_language(message=prompt[-1]) == "German"

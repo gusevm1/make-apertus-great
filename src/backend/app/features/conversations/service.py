@@ -1,7 +1,6 @@
 import json
 import re
 from collections.abc import AsyncIterator
-from typing import Any
 from uuid import UUID
 
 import anyio
@@ -19,7 +18,6 @@ from app.features.conversations.schemas import (
     RequestConversationUpdate,
     RequestMessageCreate,
 )
-from app.features.customer_contexts.service import CustomerContextService
 from app.features.documents.schemas import Document
 from app.features.documents.service import DocumentService
 from app.features.figure_checks.service import FigureCheckService
@@ -53,7 +51,6 @@ class ConversationService:
         documents: DocumentService,
         figure_checks: FigureCheckService,
         guardrails: GuardrailService,
-        customer_contexts: CustomerContextService,
     ) -> None:
         self.conversations = conversations
         self.messages = messages
@@ -61,7 +58,6 @@ class ConversationService:
         self.documents = documents
         self.figure_checks = figure_checks
         self.guardrails = guardrails
-        self.customer_contexts = customer_contexts
 
     async def create_conversation(
         self, data: RequestConversationCreate, owner_id: UUID
@@ -107,20 +103,17 @@ class ConversationService:
         conversation_id: UUID,
         data: RequestMessageCreate,
         owner_id: UUID,
-        profile: dict[str, Any],
     ) -> Message:
         """Store the user's message and return the stored reply, which may have used tools."""
-        history, documents, customer = await self._add_user_message(
-            conversation_id=conversation_id, data=data, owner_id=owner_id, profile=profile
+        history, documents = await self._add_user_message(
+            conversation_id=conversation_id, data=data, owner_id=owner_id
         )
         try:
             guardrail = await self.guardrails.check_message(text=data.content)
             if guardrail.decline is not None:
                 content, provenance = guardrail.decline, guardrail.provenance
             else:
-                messages = chat_prompt(
-                    history=history, page=data.page, documents=documents, customer=customer
-                )
+                messages = chat_prompt(history=history, page=data.page, documents=documents)
                 answer, answer_provenance = await self.tool_calls.create_answer(
                     conversation_id=conversation_id,
                     message_id=history[-1].id,
@@ -132,7 +125,6 @@ class ConversationService:
                     provenance=answer_provenance,
                     history=history,
                     documents=documents,
-                    customer=customer,
                 )
                 content, provenance = _guarded(
                     content=answer, provenance=checked, guardrail=guardrail
@@ -149,11 +141,10 @@ class ConversationService:
         conversation_id: UUID,
         data: RequestMessageCreate,
         owner_id: UUID,
-        profile: dict[str, Any],
     ) -> AsyncIterator[StreamEvent[Message]]:
         """Like `create_message`, but yields the turn's events, then the stored reply."""
-        history, documents, customer = await self._add_user_message(
-            conversation_id=conversation_id, data=data, owner_id=owner_id, profile=profile
+        history, documents = await self._add_user_message(
+            conversation_id=conversation_id, data=data, owner_id=owner_id
         )
         is_stored = False
         try:
@@ -165,9 +156,7 @@ class ConversationService:
                 events = self.tool_calls.stream_answer(
                     conversation_id=conversation_id,
                     message_id=history[-1].id,
-                    messages=chat_prompt(
-                        history=history, page=data.page, documents=documents, customer=customer
-                    ),
+                    messages=chat_prompt(history=history, page=data.page, documents=documents),
                 )
                 async for event in events:
                     if not isinstance(event, DoneEvent):
@@ -180,7 +169,6 @@ class ConversationService:
                         provenance=answer_provenance,
                         history=history,
                         documents=documents,
-                        customer=customer,
                     )
                     content, provenance = _guarded(
                         content=answer, provenance=checked, guardrail=guardrail
@@ -205,18 +193,14 @@ class ConversationService:
         conversation_id: UUID,
         data: RequestMessageCreate,
         owner_id: UUID,
-        profile: dict[str, Any],
-    ) -> tuple[list[Message], list[Document], str]:
-        """Store the message; returns the history ending with it, its documents, the customer."""
+    ) -> tuple[list[Message], list[Document]]:
+        """Store the message; returns the history ending with it, and its documents."""
         # Read first: the write's commit then leaves no transaction open across the LLM call.
         history = await self.messages.list_recent(
             conversation_id=conversation_id, limit=HISTORY_LIMIT - 1
         )
         documents = await self.documents.get_documents(
             document_ids=data.document_ids, owner_id=owner_id
-        )
-        customer = await self.customer_contexts.get_customer_block(
-            owner_id=owner_id, profile=profile
         )
         await self._check_quotes(conversation_id=conversation_id, data=data)
         message = await self.messages.create(
@@ -229,7 +213,7 @@ class ConversationService:
                 for document in documents
             ],
         )
-        return [*history, message], documents, customer
+        return [*history, message], documents
 
     async def _check_quotes(self, conversation_id: UUID, data: RequestMessageCreate) -> None:
         if not data.quotes:
@@ -252,13 +236,11 @@ class ConversationService:
         provenance: Provenance,
         history: list[Message],
         documents: list[Document],
-        customer: str,
     ) -> Provenance:
         # Earlier turns count too, so a follow-up may repeat a figure it was shown before.
         calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
         results = [call.result for call in calls if call.result is not None]
         texts = [document.markdown for document in documents]
-        texts.append(customer)
         texts += [message.content for message in history if message.role == "user"]
         sources = [json.dumps(result, ensure_ascii=False) for result in results]
         checks = [

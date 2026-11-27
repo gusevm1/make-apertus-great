@@ -8,7 +8,6 @@ from app.core.db import SessionDep
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import Conversation
 from app.features.conversations.service import ConversationService
-from app.features.customer_contexts.dependencies import CustomerContextServiceDep
 from app.features.documents.dependencies import DocumentServiceDep
 from app.features.figure_checks.dependencies import FigureCheckServiceDep
 from app.features.guardrails.dependencies import GuardrailServiceDep
@@ -30,7 +29,6 @@ def get_conversation_service(
     documents: DocumentServiceDep,
     figure_checks: FigureCheckServiceDep,
     guardrails: GuardrailServiceDep,
-    customer_contexts: CustomerContextServiceDep,
 ) -> ConversationService:
     return ConversationService(
         conversations=conversations,
@@ -39,7 +37,6 @@ def get_conversation_service(
         documents=documents,
         figure_checks=figure_checks,
         guardrails=guardrails,
-        customer_contexts=customer_contexts,
     )
 
 

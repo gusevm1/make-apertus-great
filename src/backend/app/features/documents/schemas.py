@@ -20,6 +20,8 @@ READ_ANSWER_MAX_LENGTH = 1_500
 READ_PASSAGES_MAX = 5
 # Five passages and the answer keep a reading under the tool loop's 6000 characters.
 READ_PASSAGE_MAX_LENGTH = 600
+# The tool loop cuts a result at 6000 characters; the list stops earlier so its count fits.
+LIST_MAX_CHARS = 5_000
 
 DocumentKind = Literal[
     "payslip",
@@ -130,3 +132,20 @@ class DocumentReading(BaseModel):
     answer: str | None = None
     passages: list[QuotedPassage] = []
     provenance: Provenance | None = None
+
+
+class DocumentSummary(BaseModel):
+    name: str
+    kind: DocumentKind | None
+    title: str | None
+    issuer: str | None
+    document_date: date | None
+    summary: str | None
+    fields: list[DocumentField]
+    created_at: datetime
+
+
+# The newest documents that fit; `left_out` counts the older ones.
+class DocumentList(BaseModel):
+    documents: list[DocumentSummary]
+    left_out: int

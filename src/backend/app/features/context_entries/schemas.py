@@ -63,3 +63,7 @@ class ResponseContextEntry(BaseModel):
     replaced_by_id: UUID | None
     replaces_id: UUID | None
     created_at: datetime
+
+
+class ContextEntryList(BaseModel):
+    entries: list[ContextEntry]

@@ -12,6 +12,8 @@ from app.features.accounts import tools as account_tools
 from app.features.accounts.dependencies import AccountServiceDep
 from app.features.bank_data import tools as bank_data_tools
 from app.features.bank_data.dependencies import BankDataServiceDep
+from app.features.context_entries import tools as context_entry_tools
+from app.features.context_entries.dependencies import ContextEntryServiceDep
 from app.features.documents import tools as document_tools
 from app.features.documents.dependencies import DocumentServiceDep
 from app.features.ledger import tools as ledger_tools
@@ -44,6 +46,7 @@ def get_tools(
     user: CurrentUserDep,
     accounts: AccountServiceDep,
     bank_data: BankDataServiceDep,
+    context_entries: ContextEntryServiceDep,
     documents: DocumentServiceDep,
     ledger: LedgerServiceDep,
     payments: PaymentServiceDep,
@@ -54,6 +57,7 @@ def get_tools(
     return [
         *account_tools.get_tools(service=accounts, token=user.token),
         *bank_data_tools.get_tools(service=bank_data, token=user.token),
+        *context_entry_tools.get_tools(service=context_entries, owner_id=user.id),
         *document_tools.get_tools(service=documents, owner_id=user.id),
         *ledger_tools.get_tools(service=ledger, token=user.token, today=today),
         *widget_tools.get_tools(service=widgets, owner_id=user.id),

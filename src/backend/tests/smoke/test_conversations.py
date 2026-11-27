@@ -55,9 +55,8 @@ async def test_message_gets_stored_reply_with_provenance(
     sent = [(m["role"], m["content"]) for m in apertus.requests[-1]["messages"]]
     assert sent[0][0] == "system"
     assert sent[1:-2] == [("user", "Earlier question"), ("assistant", "Earlier answer")]
-    # The question carries the customer block in front.
-    assert sent[-2][0] == "user"
-    assert sent[-2][1].endswith("</customer>\nGrüezi")
+    # The question goes alone: the customer's data comes only through tools.
+    assert sent[-2] == ("user", "Grüezi")
     assert sent[-1][0] == "user"
     assert "Write the answer in the language of that question" in sent[-1][1]
 

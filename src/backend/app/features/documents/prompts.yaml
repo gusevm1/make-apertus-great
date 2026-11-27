@@ -24,9 +24,15 @@ correct_fields: |
   These fields failed the check against the document:
   {failures}
   A passage the server did not find in the document usually holds a currency, a colon or a label the document does not have there, or joins words from two places. Return the whole description again. For each field above, take its value from the document and set its passage to the value alone, copied character for character as the document writes it at one place: for an amount only its digits and separators, such as "1'250.00", without a currency; for a date the date as written, such as "15.03.2027" or "15. März 2027"; for a payee only the name, such as "Muster AG". Leave a field out only when the document states its value nowhere.
+list_documents: >-
+  Lists the documents I uploaded, newest first: file name, kind, title, issuer, date, a short summary
+  and the fields read from each, such as net pay or an amount due, each with the words it was read
+  from. Use it whenever my question may concern a document of mine (a payslip, a contract, an
+  invoice, an offer), and before read_document to learn the names. When you use a field, name the
+  document it comes from and take the figure as it is written; never calculate with it.
 read_document: >-
-  Reads up to three of my uploaded documents, named by file name or title as listed under my
-  uploaded documents, and returns their text, or for long ones an answer to the question with
+  Reads up to three of my uploaded documents, named by file name or title as list_documents
+  returns them, and returns their text, or for long ones an answer to the question with
   passages quoted from them. Use it when my question needs what a document says beyond its listed fields,
   such as a clause, a condition or a notice period.
 read_document_documents: Up to three documents, each by its file name or title.

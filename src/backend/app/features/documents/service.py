@@ -20,6 +20,7 @@ from app.features.documents.schemas import (
     DOCUMENT_MAX_BYTES,
     DOCUMENT_TOO_LARGE_MESSAGE,
     FIELD_NAMES,
+    LIST_MAX_CHARS,
     NAME_MAX_LENGTH,
     READ_ANSWER_MAX_LENGTH,
     READ_FULL_TEXT_MAX_CHARS,
@@ -31,7 +32,9 @@ from app.features.documents.schemas import (
     Document,
     DocumentDescription,
     DocumentField,
+    DocumentList,
     DocumentReading,
+    DocumentSummary,
     DocumentText,
     QuotedPassage,
     ReaderAnswer,
@@ -207,6 +210,19 @@ class DocumentService:
     async def list_documents(self, owner_id: UUID) -> list[Document]:
         """The customer's documents, newest first."""
         return await self.documents.list(owner_id=owner_id)
+
+    async def list_summaries(self, owner_id: UUID) -> DocumentList:
+        """What the customer's newest documents are and the fields read from them, for the chat."""
+        documents = await self.documents.list(owner_id=owner_id)
+        summaries: list[DocumentSummary] = []
+        used = 0
+        for document in documents:
+            summary = DocumentSummary.model_validate(document, from_attributes=True)
+            used += len(summary.model_dump_json())
+            if used > LIST_MAX_CHARS:
+                break
+            summaries.append(summary)
+        return DocumentList(documents=summaries, left_out=len(documents) - len(summaries))
 
     async def delete_document(self, document: Document, token: str) -> None:
         """Remove the file from the e-banking, then our row with its text and description."""
