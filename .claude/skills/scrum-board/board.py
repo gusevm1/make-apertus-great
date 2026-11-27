@@ -53,7 +53,7 @@ OWNS = re.compile(
 )
 # Files several cards add to at once. land-card merges them, so they never count as overlap.
 SHARED = (
-    "src/backend/migrations/versions",
+    "src/backend/migrations",
     "src/backend/app/main.py",
     ".gitignore",
     "CLAUDE.md",
