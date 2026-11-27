@@ -5,6 +5,7 @@ from pathlib import Path
 from evals.reference import (
     CUSTOMERS,
     DATA_PATH,
+    due_payments,
     monthly_spending,
     online_shops,
     read_movements,
@@ -89,7 +90,7 @@ def test_refunds_are_netted_and_salary_is_not(tmp_path: Path) -> None:
         bookings=[
             ["BK-1", "2026-10-05", "-100.00", "GALAXUS.CH", "Galaxus", "", "debit_card"],
             ["BK-2", "2026-10-09", "40.00", "GALAXUS.CH Gutschrift", "Galaxus", "", "debit_card"],
-            ["BK-3", "2026-10-25", "6000.00", "Lohn", "Arbeitgeber", "", "salary"],
+            ["BK-3", "2026-10-25", "6000.00", "Lohn GALAXUS AG", "Galaxus", "", "salary"],
         ],
         card=[["CTX-1", "2026-10-14", "DIGITEC.CH GUTSCHRIFT", "Digitec", "-10.00"]],
     )
@@ -132,3 +133,53 @@ def test_lukas_october_migros_bookings_match_the_banks_sum_and_the_card_adds_to_
 def test_every_customer_gets_four_answers() -> None:
     for folder_name in CUSTOMERS.values():
         assert len(reference(folder=DATA_PATH / folder_name)) == 4
+
+
+def test_rent_is_listed_per_booking_month(tmp_path: Path) -> None:
+    folder = customer(
+        tmp_path=tmp_path,
+        bookings=[
+            [
+                "BK-1",
+                "2026-09-28",
+                "-1390.00",
+                "Dauerauftrag, Miete Oktober",
+                "AG",
+                "",
+                "standing_order",
+            ],
+            [
+                "BK-2",
+                "2026-10-28",
+                "2200.00",
+                "Gutschrift Anteil Miete",
+                "Sara",
+                "",
+                "incoming_transfer",
+            ],
+        ],
+        card=[],
+    )
+
+    answer = rent(folder=folder)
+
+    assert "2026-09: CHF 1'390.00 (Miete Oktober)" in answer.figure
+    assert "2026-10: not booked" in answer.figure
+    assert answer.ids == ["BK-1"]
+
+
+def test_due_payments_cover_27_november_to_26_december(tmp_path: Path) -> None:
+    write(
+        folder=tmp_path,
+        name="upcoming_payments",
+        columns=["due_date", "amount", "source_id"],
+        rows=[
+            ["2026-11-27", "2800.00", "SO-RENT"],
+            ["2026-12-26", "19.90", "PAY-1"],
+            ["2026-12-27", "500.00", "PAY-2"],
+        ],
+    )
+
+    answer = due_payments(folder=tmp_path)
+
+    assert answer.figure == "CHF 2'819.90 in 2 payments"

@@ -20,9 +20,11 @@ LAST_MONTH = "2026-10"
 RENT_MONTHS = ["2026-08", "2026-09", "2026-10", "2026-11"]
 SPENDING_MONTHS = ["2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"]
 DUE_FROM, DUE_TO = "2026-11-27", "2026-12-26"
-# Shops that sell only online; IKEA, Interdiscount, H&M and Manor also have stores.
+# Online shops and marketplaces; IKEA and Interdiscount count only for their online orders.
 ONLINE_SHOPS = re.compile(
-    r"galaxus|digitec|microspot|brack|zalando|amazon|aliexpress|etsy|blacksocks", re.IGNORECASE
+    r"galaxus|digitec|microspot|brack|zalando|amazon|aliexpress|etsy|blacksocks|ricardo|vinted"
+    r"|ikea online|interdiscount\.ch",
+    re.IGNORECASE,
 )
 OWN_TRANSFER_TYPES = {"account_transfer", "securities_buy"}
 # A credit of these types is a merchant's refund, so it reduces spending.
