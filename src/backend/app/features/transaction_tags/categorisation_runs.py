@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from app.clients.apertus import ApertusClient
-from app.clients.banking import BankingClient
 from app.core.db import session_factory
 from app.core.errors import NotFoundError
 from app.features.ledger.service import LedgerService
@@ -43,10 +42,10 @@ async def wait_for_runs() -> None:
 
 class CategorisationRunService:
     def __init__(
-        self, runs: CategorisationRunRepository, banking: BankingClient, apertus: ApertusClient
+        self, runs: CategorisationRunRepository, ledger: LedgerService, apertus: ApertusClient
     ) -> None:
         self.runs = runs
-        self.banking = banking
+        self.ledger = ledger
         self.apertus = apertus
 
     async def start(self, owner_id: UUID, token: str) -> tuple[CategorisationRun, bool]:
@@ -64,7 +63,7 @@ class CategorisationRunService:
                     run_id=run.id,
                     owner_id=owner_id,
                     token=token,
-                    banking=self.banking,
+                    ledger=self.ledger,
                     apertus=self.apertus,
                 )
             )
@@ -86,14 +85,13 @@ def _forget(owner_id: UUID, run_id: UUID) -> None:
 
 
 async def _work(
-    run_id: UUID, owner_id: UUID, token: str, banking: BankingClient, apertus: ApertusClient
+    run_id: UUID, owner_id: UUID, token: str, ledger: LedgerService, apertus: ApertusClient
 ) -> None:
     """Categories, then severities, then personal tags; each step has its own short sessions."""
     try:
         async with session_factory() as session:
             await CategorisationRunRepository(session=session).mark_running(run_id=run_id)
         async with session_factory() as session:
-            ledger = LedgerService(banking=banking)
             tags = TransactionTagRepository(session=session)
             categorisation = await TransactionTagService(
                 tags=tags, ledger=ledger, apertus=apertus

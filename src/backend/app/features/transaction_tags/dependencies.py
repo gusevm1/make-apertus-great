@@ -4,7 +4,6 @@ from uuid import UUID
 from fastapi import Depends
 
 from app.clients.apertus import ApertusClientDep
-from app.clients.banking import BankingClientDep
 from app.core.auth import CurrentUserDep
 from app.core.db import SessionDep
 from app.features.ledger.dependencies import LedgerServiceDep
@@ -105,10 +104,10 @@ SpendingServiceDep = Annotated[SpendingService, Depends(get_spending_service)]
 
 
 def get_categorisation_run_service(
-    session: SessionDep, banking: BankingClientDep, apertus: ApertusClientDep
+    session: SessionDep, ledger: LedgerServiceDep, apertus: ApertusClientDep
 ) -> CategorisationRunService:
     return CategorisationRunService(
-        runs=CategorisationRunRepository(session=session), banking=banking, apertus=apertus
+        runs=CategorisationRunRepository(session=session), ledger=ledger, apertus=apertus
     )
 
 
