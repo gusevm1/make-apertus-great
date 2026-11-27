@@ -7,10 +7,13 @@ from evals.reference import (
     DATA_PATH,
     due_payments,
     monthly_spending,
+    mortgage,
     online_shops,
     read_movements,
     reference,
     rent,
+    salary,
+    savings,
 )
 
 BOOKING_COLUMNS = [
@@ -130,9 +133,23 @@ def test_lukas_october_migros_bookings_match_the_banks_sum_and_the_card_adds_to_
     assert -sum(m.amount for m in migros) == Decimal("430.05")
 
 
-def test_every_customer_gets_four_answers() -> None:
+def test_every_customer_gets_seven_answers() -> None:
     for folder_name in CUSTOMERS.values():
-        assert len(reference(folder=DATA_PATH / folder_name)) == 4
+        assert len(reference(folder=DATA_PATH / folder_name)) == 7
+
+
+def test_lukas_november_salary_and_savings_match_the_seed_data() -> None:
+    folder = DATA_PATH / CUSTOMERS["lukas"]
+
+    assert salary(folder=folder).figure == "CHF 8'742.35 on 2026-11-25"
+    assert savings(folder=folder).figure.startswith("CHF 48'983.35 in all")
+
+
+def test_marco_mortgage_interest_matches_his_interest_statement() -> None:
+    answer = mortgage(folder=DATA_PATH / CUSTOMERS["marco"])
+
+    assert answer.figure == "CHF 8'673.38 in 12 bookings; next 0880-4471.02 on 2027-03-31"
+    assert len(answer.ids) == 12
 
 
 def test_rent_is_listed_per_booking_month(tmp_path: Path) -> None:
