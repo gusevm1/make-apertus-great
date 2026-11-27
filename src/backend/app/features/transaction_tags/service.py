@@ -15,7 +15,7 @@ from app.features.transaction_tags.schemas import (
 )
 
 BATCH_SIZE = 50
-MAX_PARALLEL_BATCHES = 8
+MAX_PARALLEL_BATCHES = 16
 
 
 class TransactionTagService:
