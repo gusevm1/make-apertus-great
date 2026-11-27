@@ -69,6 +69,7 @@ def test_the_customers_own_figures_count() -> None:
         ("Your rent is 2'050 CHF.", "2'050"),
         ("You paid CHF 5.", "5"),
         ("You may 400 times.", "400"),
+        ("CHF 50 may be saved.", "50"),
     ],
 )
 def test_an_amount_is_checked_even_when_it_looks_like_a_year_or_a_count(
@@ -85,3 +86,13 @@ def test_a_percentage_may_be_a_ratio_in_the_data() -> None:
 
     assert result is not None
     assert result.passed
+
+
+def test_a_long_reference_in_a_source_is_skipped_not_a_crash() -> None:
+    result = check(
+        answer="You paid CHF 39.90.",
+        sources=["Referenz 210000000003139471430009017", "0.1234567890123456789012345"],
+    )
+
+    assert result is not None
+    assert result.detail == "0 of 1 found; not found: 39.90"

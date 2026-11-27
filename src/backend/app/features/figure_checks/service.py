@@ -9,15 +9,20 @@ NOT_FOUND_LISTED = 10
 COUNTS_BELOW = 10
 # A bare whole number in this range is a year.
 YEARS = range(1900, 2101)
+# Longer digit runs are references (a QR bill has 27 digits), never amounts.
+MAX_DIGITS = 15
+# How far before and after a number to look for its currency.
+CURRENCY_BEFORE_CHARS = 6
+CURRENCY_AFTER_CHARS = 12
+# Capitalised, as German nouns and English months are written; lowercase "may" is no month.
 _MONTHS = (
-    "jan(?:uary|uar)?|feb(?:ruary|ruar)?|m(?:ar(?:ch)?|\u00e4rz|aerz)|apr(?:il)?|ma[iy]|jun[ei]?"
-    "|jul[iy]?|aug(?:ust)?|sep(?:t(?:ember)?)?|o[ck]t(?:ober)?|nov(?:ember)?|de[cz](?:ember)?"
+    "Jan(?:uary|uar)?|Feb(?:ruary|ruar)?|M(?:ar(?:ch)?|\u00e4rz|aerz)|Apr(?:il)?|Ma[iy]|Jun[ei]?"
+    "|Jul[iy]?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|O[ck]t(?:ober)?|Nov(?:ember)?|De[cz](?:ember)?"
 )
 # Dates are no figures: 2026-10-31, 31.10.2026, 31 October, 31. Oktober, October 31, October 2026.
 _DATES = re.compile(
     rf"\b\d{{4}}-\d{{2}}-\d{{2}}\b|\b\d{{1,2}}\.\d{{1,2}}\.\d{{2,4}}\b"
-    rf"|\b\d{{1,2}}\.?\s+(?:{_MONTHS})\b|\b(?:{_MONTHS})\b\.?\s+(?:\d{{4}}|\d{{1,2}})\b",
-    re.IGNORECASE,
+    rf"|\b\d{{1,2}}\.?\s+(?:{_MONTHS})\b|\b(?:{_MONTHS})\b\.?\s+(?:\d{{4}}|\d{{1,2}})\b"
 )
 # Thousands written with an apostrophe or a typographic space, never with a plain space.
 _THOUSANDS = "'\u2019\u00a0\u202f\u2009"
@@ -63,9 +68,13 @@ def _figures(text: str) -> list[Figure]:
     for match in _NUMBER.finditer(text):
         whole, fraction, suffix = match.group(1), match.group(2), (match.group(3) or "").strip()
         digits = re.sub(f"[,{_THOUSANDS}]", "", whole)
+        if len(digits) + len(fraction or "") > MAX_DIGITS:
+            continue
         has_currency = bool(
-            _CURRENCY_BEFORE.search(text[max(0, match.start() - 6) : match.start()])
-            or _CURRENCY_AFTER.search(text[match.end() : match.end() + 12])
+            _CURRENCY_BEFORE.search(
+                text[max(0, match.start() - CURRENCY_BEFORE_CHARS) : match.start()]
+            )
+            or _CURRENCY_AFTER.search(text[match.end() : match.end() + CURRENCY_AFTER_CHARS])
         )
         figures.append(
             Figure(
