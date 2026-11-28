@@ -18,16 +18,18 @@ interface Props {
   /** Panel open state; the iframe stays loaded while hidden. */
   visible: boolean;
   onClose?: () => void;
+  /** "<board id>/<tile id>": the frame shows this one tile of the TrustRoom, as a dashboard widget. */
+  tile?: string;
 }
 
-export function TrustRoomFrame({ mode, visible, onClose }: Props) {
+export function TrustRoomFrame({ mode, visible, onClose, tile }: Props) {
   const context = useTrustRoomContext(mode);
   // Wait for "today" so the initial query parameters are complete.
   if (!context.today) return null;
-  return <Frame mode={mode} visible={visible} onClose={onClose} />;
+  return <Frame mode={mode} visible={visible} onClose={onClose} tile={tile} />;
 }
 
-function Frame({ mode, visible, onClose }: Props) {
+function Frame({ mode, visible, onClose, tile }: Props) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [ready, setReady] = useState(false);
   const context = useTrustRoomContext(mode);
@@ -36,7 +38,11 @@ function Frame({ mode, visible, onClose }: Props) {
   const queryClient = useQueryClient();
   const origin = new URL(config.trustroomUrl, window.location.href).origin;
   // Computed once: changing `src` would reload the solution. Later changes go via postMessage.
-  const [src] = useState(() => frameUrl(config.trustroomUrl, context));
+  const [src] = useState(() => {
+    const url = new URL(frameUrl(config.trustroomUrl, context));
+    if (tile) url.searchParams.set("tile", tile);
+    return url.toString();
+  });
 
   // The message handler reads the latest context without re-subscribing on every change.
   const latest = useRef({ context, onClose });
