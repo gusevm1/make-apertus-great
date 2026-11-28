@@ -27,6 +27,7 @@ export const BOARD_TOOLS = [
   "rename_tile",
   "move_tile",
   "remove_tile",
+  "change_tile",
   "create_board",
   "rename_board",
 ];
