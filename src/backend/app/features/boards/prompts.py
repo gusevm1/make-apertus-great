@@ -9,16 +9,20 @@ from app.features.tiles.schemas import AnyPayload
 PROMPTS = load_prompts(prompts_py=__file__)
 
 
-def board_guide(signals: list[Signal], labels: dict[str, str]) -> str:
+def board_guide(signals: list[Signal], labels: dict[str, str], notes: list[str]) -> str:
     """The board decision's job; `labels` maps a signal id to the tile it is on the board as."""
     lines = "\n".join(_signal(signal=signal, label=labels.get(signal.id)) for signal in signals)
-    return PROMPTS["guide"].format(signals=lines or "(none)", catalogue=PROMPTS["catalogue"])
+    return PROMPTS["guide"].format(
+        signals=lines or "(none)",
+        notes="\n".join(f"- {note}" for note in notes) or "(none)",
+        catalogue=PROMPTS["catalogue"],
+    )
 
 
 def board_context(
     name: str,
     tiles: list[tuple[str, Tile, AnyPayload | None, str]],
-    selected: tuple[str, Tile, AnyPayload] | None,
+    selected: tuple[str, Tile, AnyPayload, str] | None,
     signals: list[Signal],
 ) -> str:
     """The open board as the customer's message carries it."""
@@ -28,9 +32,12 @@ def board_context(
     )
     selected_text = ""
     if selected is not None:
-        label, tile, payload = selected
+        label, tile, payload, meaning = selected
         selected_text = PROMPTS["context_selected"].format(
-            label=label, title=_escaped(text=tile.title), payload=_json(value=figures(payload))
+            label=label,
+            title=_escaped(text=tile.title),
+            meaning=_escaped(text=meaning),
+            payload=_json(value=figures(payload)),
         )
     return PROMPTS["context"].format(
         name=_escaped(text=name),
@@ -64,7 +71,6 @@ def _tile(label: str, tile: Tile, payload: AnyPayload | None, meaning: str) -> s
         label=label,
         title=title,
         template=tile.template,
-        figure=payload.figure_chf,
         meaning=_escaped(text=meaning),
     )
 

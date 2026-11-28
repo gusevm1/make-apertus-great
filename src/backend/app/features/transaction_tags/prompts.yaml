@@ -101,3 +101,7 @@ uncertain_pointer_de: "{count} Buchungen in dieser Zahl sind vielleicht falsch k
 uncertain_pointer_en: "{count} bookings in this figure may be in the wrong category. Check them in the [category center](#categories)."
 uncertain_pointer_fr: "{count} écritures de ce montant sont peut-être mal catégorisées. Vérifiez-les dans le [centre des catégories](#categories)."
 uncertain_pointer_it: "{count} registrazioni di questa cifra potrebbero essere nella categoria sbagliata. Verificatele nel [centro categorie](#categories)."
+sum_spending_none: >-
+  No booking in this period carries this category, so this sum says nothing yet. Search by the
+  payee's name with search_movements instead, such as the health insurer that get_customer or the
+  bookings name, before you answer.

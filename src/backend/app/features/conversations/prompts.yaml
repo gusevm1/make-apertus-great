@@ -18,3 +18,4 @@ quote: |
   </quote>
 quote_comment: |
   My comment on it: {comment}
+guardrail_board: "(Typed beside my board in the e-banking, where I build boards and tiles about my money and my family's.) {text}"

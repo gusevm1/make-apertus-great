@@ -416,5 +416,7 @@ class SpendingSums(BaseModel):
     uncertain_count: int
     groups: list[SpendingGroup]
     language: AnswerLanguage
+    # What to try next when the filter found nothing.
+    note: str | None = None
     # Last, so a cut in the tool result drops ids before any figure.
     row_ids: dict[str, list[str]]

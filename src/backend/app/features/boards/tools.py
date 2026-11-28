@@ -1,6 +1,6 @@
 import asyncio
 import re
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Literal
 from uuid import UUID
 
@@ -18,7 +18,14 @@ from app.features.boards.schemas import (
     Tile,
 )
 from app.features.boards.service import BoardService
-from app.features.tiles.schemas import AnyPayload, Template
+from app.features.tiles.meanings import meaning
+from app.features.board_plans.schemas import Signal
+from app.features.tiles.schemas import (
+    AnyPayload,
+    ExpectedIncomePayload,
+    PaydayBalancePayload,
+    Template,
+)
 
 TILE_INDEX = re.compile(r"T(\d+)", re.IGNORECASE)
 WORD = re.compile(r"[^\W\d_]{3,}")
@@ -50,6 +57,13 @@ class AddTileArgs(BaseModel):
         max_length=TILE_TITLE_MAX_LENGTH,
         description=PROMPTS["add_tile_title"],
     )
+
+
+class ChangeTileArgs(BaseModel):
+    # The template's arguments to change sit beside the tile, as with add_tile.
+    model_config = ConfigDict(extra="allow")
+
+    tile: str = Field(description=PROMPTS["tile_ref"])
 
 
 class RenameTileArgs(Args):
@@ -91,10 +105,12 @@ class BoardChange(BaseModel):
     summary: str
     # The board a call created, which the page offers to open.
     board_id: UUID | None = None
-    # The tile's index on the open board, such as T6.
-    tile: str | None = None
     # The server's sentence about what the tile shows, for a tile taken from a signal.
     finding: str | None = None
+    # What the tile's figures mean, verdict included, in the server's words.
+    meaning: str | None = None
+    # A note for the customer's profile that this tile brings up, for propose_context_entry.
+    suggested_note: str | None = None
     figures: dict[str, Any] | None = None
     tiles: list[BoardTileFigures] | None = None
 
@@ -138,17 +154,25 @@ async def get_turn(
         )
         if same is not None:
             on_board[signal.id] = label(tile_id=same.id)
+    notes = await _late_income_notes(
+        service=service, signals=customer.signals, payloads=payloads, token=token, today=today
+    )
     selected = next((tile for tile in ordered if tile.id == tile_id), None)
     selected_payload = None if selected is None else payloads[selected.id]
     context = board_context(
         name=board.name,
         tiles=[
-            (label(tile_id=tile.id), tile, payloads[tile.id], _meaning(service=service, payload=payloads[tile.id]))
+            (label(tile_id=tile.id), tile, payloads[tile.id], _meaning(payload=payloads[tile.id], today=today))
             for tile in ordered
         ],
         selected=None
         if selected is None or selected_payload is None
-        else (label(tile_id=selected.id), selected, selected_payload),
+        else (
+            label(tile_id=selected.id),
+            selected,
+            selected_payload,
+            meaning(payload=selected_payload, today=today),
+        ),
         signals=customer.signals,
     )
 
@@ -204,8 +228,9 @@ async def get_turn(
             payload = await service.resolve_tile(tile=same, token=token, today=today)
             return BoardChange(
                 summary=f'"{same.title}" is on the board already',
-                tile=label(tile_id=same.id),
                 finding=finding,
+                meaning=meaning(payload=payload, today=today),
+                suggested_note=_suggested_note(payload=payload, notes=notes),
                 figures=figures(payload=payload),
             )
         tile, payload = await service.add_tile(
@@ -219,17 +244,42 @@ async def get_turn(
         )
         return BoardChange(
             summary=f'Added "{tile.title}"',
-            tile=label(tile_id=tile.id),
             finding=finding,
+            meaning=meaning(payload=payload, today=today),
+            suggested_note=_suggested_note(payload=payload, notes=notes),
+            figures=figures(payload=payload),
+        )
+
+    async def change_tile(args: ChangeTileArgs) -> BoardChange:
+        tile = await find(ref=args.tile)
+        changes = dict(args.model_extra or {})
+        nested = changes.get("args")
+        if set(changes) == {"args"} and isinstance(nested, dict):
+            changes = nested
+        if not changes:
+            raise BadRequestError(PROMPTS["change_tile_needs"])
+        # The new tile takes the old one's place and title, then the old one goes.
+        changed, payload = await service.add_tile(
+            board_id=board.id,
+            template=tile.template,
+            args={**tile.args, **changes},
+            title=tile.title,
+            position=tile.position,
+            token=token,
+            today=today,
+        )
+        await service.remove_tile(tile=tile)
+        indexes[indexes.index(tile.id)] = changed.id
+        return BoardChange(
+            summary=f'Changed "{tile.title}"',
+            meaning=meaning(payload=payload, today=today),
             figures=figures(payload=payload),
         )
 
     async def rename_tile(args: RenameTileArgs) -> BoardChange:
         tile = await find(ref=args.tile)
         await service.rename_tile(tile=tile, title=args.title)
-        return BoardChange(
-            summary=f'Renamed "{tile.title}" to "{args.title}"', tile=label(tile_id=tile.id)
-        )
+        return BoardChange(summary=f'Renamed "{tile.title}" to "{args.title}"')
 
     async def move_tile(args: MoveTileArgs) -> BoardChange:
         tile = await find(ref=args.tile)
@@ -243,7 +293,7 @@ async def get_turn(
         }[args.to]
         await service.move_tile(tile=tile, position=target)
         return BoardChange(
-            summary=MOVES[args.to].format(title=tile.title), tile=label(tile_id=tile.id)
+            summary=MOVES[args.to].format(title=tile.title)
         )
 
     async def remove_tile(args: RemoveTileArgs) -> BoardChange:
@@ -277,6 +327,15 @@ async def get_turn(
             description=PROMPTS["add_tile"],
             args_schema=AddTileArgs,
             handler=add_tile,
+            pointer=_both_cases,
+        ),
+        Tool(
+            name="change_tile",
+            title="Change a tile",
+            icon="sliders-horizontal",
+            description=PROMPTS["change_tile"],
+            args_schema=ChangeTileArgs,
+            handler=change_tile,
         ),
         Tool(
             name="rename_tile",
@@ -320,13 +379,80 @@ async def get_turn(
         ),
     ]
     return TurnScope(
-        context=context, guide=board_guide(signals=customer.signals, labels=on_board), tools=tools
+        context=context,
+        guide=board_guide(signals=customer.signals, labels=on_board, notes=notes),
+        tools=tools,
     )
 
 
-def _meaning(service: BoardService, payload: AnyPayload | None) -> str:
-    # The server's own words for the figure, such as "Left on 23.12., the day before your salary".
-    return "" if payload is None else service.tile_service.default_title(payload=payload)
+async def _late_income_notes(
+    service: BoardService,
+    signals: list[Signal],
+    payloads: dict[UUID, AnyPayload | None],
+    token: str,
+    today: date,
+) -> list[str]:
+    """A note worth proposing for each regular income that came late before and is open now."""
+    labels = {
+        payload.alternative.counterparty: payload.alternative.label
+        for payload in payloads.values()
+        if isinstance(payload, PaydayBalancePayload) and payload.alternative is not None
+    }
+    incomes = [
+        signal.args["counterparty"]
+        for signal in signals
+        if signal.template == "expected_income" and signal.args is not None
+    ]
+    resolved = await asyncio.gather(
+        *(
+            service.tile_service.resolve(
+                template="expected_income",
+                args={"counterparty": counterparty},
+                token=token,
+                today=today,
+            )
+            for counterparty in incomes
+        ),
+        return_exceptions=True,
+    )
+    notes = []
+    for payload in resolved:
+        if not isinstance(payload, ExpectedIncomePayload) or payload.status != "not_arrived":
+            continue
+        late = [item for item in payload.months if item.state == "late" and item.arrived_on]
+        if not late or late[-1].arrived_on is None:
+            continue
+        arrived = late[-1].arrived_on
+        last_month = (today.replace(day=1) - timedelta(days=1)).strftime("%Y-%m")
+        when = "last month" if late[-1].month == last_month else "last time"
+        label = labels.get(payload.counterparty) or f"the income from {payload.counterparty}"
+        notes.append(
+            PROMPTS["late_income_note"].format(
+                income=label[:1].upper() + label[1:],
+                day=f"{arrived.day:02d}.{arrived.month:02d}.",
+                when=when,
+            )
+        )
+    return notes
+
+
+def _meaning(payload: AnyPayload | None, today: date) -> str:
+    return "" if payload is None else meaning(payload=payload, today=today)
+
+
+def _suggested_note(payload: AnyPayload, notes: list[str]) -> str | None:
+    # ponytail: notes are only about late incomes, so they belong to the tiles that show one
+    if not notes or payload.template not in {"payday_balance", "expected_income"}:
+        return None
+    return PROMPTS["suggested_note"].format(note=notes[0])
+
+
+def _both_cases(result: dict[str, Any], answer: str) -> str | None:
+    """The line under the answer when a tile with two cases is on the board."""
+    if (result.get("figures") or {}).get("alternative") is None:
+        return None
+    is_added = result["summary"].startswith("Added")
+    return PROMPTS["both_cases_added" if is_added else "both_cases_there"]
 
 
 def _position(tile: Tile) -> int:

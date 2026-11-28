@@ -20,7 +20,14 @@ from app.features.tool_calls.schemas import (
     ToolDecision,
     ToolRequest,
 )
-from app.features.tool_calls.service import TOOL_FAILED, SwissSpelling, ToolCallService
+from app.features.tool_calls.service import (
+    TOOL_FAILED,
+    Paragraphs,
+    SwissFigures,
+    SwissSpelling,
+    ToolCallService,
+    swiss_figures,
+)
 from tests.conftest import TODAY
 from tests.factories import make_conversation, make_message
 from tests.lookup_tool import LOOKUP
@@ -345,3 +352,41 @@ def test_swiss_spelling_carries_a_url_or_quote_across_pieces() -> None:
     pieces = [spelling.feed(text=piece) for piece in ["https://stra", "ße.ch «Gro", "ße» Gruß"]]
 
     assert pieces == ["https://stra", "ße.ch «Gro", "ße» Gruss"]
+
+
+@pytest.mark.parametrize(
+    ("text", "swiss"),
+    [
+        ("CHF 1 050.00", "CHF 1'050.00"),
+        ("CHF 1 050.00 and CHF 1 174.96", "CHF 1'050.00 and CHF 1'174.96"),
+        ("CHF 12,000.50 left", "CHF 12'000.50 left"),
+        ("1 234 567.80 CHF", "1'234'567.80 CHF"),
+        ("CHF 1 050", "CHF 1'050"),
+        ("CHF 2’950.20", "CHF 2'950.20"),
+        ("on 23 December 2026, CHF 124.96", "on 23 December 2026, CHF 124.96"),
+        ("IBAN CH93 0076 2011 6238 5295 7", "IBAN CH93 0076 2011 6238 5295 7"),
+        ("call 079 123 45 67", "call 079 123 45 67"),
+        ("in 2026 120 bookings", "in 2026 120 bookings"),
+        ("on 23.12. and 1,5 %", "on 23.12. and 1,5 %"),
+    ],
+)
+def test_swiss_figures_write_thousands_with_an_apostrophe(text: str, swiss: str) -> None:
+    assert swiss_figures(text=text) == swiss
+
+
+def test_swiss_figures_carry_a_number_across_pieces() -> None:
+    figures = SwissFigures()
+    pieces = ["You have CHF 1", " 0", "50.00 left on 23", " December 2026 and CHF 1 ", "174.96"]
+
+    streamed = "".join(figures.feed(text=piece) for piece in pieces) + figures.flush()
+
+    assert streamed == "You have CHF 1'050.00 left on 23 December 2026 and CHF 1'174.96"
+
+
+def test_paragraphs_beside_a_board_get_an_empty_line() -> None:
+    paragraphs = Paragraphs(is_on=True)
+    pieces = ["\n\nYes, but only just.  \n", "With it, CHF 1'174.96.\nItems:\n- one\n- two"]
+
+    text = "".join(paragraphs.feed(text=piece) for piece in pieces)
+
+    assert text == "Yes, but only just.  \n\nWith it, CHF 1'174.96.\n\nItems:\n- one\n- two"
