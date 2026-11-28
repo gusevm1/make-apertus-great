@@ -451,7 +451,10 @@ def test_a_total_that_is_not_the_sum_of_its_column_is_refused() -> None:
 
 def test_a_donut_draws_money_out_by_its_size_and_refuses_mixed_signs_and_a_wrong_total() -> None:
     out = {
-        "months": [{"label": "2026-09", "total_chf": -5.0}, {"label": "2026-10", "total_chf": -3.0}],
+        "months": [
+            {"label": "2026-09", "total_chf": -5.0},
+            {"label": "2026-10", "total_chf": -3.0},
+        ],
         "months_total_chf": -8.0,
     }
     page = render(spec=spec(body=BODIES["donut"]), data=out, form="static")
@@ -519,15 +522,38 @@ def _values(body: dict[str, Any], data: dict[str, Any]) -> list[dict[str, Any]]:
 # The five refusals of #275, on DATA as widget_data() builds it from the tools' results.
 def test_lukas_donut_of_last_month_draws_his_signed_bookings_as_slices() -> None:
     movements = [
-        {"id": "BK-02278", "date": "2026-10-30", "amount_chf": -1240.0,
-         "counterparty": "Schreinerei Holzwerk Binz GmbH", "kind": "spending",
-         "booking_ids": ["BK-02278"]},
-        {"id": "CTX-01436", "date": "2026-10-31", "amount_chf": -184.9, "counterparty": "IKEA",
-         "kind": "spending", "booking_ids": ["CTX-01436"]},
-        {"id": "BK-02277", "date": "2026-10-30", "amount_chf": -11.62, "counterparty": "Migros",
-         "kind": "spending", "booking_ids": ["BK-02277"]},
-        {"id": "BK-02270", "date": "2026-10-28", "amount_chf": -24.35, "counterparty": "Migros",
-         "kind": "spending", "booking_ids": ["BK-02270"]},
+        {
+            "id": "BK-02278",
+            "date": "2026-10-30",
+            "amount_chf": -1240.0,
+            "counterparty": "Schreinerei Holzwerk Binz GmbH",
+            "kind": "spending",
+            "booking_ids": ["BK-02278"],
+        },
+        {
+            "id": "CTX-01436",
+            "date": "2026-10-31",
+            "amount_chf": -184.9,
+            "counterparty": "IKEA",
+            "kind": "spending",
+            "booking_ids": ["CTX-01436"],
+        },
+        {
+            "id": "BK-02277",
+            "date": "2026-10-30",
+            "amount_chf": -11.62,
+            "counterparty": "Migros",
+            "kind": "spending",
+            "booking_ids": ["BK-02277"],
+        },
+        {
+            "id": "BK-02270",
+            "date": "2026-10-28",
+            "amount_chf": -24.35,
+            "counterparty": "Migros",
+            "kind": "spending",
+            "booking_ids": ["BK-02270"],
+        },
     ]
     body = {"type": "donut", "data": "movements", "label": "counterparty", "value": "amount_chf"}
     page = render(spec=spec(body=body), data={"movements": movements}, form="static")
@@ -539,14 +565,25 @@ def test_lukas_donut_of_last_month_draws_his_signed_bookings_as_slices() -> None
 def test_lukas_going_out_compares_sum_by_month_months_year_against_year() -> None:
     months = [
         {"month": month, "count": 1, "money_out_chf": out, "booking_ids": [f"CTX-{month}"]}
-        for month, out in [("2025-01", 132.33), ("2025-02", 13.52), ("2026-01", 98.4),
-                           ("2026-02", 41.0)]
+        for month, out in [
+            ("2025-01", 132.33),
+            ("2025-02", 13.52),
+            ("2026-01", 98.4),
+            ("2026-02", 41.0),
+        ]
     ]
-    body = {"type": "comparison", "data": "months", "x": "month", "y": "money_out_chf",
-            "series": "year"}
+    body = {
+        "type": "comparison",
+        "data": "months",
+        "x": "month",
+        "y": "money_out_chf",
+        "series": "year",
+    }
     values = _values(body=body, data={"months": months})
     assert [(value["label"], value["series"], value["y"]) for value in values] == [
-        ("Jan", "2025", 132.33), ("Feb", "2025", 13.52), ("Jan", "2026", 98.4),
+        ("Jan", "2025", 132.33),
+        ("Feb", "2025", 13.52),
+        ("Jan", "2026", 98.4),
         ("Feb", "2026", 41.0),
     ]
     assert "year" not in months[0]
@@ -558,8 +595,13 @@ def test_daniela_support_timeline_shows_the_month_it_has_not_arrived_as_not_yet(
         {"month": "2026-10", "arrived": "2026-10-22", "amount_chf": 1050.0},
         {"month": "2026-11", "arrived": None, "amount_chf": 0.0},
     ]
-    body = {"type": "timeline", "rows": "months", "date": "arrived", "label": "month",
-            "value": "amount_chf"}
+    body = {
+        "type": "timeline",
+        "rows": "months",
+        "date": "arrived",
+        "label": "month",
+        "value": "amount_chf",
+    }
     page = render(spec=spec(body=body), data={"months": months}, form="static")
     assert page.count('data-component="timeline-item"') == 3
     assert '<span class="tl-date">not yet</span>' in page
@@ -571,18 +613,36 @@ def test_daniela_support_timeline_shows_the_month_it_has_not_arrived_as_not_yet(
 
 def test_daniela_fixed_costs_draw_rent_due_twice_as_one_bar() -> None:
     payments = [
-        {"due_date": "2026-11-27", "payee_name": "Wohnbaugenossenschaft Talgut",
-         "amount_chf": 1640.0, "source_id": "SO-RENT"},
-        {"due_date": "2026-12-07", "payee_name": "Lebara Schweiz", "amount_chf": 19.9,
-         "source_id": "PAY-0247"},
-        {"due_date": "2026-12-28", "payee_name": "Wohnbaugenossenschaft Talgut",
-         "amount_chf": 1640.0, "source_id": "SO-RENT"},
+        {
+            "due_date": "2026-11-27",
+            "payee_name": "Wohnbaugenossenschaft Talgut",
+            "amount_chf": 1640.0,
+            "source_id": "SO-RENT",
+        },
+        {
+            "due_date": "2026-12-07",
+            "payee_name": "Lebara Schweiz",
+            "amount_chf": 19.9,
+            "source_id": "PAY-0247",
+        },
+        {
+            "due_date": "2026-12-28",
+            "payee_name": "Wohnbaugenossenschaft Talgut",
+            "amount_chf": 1640.0,
+            "source_id": "SO-RENT",
+        },
     ]
-    body = {"type": "bar_chart", "data": "upcoming_payments", "x": "payee_name",
-            "y": "amount_chf", "horizontal": True}
+    body = {
+        "type": "bar_chart",
+        "data": "upcoming_payments",
+        "x": "payee_name",
+        "y": "amount_chf",
+        "horizontal": True,
+    }
     values = _values(body=body, data={"upcoming_payments": payments})
     assert [(value["label"], value["y"]) for value in values] == [
-        ("Wohnbaugenossenschaft Talgut", 3280.0), ("Lebara Schweiz", 19.9),
+        ("Wohnbaugenossenschaft Talgut", 3280.0),
+        ("Lebara Schweiz", 19.9),
     ]
 
 
@@ -596,7 +656,9 @@ def test_marco_interest_by_tranche_sums_each_loans_payments() -> None:
     body = {"type": "bar_chart", "data": "loan_payments", "x": "loan_id", "y": "interest_chf"}
     values = _values(body=body, data={"loan_payments": items})
     assert [(value["label"], value["y"]) for value in values] == [
-        ("LOAN-01", 1050.0), ("LOAN-02", 831.25), ("LOAN-03", 457.5),
+        ("LOAN-01", 1050.0),
+        ("LOAN-02", 831.25),
+        ("LOAN-03", 457.5),
     ]
 
 
@@ -604,7 +666,10 @@ def test_bars_of_money_out_stand_up_and_mixed_signs_keep_their_sign() -> None:
     body = {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf"}
     out = [{"label": "2026-09", "total_chf": -5.0}, {"label": "2026-10", "total_chf": -3.5}]
     values = _values(body=body, data={"months": out})
-    assert [(value["y"], value["shown"]) for value in values] == [(5.0, "CHF 5.00"), (3.5, "CHF 3.50")]
+    assert [(value["y"], value["shown"]) for value in values] == [
+        (5.0, "CHF 5.00"),
+        (3.5, "CHF 3.50"),
+    ]
     net = [out[0], {"label": "2026-10", "total_chf": 3.5}]
     assert [value["y"] for value in _values(body=body, data={"months": net})] == [-5.0, 3.5]
 

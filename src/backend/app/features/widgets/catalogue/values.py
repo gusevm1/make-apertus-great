@@ -42,6 +42,8 @@ def rows(path: str, data: dict[str, Any], fields: list[str]) -> list[dict[str, A
     found = resolve(path=path, data=data)
     if not isinstance(found, list) or not all(isinstance(row, dict) for row in found):
         raise BadRequestError(f"{path} is not a list of rows")
+    if "year" in fields:
+        found = [_with_year(row=row) for row in found]
     for index, row in enumerate(found):
         for field in fields:
             if field not in row:
@@ -52,6 +54,19 @@ def rows(path: str, data: dict[str, Any], fields: list[str]) -> list[dict[str, A
                 kind = type(row[field]).__name__
                 raise BadRequestError(f"{path}[{index}].{field} is a {kind}, not a value to show")
     return found
+
+
+def _with_year(row: dict[str, Any]) -> dict[str, Any]:
+    # A copy with the year of the row's one month or date, so sum_by_month's "2026-01" compares
+    # year against year; DATA itself stays as the tools returned it.
+    periods = [
+        value
+        for value in row.values()
+        if isinstance(value, str) and (_MONTH.match(value) or _DATE.match(value))
+    ]
+    if "year" in row or len(periods) != 1:
+        return row
+    return {**row, "year": periods[0][:4]}
 
 
 def is_number(value: Any) -> bool:
