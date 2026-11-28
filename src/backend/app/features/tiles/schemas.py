@@ -58,6 +58,11 @@ class PaydayBalanceArgs(Args):
         description="A counterparty whose regular income has not arrived yet, for a second case "
         "with that money. Leave out when nothing is late.",
     )
+    expected_label: Name | None = Field(
+        default=None,
+        description="What the customer would call that income, with its article, such as "
+        "'the child support'. No figures. Only together with expected_from.",
+    )
 
 
 class BalancePoint(BaseModel):
@@ -67,6 +72,8 @@ class BalancePoint(BaseModel):
 
 class PaydayAlternative(BaseModel):
     counterparty: str
+    # The customer's own words for this income, such as "the child support"; None: unknown.
+    label: str | None = None
     amount_chf: Chf
     left_chf: Chf
     per_day_chf: Chf
