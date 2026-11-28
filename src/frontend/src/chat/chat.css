@@ -186,7 +186,7 @@
 .tr-chat .bot p {
   margin: 0;
 }
-.tr-chat .markdown > * + * {
+.tr-chat .bot .markdown > * + * {
   margin-top: 12px;
 }
 .tr-chat .markdown ul,
