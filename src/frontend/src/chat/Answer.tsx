@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ToolCall } from "../api";
 import { Markdown } from "../lib/markdown";
+import { AnswerTrace } from "./AnswerTrace";
 import { CheckIcon } from "./icons";
 import { MemoryCard } from "./MemoryCard";
 import {
@@ -64,7 +65,12 @@ export function Answer({
       {proposal !== undefined && (
         <MemoryCard token={token} entryId={proposal.id} text={proposal.text} />
       )}
-      {provenance !== null && <Meta provenance={provenance} hasFailedCall={failed.length > 0} />}
+      {provenance !== null && (
+        <Meta provenance={provenance} hasFailedCall={failed.length > 0} />
+      )}
+      {(calls.length > 0 || provenance !== null) && (
+        <AnswerTrace calls={calls} provenance={provenance} isLive={false} />
+      )}
     </div>
   );
 }
@@ -101,16 +107,24 @@ function Meta({
     (check) =>
       !check.passed && (check.name !== "tool_calls_valid" || hasFailedCall),
   );
-  const model = /apertus/i.test(provenance.model) ? "Apertus" : provenance.model;
+  const model = /apertus/i.test(provenance.model)
+    ? "Apertus"
+    : provenance.model;
   let note = "every figure comes from your bookings";
-  if (failedCheck !== undefined) note = `a check did not pass: ${failedCheck.name}`;
+  if (failedCheck !== undefined)
+    note = `a check did not pass: ${failedCheck.name}`;
   else if (checks.length > 0)
     note += `, ${checks.length} ${checks.length === 1 ? "check" : "checks"} passed`;
   const links: ReactNode[] = provenance.sources
     // Only web addresses become links; the list comes from a search result.
     .filter((source) => source.url?.startsWith("http") === true)
     .map((source) => (
-      <a key={source.id} href={source.url ?? ""} target="_blank" rel="noreferrer">
+      <a
+        key={source.id}
+        href={source.url ?? ""}
+        target="_blank"
+        rel="noreferrer"
+      >
         {source.title}
       </a>
     ));

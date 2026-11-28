@@ -26,6 +26,8 @@ export interface ToolCall {
   arguments: Record<string, unknown>;
   result: Record<string, unknown> | null;
   error: string | null;
+  /** The model that decided the call and how long the decision took; "server" for a rule. */
+  provenance: { model: string; latency_ms: number } | null;
 }
 
 /** One version of a widget, drawn by the server from its stored spec and data. */
