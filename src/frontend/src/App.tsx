@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { api, json, type RequestError, requestErrorOf } from "./api";
+import { api, type RequestError, requestErrorOf } from "./api";
 import { BoardScreen } from "./board/BoardScreen";
 import { Dock } from "./board/Dock";
 import { Mark, SmallIcon } from "./board/icons";
 import { NewBoard } from "./board/NewBoard";
-import type { Board, BoardSummary, Tile } from "./board/types";
+import type { Board, BoardPlan, BoardSummary, Tile } from "./board/types";
+import { BuildTrace } from "./chat/BuildTrace";
 import { ChatPanel } from "./chat/ChatPanel";
 import { type HostContext, useHostContext } from "./host";
+import { useStream } from "./lib/useStream";
 import { ProfilePanel } from "./profile/ProfilePanel";
 
 type Mode = "board" | "chat";
@@ -38,15 +40,6 @@ type Loading =
   | { state: "error"; error: RequestError }
   | { state: "ready" };
 
-// What the page says while the first boards are built, one line every few seconds.
-const BUILDING_LINES = [
-  "Reading your accounts",
-  "Looking at the last months",
-  "Choosing what matters",
-  "Drawing your first board",
-];
-const BUILDING_LINE_MS = 4_000;
-
 function TrustRoom({ context }: { context: HostContext }) {
   const token = context.access_token;
   const [mode, setMode] = useState<Mode>("board");
@@ -63,6 +56,14 @@ function TrustRoom({ context }: { context: HostContext }) {
   // A board the chat just made and the customer has not opened yet.
   const [freshId, setFreshId] = useState<string | null>(null);
   const [customerSince, setCustomerSince] = useState<string | null>(null);
+  const [plans, setPlans] = useState<BoardPlan[]>([]);
+  const build = useStream<BoardPlan>();
+  const buildLog = useRef<HTMLDivElement>(null);
+
+  // The trace follows the step that is running.
+  useEffect(() => {
+    buildLog.current?.scrollTo({ top: buildLog.current.scrollHeight });
+  }, [build.steps]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -99,6 +100,11 @@ function TrustRoom({ context }: { context: HostContext }) {
       (first, second) => first.position - second.position,
     );
     setBoards(sorted);
+    try {
+      setPlans(await api<BoardPlan[]>("/api/board-plans", token));
+    } catch {
+      // Without the plans a board's chat just does not show how it was built.
+    }
     return sorted;
   }
 
@@ -109,7 +115,7 @@ function TrustRoom({ context }: { context: HostContext }) {
       let list = await fetchBoards();
       if (list.length === 0) {
         setLoading({ state: "building" });
-        await api("/api/board-plans", token, json({}));
+        await build.start("/api/board-plans?stream=true", token, {});
         list = await fetchBoards();
       }
       setOpenId(list[0]?.id ?? null);
@@ -152,6 +158,7 @@ function TrustRoom({ context }: { context: HostContext }) {
         name: board.name,
         position: board.position,
         conversation_id: board.conversation_id,
+        plan_id: board.plan_id,
         tile_count: board.tiles.length,
       };
       setBoards((current) => [...current, summary]);
@@ -264,6 +271,7 @@ function TrustRoom({ context }: { context: HostContext }) {
             conversationId={null}
             boardConversationIds={boardConversationIds}
             board={null}
+            plan={null}
             tile={null}
             onClearTile={() => setAskTile(null)}
             onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
@@ -326,6 +334,27 @@ function TrustRoom({ context }: { context: HostContext }) {
               <FirstBoards loading={loading} onRetry={() => void start()} />
             )}
           </section>
+          {loading.state === "building" && (
+            <section
+              className="tr-chat"
+              data-variant="side"
+              aria-label="How your first board is built"
+            >
+              <div className="talk-in">
+                <div className="chathead">
+                  <b>Chat</b>
+                  <span>building your first board</span>
+                </div>
+                <div className="msgs" ref={buildLog}>
+                  <div className="bot">
+                    I am building your first board from your own accounts and
+                    bookings. Every step shows here as it happens.
+                  </div>
+                  <BuildTrace steps={build.steps} isLive isOpen />
+                </div>
+              </div>
+            </section>
+          )}
           {loading.state === "ready" && openBoardSummary !== null && (
             <ChatPanel
               key={openBoardSummary.id}
@@ -333,6 +362,10 @@ function TrustRoom({ context }: { context: HostContext }) {
               conversationId={openBoardSummary.conversation_id}
               boardConversationIds={boardConversationIds}
               board={{ id: openBoardSummary.id, name: openBoardSummary.name }}
+              plan={
+                plans.find((plan) => plan.id === openBoardSummary.plan_id) ??
+                null
+              }
               tile={askTile}
               onClearTile={() => setAskTile(null)}
               onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
@@ -353,18 +386,6 @@ function FirstBoards({
   loading: Loading;
   onRetry: () => void;
 }) {
-  const [lineIndex, setLineIndex] = useState(0);
-  const isBuilding = loading.state === "building";
-
-  useEffect(() => {
-    if (!isBuilding) return;
-    const timer = window.setInterval(
-      () => setLineIndex((index) => (index + 1) % BUILDING_LINES.length),
-      BUILDING_LINE_MS,
-    );
-    return () => window.clearInterval(timer);
-  }, [isBuilding]);
-
   if (loading.state === "error") {
     return (
       <div className="state" role="alert">
@@ -376,16 +397,15 @@ function FirstBoards({
       </div>
     );
   }
-  if (isBuilding) {
+  if (loading.state === "building") {
     return (
       <div className="state" aria-live="polite">
         <span className="spinner" aria-hidden="true" />
         <h1>Building your first boards</h1>
         <p>
           From your own accounts and bookings, about what matters to you. This
-          takes a moment, once.
+          takes a moment, once. The chat shows each step.
         </p>
-        <p className="line">{BUILDING_LINES[lineIndex]}…</p>
       </div>
     );
   }

@@ -11,8 +11,10 @@ import { Confirmation } from "../Confirmation";
 import { type HostContext, useHostContext } from "../host";
 import { Markdown } from "../lib/markdown";
 import { useStream } from "../lib/useStream";
+import type { BoardPlan } from "../board/types";
 import { useVoiceInput } from "../useVoiceInput";
 import { Answer } from "./Answer";
+import { BuildTrace } from "./BuildTrace";
 import { Composer } from "./Composer";
 import {
   type ChatMessage,
@@ -27,6 +29,8 @@ export interface ChatPanelProps {
   conversationId: string | null;
   boardConversationIds: string[];
   board: { id: string; name: string } | null;
+  /** How the open board was built; null for the page chat and for a board started empty. */
+  plan: BoardPlan | null;
   tile: { id: string; title: string } | null;
   onClearTile: () => void;
   onBoardChanged: (boardId?: string) => void;
@@ -72,6 +76,7 @@ function ChatInner({
   conversationId,
   boardConversationIds,
   board,
+  plan,
   tile,
   onClearTile,
   onBoardChanged,
@@ -167,6 +172,8 @@ function ChatInner({
   // The chat follows new text until the customer scrolls up, and again once they are back down.
   useEffect(() => {
     const element = scroller.current;
+    // An empty chat opens on the top of the build trace, not on its end.
+    if (loaded.messages.length === 0 && pending === null) return;
     if (element !== null && isFollowing.current)
       element.scrollTop = element.scrollHeight;
   }, [loaded, pending, stream.text, stream.toolCalls.length, load]);
@@ -309,6 +316,13 @@ function ChatInner({
             Try again
           </button>
         </div>
+      )}
+      {load === "ready" && plan !== null && plan.trace.length > 0 && (
+        <BuildTrace
+          steps={plan.trace}
+          isLive={false}
+          isOpen={loaded.messages.length === 0 && !isStreaming}
+        />
       )}
       {isEmpty && (
         <p className="hint">

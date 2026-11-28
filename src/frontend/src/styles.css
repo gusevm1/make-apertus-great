@@ -237,12 +237,6 @@ a:hover {
   text-wrap: pretty;
 }
 
-.state .line {
-  min-height: 1.5em;
-  color: var(--deep);
-  font-weight: 500;
-}
-
 .spinner {
   width: 28px;
   height: 28px;

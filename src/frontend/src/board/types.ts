@@ -1,11 +1,21 @@
 // Mirrors src/backend/app/features/boards/schemas.py and tiles/schemas.py.
 // Amounts are JSON numbers, dates "YYYY-MM-DD", months "YYYY-MM".
 
+import type { TraceStep } from "../lib/useStream";
+
+/** How the model and the server built a board; `model` is "server" when the model did not answer. */
+export interface BoardPlan {
+  id: string;
+  model: string | null;
+  trace: TraceStep[];
+}
+
 export interface BoardSummary {
   id: string;
   name: string;
   position: number;
   conversation_id: string | null;
+  plan_id: string | null;
   tile_count: number;
 }
 
@@ -14,6 +24,7 @@ export interface Board {
   name: string;
   position: number;
   conversation_id: string | null;
+  plan_id: string | null;
   tiles: Tile[];
   dropped: DroppedTile[];
 }
