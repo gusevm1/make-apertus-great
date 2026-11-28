@@ -8,6 +8,7 @@ const NAME_MAX_LENGTH = 80;
 export function Dock({
   boards,
   openId,
+  freshId,
   isNewOpen,
   onOpen,
   onNew,
@@ -16,6 +17,7 @@ export function Dock({
 }: {
   boards: BoardSummary[];
   openId: string | null;
+  freshId: string | null;
   isNewOpen: boolean;
   onOpen: (boardId: string) => void;
   onNew: () => void;
@@ -89,6 +91,7 @@ export function Dock({
                 }}
                 onDoubleClick={() => startRename(board)}
               >
+                {board.id === freshId && <i className="fresh" aria-label="New" />}
                 {board.name}
               </button>
               {isOpen && (

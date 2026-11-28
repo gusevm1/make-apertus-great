@@ -1431,3 +1431,24 @@
 .hero .key i.out {
   background: rgb(255 255 255 / 0.3);
 }
+
+/* A board the chat just made. */
+.tab .fresh {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+/* Beside a board of one or two tiles. */
+.more-hint {
+  margin: 0;
+  padding: 22px 24px;
+  border: 1px dashed var(--line-strong, var(--line));
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  color: var(--muted);
+}

@@ -60,6 +60,8 @@ function TrustRoom({ context }: { context: HostContext }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [dockError, setDockError] = useState<string | null>(null);
   const hasStarted = useRef(false);
+  // A board the chat just made and the customer has not opened yet.
+  const [freshId, setFreshId] = useState<string | null>(null);
   const [customerSince, setCustomerSince] = useState<string | null>(null);
 
   useEffect(() => {
@@ -127,6 +129,7 @@ function TrustRoom({ context }: { context: HostContext }) {
   function openBoard(boardId: string | null) {
     setAskTile(null);
     setOpenId(boardId);
+    if (boardId === freshId) setFreshId(null);
   }
 
   async function handleBoardChanged(boardId?: string) {
@@ -136,10 +139,8 @@ function TrustRoom({ context }: { context: HostContext }) {
     } catch {
       // The board itself is fetched again by its screen, which shows its own error.
     }
-    if (boardId !== undefined) {
-      setMode("board");
-      openBoard(boardId);
-    }
+    // The chat stays where its answer is; the new tab gets a dot until it is opened.
+    if (boardId !== undefined) setFreshId(boardId);
   }
 
   async function handleCreated(board: Board) {
@@ -311,6 +312,7 @@ function TrustRoom({ context }: { context: HostContext }) {
                 <Dock
                   boards={boards}
                   openId={openId}
+                  freshId={freshId}
                   isNewOpen={openBoardSummary === null}
                   onOpen={openBoard}
                   onNew={() => openBoard(null)}
