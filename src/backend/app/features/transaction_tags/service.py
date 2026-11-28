@@ -36,10 +36,10 @@ from app.features.transaction_tags.schemas import (
 from app.features.transaction_tags.severity import booking_key, normalise_payee, payee_key
 
 BATCH_SIZE = 25
-# Under load the shared gateway answers 16 parallel batches after more than a minute each.
-MAX_PARALLEL_BATCHES = 8
-# A batch takes 30 to 50 seconds when the gateway is busy; cut off sooner, it is sent again.
-CATEGORISE_TIMEOUT_SECONDS = 150
+MAX_PARALLEL_BATCHES = 16
+# A batch answer is about 1200 tokens: 30 s on a quiet gateway, over 100 s on a busy one.
+# Cut off sooner, it is sent again and the run never moves.
+CATEGORISE_TIMEOUT_SECONDS = 180
 MAX_CORRECTION_EXAMPLES = 30
 
 
