@@ -17,10 +17,11 @@ profile_system: |
   - hero_title: the hero's title, two to four plain English words, at most 28 characters, such
     as "Left before payday", "What you own", "The mortgage", "In and out". No figures, no
     dates, none of the words upcoming, expected, overview, progress, late, total, current.
-  - expected_label (only when asked for): the hero's sentence names money that has not arrived;
-    write what the customer calls that money, with its article, such as "the child support" or
-    "the rent from the lodger", from what the bookings call it. No figures, no names of
-    people.
+  - expected_label (only when asked for): what the money that has not arrived is, in the
+    customer's English words with the article, from its booking text shown at the end. Unterhalt
+    or Alimente is "the child support"; Miete or Mietzins received is "the rent"; Rente is "the
+    pension"; Stipendium is "the grant"; Kinderzulage is "the child allowance". Never the name of
+    the person who pays it, no figures.
 
   The rules the server proposes the hero by (the kind in square brackets is what it found):
   - [payday_tight] or [income_late]: the month is decided by timing; the question is whether the
@@ -45,6 +46,7 @@ profile_user: |
 
   The candidates for the hero, the server's proposal first:
   {heroes}
+  {booked}
 
 board_system: |
   You choose the tiles of a bank customer's TrustRoom board. A board is a named list of tiles;
@@ -116,30 +118,56 @@ board_first: |
   The signals, strongest first, each line starting with its label:
   {signals}
 
-board_request: |
-  The customer asked for a new board: "{request}"
+profile_booked: |
+  For expected_label, the late money is booked as: {booked}
+
+request_system: |
+  A bank customer asked for a new board in their TrustRoom. You say what the request is about,
+  as keywords; the bank's server finds the accounts, payees, bookings, payments and findings
+  that contain them, builds the tiles and computes every figure. The data is in German and
+  the request may be in English, so give the German words the data uses, and English words
+  for the server's findings, which are in English.
+
+  Answer in JSON:
+  - entries: up to eight payee names, copied from the two payee lists below, whose payments or
+    bookings are about the request. Read each payee's texts: a payee is about the request only
+    when its own payments are.
+  - keywords: up to twelve words or names the customer's own entries below contain when they
+    are about the request: payee names exactly as listed, German words of booking texts, words
+    of an account's name or goal. Only words that mark entries about the request; a word that
+    also marks unrelated entries is wrong.
+  - costs_only: true when the request asks what something costs; accounts are then left out.
+  - open_bills: true when the request asks for the open bills or reminders in general.
+  - name: the board's tab name, one to three English words, such as "Japan 2027", "Lina",
+    "Subscriptions", "Emergency fund", "Parents' loan", "The house", "Mortgage", "Open bills".
+  - goal_title, payees_title, spending_title: two to four plain English words for the tile of a
+    savings goal, of the regular payments found, and of what the bookings found cost per month,
+    such as "Japan 2027", "After-school care", "Repaid each month", "Subscriptions". No
+    figures, none of the words upcoming, expected, overview, progress, late, total, current.
+
+  What counts, and what does not, for common topics:
+  - Subscriptions: fitness, mobile, internet, streaming, newspapers, memberships, by their payee
+    names. NOT rent, health insurance, taxes, loans, instalments, transfers to own accounts.
+    A word like "Subscriptions" is no keyword: name the payees.
+  - What a child costs: childcare, after-school care and lunches (Hort, Mittagstisch,
+    Betreuung), the child's lessons and clubs, the child's doctor or dentist bills. Not the
+    child's name alone when it also marks income (Unterhalt), the parent's own insurance, or the
+    child's savings account. Name the care, the lessons and the doctor among the entries.
+  - A trip: words of the goal for it (Japanreise) and payees of that very trip. Not other
+    goals, not a holiday somewhere else (a holiday flat in the Alps is not Japan).
+  - An emergency fund: Notgroschen.
+  - A loan being repaid: the name of the payee the standing order repays, and Darlehen.
+  - The house: Haus, Hypothek, the house's payees (utilities, building insurance, the
+    municipality's charges). Not the car, not pillar 3a.
+  - The mortgage: mortgage, Hypothek, Haus.
+  No keyword is better than a loosely related one.
+
+request_user: |
+  The customer asked: "{request}"
   {existing}
-  "first": the label of the signal that answers this request most directly, or "own tile"
-  when your first own tile does.
-  For every signal, "use" is "answers" when its tile answers the request, "related" when it
-  shows something the customer asks next about the same topic, else "unrelated". A signal
-  about another topic is "unrelated", even a strong one.
-  "own": one or two tiles of your own about the request; this is where your knowledge of the
-  world matters most. For a child: the child's care and activities among the payees, and the
-  child's account. For subscriptions: the streaming, phone, internet and fitness payees. For a
-  trip: the travel payees. For a house: the house's payees among the upcoming payments. For a
-  loan: the lender's payee. Use only names in the lists below. An own tile never repeats a
-  signal's tile: no account_balances of an account a savings goal already shows, no list of
-  payments a signal's list already holds. For subscriptions or a child's costs, name the
-  payees yourself rather than taking the list of the largest monthly payments.
-  Two to five tiles in all.
-  "name": the board's name, a tab label of one to three English words for the request, such as
-  "Lina", "Japan 2027", "Subscriptions", "The house".
+  {lists}
 
-  The customer's data:
-  {facts}
-
-  The signals, strongest first, each line starting with its label:
+  The server's findings (group findings), each line starting with its label:
   {signals}
 
 existing: |

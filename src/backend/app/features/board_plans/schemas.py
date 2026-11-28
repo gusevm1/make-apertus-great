@@ -67,7 +67,7 @@ class BoardChoice(BaseModel):
 
 
 class IdeaChoice(BaseModel):
-    title: str = Field(description="A further board the customer could want, a few words.")
+    title: str | None = Field(description="A further board the customer could want, a few words.")
     signal: str = Field(description="The id of the signal this idea is about, such as S5.")
 
 
@@ -85,6 +85,8 @@ class PlanAnswer(BaseModel):
     ideas: list[IdeaChoice] = Field(
         default_factory=list, description="Up to three further boards, each about one signal."
     )
+    # What the board cannot show, said once, such as what is left of a private loan.
+    notes: list["DroppedTile"] = []
 
 
 # --- the split calls, each with a schema built for this customer --------------------------------
@@ -145,6 +147,31 @@ def board_schema(
     return create_model("BoardAnswer", **fields)
 
 
+class RequestKeywords(BaseModel):
+    """What a request is about, as words the server looks for in the customer's data."""
+
+    # Payee names picked from the customer's own lists; an enum in the schema sent to the model.
+    entries: list[str] = []
+    keywords: list[str] = Field(max_length=12)
+    costs_only: bool
+    open_bills: bool
+    name: str
+    goal_title: str | None = None
+    payees_title: str | None = None
+    spending_title: str | None = None
+
+
+def request_schema(entries: list[str]) -> type[RequestKeywords]:
+    """RequestKeywords with `entries` limited to this customer's payee names."""
+    if not entries:
+        return RequestKeywords
+    return create_model(
+        "RequestSelection",
+        __base__=RequestKeywords,
+        entries=(list[_enum(entries)], Field(default_factory=list, max_length=8)),
+    )
+
+
 # --- what the server returns ----------------------------------------------------------------
 
 
@@ -180,3 +207,6 @@ class PlannedBoards(BaseModel):
     model: str
     latency_ms: int
     checks: list[Check]
+
+
+PlanAnswer.model_rebuild()
