@@ -314,11 +314,11 @@ async def get_turn(
         summary = f'Added "{tile.title}"'
         revised = _revised_tile(tiles=before, template=template, title=tile.title)
         if revised is not None:
-            # The same kind under the same name is a change to that tile, not a second one.
-            await service.move_tile(tile=tile, position=revised.position)
-            await service.remove_tile(tile=revised)
-            if revised.id in indexes:
-                indexes[indexes.index(revised.id)] = tile.id
+            # The same kind under the same name is a change to that tile, which keeps its id.
+            await service.remove_tile(tile=tile)
+            tile, payload = await service.change_tile(
+                tile=revised, args=tile.args, token=token, today=today
+            )
             summary = f'Changed "{tile.title}"'
         free = _free_title(title=tile.title, taken=[item.title for item in before])
         if revised is None and free != tile.title:
@@ -350,21 +350,13 @@ async def get_turn(
             changes = nested
         if not changes:
             raise BadRequestError(PROMPTS["change_tile_needs"])
-        # The new tile takes the old one's place and title, then the old one goes.
+        # Changed in place: a tile on the e-banking dashboard embeds it by its id.
         try:
-            changed, payload = await service.add_tile(
-                board_id=board.id,
-                template=tile.template,
-                args={**tile.args, **changes},
-                title=tile.title,
-                position=tile.position,
-                token=token,
-                today=today,
+            _, payload = await service.change_tile(
+                tile=tile, args={**tile.args, **changes}, token=token, today=today
             )
         except BadRequestError as error:
             raise with_payees(error=error, template=tile.template) from error
-        await service.remove_tile(tile=tile)
-        indexes[indexes.index(tile.id)] = changed.id
         return BoardChange(
             summary=f'Changed "{tile.title}"',
             meaning=meaning(payload=payload, today=today),
