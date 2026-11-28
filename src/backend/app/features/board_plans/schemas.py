@@ -204,6 +204,28 @@ class DroppedTile(BaseModel):
     reason: str
 
 
+class TraceItem(BaseModel):
+    label: str
+    text: str
+    # How the page marks the line: a tile that was kept, one that was dropped, or neither.
+    mark: Literal["kept", "dropped"] | None = None
+
+
+class TraceStep(BaseModel):
+    """One step of building a board, as the page shows it: who did it, how long, what came out."""
+
+    name: str
+    title: str
+    actor: Literal["server", "apertus"]
+    # What the step works from, such as the endpoints read or what the model was given.
+    reads: str
+    is_done: bool = False
+    has_failed: bool = False
+    seconds: float | None = None
+    summary: str | None = None
+    items: list[TraceItem] = []
+
+
 class PlannedBoards(BaseModel):
     kind: str
     evidence: list[str]
@@ -214,6 +236,7 @@ class PlannedBoards(BaseModel):
     model: str
     latency_ms: int
     checks: list[Check]
+    trace: list[TraceStep] = []
 
 
 PlanAnswer.model_rebuild()

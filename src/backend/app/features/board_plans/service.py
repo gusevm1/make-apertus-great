@@ -2,8 +2,10 @@ import asyncio
 import calendar
 import dataclasses
 import re
+import time
+from collections.abc import Callable
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from app.clients.apertus import ApertusClient, LLMResult, Model
 from app.core.errors import AppError, UpstreamError
@@ -29,6 +31,8 @@ from app.features.board_plans.schemas import (
     PlannedTile,
     Signal,
     TileChoice,
+    TraceItem,
+    TraceStep,
     board_schema,
     profile_schema,
     EntryCheck,
@@ -64,6 +68,7 @@ ENTRY_CHECK_SECONDS = 12
 ENTRY_CHECKS_PARALLEL = 4
 PLAN_FAILURES = (TimeoutError, UpstreamError)
 RANKED_KIND = "Not classified: the model did not answer in time."
+NO_ANSWER = "No answer in time. The server carries on with its own ranking of the findings."
 NOT_PLANNED = "The model did not answer in time; this board follows the server's ranking of your signals."
 NOT_PICKED = "The model did not answer in time; this board holds what your request names word for word."
 NOTHING_FOUND = "Nothing in your accounts is about this request yet."
@@ -237,6 +242,53 @@ class _Tile:
         return tile_key(self.template, self.args)
 
 
+USE_WORDS = {
+    "main": "On the board",
+    "second": "On a second board",
+    "idea": "Kept as an idea",
+    "no": "Left out",
+}
+
+
+class _Trace:
+    """The steps of one plan in order, each reported to `on_step` when it starts and when it ends."""
+
+    def __init__(self, on_step: Callable[[TraceStep], None] | None) -> None:
+        self.steps: list[TraceStep] = []
+        self.on_step = on_step
+        self.started = 0.0
+
+    def start(
+        self, name: str, title: str, actor: Literal["server", "apertus"], reads: str
+    ) -> None:
+        self.started = time.monotonic()
+        self.steps.append(TraceStep(name=name, title=title, actor=actor, reads=reads))
+        self._report()
+
+    def end(
+        self, summary: str, items: list[TraceItem] | None = None, has_failed: bool = False
+    ) -> None:
+        step = self.steps[-1]
+        step.is_done = True
+        step.has_failed = has_failed
+        step.seconds = round(time.monotonic() - self.started, 1)
+        step.summary = summary
+        step.items = items or []
+        self._report()
+
+    def _report(self) -> None:
+        if self.on_step is not None:
+            self.on_step(self.steps[-1].model_copy())
+
+
+def _count(number: int, word: str) -> str:
+    return f"{number} {word}" if number == 1 else f"{number} {word}s"
+
+
+def _kind_words(signal: Signal) -> str:
+    return signal.kind.replace("_", " ")
+
+
 class BoardPlanService:
     def __init__(
         self,
@@ -254,18 +306,53 @@ class BoardPlanService:
 
     async def read_customer(self, token: str, today: date) -> CustomerDigest:
         """The customer's facts and the signals in them, computed without the model."""
-        customer, _, _ = await self._read_customer(token=token, today=today)
+        customer, _, _ = await self._read_customer(
+            token=token, today=today, trace=_Trace(on_step=None)
+        )
         return customer
 
     async def _read_customer(
-        self, token: str, today: date
+        self, token: str, today: date, trace: _Trace
     ) -> tuple[CustomerDigest, dict[str, AnyPayload], Raw]:
         """The digest, the resolved tile of every signal that has one by signal id, the raw read."""
-        raw = await self._read_raw(token=token, today=today)
-        resolved = await self._resolve_all(
-            tiles=digest.candidates(raw=raw), token=token, today=today
+        trace.start(
+            name="read_bank",
+            title="Read the customer from the bank",
+            actor="server",
+            reads="The banking API, with the customer's own token",
         )
+        raw = await self._read_raw(token=token, today=today)
+        counts = {
+            "Accounts": len(raw.accounts),
+            "Bookings": len(raw.rows),
+            "Upcoming payments": len(raw.upcoming),
+            "Regular payments": len(raw.recurring.recurring),
+            "Instalment plans": len(raw.recurring.instalment_plans),
+            "Loans": len(raw.loans),
+            "Cards": len(raw.cards),
+            "Depot": 1 if raw.portfolio.get("total_value_chf") else 0,
+        }
+        trace.end(
+            summary=f"{len(raw.accounts)} accounts, {len(raw.rows)} bookings, "
+            f"{len(raw.upcoming)} upcoming payments",
+            items=[TraceItem(label=name, text=str(count)) for name, count in counts.items()],
+        )
+        candidates = digest.candidates(raw=raw)
+        trace.start(
+            name="signals",
+            title="Compute the findings",
+            actor="server",
+            reads=f"{_count(len(candidates), 'possible tile')}, each computed from the bank's data",
+        )
+        resolved = await self._resolve_all(tiles=candidates, token=token, today=today)
         signals = digest.signals(raw=raw, resolved=resolved)
+        trace.end(
+            summary=f"{_count(len(signals), 'finding')}, the most pressing first",
+            items=[
+                TraceItem(label=f"{signal.id} {_kind_words(signal=signal)}", text=signal.text)
+                for signal in signals
+            ],
+        )
         payloads = {}
         for signal in signals:
             if signal.template is not None and signal.args is not None:
@@ -298,7 +385,11 @@ class BoardPlanService:
         return distinct
 
     async def _ask_first(
-        self, customer: CustomerDigest, offered: list[Signal], incomes: dict[str, str]
+        self,
+        customer: CustomerDigest,
+        offered: list[Signal],
+        incomes: dict[str, str],
+        trace: _Trace,
     ) -> tuple[PlanAnswer, str | None, int]:
         """The first boards from two small calls; the server's ranking when the model fails."""
         labels = {digest.label(signal=s): s for s in offered}
@@ -317,6 +408,13 @@ class BoardPlanService:
             if labels[h].template == "payday_balance"
             and (labels[h].args or {}).get("expected_from") is not None
         }
+        trace.start(
+            name="board_profile",
+            title="Who is this customer?",
+            actor="apertus",
+            reads=f"The customer's facts, {_count(len(customer.signals), 'finding')} and "
+            f"{_count(len(heroes), 'candidate')} for the first tile",
+        )
         try:
             profile = await self._structured(
                 messages=profile_prompt(
@@ -331,10 +429,39 @@ class BoardPlanService:
                 purpose="board_profile",
             )
         except PLAN_FAILURES:
+            trace.end(summary=NO_ANSWER, has_failed=True)
             return _ranked_answer(labels=labels, hero=heroes[0] if heroes else None), None, 0
         hero = profile.content.hero
         hero_tile = _hero_choice(
             signal=labels[hero], profile=profile.content, booked=late.get(hero)
+        )
+        trace.end(
+            summary=profile.content.kind,
+            items=[
+                TraceItem(label="Kind of customer", text=profile.content.kind),
+                *(
+                    TraceItem(label="Evidence", text=_evidence(signal=labels[e]))
+                    for e in profile.content.evidence
+                ),
+                TraceItem(label="Their question", text=profile.content.question),
+                *(
+                    TraceItem(
+                        label="First tile" if h == hero else "Not chosen",
+                        text=f"{profile.content.hero_title}: {labels[h].text}"
+                        if h == hero
+                        else labels[h].text,
+                        mark="kept" if h == hero else None,
+                    )
+                    for h in heroes
+                ),
+            ],
+        )
+        trace.start(
+            name="board_tiles",
+            title="Which tiles, and what to call them?",
+            actor="apertus",
+            reads="The kind, the question, the first tile and the other "
+            + _count(len(labels) - 1, "finding"),
         )
         try:
             tiles = await self._structured(
@@ -354,6 +481,7 @@ class BoardPlanService:
                 purpose="board_tiles",
             )
         except PLAN_FAILURES:
+            trace.end(summary=NO_ANSWER, has_failed=True)
             ranked = _ranked_answer(labels=labels, hero=hero)
             ranked.boards[0].tiles[0] = hero_tile
             answer = ranked.model_copy(
@@ -367,6 +495,34 @@ class BoardPlanService:
         board = tiles.content
         uses = board.signals.model_dump(by_alias=True)
         rest = [label for label in labels if label != hero]
+        on_boards = [label for label in rest if uses[label]["use"] in {"main", "second"}]
+        trace.end(
+            summary=f"{_count(len(on_boards) + len(board.own), 'tile')} chosen beside the first, "
+            f"{_count(len(rest) - len(on_boards), 'finding')} not on a board",
+            items=[
+                *(
+                    TraceItem(
+                        label=USE_WORDS[uses[label]["use"]],
+                        text=f"{uses[label]['title']} ({_kind_words(signal=labels[label])})",
+                        mark="kept"
+                        if label in on_boards
+                        else "dropped"
+                        if uses[label]["use"] == "no"
+                        else None,
+                    )
+                    for label in rest
+                ),
+                *(
+                    TraceItem(
+                        label="Its own tile",
+                        text=f"{pick.title}: {pick.template.replace('_', ' ')} of "
+                        + ", ".join(pick.names),
+                        mark="kept",
+                    )
+                    for pick in board.own
+                ),
+            ],
+        )
 
         def placed(place: str) -> list[TileChoice]:
             # The server's order, strongest first; the model chose and titled.
@@ -410,6 +566,7 @@ class BoardPlanService:
         lists: digest.RequestLists,
         existing: list[str] | None,
         payloads: dict[str, AnyPayload],
+        trace: _Trace,
     ) -> tuple[PlanAnswer, str | None, int]:
         bills = next(
             (s for s in offered if s.kind in {"bills_before_payday", "due_soon"}), None
@@ -428,6 +585,13 @@ class BoardPlanService:
             ),
             None,
         )
+        trace.start(
+            name="board_request",
+            title="What is this request about?",
+            actor="apertus",
+            reads=f"The request, {len(lists.payees) + len(lists.shops)} payees and shops, "
+            f"{len(lists.payments)} open payments and {len(findings)} findings",
+        )
         try:
             result = await self._structured(
                 messages=request_prompt(
@@ -440,6 +604,10 @@ class BoardPlanService:
                 purpose="board_request",
             )
         except PLAN_FAILURES:
+            trace.end(
+                summary="No answer in time. The server looks for the request's own words.",
+                has_failed=True,
+            )
             words = [
                 w
                 for w in re.findall(r"\w+", request)
@@ -458,9 +626,37 @@ class BoardPlanService:
         asked = result.content
         keywords = [k for k in [*asked.entries, *asked.keywords] if k.strip()]
         matched = [p for p, text in lists.payments.items() if _matches(keywords, text)]
+        trace.end(
+            summary=f"{asked.name}: {len(asked.entries)} payees picked, "
+            f"{len(matched)} open payments matched",
+            items=[
+                TraceItem(label="Board name", text=asked.name),
+                *(TraceItem(label="Picked", text=entry) for entry in asked.entries),
+                *(TraceItem(label="Looks for", text=word) for word in asked.keywords),
+            ],
+        )
+        picked = list(dict.fromkeys([*asked.entries, *matched]))
+        trace.start(
+            name="board_request_entries",
+            title="Is each pick really about the request?",
+            actor="apertus",
+            reads=f"{len(picked)} picks, each checked on its own",
+        )
         kept, kept_payments = await asyncio.gather(
             self._checked_entries(request=request, entries=asked.entries, lists=lists),
             self._checked_entries(request=request, entries=matched, lists=lists),
+        )
+        still = {*kept, *kept_payments}
+        trace.end(
+            summary=f"{len(still)} of {len(picked)} kept",
+            items=[
+                TraceItem(
+                    label="Kept" if pick in still else "Not about it",
+                    text=lists.payments.get(pick) or pick,
+                    mark="kept" if pick in still else "dropped",
+                )
+                for pick in picked
+            ],
         )
         asked = asked.model_copy(update={"entries": kept})
         # An open bill the keywords found is checked on its own like a payee.
@@ -538,13 +734,20 @@ class BoardPlanService:
         today: date,
         request: str | None = None,
         existing: list[str] | None = None,
+        on_step: Callable[[TraceStep], None] | None = None,
     ) -> PlannedBoards:
         """The customer's first boards, or one board for `request`, validated and ready to store."""
-        customer, payloads, raw = await self._read_customer(token=token, today=today)
+        trace = _Trace(on_step=on_step)
+        customer, payloads, raw = await self._read_customer(
+            token=token, today=today, trace=trace
+        )
         offered = self._distinct(customer=customer, payloads=payloads)
         if request is None:
             answer, model, latency_ms = await self._ask_first(
-                customer=customer, offered=offered, incomes=digest.income_texts(raw=raw)
+                customer=customer,
+                offered=offered,
+                incomes=digest.income_texts(raw=raw),
+                trace=trace,
             )
         else:
             answer, model, latency_ms = await self._ask_request(
@@ -554,7 +757,14 @@ class BoardPlanService:
                 lists=digest.request_lists(raw=raw),
                 existing=existing,
                 payloads=payloads,
+                trace=trace,
             )
+        trace.start(
+            name="check_tiles",
+            title="Check every tile and compute its figures",
+            actor="server",
+            reads="Each chosen tile, validated and filled from the banking API",
+        )
         signals = {signal.id: signal for signal in customer.signals}
         tight = any(signal.kind == "payday_tight" for signal in customer.signals)
         dropped: list[DroppedTile] = []
@@ -677,6 +887,32 @@ class BoardPlanService:
                 detail=None if model is not None else NOT_PLANNED if request is None else NOT_PICKED,
             )
         )
+        placed = [(name, tile) for name, board_tiles in boards for tile in board_tiles]
+        trace.end(
+            summary=f"{_count(len(placed), 'tile')} on {_count(len(boards), 'board')}"
+            + (f", {len(dropped)} dropped" if dropped else ""),
+            items=[
+                *(
+                    TraceItem(
+                        label=name,
+                        text=f"{tile.title}: CHF {digest.chf(tile.payload.figure_chf)}, "
+                        f"from {tile.payload.source.label}",
+                        mark="kept",
+                    )
+                    for name, tile in placed
+                ),
+                *(
+                    TraceItem(label="Dropped", text=f"{d.title}: {d.reason}", mark="dropped")
+                    for d in dropped
+                ),
+                *(TraceItem(label="Idea for later", text=idea.title) for idea in ideas),
+                *(
+                    TraceItem(label="Check", text=f"{check.name}: {check.detail}")
+                    for check in checks
+                    if not check.passed and check.detail is not None
+                ),
+            ],
+        )
         return PlannedBoards(
             kind=answer.kind,
             evidence=answer.evidence,
@@ -696,6 +932,7 @@ class BoardPlanService:
             model=model or "server",
             latency_ms=latency_ms,
             checks=checks,
+            trace=trace.steps,
         )
 
     def _ideas(
