@@ -37,6 +37,8 @@ from app.features.transaction_tags.schemas import (
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 50
+# As long as a categorisation batch: a busy gateway takes over 100 s for 25 rows.
+ASSIGN_TIMEOUT_SECONDS = 180
 PAYEE_TEXT_LENGTH = 40
 MAX_PARALLEL_BATCHES = 16
 SPENDING_DAYS = 365
@@ -294,6 +296,7 @@ class PersonalTagService:
                     schema=BatchPersonalTags,
                     model=Model.SMART,
                     purpose="assign_personal_tags",
+                    timeout_seconds=ASSIGN_TIMEOUT_SECONDS,
                 )
             except UpstreamError:
                 return None

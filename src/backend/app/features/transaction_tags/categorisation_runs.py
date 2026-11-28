@@ -180,6 +180,7 @@ async def _work_once(
                 ledger=ledger,
                 apertus=apertus,
             ).create_proposal(owner_id=owner_id, token=token)
+            await _reporter(run_id=run_id, step="personal_tags")(0, 1)
             evaluations = PersonalTagEvaluationRepository(session=session)
             if scope == "unconfirmed":
                 # Every row is judged again, so a tag the customer just added gets its rows.

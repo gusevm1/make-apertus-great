@@ -68,7 +68,7 @@ export function stepText(run: CategorisationRun): string {
   if (run.step === "necessity") return "Rating how much you need each category";
   if (run.step === "personal_tags") return "Finding your personal tags";
   if (run.step_total === 0) return "Reading your bookings";
-  return `Sorting your bookings: ${count.format(run.step_done)} of ${count.format(run.step_total)}`;
+  return `Sorting: ${count.format(run.step_done)} of ${count.format(run.step_total)} bookings`;
 }
 
 export interface Loaded {
