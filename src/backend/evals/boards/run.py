@@ -29,7 +29,10 @@ from app.features.board_plans.service import (
     REQUEST_MIN,
     SIDE_MAX,
     SIDE_MIN,
+    FILLER,
+    TITLE_SHORT,
     BoardPlanService,
+    name_fits,
 )
 from app.features.figure_checks.service import FigureCheckService
 from app.features.ledger.service import LedgerService
@@ -51,6 +54,17 @@ GLM = "z-ai/glm-5.3"
 OPENROUTER_TIMEOUT_SECONDS = 300
 LIST_SHOWN = 6
 PARALLEL = {"glm": 12, "apertus": 4}
+REQUESTS = {
+    "daniela": ["What does Lina cost me every month?", "Which bills and reminders are open?"],
+    "lukas": [
+        "We want to go to Japan in 2027. Keep an eye on that for me.",
+        "What do my subscriptions cost me?",
+    ],
+    "jana": ["How do I get my emergency fund to 10'000?", "When have I repaid my parents?"],
+    "marco": ["What does the house cost us?", "What should we decide about the mortgage?"],
+}
+# A board fails the judge only when every sample of it fails, as one sample varies.
+JUDGE_SAMPLES = 2
 
 
 async def login(settings: Settings, customer: str) -> str:
@@ -113,6 +127,21 @@ def _no_repeats(plan: PlannedBoards) -> tuple[bool, str]:
     return not repeated, "" if not repeated else f"repeated: {repeated}"
 
 
+def _names_short(plan: PlannedBoards) -> tuple[bool, str]:
+    long = [board.name for board in plan.boards if not name_fits(name=board.name)]
+    return not long, "" if not long else f"not a tab label: {long}"
+
+
+def _titles_short(plan: PlannedBoards) -> tuple[bool, str]:
+    long = [
+        tile.title
+        for board in plan.boards
+        for tile in board.tiles
+        if len(tile.title) > TITLE_SHORT or FILLER.search(tile.title)
+    ]
+    return not long, "" if not long else f"long or filler: {long}"
+
+
 async def run_one(
     service: BoardPlanService,
     tiles: TileService,
@@ -135,7 +164,7 @@ async def run_one(
             plan = await service.plan_boards(token=token, today=today, request=request)
         except AppError as exc:
             record |= {"error": str(exc), "acceptable": False}
-            (out / f"{customer}-{number}.json").write_text(json.dumps(record, indent=1))
+            (out / f"{_name(record=record)}.json").write_text(json.dumps(record, indent=1))
             return record
         record["seconds"] = round(time.perf_counter() - started, 1)
         digest = await service.read_customer(token=token, today=today)
@@ -150,6 +179,9 @@ async def run_one(
                     data = payload.model_dump(mode="json")
                     if figures.missing_figures(answer=tile.title, sources=[json.dumps(data)]):
                         unresolved.append(f"title figure: {tile.title}")
+                    # The bookings behind a figure stay out of the run files; label and count stay.
+                    if isinstance(data.get("source"), dict):
+                        data["source"].pop("rows", None)
                 except (TileError, AppError) as exc:
                     data = None
                     unresolved.append(f"{tile.title}: {exc}")
@@ -159,25 +191,37 @@ async def run_one(
             "resolved": (not unresolved, "; ".join(unresolved)),
             "no_repeats": _no_repeats(plan=plan),
             "tile_count": _tile_count(plan=plan, request=request),
+            "names_short": _names_short(plan=plan),
+            "titles_short": _titles_short(plan=plan),
         }
         if request is None:
             checks["hero_fits"] = _hero_fits(plan=plan, signals=digest.signals)
         persona = (PERSONAS / CUSTOMERS[customer]).read_text(encoding="utf-8")
-        verdict = await judge.structured(
-            judge_prompt(
-                rubric=(HERE / "rubric.md").read_text(encoding="utf-8"),
-                persona=persona,
-                boards=_judge_view(boards=boards),
-                request=request,
-            ),
-            schema=Verdict,
-            model=Model.SMART,
-            purpose="board_judge",
-            timeout_seconds=OPENROUTER_TIMEOUT_SECONDS,
-        )
-        judged = {c.name: (c.passed, c.reason) for c in verdict.content.criteria}
-        for name in CRITERIA:
-            judged.setdefault(name, (False, "the judge did not answer this criterion"))
+        label = run_label.get()
+        samples = []
+        for sample in range(JUDGE_SAMPLES):
+            # The first sample keeps the label of the runs before, so its cache still answers.
+            run_label.set(label if sample == 0 else f"{label}-judge{sample + 1}")
+            verdict = await judge.structured(
+                judge_prompt(
+                    rubric=(HERE / "rubric.md").read_text(encoding="utf-8"),
+                    persona=persona,
+                    boards=_judge_view(boards=boards),
+                    request=request,
+                ),
+                schema=Verdict,
+                model=Model.SMART,
+                purpose="board_judge",
+                timeout_seconds=OPENROUTER_TIMEOUT_SECONDS,
+            )
+            answered = {c.name: (c.passed, c.reason) for c in verdict.content.criteria}
+            for name in CRITERIA:
+                answered.setdefault(name, (False, "the judge did not answer this criterion"))
+            samples.append(answered)
+        run_label.set(label)
+        passing = [sample for sample in samples if all(ok for ok, _ in sample.values())]
+        # A board passes when one sample passes it whole; else the first sample's verdict.
+        judged = passing[0] if passing else samples[0]
         record |= {
             "plan": plan.model_dump(mode="json"),
             "boards": boards,
@@ -186,15 +230,28 @@ async def run_one(
                 name: {"passed": ok, "detail": detail} for name, (ok, detail) in checks.items()
             },
             "judge": {name: {"passed": ok, "reason": why} for name, (ok, why) in judged.items()},
+            "judge_samples": [
+                {name: {"passed": ok, "reason": why} for name, (ok, why) in sample.items()}
+                for sample in samples
+            ],
         }
         record["acceptable"] = all(ok for ok, _ in checks.values()) and all(
             ok for ok, _ in judged.values()
         )
-        (out / f"{customer}-{number}.json").write_text(
+        (out / f"{_name(record=record)}.json").write_text(
             json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8"
         )
-        print(f"{customer}-{number}: {'pass' if record['acceptable'] else 'FAIL'}", flush=True)
+        print(f"{_name(record=record)}: {'pass' if record['acceptable'] else 'FAIL'}", flush=True)
         return record
+
+
+def _name(record: dict[str, Any]) -> str:
+    stem = f"{record['customer']}-{record['run']}"
+    request = record["request"]
+    if request is None:
+        return stem
+    asked = REQUESTS.get(record["customer"], [])
+    return f"{stem}-r{asked.index(request) + 1}" if request in asked else f"{stem}-request"
 
 
 def _differs(records: list[dict[str, Any]]) -> None:
@@ -231,7 +288,9 @@ def _index(records: list[dict[str, Any]], model: str, spend: str) -> str:
     lines += ["", f"OpenRouter: {spend}", ""]
     for record in records:
         verdict = "acceptable" if record["acceptable"] else "NOT acceptable"
-        lines.append(f"## {record['customer']} {record['run']}: {verdict}")
+        lines.append(f"## {_name(record=record)}: {verdict}")
+        if record["request"] is not None:
+            lines += ["", f"Asked: {record['request']}"]
         lines.append("")
         if "error" in record:
             lines += [f"Error: {record['error']}", ""]
@@ -273,6 +332,8 @@ async def main() -> None:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--customers", default=",".join(CUSTOMERS))
     parser.add_argument("--request", default=None)
+    # Each customer's two requests of REQUESTS instead of the first boards.
+    parser.add_argument("--requests", action="store_true")
     # A new tag sends every prompt again, as new cold samples.
     parser.add_argument("--tag", default="")
     args = parser.parse_args()
@@ -288,7 +349,8 @@ async def main() -> None:
     semaphore = asyncio.Semaphore(PARALLEL[args.model])
     jobs = []
     for customer in args.customers.split(","):
-        for number in range(1, args.runs + 1):
+        asked = REQUESTS[customer] if args.requests else [args.request]
+        for number, request in [(n, r) for n in range(1, args.runs + 1) for r in asked]:
             # One ledger per run, as one request in the app has one.
             ledger = LedgerService(banking=banking)
             recurring = RecurringPaymentService(ledger=ledger)
@@ -307,7 +369,7 @@ async def main() -> None:
                     judge=judge,
                     customer=customer,
                     number=number,
-                    request=args.request,
+                    request=request,
                     out=out,
                     semaphore=semaphore,
                     settings=settings,
@@ -318,7 +380,7 @@ async def main() -> None:
     _differs(records=records)
     for record in records:
         if "plan" in record:
-            (out / f"{record['customer']}-{record['run']}.json").write_text(
+            (out / f"{_name(record=record)}.json").write_text(
                 json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8"
             )
     spend = transport.spend.line()
