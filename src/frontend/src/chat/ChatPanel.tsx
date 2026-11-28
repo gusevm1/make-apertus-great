@@ -14,6 +14,7 @@ import { useStream } from "../lib/useStream";
 import type { BoardPlan } from "../board/types";
 import { useVoiceInput } from "../useVoiceInput";
 import { Answer } from "./Answer";
+import { AnswerTrace } from "./AnswerTrace";
 import { BuildTrace } from "./BuildTrace";
 import { Composer } from "./Composer";
 import {
@@ -26,8 +27,10 @@ import {
 
 export interface ChatPanelProps {
   variant: "side" | "page";
-  conversationId: string | null;
-  boardConversationIds: string[];
+  /** A chat picked from another board's panel, opened first; null opens the newest one. */
+  initialConversationId: string | null;
+  /** Every board, to say in the list of chats which board a chat is about. */
+  boards: { id: string; name: string }[];
   board: { id: string; name: string } | null;
   /** How the open board was built; null for the page chat and for a board started empty. */
   plan: BoardPlan | null;
@@ -35,6 +38,8 @@ export interface ChatPanelProps {
   onClearTile: () => void;
   onBoardChanged: (boardId?: string) => void;
   onOpenBoard: (boardId: string) => void;
+  /** A chat about another board, or about none, was picked from the list. */
+  onOpenConversation: (conversation: ConversationRef) => void;
 }
 
 export function ChatPanel(props: ChatPanelProps) {
@@ -69,20 +74,27 @@ type Failed =
 // Within this many pixels of the end, the chat counts as scrolled to the end.
 const FOLLOW_DISTANCE = 40;
 const PAGE_TEXT_LENGTH = 200;
+const TITLE_LENGTH = 60;
+const NEW_CHAT = "New chat";
 
 function ChatInner({
   context,
   variant,
-  conversationId,
-  boardConversationIds,
+  initialConversationId,
+  boards,
   board,
   plan,
   tile,
   onClearTile,
   onBoardChanged,
   onOpenBoard,
+  onOpenConversation,
 }: ChatPanelProps & { context: HostContext }) {
   const token = context.access_token;
+  const boardId = board?.id ?? null;
+  const [chosenId, setChosenId] = useState(initialConversationId);
+  const [conversations, setConversations] = useState<ConversationRef[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<Loaded>({
     messages: [],
@@ -101,10 +113,11 @@ function ChatInner({
     error: RequestError;
     action: Failed;
   } | null>(null);
-  const resolving = useRef<Promise<string> | null>(null);
+  const resolving = useRef<{
+    chosenId: string | null;
+    result: Promise<{ id: string; all: ConversationRef[] }>;
+  } | null>(null);
   const loadRequest = useRef(0);
-  const knownIds = useRef(boardConversationIds);
-  knownIds.current = boardConversationIds;
   const scroller = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isFollowing = useRef(true);
@@ -129,19 +142,24 @@ function ChatInner({
     return { messages, toolCalls, proposals };
   }
 
-  // The page chat is the customer's newest chat that belongs to no board, or a new one.
-  async function resolveConversation(): Promise<string> {
+  /** A new chat about the open board, or about none on the chat page. */
+  async function createConversation(): Promise<ConversationRef> {
+    return boardId === null
+      ? api<ConversationRef>("/api/conversations", token, json({}))
+      : api<ConversationRef>(`/api/boards/${boardId}/conversations`, token, {
+          method: "POST",
+        });
+  }
+
+  // The chat to open: the chosen one, else the newest about this board, else a new one.
+  async function resolveConversation() {
     const all = await api<ConversationRef[]>("/api/conversations", token);
-    const own = all
-      .filter((conversation) => !knownIds.current.includes(conversation.id))
-      .sort((a, b) => b.created_at.localeCompare(a.created_at));
-    if (own.length > 0) return own[0].id;
-    const created = await api<ConversationRef>(
-      "/api/conversations",
-      token,
-      json({ title: "Chat" }),
-    );
-    return created.id;
+    const own = all.filter((conversation) => conversation.board_id === boardId);
+    const chosen = own.find((conversation) => conversation.id === chosenId);
+    const existing = chosen ?? own[0];
+    if (existing !== undefined) return { id: existing.id, all };
+    const created = await createConversation();
+    return { id: created.id, all: [created, ...all] };
   }
 
   useEffect(() => {
@@ -151,11 +169,13 @@ function ChatInner({
     stream.reset();
     async function open() {
       try {
-        if (conversationId !== null) resolving.current = null;
-        else resolving.current ??= resolveConversation();
-        const id = conversationId ?? (await resolving.current);
+        // StrictMode's second run shares the first one's request, so no chat is made twice.
+        if (resolving.current?.chosenId !== chosenId)
+          resolving.current = { chosenId, result: resolveConversation() };
+        const { id, all } = await resolving.current.result;
         const data = await fetchConversation(id);
         if (request !== loadRequest.current) return;
+        setConversations(all);
         setActiveId(id);
         setLoaded(data);
         setLoad("ready");
@@ -167,7 +187,7 @@ function ChatInner({
       }
     }
     void open();
-  }, [conversationId, reloadKey]);
+  }, [chosenId, reloadKey]);
 
   // The chat follows new text until the customer scrolls up, and again once they are back down.
   useEffect(() => {
@@ -211,11 +231,14 @@ function ChatInner({
       try {
         const data = await fetchConversation(activeId);
         setLoaded(data);
-        const asked = data.messages.findLast((message) => message.role === "user");
+        const asked = data.messages.findLast(
+          (message) => message.role === "user",
+        );
         const calls = data.toolCalls.filter(
           (call) => call.message_id === asked?.id,
         );
         if (ranBoardTool(calls)) onBoardChanged(createdBoardOf(calls));
+        void nameAfter(activeId, content);
       } catch (error) {
         setLoadError(requestErrorOf(error));
         setLoad("error");
@@ -232,6 +255,48 @@ function ChatInner({
     } finally {
       setPending(null);
     }
+  }
+
+  // A chat without a title is named after its first question.
+  async function nameAfter(id: string, content: string) {
+    if (conversations.find((other) => other.id === id)?.title !== null) return;
+    const title = content.slice(0, TITLE_LENGTH);
+    try {
+      await api<ConversationRef>(`/api/conversations/${id}`, token, {
+        ...json({ title }),
+        method: "PATCH",
+      });
+      setConversations((current) =>
+        current.map((other) => (other.id === id ? { ...other, title } : other)),
+      );
+    } catch {
+      // The chat keeps its place in the list without a name.
+    }
+  }
+
+  async function startChat() {
+    setFailed(null);
+    setIsHistoryOpen(false);
+    try {
+      const created = await createConversation();
+      resolving.current = {
+        chosenId: created.id,
+        result: Promise.resolve({
+          id: created.id,
+          all: [created, ...conversations],
+        }),
+      };
+      setChosenId(created.id);
+    } catch (error) {
+      setLoadError(requestErrorOf(error));
+      setLoad("error");
+    }
+  }
+
+  function pick(conversation: ConversationRef) {
+    setIsHistoryOpen(false);
+    if (conversation.board_id === boardId) setChosenId(conversation.id);
+    else onOpenConversation(conversation);
   }
 
   async function upload(file: File) {
@@ -274,6 +339,7 @@ function ChatInner({
   }
 
   const isStreaming = pending !== null;
+  const active = conversations.find((other) => other.id === activeId);
   const isBusy = isStreaming || isUploading || stream.status === "streaming";
   const waitingCalls = stream.toolCalls.filter(
     (call) => call.confirmation !== null && call.isRunning,
@@ -356,6 +422,9 @@ function ChatInner({
         <>
           <Turn text={pending} documents={pendingDocuments} />
           <div className="bot">
+            {stream.toolCalls.length > 0 && (
+              <AnswerTrace calls={stream.toolCalls} provenance={null} isLive />
+            )}
             {stream.text !== "" && <Markdown text={stream.text} />}
             {waitingCalls.length === 0 && (
               <span className="status" role="status">
@@ -366,7 +435,10 @@ function ChatInner({
         </>
       )}
       {failedQuestion !== null && (
-        <Turn text={failedQuestion.content} documents={failedQuestion.documents} />
+        <Turn
+          text={failedQuestion.content}
+          documents={failedQuestion.documents}
+        />
       )}
       {failure !== null && (
         <div className="failure" role="alert">
@@ -393,12 +465,48 @@ function ChatInner({
       aria-label={variant === "side" ? "Chat about this board" : "Chat"}
     >
       <div className="talk-in">
-        {variant === "side" && (
-          <div className="chathead">
-            <b>Chat</b>
-            {board !== null && <span>about {board.name}</span>}
-          </div>
-        )}
+        <div className="chathead">
+          <details
+            className="history"
+            open={isHistoryOpen}
+            onToggle={(event) => setIsHistoryOpen(event.currentTarget.open)}
+          >
+            <summary>
+              <b>{active?.title ?? NEW_CHAT}</b>
+              <span>
+                {board === null ? "about no board" : `about ${board.name}`}
+              </span>
+            </summary>
+            <ul>
+              {conversations.map((conversation) => (
+                <li key={conversation.id}>
+                  <button
+                    type="button"
+                    aria-current={conversation.id === activeId}
+                    onClick={() => pick(conversation)}
+                  >
+                    <b>{conversation.title ?? NEW_CHAT}</b>
+                    <span>
+                      {boardNameOf(conversation, boards)} ·{" "}
+                      {startedOf(conversation)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </details>
+          <button
+            type="button"
+            className="newchat"
+            onClick={() => void startChat()}
+            // An empty chat is the new chat already.
+            disabled={
+              isBusy || load !== "ready" || loaded.messages.length === 0
+            }
+          >
+            New chat
+          </button>
+        </div>
         <div
           className="msgs"
           ref={scroller}
@@ -442,13 +550,7 @@ function ChatInner({
 }
 
 /** The customer's message, with the documents sent along as file cards. */
-function Turn({
-  text,
-  documents,
-}: {
-  text: string;
-  documents: DocumentRef[];
-}) {
+function Turn({ text, documents }: { text: string; documents: DocumentRef[] }) {
   return (
     <div className="turn">
       {documents.map((document) => (
@@ -460,6 +562,26 @@ function Turn({
       <div className="you">{text}</div>
     </div>
   );
+}
+
+function boardNameOf(
+  conversation: ConversationRef,
+  boards: { id: string; name: string }[],
+): string {
+  if (conversation.board_id === null) return "No board";
+  return (
+    boards.find((board) => board.id === conversation.board_id)?.name ??
+    "A board"
+  );
+}
+
+function startedOf(conversation: ConversationRef): string {
+  return new Date(conversation.created_at).toLocaleString("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function extensionOf(name: string): string {
@@ -488,4 +610,3 @@ function detailOf({
     ? "Your question is back in the input."
     : "Nothing was saved. Your question is back in the input.";
 }
-

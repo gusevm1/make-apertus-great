@@ -7,6 +7,7 @@ import { NewBoard } from "./board/NewBoard";
 import type { Board, BoardPlan, BoardSummary, Tile } from "./board/types";
 import { BuildTrace } from "./chat/BuildTrace";
 import { ChatPanel } from "./chat/ChatPanel";
+import type { ConversationRef } from "./chat/types";
 import { type HostContext, useHostContext } from "./host";
 import { useStream } from "./lib/useStream";
 import { ProfilePanel } from "./profile/ProfilePanel";
@@ -57,6 +58,8 @@ function TrustRoom({ context }: { context: HostContext }) {
   const [freshId, setFreshId] = useState<string | null>(null);
   const [customerSince, setCustomerSince] = useState<string | null>(null);
   const [plans, setPlans] = useState<BoardPlan[]>([]);
+  // A chat picked from the list in another panel, for the panel that opens next.
+  const [picked, setPicked] = useState<ConversationRef | null>(null);
   const build = useStream<BoardPlan>();
   const buildLog = useRef<HTMLDivElement>(null);
 
@@ -133,9 +136,16 @@ function TrustRoom({ context }: { context: HostContext }) {
   }, []);
 
   function openBoard(boardId: string | null) {
+    setPicked(null);
     setAskTile(null);
     setOpenId(boardId);
     if (boardId === freshId) setFreshId(null);
+  }
+
+  function openConversation(conversation: ConversationRef) {
+    setMode(conversation.board_id === null ? "chat" : "board");
+    if (conversation.board_id !== null) openBoard(conversation.board_id);
+    setPicked(conversation);
   }
 
   async function handleBoardChanged(boardId?: string) {
@@ -157,7 +167,6 @@ function TrustRoom({ context }: { context: HostContext }) {
         id: board.id,
         name: board.name,
         position: board.position,
-        conversation_id: board.conversation_id,
         plan_id: board.plan_id,
         tile_count: board.tiles.length,
       };
@@ -212,9 +221,6 @@ function TrustRoom({ context }: { context: HostContext }) {
   }
 
   const openBoardSummary = boards.find((board) => board.id === openId) ?? null;
-  const boardConversationIds = boards
-    .map((board) => board.conversation_id)
-    .filter((id) => id !== null);
 
   return (
     <div
@@ -272,8 +278,10 @@ function TrustRoom({ context }: { context: HostContext }) {
         <div className="main">
           <ChatPanel
             variant="page"
-            conversationId={null}
-            boardConversationIds={boardConversationIds}
+            initialConversationId={
+              picked !== null && picked.board_id === null ? picked.id : null
+            }
+            boards={boards}
             board={null}
             plan={null}
             tile={null}
@@ -283,8 +291,13 @@ function TrustRoom({ context }: { context: HostContext }) {
               setMode("board");
               openBoard(boardId);
             }}
+            onOpenConversation={openConversation}
           />
-          <ProfilePanel name={name} initials={initials} customerSince={customerSince} />
+          <ProfilePanel
+            name={name}
+            initials={initials}
+            customerSince={customerSince}
+          />
         </div>
       ) : (
         <div className="main">
@@ -363,8 +376,10 @@ function TrustRoom({ context }: { context: HostContext }) {
             <ChatPanel
               key={openBoardSummary.id}
               variant="side"
-              conversationId={openBoardSummary.conversation_id}
-              boardConversationIds={boardConversationIds}
+              initialConversationId={
+                picked?.board_id === openBoardSummary.id ? picked.id : null
+              }
+              boards={boards}
               board={{ id: openBoardSummary.id, name: openBoardSummary.name }}
               plan={
                 plans.find((plan) => plan.id === openBoardSummary.plan_id) ??
@@ -374,6 +389,7 @@ function TrustRoom({ context }: { context: HostContext }) {
               onClearTile={() => setAskTile(null)}
               onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
               onOpenBoard={openBoard}
+              onOpenConversation={openConversation}
             />
           )}
         </div>

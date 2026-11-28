@@ -11,6 +11,8 @@ export interface ChatMessage extends Omit<Message, "provenance"> {
 export interface ConversationRef {
   id: string;
   title: string | null;
+  /** The board this chat is about; null for a chat beside no board. */
+  board_id: string | null;
   created_at: string;
 }
 
@@ -42,7 +44,9 @@ export interface DidLine {
 }
 
 /** One line per successful board-tool call, from its result's `summary`. */
-export function didLinesOf(calls: Pick<ToolCall, "id" | "tool_name" | "error" | "result">[]) {
+export function didLinesOf(
+  calls: Pick<ToolCall, "id" | "tool_name" | "error" | "result">[],
+) {
   const lines: DidLine[] = [];
   for (const call of calls) {
     if (!BOARD_TOOLS.includes(call.tool_name) || call.error !== null) continue;
@@ -62,7 +66,9 @@ export function didLinesOf(calls: Pick<ToolCall, "id" | "tool_name" | "error" | 
 }
 
 /** The id of the board this turn created, if any. */
-export function createdBoardOf(calls: Pick<ToolCall, "tool_name" | "error" | "result">[]) {
+export function createdBoardOf(
+  calls: Pick<ToolCall, "tool_name" | "error" | "result">[],
+) {
   for (const call of calls) {
     const boardId = call.result?.board_id;
     if (

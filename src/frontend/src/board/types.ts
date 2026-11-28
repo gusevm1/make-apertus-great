@@ -14,7 +14,6 @@ export interface BoardSummary {
   id: string;
   name: string;
   position: number;
-  conversation_id: string | null;
   plan_id: string | null;
   tile_count: number;
 }
@@ -23,7 +22,6 @@ export interface Board {
   id: string;
   name: string;
   position: number;
-  conversation_id: string | null;
   plan_id: string | null;
   tiles: Tile[];
   dropped: DroppedTile[];
