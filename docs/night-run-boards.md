@@ -82,8 +82,22 @@ from Lukas, using the real signals and the real tiles of the mockups.
 - **A solution exists.** Perfect parity on this task is reachable with Apertus behind a schema it
   can follow. If an approach fails, that approach was wrong, not the goal. Try another one, keep
   whatever scored best so far, and iterate. Never write "this is not possible with Apertus".
-- **Check the gates before every commit** with `.claude/skills/land-card/gates.sh`. Never weaken or
-  delete a test to make it pass.
+- **Ship fast, check thin.** Do not run `.claude/skills/land-card/gates.sh`, and do not run the
+  formatter, the linter or the full test suite on the way. Tonight only two failures matter,
+  because each one means nothing reaches the live boxes in the morning:
+
+  ```sh
+  cd src/backend && uv run alembic upgrade head && uv run alembic heads   # one head
+  cd src/frontend && npm run build
+  ```
+
+  Run that pair after each agent hands back a piece, and again before the merge. Several agents
+  writing migrations in parallel is the way to get two heads, and a backend that will not boot.
+  Fix a second head by pointing your migration's `down_revision` at the other one.
+
+- **Tests.** Write a test only where it would catch a wrong figure. When you delete a feature,
+  delete its tests with it; that is not weakening a test. Never change a passing test to make new
+  code fit.
 
 ## Phase 0: ground work
 
@@ -177,13 +191,18 @@ The traceability criterion is worth 30 %, so verification is a feature, not a te
 
 At 09:00, or when about 10 % of the weekly usage is left, stop building.
 
-1. Finish the piece in your hands so the app runs and the gates pass.
-2. Run the gates one last time.
-3. Merge `boards` into `main` in one go, no review and no waiting. Open the pull request, write
+1. Finish the piece in your hands so the app runs.
+2. Start the stack and click the demo through yourself: log in as Daniela, open the TrustRoom,
+   see her board, ask the chat for a change, watch it happen. Then as Lukas. This matters more
+   than any test tonight. Fix what is broken in that path and nothing else.
+3. Run the thin check: one Alembic head, and `npm run build` passes.
+4. Merge `boards` into `main` in one go, no review and no waiting. Open the pull request, write
    one line of body, merge it. Push `main`.
-4. Leave `prod` alone. A push to `prod` deploys to the live boxes, and `CLAUDE.md` bars agents from
-   it. Put the exact command at the top of the brief so Maxim promotes it with one keystroke.
-5. Write two files.
+5. Promote to production: fast-forward `prod` to `main` and push it. The push triggers the deploy
+   workflow, which builds the backend image, swaps it on the EC2 box and rebuilds both pages on
+   Vercel. Maxim has authorised this. Say in the brief what you deployed and whether the workflow
+   went green.
+6. Write two files.
 
 **`docs/night-run-report.md`,** the case for the jury. One short section per criterion, each
 naming what we built and what it proves.
@@ -195,7 +214,7 @@ naming what we built and what it proves.
 
 **`docs/night-run-handover.md`,** the brief for Maxim at 09:00, written plainly.
 
-- What works, with the numbers from the gate.
+- What works, with the numbers from the gate, and whether it is live.
 - What is half built, and what is left on it.
 - What is blocked, each with what you tried, what happened, and what you would try next.
 - The questions worth a brainstorm at 09:00, in the order they matter.
