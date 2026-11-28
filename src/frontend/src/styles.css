@@ -99,6 +99,39 @@ a:hover {
   border-bottom: 1px solid var(--line);
 }
 
+/* With the view tabs: brand, tabs in the middle, then the customer. */
+.top[data-tabs] {
+  grid-template-columns: 1fr auto 1fr;
+}
+
+.mode {
+  display: flex;
+  padding: 3px;
+  background: var(--switch);
+  border-radius: var(--radius);
+  gap: 2px;
+}
+
+.mode button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  border-radius: 9px;
+  padding: 0 16px;
+  min-height: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.mode button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-switch);
+}
+
 .brand {
   display: flex;
   align-items: center;

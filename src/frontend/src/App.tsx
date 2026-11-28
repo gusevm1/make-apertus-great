@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type RequestError, requestErrorOf } from "./api";
+import { api, json, type RequestError, requestErrorOf } from "./api";
 import { AlertLine, NeedsAttention } from "./alerts/NeedsAttention";
 import { BoardScreen } from "./board/BoardScreen";
 import { Dock } from "./board/Dock";
 import { Mark, SmallIcon } from "./board/icons";
 import { NewBoard } from "./board/NewBoard";
 import type { Board, BoardPlan, BoardSummary, Tile } from "./board/types";
+import { CategorizationView } from "./categories/CategorizationView";
 import { BuildTrace } from "./chat/BuildTrace";
 import { ChatPanel } from "./chat/ChatPanel";
 import { DemoReset } from "./DemoReset";
@@ -15,6 +16,15 @@ import { useDebugMode } from "./lib/debugMode";
 import { useStream } from "./lib/useStream";
 import { ProfilePanel } from "./profile/ProfilePanel";
 import { SPLIT, Split } from "./Split";
+
+type View = "board" | "categories";
+
+// The chat links to the Categorization tab with this hash.
+const CATEGORIES_HASH = "#categories";
+
+function viewOfHash(): View | null {
+  return window.location.hash === CATEGORIES_HASH ? "categories" : null;
+}
 
 export function App() {
   const context = useHostContext();
@@ -58,6 +68,7 @@ function TrustRoom({
   const [share, setShare] = useState(SPLIT);
   const [lastSplit, setLastSplit] = useState(SPLIT);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [view, setView] = useState<View>(() => viewOfHash() ?? "board");
   // Counts the openings, so the drawer loads what the chat changed while it was closed.
   const [profileOpenings, setProfileOpenings] = useState(0);
   const isDebugMode = useDebugMode();
@@ -152,9 +163,41 @@ function TrustRoom({
       setOpenId(list[0]?.id ?? null);
       setChatBoardId(list[0]?.id ?? null);
       setLoading({ state: "ready" });
+      // Only now, so sorting the bookings never slows the first boards down.
+      void startCategorisation();
     } catch (error) {
       setLoading({ state: "error", error: requestErrorOf(error) });
     }
+  }
+
+  // Categorises the bookings that have none yet, in the background on the server.
+  async function startCategorisation() {
+    try {
+      await api("/api/categorisations", token, json({}));
+    } catch {
+      // Not urgent: the Categorization tab starts it again when it opens.
+    }
+  }
+
+  // A link to #categories in a chat answer opens the Categorization tab, on /trustroom.
+  useEffect(() => {
+    function follow() {
+      if (viewOfHash() === null) return;
+      if (isChatOnly) sendToHost("navigate", { path: "/trustroom" });
+      else setView("categories");
+    }
+    window.addEventListener("hashchange", follow);
+    return () => window.removeEventListener("hashchange", follow);
+  }, [isChatOnly]);
+
+  function showView(next: View) {
+    setView(next);
+    const { pathname, search } = window.location;
+    window.history.replaceState(
+      null,
+      "",
+      next === "categories" ? CATEGORIES_HASH : `${pathname}${search}`,
+    );
   }
 
   // Once per customer; the ref keeps StrictMode's second run from building the boards twice.
@@ -441,7 +484,7 @@ function TrustRoom({
       className="app"
       data-building={loading.state === "building" ? "" : undefined}
     >
-      <header className="top">
+      <header className="top" data-tabs={isChatOnly ? undefined : ""}>
         <div className="brand">
           <Mark />
           <span>TrustRoom</span>
@@ -450,6 +493,26 @@ function TrustRoom({
             Stays inside the bank
           </span>
         </div>
+        {!isChatOnly && (
+          <nav className="mode" aria-label="What to show">
+            <button
+              type="button"
+              aria-pressed={view === "board"}
+              onClick={() => showView("board")}
+            >
+              <SmallIcon name="board" />
+              Personalized Board
+            </button>
+            <button
+              type="button"
+              aria-pressed={view === "categories"}
+              onClick={() => showView("categories")}
+            >
+              <SmallIcon name="rename" />
+              Categorization
+            </button>
+          </nav>
+        )}
         <div className="tail">
           <DemoReset token={token} onDone={onReset} />
           <button
@@ -476,6 +539,10 @@ function TrustRoom({
         <div className="main chat-only">
           <AlertLine token={token} reloadKey={context.page.path} />
           {chatSide}
+        </div>
+      ) : view === "categories" ? (
+        <div className="main">
+          <CategorizationView token={token} />
         </div>
       ) : chatSide === null ? (
         <div className="main">{boardSide}</div>
