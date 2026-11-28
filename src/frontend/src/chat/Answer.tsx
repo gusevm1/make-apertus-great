@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { fullDate, money } from "../board/format";
 import { SmallIcon } from "../board/icons";
 import type { ToolCall } from "../api";
@@ -228,8 +228,15 @@ function FigureCard({
   onClose: () => void;
 }) {
   const more = figure.count - figure.rows.length;
+  const card = useRef<HTMLDivElement>(null);
+
+  // The card opens under the answer, which may be below the end of the chat.
+  useEffect(() => {
+    card.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [figure]);
+
   return (
-    <div className="figcard">
+    <div className="figcard" ref={card}>
       <header>
         <span>
           <b>{figure.text}</b>
@@ -242,11 +249,13 @@ function FigureCard({
       {figure.url !== null && (
         <PageLink url={figure.url} title={figure.label} />
       )}
+      {figure.count > 0 && (
+        <p className="from">
+          {figure.count === 1 ? "1 booking" : `${figure.count} bookings`}
+        </p>
+      )}
       {figure.rows.length > 0 && (
         <>
-          <p className="from">
-            {figure.count === 1 ? "1 booking" : `${figure.count} bookings`}
-          </p>
           <ol className="figrows">
             {figure.rows.map((row) => (
               <li key={row.id}>
@@ -262,9 +271,6 @@ function FigureCard({
             {more > 0 && <li className="more">and {more} more</li>}
           </ol>
         </>
-      )}
-      {figure.url === null && figure.rows.length === 0 && (
-        <p className="from">From {figure.label}.</p>
       )}
     </div>
   );
