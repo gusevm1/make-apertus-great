@@ -1,0 +1,364 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "Which bills and reminders are open?",
+ "name": null,
+ "seconds": 4.2,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Zahnarztpraxis Neuwiesen, Zahnarztpraxis Neuwiesen, Stadt Winterthur, Betreuung Schule, Sunrise GmbH, Assura-Basis SA, Stadtwerk Winterthur"
+  ],
+  "question": "Which bills and reminders are open?",
+  "boards": [
+   {
+    "name": "Open bills",
+    "tiles": [
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Zahnarztpraxis Neuwiesen"
+       ]
+      },
+      "title": "Open bills"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0249"
+      },
+      "title": "Bill, due 10.12."
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Bill, due 30.11.",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Bill, due 30.11.",
+    "reason": "shows the same payments as another tile on the board"
+   },
+   {
+    "title": "Bills until payday",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 2908,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "4 of 5 resolved; dropped: Bill, due 30.11.; Bill, due 30.11.; Bills until payday"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Bill, due 30.11.; Bill, due 10.12."
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Open bills",
+   "tiles": [
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Zahnarztpraxis Neuwiesen"
+      ]
+     },
+     "title": "Open bills",
+     "payload": {
+      "figure_chf": 440.0,
+      "source": {
+       "label": "1 payment in November",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Zahnarztpraxis Neuwiesen",
+        "amount_chf": 440.0,
+        "next_due": "2026-11-30"
+       }
+      ]
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0249"
+     },
+     "title": "Bill, due 10.12.",
+     "payload": {
+      "figure_chf": 348.0,
+      "source": {
+       "label": "Stadt Winterthur, due 10.12.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Stadt Winterthur",
+      "due": "2026-12-10",
+      "description": "Hort und Mittagstisch Dezember 2026",
+      "flag": null
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [2]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero shows the dentist's open bill of CHF 440 due 30.11. — the very bill carrying the second reminder she just received — which is the most direct answer to which bills and reminders are open."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Both tiles are about her real situation: the still-open dentist bill from Lina's treatment that has just drawn a second reminder, and the Stadt Winterthur bill for Lina's Hort and Mittagstisch in December."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Both titles are short and plain — 'Open bills' names the list the hero shows and 'Bill, due 10.12.' names exactly what the second tile displays — using her own word 'bills' from the request."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The two tiles show two distinct bills (dentist CHF 440 due 30.11. versus Winterthur CHF 348 due 10.12.), so nothing is empty, zero or shown twice."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board tells one story — her open bills, the urgent reminded dentist bill and the next bill due — with nothing off-topic, and the data holds no further open invoices or reminders (rent, insurance and the washing-machine instalment are scheduled fixed costs, not open bills), so two tiles cover the request."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows the dentist's open bill of CHF 440 due 30.11. — the very bill carrying the second reminder she just received — which is the most direct answer to which bills and reminders are open."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Both tiles are about her real situation: the still-open dentist bill from Lina's treatment that has just drawn a second reminder, and the Stadt Winterthur bill for Lina's Hort and Mittagstisch in December."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Both titles are short and plain — 'Open bills' names the list the hero shows and 'Bill, due 10.12.' names exactly what the second tile displays — using her own word 'bills' from the request."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The two tiles show two distinct bills (dentist CHF 440 due 30.11. versus Winterthur CHF 348 due 10.12.), so nothing is empty, zero or shown twice."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one story — her open bills, the urgent reminded dentist bill and the next bill due — with nothing off-topic, and the data holds no further open invoices or reminders (rent, insurance and the washing-machine instalment are scheduled fixed costs, not open bills), so two tiles cover the request."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero leads with the dentist's open bill (CHF 440, due 30.11) — the very bill carrying the second reminder — which is the most direct answer to which bills and reminders are open."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Both tiles are genuine open bills from her real situation — the twice-reminded dentist bill from Lina's treatment and the Winterthur Hort/Mittagstisch invoice for Lina — and nothing is off-topic filler."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The titles are short, plain and match what each tile shows ('Open bills' over the dentist's open payment, 'Bill, due 10.12.' over the Winterthur invoice)."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The two tiles show distinct, non-zero open bills (CHF 440 to the dentist, CHF 348 to the city) with no empty or duplicated content."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "A two-tile board passes only when the data holds nothing more about the request, but the persona says her rent is due in the next few days and the washing-machine instalment is still open, so this partial list leaves open bills out that the request asks for."
+   }
+  }
+ ],
+ "acceptable": true
+}

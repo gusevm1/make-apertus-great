@@ -1,0 +1,329 @@
+{
+ "customer": "marco",
+ "run": 1,
+ "request": "Fixed costs. Your 3 largest monthly payments come to CHF 2'876.30.",
+ "name": "marco-idea2",
+ "seconds": 4.9,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Sparkonto Haus, Hypothekarzins, Swisscom, Stadt Wädenswil, Steueramt, Helsana, Leasing"
+  ],
+  "question": "Fixed costs. Your 3 largest monthly payments come to CHF 2'876.30.",
+  "boards": [
+   {
+    "name": "Fixed costs",
+    "tiles": [
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Steueramt Wädenswil",
+        "Helsana Versicherungen AG",
+        "Swisscom (Schweiz) AG"
+       ]
+      },
+      "title": "Fixed costs"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Fixed costs",
+    "reason": "This board starts with the finding behind the idea; ask the chat to add more."
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 3812,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "1 of 1 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Fixed costs",
+   "tiles": [
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Steueramt Wädenswil",
+       "Helsana Versicherungen AG",
+       "Swisscom (Schweiz) AG"
+      ]
+     },
+     "title": "Fixed costs",
+     "payload": {
+      "figure_chf": 2876.3,
+      "source": {
+       "label": "3 payments in December",
+       "kind": "payments",
+       "count": 3
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Steueramt Wädenswil",
+        "amount_chf": 1450.0,
+        "next_due": "2026-12-21"
+       },
+       {
+        "payee": "Helsana Versicherungen AG",
+        "amount_chf": 1262.3,
+        "next_due": "2026-12-23"
+       },
+       {
+        "payee": "Swisscom (Schweiz) AG",
+        "amount_chf": 164.0,
+        "next_due": "2026-12-14"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "mortgage_maturity",
+   "text": "The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "strength": 95,
+   "template": "mortgage",
+   "args": {}
+  },
+  {
+   "id": "S2",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'000.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto Haus holds 19'350.30, 97 % of its goal \"Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-HOUSE"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "instalments",
+   "text": "Instalment plans running: Seeblick Auto-Leasing AG (29 of 48 paid, 9'291.00 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Seeblick Auto-Leasing AG"
+    ]
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "9 payments of together 6'566.00 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "cashflow",
+   "text": "On average -246.13 was left per month over the last 6 months; in 2 months more went out than came in (2026-06, 2026-08).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 11'914.96 is left on Privatkonto after 8 payments, 441.29 a day. A month's spending is about 12'344.47.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S8",
+   "kind": "spending",
+   "text": "Spending averaged 11'716.70 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 6'423.30 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "fixed_costs",
+   "text": "The 3 largest monthly payments add up to 2'812.60 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Steueramt Wädenswil",
+     "Helsana Versicherungen AG",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-HOUSE",
+     "ACC-SAV"
+    ]
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "income_regular",
+   "text": "Simone Baumann sends about 2'600.00 every month, around day 26.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Simone Baumann"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The first tile shows exactly the three largest recurring payments with their total of CHF 2'876.30, answering the request's claim most directly."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "The payees (Steueramt Wädenswil, Helsana, Swisscom) are this customer's real recurring payments from his accounts and the tile stays on the requested topic rather than drifting to the mortgage decision."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "\"Fixed costs\" is short, uses the customer's own term from the request, and matches the tile's list of the largest regular payments."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The single tile holds three distinct, non-zero payments and nothing on the board repeats."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board is entirely about the request, telling one story about the three biggest fixed payments, with the quiet line flagging that it is the finding behind the idea."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows exactly the three largest recurring payments with their total of CHF 2'876.30, answering the request's claim most directly."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The payees (Steueramt Wädenswil, Helsana, Swisscom) are this customer's real recurring payments from his accounts and the tile stays on the requested topic rather than drifting to the mortgage decision."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "\"Fixed costs\" is short, uses the customer's own term from the request, and matches the tile's list of the largest regular payments."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile holds three distinct, non-zero payments and nothing on the board repeats."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board is entirely about the request, telling one story about the three biggest fixed payments, with the quiet line flagging that it is the finding behind the idea."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows exactly what the request names: the three largest monthly payments (Steueramt Wädenswil, Helsana, Swisscom) totalling CHF 2'876.30, matching the request's figure precisely."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The tile lists Marco's own payees — the Wädenswil tax office, Helsana insurance and Swisscom — with real amounts and December due dates from his accounts, which is his actual fixed-cost situation and not generic filler."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "'Fixed costs' is short, uses the customer's own term from the request, and matches what the tile shows, namely his recurring payments."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile carries three real payments with amounts and due dates, and with only one tile there is nothing empty, zero or duplicated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board stays entirely on the requested finding — the three largest monthly payments behind the CHF 2'876.30 — with no off-topic padding, and the line under it honestly frames the one-tile board as a starting point to extend."
+   }
+  }
+ ],
+ "acceptable": true
+}
