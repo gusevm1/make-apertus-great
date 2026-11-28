@@ -4,8 +4,24 @@ export interface ChatMessage extends Omit<Message, "provenance"> {
   provenance:
     | (NonNullable<Message["provenance"]> & {
         checks?: { name: string; passed: boolean; detail: string | null }[];
+        figures?: FigureSource[];
       })
     | null;
+}
+
+/** Where one figure of an answer comes from: a tool result with its bookings, a page or a document. */
+export interface FigureSource {
+  text: string;
+  label: string;
+  tool_call_id: string | null;
+  url: string | null;
+  rows: {
+    id: string;
+    date: string | null;
+    text: string;
+    amount_chf: string | null;
+  }[];
+  count: number;
 }
 
 export interface ConversationRef {

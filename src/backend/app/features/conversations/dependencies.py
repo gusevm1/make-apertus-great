@@ -11,6 +11,7 @@ from app.features.conversations.service import ConversationService
 from app.features.documents.dependencies import DocumentServiceDep
 from app.features.figure_checks.dependencies import FigureCheckServiceDep
 from app.features.figure_corrections.dependencies import FigureCorrectionServiceDep
+from app.features.figure_sources.dependencies import FigureSourceServiceDep
 from app.features.guardrails.dependencies import GuardrailServiceDep
 from app.features.tool_calls.dependencies import ToolCallServiceDep
 
@@ -30,6 +31,7 @@ def get_conversation_service(
     documents: DocumentServiceDep,
     figure_checks: FigureCheckServiceDep,
     figure_corrections: FigureCorrectionServiceDep,
+    figure_sources: FigureSourceServiceDep,
     guardrails: GuardrailServiceDep,
 ) -> ConversationService:
     return ConversationService(
@@ -39,6 +41,7 @@ def get_conversation_service(
         documents=documents,
         figure_checks=figure_checks,
         figure_corrections=figure_corrections,
+        figure_sources=figure_sources,
         guardrails=guardrails,
     )
 

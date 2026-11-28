@@ -208,6 +208,14 @@ class FigureCheckService:
             detail += f"; {reason}: " + ", ".join(dict.fromkeys(texts))
         return Check(name="figures_in_context", passed=not flagged, detail=detail)
 
+    def figures(self, answer: str) -> list[Figure]:
+        """The answer's figures the checks look at: no dates, counts or years."""
+        return _checked_figures(text=answer)
+
+    def is_in(self, figure: Figure, text: str) -> bool:
+        """Whether `text` holds the figure's value, as the figure check compares it."""
+        return _found(figure, values={found.value for found in _figures(text=text)})
+
     def has_figure(self, answer: str, value: Decimal) -> bool:
         """Whether the answer writes this value, rounded as the answer rounds it."""
         return any(
