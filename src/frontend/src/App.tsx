@@ -9,7 +9,7 @@ import { BuildTrace } from "./chat/BuildTrace";
 import { ChatPanel } from "./chat/ChatPanel";
 import { DemoReset } from "./DemoReset";
 import type { ConversationRef } from "./chat/types";
-import { type HostContext, useHostContext } from "./host";
+import { type HostContext, sendToHost, useHostContext } from "./host";
 import { useStream } from "./lib/useStream";
 import { ProfilePanel } from "./profile/ProfilePanel";
 import { SPLIT, Split } from "./Split";
@@ -56,6 +56,9 @@ function TrustRoom({
   const [share, setShare] = useState(SPLIT);
   const [lastSplit, setLastSplit] = useState(SPLIT);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  // The side panel over an e-banking page is for asking; boards live on /trustroom.
+  const isChatOnly =
+    context.mode === "panel" && context.page.id !== "dashboard";
   const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [loading, setLoading] = useState<Loading>({ state: "loading" });
   // The open board, or null for the new-board screen.
@@ -169,6 +172,10 @@ function TrustRoom({
     if (boardId !== null) setChatBoardId(boardId);
     if (boardId === freshId) setFreshId(null);
     if (share === 0) setShare(lastSplit);
+  }
+
+  function openTrustRoom() {
+    sendToHost("navigate", { path: "/trustroom" });
   }
 
   function openConversation(conversation: ConversationRef) {
@@ -385,6 +392,28 @@ function TrustRoom({
     );
   }
 
+  if (isChatOnly) {
+    chatSide = (
+      <ChatPanel
+        variant="page"
+        initialConversationId={null}
+        boards={boards}
+        board={null}
+        newChatBoardId={null}
+        plan={null}
+        tile={null}
+        isBoardShown={false}
+        onToggleBoard={openTrustRoom}
+        onClose={() => sendToHost("close")}
+        onClearTile={() => setAskTile(null)}
+        onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
+        onOpenBoard={openTrustRoom}
+        // Only a board's chat leaves the panel's chat: it opens on /trustroom.
+        onOpenConversation={openTrustRoom}
+      />
+    );
+  }
+
   return (
     <div
       className="app"
@@ -423,8 +452,8 @@ function TrustRoom({
           </button>
         </div>
       </header>
-      {chatSide === null ? (
-        <div className="main">{boardSide}</div>
+      {isChatOnly || chatSide === null ? (
+        <div className="main">{isChatOnly ? chatSide : boardSide}</div>
       ) : (
         <Split
           share={share}
