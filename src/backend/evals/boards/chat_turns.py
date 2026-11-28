@@ -21,6 +21,9 @@ import httpx
 from pydantic import BaseModel
 
 BANK_URL = "http://localhost:8000/api"
+SERVER_LINES = ["Both cases are on your board now.", "Both are on your board already."]
+# The plan of the calls the server makes when the board decision made none.
+FALLBACK_PLAN = "The tiles on the board answer this question."
 RUNS_PATH = Path(__file__).with_name("chat_runs")
 # Writes are refused without the page's origin.
 ORIGIN = "http://localhost:3000"
@@ -45,6 +48,9 @@ SENTENCE_END = re.compile(r"[.!?](?:\s|$)")
 SINGLE_BREAK = re.compile(r"(?<!\n)\n(?!\n)")
 AMOUNT = re.compile(r"CHF\s?-?\d{1,3}(?:'\d{3})*(?:\.\d{2})?")
 
+CHILD_SUPPORT_NOTE = (
+    "The child support often comes late: on 22.10. last month. Always show both cases."
+)
 # The fixed boards the turns run on: template, args, title.
 BOARDS: dict[str, list[tuple[str, dict[str, Any], str]]] = {
     "daniela": [
@@ -107,6 +113,8 @@ class Turn(BaseModel):
     # The answer must start with this, and contain these texts.
     starts_with: str | None = None
     contains: list[str] = []
+    # A note saved as active before the turn, deleted after it.
+    saved_note: str | None = None
 
 
 TURNS = [
@@ -119,6 +127,7 @@ TURNS = [
         figure_of="payday_balance",
         alternative=True,
         starts_with="Yes",
+        max_sentences=4,
     ),
     Turn(
         name="payday_again",
@@ -129,6 +138,7 @@ TURNS = [
         any_board_tools=True,
         starts_with="Yes",
         contains=["124.96", "1'174.96"],
+        max_sentences=4,
     ),
     Turn(
         name="payday_after_edit",
@@ -139,6 +149,39 @@ TURNS = [
         board_tools={"add_tile"},
         starts_with="Yes",
         contains=["124.96", "1'174.96"],
+        max_sentences=4,
+    ),
+    Turn(
+        name="payday_other_words",
+        customer="daniela",
+        message="Will I make it to my next salary?",
+        before=["Does my money last until payday?"],
+        propose=None,
+        any_board_tools=True,
+        starts_with="Yes",
+        contains=["124.96", "1'174.96"],
+        max_sentences=4,
+    ),
+    Turn(
+        name="payday_from_board",
+        customer="daniela",
+        message="Looking at the board, do I make it to my salary?",
+        propose=None,
+        any_board_tools=True,
+        starts_with="Yes",
+        contains=["124.96", "1'174.96"],
+        max_sentences=4,
+    ),
+    Turn(
+        name="payday_note_saved",
+        customer="daniela",
+        message="Does my money last until payday?",
+        saved_note=CHILD_SUPPORT_NOTE,
+        propose=False,
+        any_board_tools=True,
+        starts_with="Yes",
+        contains=["124.96", "1'174.96"],
+        max_sentences=4,
     ),
     Turn(
         name="remove",
@@ -322,6 +365,9 @@ def problems_of(
         problems.append("a profile note was proposed")
     # The server's lines under the answer are no part of what the model wrote.
     text = answer.split("\n\n✓")[0].strip()
+    # The server's closing line is no sentence of the model's.
+    for line in SERVER_LINES:
+        text = text.replace(f"\n\n{line}", "")
     if turn.board and BANNED.search(text):
         problems.append(f"banned word: {BANNED.search(text)[0]!r}")
     if turn.starts_with is not None and not text.startswith(turn.starts_with):
@@ -331,6 +377,10 @@ def problems_of(
             problems.append(f"{wanted} missing")
     if turn.board and re.search(r"\bNo,", text):
         problems.append("says 'No,'")
+    if turn.board and re.search(r"\bmeaning\b|\btiles?\b|as stated", text, re.I):
+        problems.append("speaks of meanings or tiles")
+    if turn.board and re.search(r"\b(?:[1-9]\d{2,}|100)(?:\.\d+)?\s?%", text):
+        problems.append("a percentage of 100 or more")
     if turn.board and re.search(r"[—–]", text):
         problems.append("a dash")
     if turn.board and re.search(r"\b\d{1,2}\.\d{1,2}\.\d{4}", text):
@@ -383,6 +433,12 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
             if selected is not None:
                 body["tile_id"] = selected["id"]
         calls: list[dict[str, Any]] = []
+        saved_id = None
+        if turn.saved_note is not None:
+            saved = await client.post(
+                "/api/context-entries", json={"kind": "fact", "text": turn.saved_note}
+            )
+            saved_id = saved.raise_for_status().json()["id"]
         try:
             for earlier in turn.before:
                 await stream_turn(client=client, path=path, body={**body, "content": earlier})
@@ -404,6 +460,8 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
             seconds = 0.0
             answer, checks, problems = "", [], [f"turn failed: {exc!r}"[:300]]
         finally:
+            if saved_id is not None:
+                await client.delete(f"/api/context-entries/{saved_id}")
             await cleanup(
                 client=client,
                 path=path,
@@ -417,6 +475,7 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
         "selected": turn.selected,
         "seconds": round(seconds, 1),
         "passed": not problems,
+        "path": path_of(calls=calls),
         "problems": problems,
         "calls": [
             {
@@ -433,6 +492,14 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
     }
 
 
+def path_of(calls: list[dict[str, Any]]) -> str:
+    """Who chose the board calls: the model, the server's fallback, or nobody."""
+    board = [call for call in calls if call["tool_name"] in BOARD_TOOLS]
+    if not board:
+        return "none"
+    return "server" if all(call["plan"] == FALLBACK_PLAN for call in board) else "model"
+
+
 def markdown(results: list[dict[str, Any]]) -> str:
     lines = ["# Chat turns beside a board", ""]
     passed = sum(result["passed"] for result in results)
@@ -443,7 +510,8 @@ def markdown(results: list[dict[str, Any]]) -> str:
         "|---|---|---|",
     ]
     lines += [
-        f"| {r['name']} | {'yes' if r['passed'] else 'no'} | {r['seconds']} |" for r in results
+        f"| {r['name']} | {'yes' if r['passed'] else 'no'} | {r['seconds']} | {r['path']} |"
+        for r in results
     ]
     for result in results:
         lines += ["", f"## {result['name']} ({result['customer']})", "", f"> {result['message']}"]
@@ -487,7 +555,8 @@ async def main() -> int:
     for turn in turns:
         result = await run_turn(base_url=options.base_url, turn=turn, token=tokens[turn.customer])
         mark = "pass" if result["passed"] else "FAIL"
-        print(f"{mark} {turn.name:15} {result['seconds']:6.1f} s  {'; '.join(result['problems'])}")
+        problems = "; ".join(result["problems"])
+        print(f"{mark} {turn.name:18} {result['seconds']:6.1f} s  {result['path']:6}  {problems}")
         results.append(result)
     folder = RUNS_PATH / datetime.now().strftime("%Y%m%d-%H%M%S")
     folder.mkdir(parents=True)

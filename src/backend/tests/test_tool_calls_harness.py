@@ -29,6 +29,7 @@ from app.features.tool_calls.service import (
     ToolCallService,
     swiss_figures,
     swiss_text,
+    without_empty_end,
 )
 from tests.conftest import TODAY
 from tests.factories import make_conversation, make_message
@@ -420,3 +421,26 @@ def test_beside_a_board_a_day_of_this_year_drops_its_year_and_dashes_become_comm
         "Left on 23.12., that is CHF 4.63, from 01.01.–27.11. and 05.01.2027, on 23.12. and"
         " 24.12., not 5 January 2027, on 23.12."
     )
+
+
+@pytest.mark.parametrize(
+    ("text", "kept"),
+    [
+        (
+            "It cannot wait. The last is Assura on 23.12. No figure is referenced here.",
+            "It cannot wait. The last is Assura on 23.12.",
+        ),
+        (
+            "It cannot wait. The last is Assura on 23.12. Only a payee can agree to a later date.",
+            "It cannot wait. The last is Assura on 23.12. Only a payee can agree to a later date.",
+        ),
+        ("Yes, but only just.\n\nThat is all.", "Yes, but only just.\n\nThat is all."),
+        (
+            "I made a board for it. It starts with CHF 5.00.\n\nTell me what it may cost.",
+            "I made a board for it. It starts with CHF 5.00.\n\nTell me what it may cost.",
+        ),
+        ("Yes. CHF 5.00 are left.\n\nThis is reassuring overall.", "Yes. CHF 5.00 are left."),
+    ],
+)
+def test_an_answer_beside_a_board_does_not_end_on_an_empty_sentence(text: str, kept: str) -> None:
+    assert without_empty_end(text=text) == kept

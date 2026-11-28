@@ -7,14 +7,18 @@ from app.features.boards.schemas import Tile
 from app.features.tiles.schemas import AnyPayload
 
 PROMPTS = load_prompts(prompts_py=__file__)
+SAVED_LISTED = 8
 
 
-def board_guide(signals: list[Signal], labels: dict[str, str], notes: list[str]) -> str:
+def board_guide(
+    signals: list[Signal], labels: dict[str, str], notes: list[str], saved: list[str]
+) -> str:
     """The board decision's job; `labels` maps a signal id to the tile it is on the board as."""
     lines = "\n".join(_signal(signal=signal, label=labels.get(signal.id)) for signal in signals)
     return PROMPTS["guide"].format(
         signals=lines or "(none)",
         notes="\n".join(f"- {note}" for note in notes) or "(none)",
+        saved="\n".join(f"- {_escaped(text=note)}" for note in saved[:SAVED_LISTED]) or "(none)",
         catalogue=PROMPTS["catalogue"],
     )
 

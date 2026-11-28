@@ -13,6 +13,7 @@ from app.features.board_plans.dependencies import BoardPlanServiceDep
 from app.features.boards.repository import BoardPlanRepository, BoardRepository, TileRepository
 from app.features.boards.schemas import Board, Tile
 from app.features.boards.service import BoardService
+from app.features.context_entries.dependencies import ContextEntryServiceDep
 from app.features.conversations.dependencies import ConversationServiceDep
 from app.features.ledger.dependencies import LedgerServiceDep
 from app.features.tiles.dependencies import TileServiceDep
@@ -63,7 +64,12 @@ TodayDep = Annotated[date, Depends(get_today)]
 type BoardTurns = Callable[[UUID | None, UUID | None], Awaitable[TurnScope | None]]
 
 
-def get_board_turns(user: CurrentUserDep, service: BoardServiceDep, today: TodayDep) -> BoardTurns:
+def get_board_turns(
+    user: CurrentUserDep,
+    service: BoardServiceDep,
+    today: TodayDep,
+    notes: ContextEntryServiceDep,
+) -> BoardTurns:
     async def board_turn(board_id: UUID | None, tile_id: UUID | None) -> TurnScope | None:
         """The board tools of a message typed beside the customer's own board, or None."""
         if board_id is None:
@@ -71,6 +77,7 @@ def get_board_turns(user: CurrentUserDep, service: BoardServiceDep, today: Today
         board = await service.get_board(board_id=board_id, owner_id=user.id)
         if tile_id is not None:
             await service.get_tile(board_id=board.id, tile_id=tile_id)
+        active = await notes.list_entries(owner_id=user.id, status="active")
         return await board_tools.get_turn(
             service=service,
             board=board,
@@ -78,6 +85,7 @@ def get_board_turns(user: CurrentUserDep, service: BoardServiceDep, today: Today
             owner_id=user.id,
             token=user.token,
             today=today,
+            active_notes=[entry.text for entry in active],
         )
 
     return board_turn

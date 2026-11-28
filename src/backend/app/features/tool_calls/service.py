@@ -52,6 +52,11 @@ DECISION_MODEL = Model.SMART
 DECISION_PURPOSE = "tool_decision"
 ANSWER_MODEL = Model.SMART
 ANSWER_PURPOSE = "answer"
+# The server's own calls when the board decision made none for a question its tiles answer.
+PROPOSE_TOOL = "propose_context_entry"
+FALLBACK_PLAN = "The tiles on the board answer this question."
+FALLBACK_REASON = "the question"
+FALLBACK_MODEL = "server"
 # ponytail: board edits by name; their summaries under the answer say it all, so no answer is
 # written. A Tool flag once a second feature has such tools.
 SILENT_EDITS = {"rename_tile", "move_tile", "remove_tile", "change_tile", "rename_board"}
@@ -81,6 +86,11 @@ _CONTEXT_CHARS = 8
 # Beside a board: a dash between parts of a sentence becomes a comma, a day drops this year.
 _SENTENCE_DASH = re.compile(r"\s+[—–]\s+|\s*—\s*")
 _DAY_WITH_YEAR = re.compile(r"\b(\d{1,2})\. ?(\d{1,2})\.(?: ?(\d{4})\b)?")
+# Words about our own machinery that an answer beside a board never needs.
+_BOARD_WORDS = re.compile(r",? as (?:stated|shown|given) in (?:the|its) meaning", re.I)
+_SENTENCE_START = re.compile(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ])")
+# A last sentence keeps its place when it holds a figure, a name or advice.
+_FACT = re.compile(r"\d|\b(?:payee|tell me|let me|ask|you could|you can)\b", re.I)
 _DAY_THEN_STOP = re.compile(r"(\b\d{1,2}\.\d{1,2}\.)\.")
 _OPEN_DASH = re.compile(r"[\s—–]+$|\b\d{1,2}\.?\s+[^\W\d]*\s*\d{0,3}$")
 _MONTH_NUMBERS = {
@@ -162,8 +172,10 @@ class ToolCallService:
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
         content = swiss_text(text=stream.result.content)
         if scope is not None:
-            content = Paragraphs(is_on=True).feed(
-                text=board_style(text=content, year=self.today.year)
+            content = without_empty_end(
+                text=Paragraphs(is_on=True).feed(
+                    text=board_style(text=content, year=self.today.year)
+                )
             )
         return content, provenance
 
@@ -224,8 +236,10 @@ class ToolCallService:
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
         content = swiss_text(text=stream.result.content)
         if scope is not None:
-            content = Paragraphs(is_on=True).feed(
-                text=board_style(text=content, year=self.today.year)
+            content = without_empty_end(
+                text=Paragraphs(is_on=True).feed(
+                    text=board_style(text=content, year=self.today.year)
+                )
             )
         yield DoneEvent(result=(content, provenance))
 
@@ -309,6 +323,36 @@ class ToolCallService:
                 logger.exception("Scoped decision for message %s failed", message_id)
                 look_up = True
             if not look_up:
+                requests = (
+                    _note_requests(calls=calls)
+                    if calls or scope.fallback is None
+                    else scope.fallback(_question(messages=messages, context=scope.context))
+                )
+                if not requests:
+                    return
+                decision = ToolDecision(
+                    plan=FALLBACK_PLAN,
+                    calls=[
+                        ToolRequest(tool=tool, arguments=arguments, reason=FALLBACK_REASON)
+                        for tool, arguments in requests
+                    ],
+                )
+                fallback = LLMResult(
+                    content=decision, model=FALLBACK_MODEL, latency_ms=0, tokens_in=None, tokens_out=None
+                )
+                async for step in self._rounds(
+                    first_round=first_round,
+                    conversation_id=conversation_id,
+                    message_id=message_id,
+                    can_ask=can_ask,
+                    calls=calls,
+                    rounds=rounds,
+                    refused=refused,
+                    max_rounds=1,
+                    decide=lambda: _ready(result=fallback),
+                ):
+                    if not isinstance(step, ToolDecision):
+                        yield step
                 return
             # The full decision reads the question as before; the board only distracted it.
             messages = _replaced(messages=messages, text=scope.context, by="")
@@ -546,6 +590,29 @@ class ToolCallService:
         )
 
 
+def _note_requests(calls: list[ToolCall]) -> list[tuple[str, dict[str, Any]]]:
+    """The note a result suggested, when the decision did not propose it."""
+    if any(call.tool_name == PROPOSE_TOOL for call in calls):
+        return []
+    notes = [
+        call.result["suggested_note_text"]
+        for call in calls
+        if call.result is not None and call.result.get("suggested_note_text") is not None
+    ]
+    return [] if not notes else [(PROPOSE_TOOL, {"kind": "fact", "text": notes[0]})]
+
+
+async def _ready(result: LLMResult[ToolDecision]) -> LLMResult[ToolDecision]:
+    return result
+
+
+def _question(messages: list[LLMMessage], context: str) -> str:
+    content = messages[-1]["content"]
+    if not isinstance(content, str):
+        content = " ".join(part["text"] for part in content if part["type"] == "text")
+    return content.replace(context, "")
+
+
 def _is_silent_edit(calls: list[ToolCall]) -> bool:
     return bool(calls) and all(
         call.tool_name in SILENT_EDITS and call.error is None for call in calls
@@ -736,6 +803,7 @@ def board_style(text: str, year: int) -> str:
     text = _SENTENCE_DASH.sub(", ", text)
     text = _DAY_MONTH_YEAR.sub(lambda match: _swiss_day(match=match, year=year), text)
     text = _DAY_WITH_YEAR.sub(lambda match: _swiss_date(match=match, year=year), text)
+    text = _BOARD_WORDS.sub("", text)
     # The year was the sentence's end: its full stop is the day's own.
     return _DAY_THEN_STOP.sub(r"\1", text)
 
@@ -770,3 +838,17 @@ def _swiss_day(match: re.Match[str], year: int) -> str:
 def _swiss_date(match: re.Match[str], year: int) -> str:
     day = f"{match[1]}.{match[2]}."
     return day if match[3] is None or int(match[3]) == year else f"{day}{match[3]}"
+
+
+def without_empty_end(text: str) -> str:
+    """Beside a board: drop a last sentence that carries no figure, name or advice."""
+    paragraphs = text.rstrip().split("\n\n")
+    sentences = _SENTENCE_START.split(paragraphs[-1])
+    if sum(len(_SENTENCE_START.split(part)) for part in paragraphs) < 3:
+        return text
+    last = sentences[-1]
+    named = any(word[:1].isupper() for word in last.split()[1:])
+    if _FACT.search(last) is not None or named:
+        return text
+    rest = " ".join(sentences[:-1])
+    return "\n\n".join([*paragraphs[:-1], rest] if rest != "" else paragraphs[:-1])
