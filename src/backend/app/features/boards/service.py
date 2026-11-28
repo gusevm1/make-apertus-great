@@ -21,6 +21,7 @@ from app.features.boards.schemas import (
 )
 from app.features.conversations.schemas import Conversation, RequestConversationCreate
 from app.features.conversations.service import ConversationService
+from app.features.guardrails.service import GuardrailService
 from app.features.tiles.schemas import AnyPayload
 from app.features.tiles.service import TileError, TileService
 
@@ -59,6 +60,7 @@ class BoardService:
         tile_service: TileService,
         conversations: ConversationService,
         planner: BoardPlanService,
+        guardrails: GuardrailService,
     ) -> None:
         self.boards = boards
         self.tiles = tiles
@@ -66,6 +68,7 @@ class BoardService:
         self.tile_service = tile_service
         self.conversations = conversations
         self.planner = planner
+        self.guardrails = guardrails
 
     async def list_boards(self, owner_id: UUID) -> list[BoardSummary]:
         """List the customer's boards by position, with their tile counts."""
@@ -145,6 +148,10 @@ class BoardService:
         about = None if data.about is None or data.about.strip() == "" else data.about.strip()
         if about is None:
             return await self._new_board(owner_id=owner_id, name=self._board_name(data=data))
+        # The same check as a chat message: a request the chat declines builds no board either.
+        guardrail = await self.guardrails.check_message(text=about)
+        if guardrail.decline is not None:
+            raise BadRequestError(guardrail.decline)
         names = [summary.board.name for summary in await self.list_boards(owner_id=owner_id)]
         await self.boards.close_read()
         try:

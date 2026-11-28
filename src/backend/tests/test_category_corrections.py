@@ -136,7 +136,8 @@ async def test_an_unknown_payee_is_not_found(lukas: httpx2.AsyncClient) -> None:
 async def test_an_unknown_category_is_refused(lukas: httpx2.AsyncClient) -> None:  # noqa: F811
     response = await _correct(api=lukas, scope="payee", key="Migros", category="pocket money")
 
-    assert response.status_code == 422
+    # Checked against the customer's own categories too, so by the service, not the schema.
+    assert response.status_code == 400
 
 
 async def test_each_row_names_the_usual_category_of_its_payee(
@@ -193,7 +194,8 @@ async def test_rows_filter_by_category_and_certainty(
     assert [tag["row_id"] for tag in by_category.json()] == ["BK-1"]
     assert sorted(tag["row_id"] for tag in unknown.json()) == ["BK-1", "BK-2", "CTX-1"]
     assert bad.status_code == 422
-    assert misspelt.status_code == 422
+    # Any name filters, since the customer can add categories of their own.
+    assert misspelt.json() == []
 
 
 async def test_summaries_add_up_the_ledger_rows_and_count_certainty(

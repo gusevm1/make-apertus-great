@@ -14,27 +14,31 @@ from app.features.transaction_tags.dependencies import (
     TransactionTagServiceDep,
 )
 from app.features.transaction_tags.schemas import (
+    CATEGORY_NAME_MAX_LENGTH,
     AssignedRow,
     CategorisationRun,
-    Category,
     CategoryCorrectionResult,
     CategorySummary,
     CertaintyFilter,
     PersonalTagSummary,
     RatedTransactionTag,
+    RequestCategorisationCreate,
     RequestCategoryCorrectionCreate,
     RequestPersonalTagAssignmentCreate,
     RequestPersonalTagCreate,
     RequestPersonalTagUpdate,
     RequestSeverityUpdate,
+    RequestSpendingCategoryCreate,
     ResponseCategorisationRun,
     ResponseCategoryCorrection,
     ResponseCategorySummary,
     ResponsePersonalTag,
     ResponsePersonalTagAssignment,
     ResponseSeveritySetting,
+    ResponseSpendingCategory,
     ResponseTransactionTag,
     SeveritySetting,
+    SpendingCategory,
 )
 
 router = APIRouter(tags=["transaction-tags"], dependencies=[Depends(require_user)])
@@ -54,13 +58,26 @@ def _categorisation_response(run: CategorisationRun) -> ResponseCategorisationRu
 
 @router.post("/categorisations", response_model=ResponseCategorisationRun, status_code=202)
 async def create_categorisation(
-    user: CurrentUserDep, service: CategorisationRunServiceDep, response: Response
+    user: CurrentUserDep,
+    service: CategorisationRunServiceDep,
+    response: Response,
+    data: RequestCategorisationCreate | None = None,
 ) -> ResponseCategorisationRun:
-    """Start tagging your untagged rows in the background; 200 with the run if one is going."""
-    run, is_new = await service.start(owner_id=user.id, token=user.token)
+    """Start tagging your rows in the background; 200 with the run if one is going."""
+    scope = "untagged" if data is None else data.scope
+    run, is_new = await service.start(owner_id=user.id, token=user.token, scope=scope)
     if not is_new:
         response.status_code = 200
     return _categorisation_response(run=run)
+
+
+@router.get("/categorisations", response_model=list[ResponseCategorisationRun])
+async def list_categorisations(
+    user: CurrentUserDep, service: CategorisationRunServiceDep
+) -> list[ResponseCategorisationRun]:
+    """List your categorisation runs, newest first."""
+    runs = await service.list_runs(owner_id=user.id)
+    return [_categorisation_response(run=run) for run in runs]
 
 
 @router.get("/categorisations/{categorisation_id}", response_model=ResponseCategorisationRun)
@@ -74,7 +91,7 @@ async def list_transaction_tags(
     user: CurrentUserDep,
     service: SeverityServiceDep,
     sort: str | None = None,
-    category: Category | None = None,
+    category: Annotated[str | None, Query(max_length=CATEGORY_NAME_MAX_LENGTH)] = None,
     certainty: CertaintyFilter | None = None,
 ) -> list[ResponseTransactionTag]:
     """List your categorised rows with their severity, filtered by category or certainty."""
@@ -82,6 +99,28 @@ async def list_transaction_tags(
         owner_id=user.id, token=user.token, sort=sort, category=category, certainty=certainty
     )
     return [_tag_response(tag=tag) for tag in tags]
+
+
+def _category_response(category: SpendingCategory) -> ResponseSpendingCategory:
+    return ResponseSpendingCategory.model_validate(category, from_attributes=True)
+
+
+@router.get("/categories", response_model=list[ResponseSpendingCategory])
+async def list_categories(
+    user: CurrentUserDep, service: TransactionTagServiceDep
+) -> list[ResponseSpendingCategory]:
+    """List the categories a booking can get: the built-in ones and your own."""
+    categories = await service.list_categories(owner_id=user.id)
+    return [_category_response(category=category) for category in categories]
+
+
+@router.post("/categories", response_model=ResponseSpendingCategory, status_code=201)
+async def create_category(
+    data: RequestSpendingCategoryCreate, user: CurrentUserDep, service: TransactionTagServiceDep
+) -> ResponseSpendingCategory:
+    """Add a spending category of your own."""
+    category = await service.create_category(owner_id=user.id, data=data)
+    return _category_response(category=category)
 
 
 @router.post("/category-corrections", response_model=ResponseCategoryCorrection, status_code=201)

@@ -44,6 +44,10 @@ export function DemoReset({
         await api<void>(`/api/alert-settings/${setting.kind}`, token, {
           method: "DELETE",
         });
+      // A folded Needs attention box opens again, as on a first visit.
+      for (const key of Object.keys(localStorage))
+        if (key.startsWith("trustroom:alerts-folded:"))
+          localStorage.removeItem(key);
       onDone();
     } catch (error) {
       setError(requestErrorOf(error).message);

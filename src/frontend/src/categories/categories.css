@@ -1,0 +1,357 @@
+/* The Categorization tab: decisions as a list or swipe cards, and the overview. */
+.cat-view {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 920px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.cat-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cat-head h1 {
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.cat-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--note);
+  box-shadow: var(--ring-note);
+  font-size: 13px;
+}
+
+.cat-banner[data-tone="warn"] {
+  background: var(--warn-bg);
+  color: var(--warn);
+  box-shadow: none;
+}
+
+.cat-banner .spinner {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.cat-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cat-list,
+.cat-tags,
+.cat-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cat-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-tile);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cat-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cat-payee {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+  text-transform: capitalize;
+}
+
+.cat-certainty {
+  flex: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--canvas);
+  color: var(--muted);
+}
+
+.cat-certainty[data-certainty="low"] {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.cat-samples {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.cat-samples li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  color: var(--muted);
+}
+
+/* Wrapped, not cut: a payment to a person names its purpose at the end. */
+.cat-sample-text {
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+
+.cat-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cat-icon-button {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  background: var(--surface);
+  box-shadow: var(--ring-button);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.cat-icon-button:hover:not(:disabled),
+.cat-icon-button[aria-expanded="true"] {
+  background: var(--canvas);
+}
+
+.cat-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--canvas);
+}
+
+.cat-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cat-chip {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: var(--surface);
+  box-shadow: var(--ring-button);
+  font-size: 13px;
+}
+
+.cat-chip:hover:not(:disabled) {
+  background: var(--soft);
+}
+
+.cat-new {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.cat-new label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cat-new input {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--ring-button);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.cat-add {
+  align-self: flex-start;
+}
+
+/* Swipe: one card, leaning towards the side it would go to. */
+.cat-deck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.cat-deck-count {
+  font-size: 13px;
+}
+
+.cat-swipe {
+  width: min(460px, 100%);
+  min-height: 220px;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  transition: box-shadow 0.15s;
+}
+
+.cat-swipe:active {
+  cursor: grabbing;
+}
+
+.cat-swipe[data-leaning] {
+  box-shadow:
+    var(--shadow-tile),
+    0 0 0 2px var(--accent);
+}
+
+.cat-swipe-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cat-deck .cat-picker {
+  width: min(460px, 100%);
+}
+
+/* The overview: necessity levels, the categories table and the personal tags. */
+.cat-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.cat-overview section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cat-overview h2 {
+  font-size: 17px;
+}
+
+.cat-levels li,
+.cat-tags li {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-tile);
+}
+
+.cat-level-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cat-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-tile);
+  font-size: 13px;
+}
+
+.cat-table th,
+.cat-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.cat-table thead th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.cat-table .num {
+  text-align: right;
+}
+
+.cat-table tbody th {
+  font-weight: 500;
+}
+
+.cat-table tbody th small {
+  display: block;
+  font-weight: 400;
+}
+
+.cat-table select {
+  font: inherit;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+  max-width: 100%;
+}
+
+.cat-own {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--deep);
+  font-size: 11px;
+}
+
+.cat-done h2 {
+  font-size: 20px;
+}
+
+@media (max-width: 860px) {
+  .cat-view {
+    padding: 16px;
+  }
+
+  .cat-table th:nth-child(3),
+  .cat-table td:nth-child(3) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-swipe {
+    transition: none;
+  }
+}

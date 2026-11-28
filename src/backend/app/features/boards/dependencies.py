@@ -15,6 +15,7 @@ from app.features.boards.schemas import Board, Tile
 from app.features.boards.service import BoardService
 from app.features.context_entries.dependencies import ContextEntryServiceDep
 from app.features.conversations.dependencies import ConversationServiceDep
+from app.features.guardrails.dependencies import GuardrailServiceDep
 from app.features.ledger.dependencies import LedgerServiceDep
 from app.features.tiles.dependencies import TileServiceDep
 
@@ -24,6 +25,7 @@ def get_board_service(
     tile_service: TileServiceDep,
     conversations: ConversationServiceDep,
     planner: BoardPlanServiceDep,
+    guardrails: GuardrailServiceDep,
 ) -> BoardService:
     return BoardService(
         boards=BoardRepository(session=session),
@@ -32,6 +34,7 @@ def get_board_service(
         tile_service=tile_service,
         conversations=conversations,
         planner=planner,
+        guardrails=guardrails,
     )
 
 

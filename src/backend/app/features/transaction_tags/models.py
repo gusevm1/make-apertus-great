@@ -24,7 +24,27 @@ class TransactionTagORM(Base):
     category_model: Mapped[str | None]
     category_confirmed: Mapped[bool] = mapped_column(server_default="false")
     category_certainty: Mapped[str | None]
+    # Apertus's second choice, offered next to its first in the category review.
+    category_alternative: Mapped[str | None]
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
+
+
+class CustomCategoryORM(Base):
+    """A spending category the customer added to the built-in ones."""
+
+    __tablename__ = "custom_categories"
+
+    owner_id: Mapped[UUID]
+    name: Mapped[str]
+    description: Mapped[str] = mapped_column(server_default="")
+
+
+Index(
+    "uq_custom_categories_owner_lower_name",
+    CustomCategoryORM.owner_id,
+    func.lower(CustomCategoryORM.name),
+    unique=True,
+)
 
 
 class CategoryCorrectionORM(Base):

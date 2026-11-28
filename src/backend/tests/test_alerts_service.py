@@ -17,6 +17,7 @@ async def _bill(
     document_date: date | None = date(2026, 11, 1),
     currency: str | None = "CHF",
     name: str = "Mahnung_Keller.pdf",
+    issuer: str | None = None,
 ) -> str:
     fields: list[dict[str, Any]] = [
         {"name": "payee", "text": payee, "passage": payee},
@@ -32,7 +33,7 @@ async def _bill(
         name=name,
         markdown="",
         kind=kind,
-        issuer=payee,
+        issuer=payee if issuer is None else issuer,
         document_date=document_date,
         fields=fields,
     )
@@ -163,3 +164,18 @@ async def test_a_dismissal_that_is_not_yours_is_not_found(client: httpx2.AsyncCl
 
     assert (await client.delete(f"/api/alert-dismissals/{other}")).status_code == 404
     assert created.status_code == 201
+
+
+async def test_the_alert_names_the_issuer_not_the_payee_address(
+    client: httpx2.AsyncClient, session: AsyncSession
+) -> None:
+    await _bill(
+        session=session,
+        amount=440.0,
+        payee="Zahnarztpraxis Neuwiesen Neuwiesenstrasse 20 8400 Winterthur",
+        issuer="Zahnarztpraxis Neuwiesen",
+    )
+
+    assert [alert["payee"] for alert in await _alerts(client=client)] == [
+        "Zahnarztpraxis Neuwiesen"
+    ]

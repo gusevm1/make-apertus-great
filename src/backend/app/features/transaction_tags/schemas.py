@@ -1,9 +1,9 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model, field_validator
 
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import Kind
@@ -39,7 +39,10 @@ SeveritySource = Literal["booking", "payee", "category", "default"]
 SeveritySetBy = Literal["model", "customer"]
 RunStatus = Literal["queued", "running", "done", "failed"]
 PersonalTagSetBy = Literal["model", "customer"]
+CategorisationScope = Literal["untagged", "unconfirmed"]
 MAX_INFERRED_TAGS = 10
+CATEGORY_NAME_MAX_LENGTH = 40
+CATEGORY_DESCRIPTION_MAX_LENGTH = 200
 TAG_NAME_MAX_LENGTH = 40
 TAG_DESCRIPTION_MAX_LENGTH = 200
 
@@ -56,8 +59,48 @@ class TransactionTag(BaseModel):
     category_model: str | None
     category_confirmed: bool
     category_certainty: Certainty | None
+    category_alternative: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class CustomCategory(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    owner_id: UUID
+    name: str
+    description: str
+    created_at: datetime
+
+
+def category_names(custom: list[CustomCategory]) -> list[str]:
+    """The built-in categories, then the customer's own."""
+    return [*CATEGORIES, *(category.name for category in custom)]
+
+
+class SpendingCategory(BaseModel):
+    """A category a row can get: a built-in one or one the customer added."""
+
+    name: str
+    description: str
+    custom: bool
+
+
+class RequestSpendingCategoryCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=CATEGORY_NAME_MAX_LENGTH)
+    description: str = Field(default="", max_length=CATEGORY_DESCRIPTION_MAX_LENGTH)
+
+    @field_validator("name", "description", mode="before")
+    @classmethod
+    def strip(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+
+class ResponseSpendingCategory(BaseModel):
+    name: str
+    description: str
+    custom: bool
 
 
 class CategoryCorrection(BaseModel):
@@ -108,14 +151,8 @@ class RatedTransactionTag(TransactionTag):
 class RequestCategoryCorrectionCreate(BaseModel):
     scope: CorrectionScope
     key: str = Field(min_length=1, max_length=200)  # a payee, or `<row_source>:<row_id>`
-    category: str = Field(json_schema_extra={"enum": list(CATEGORIES)})
-
-    @field_validator("category")
-    @classmethod
-    def known_category(cls, value: str) -> str:
-        if value not in CATEGORIES:
-            raise ValueError(f"Allowed: {', '.join(CATEGORIES)}")
-        return value
+    # A built-in category or one of the customer's own, checked by the service.
+    category: str = Field(min_length=1, max_length=CATEGORY_NAME_MAX_LENGTH)
 
 
 class CategoryCorrectionResult(BaseModel):
@@ -198,6 +235,7 @@ class ResponseTransactionTag(BaseModel):
     category_model: str | None
     category_confirmed: bool
     category_certainty: Certainty | None
+    category_alternative: str | None
     severity: str
     severity_source: SeveritySource
     date: date
@@ -207,6 +245,11 @@ class ResponseTransactionTag(BaseModel):
     payee_usual_category: str
     created_at: datetime
     updated_at: datetime
+
+
+class RequestCategorisationCreate(BaseModel):
+    # unconfirmed: also judge again what Apertus decided and the customer has not confirmed.
+    scope: CategorisationScope = "untagged"
 
 
 class ResponseCategorisationRun(BaseModel):
@@ -230,10 +273,35 @@ class RowCategory(BaseModel):
     payee: str | None = Field(default=None, description=PROMPTS["categorise_payee_field"])
     category: str = Field(json_schema_extra={"enum": list(CATEGORIES)})
     certainty: str | None = Field(default=None, json_schema_extra={"enum": list(CERTAINTIES)})
+    alternative: str | None = Field(
+        default=None,
+        description=PROMPTS["categorise_alternative_field"],
+        json_schema_extra={"enum": list(CATEGORIES)},
+    )
 
 
 class BatchCategories(BaseModel):
     rows: list[RowCategory]
+
+
+def batch_categories_schema(categories: list[str]) -> type[BatchCategories]:
+    """`BatchCategories` whose category enums hold these categories, the customer's own too."""
+    enum: list[JsonValue] = list(categories)
+    row = create_model(
+        "RowCategory",
+        __base__=RowCategory,
+        category=(str, Field(json_schema_extra={"enum": enum})),
+        alternative=(
+            str | None,
+            Field(
+                default=None,
+                description=PROMPTS["categorise_alternative_field"],
+                json_schema_extra={"enum": enum},
+            ),
+        ),
+    )
+    fields: dict[str, Any] = {"rows": (list[row], ...)}
+    return create_model("BatchCategories", __base__=BatchCategories, **fields)
 
 
 class CategorySeverity(BaseModel):
@@ -246,6 +314,18 @@ class CategorySeverity(BaseModel):
 
 class CategorySeverities(BaseModel):
     categories: list[CategorySeverity]
+
+
+def category_severities_schema(categories: list[str]) -> type[CategorySeverities]:
+    """`CategorySeverities` whose category enum holds these categories, the customer's own too."""
+    enum: list[JsonValue] = list(categories)
+    item = create_model(
+        "CategorySeverity",
+        __base__=CategorySeverity,
+        category=(str, Field(json_schema_extra={"enum": enum})),
+    )
+    fields: dict[str, Any] = {"categories": (list[item], ...)}
+    return create_model("CategorySeverities", __base__=CategorySeverities, **fields)
 
 
 class PersonalTag(BaseModel):

@@ -9,6 +9,7 @@ from app.features.board_plans.service import BoardPlanService
 from app.features.boards.repository import BoardPlanRepository, BoardRepository, TileRepository
 from app.features.boards.service import BoardService
 from app.features.conversations.service import ConversationService
+from app.features.guardrails.service import GuardrailService
 from app.features.ledger.service import LedgerService
 from app.features.recurring_payments.service import RecurringPaymentService
 from app.features.tiles.service import TileService
@@ -88,6 +89,7 @@ async def test_a_changed_tile_keeps_its_id_so_its_widget_shows_the_change(
         tile_service=TileService(ledger=ledger, recurring=RecurringPaymentService(ledger=ledger)),
         conversations=cast(ConversationService, None),
         planner=cast(BoardPlanService, None),
+        guardrails=cast(GuardrailService, None),
     )
     tile = await boards.get_tile(board_id=UUID(board_id), tile_id=UUID(tile_id))
 

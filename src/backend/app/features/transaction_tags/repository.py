@@ -2,11 +2,13 @@ from uuid import UUID
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 
 from app.core.repository import BaseRepository
 from app.features.transaction_tags.models import (
     CategorisationRunORM,
     CategoryCorrectionORM,
+    CustomCategoryORM,
     PersonalTagAssignmentORM,
     PersonalTagEvaluationORM,
     PersonalTagORM,
@@ -16,6 +18,7 @@ from app.features.transaction_tags.models import (
 from app.features.transaction_tags.schemas import (
     CategorisationRun,
     CategoryCorrection,
+    CustomCategory,
     PersonalTag,
     PersonalTagAssignment,
     PersonalTagEvaluation,
@@ -54,7 +57,7 @@ class TransactionTagRepository(BaseRepository[TransactionTagORM, TransactionTag]
         return categories
 
     async def upsert_categories(self, values: list[dict[str, object]]) -> int:
-        """Store the customer's category on these rows, tagged already or not; returns the count."""
+        """Store a category on these rows, tagged already or not; returns the count."""
         if not values:
             return 0
         stmt = insert(TransactionTagORM).values(values)
@@ -66,8 +69,29 @@ class TransactionTagRepository(BaseRepository[TransactionTagORM, TransactionTag]
                 "category_model": stmt.excluded.category_model,
                 "category_confirmed": stmt.excluded.category_confirmed,
                 "category_certainty": stmt.excluded.category_certainty,
+                "category_alternative": stmt.excluded.category_alternative,
                 "updated_at": func.now(),
             },
+        ).returning(TransactionTagORM.id)
+        changed = len((await self.session.scalars(stmt)).all())
+        await self.session.commit()
+        return changed
+
+    async def replace_model_categories(self, values: list[dict[str, object]]) -> int:
+        """Store Apertus's new answers, but never over a row the customer decided meanwhile."""
+        if not values:
+            return 0
+        stmt = insert(TransactionTagORM).values(values)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["owner_id", "row_source", "row_id"],
+            set_={
+                "category": stmt.excluded.category,
+                "category_model": stmt.excluded.category_model,
+                "category_certainty": stmt.excluded.category_certainty,
+                "category_alternative": stmt.excluded.category_alternative,
+                "updated_at": func.now(),
+            },
+            where=TransactionTagORM.category_set_by == "model",
         ).returning(TransactionTagORM.id)
         changed = len((await self.session.scalars(stmt)).all())
         await self.session.commit()
@@ -110,6 +134,28 @@ class CategoryCorrectionRepository(BaseRepository[CategoryCorrectionORM, Categor
         )
         await self.session.execute(stmt)
         await self.session.commit()
+
+
+class CustomCategoryRepository(BaseRepository[CustomCategoryORM, CustomCategory]):
+    orm_model = CustomCategoryORM
+    schema = CustomCategory
+    sortable_fields = frozenset({"created_at"})
+
+    async def create_unique(
+        self, owner_id: UUID, name: str, description: str
+    ) -> CustomCategory | None:
+        """Add the category; None when the customer has one of that name, in any case."""
+        try:
+            return await self.create(owner_id=owner_id, name=name, description=description)
+        except IntegrityError:
+            await self.session.rollback()
+            return None
+
+    async def list_for_owner(self, owner_id: UUID) -> list[CustomCategory]:
+        categories = await self.list(sort="created_at", owner_id=owner_id)
+        # Ends the read's transaction, so none stays open while Apertus works.
+        await self.session.commit()
+        return categories
 
 
 class SeveritySettingRepository(BaseRepository[SeveritySettingORM, SeveritySetting]):
@@ -243,6 +289,13 @@ class PersonalTagEvaluationRepository(
     orm_model = PersonalTagEvaluationORM
     schema = PersonalTagEvaluation
 
+    async def delete_for_owner(self, owner_id: UUID) -> None:
+        """Forget which rows were judged, so the next run judges them against every tag."""
+        await self.session.execute(
+            delete(PersonalTagEvaluationORM).where(PersonalTagEvaluationORM.owner_id == owner_id)
+        )
+        await self.session.commit()
+
     async def list_row_keys(self, owner_id: UUID) -> set[tuple[str, str]]:
         stmt = select(PersonalTagEvaluationORM.row_source, PersonalTagEvaluationORM.row_id).where(
             PersonalTagEvaluationORM.owner_id == owner_id
@@ -266,6 +319,12 @@ class PersonalTagEvaluationRepository(
 class CategorisationRunRepository(BaseRepository[CategorisationRunORM, CategorisationRun]):
     orm_model = CategorisationRunORM
     schema = CategorisationRun
+    sortable_fields = frozenset({"created_at"})
+
+    async def list_for_owner(self, owner_id: UUID) -> list[CategorisationRun]:
+        runs = await self.list(sort="-created_at", owner_id=owner_id)
+        await self.session.commit()
+        return runs
 
     async def get_owned(self, categorisation_id: UUID, owner_id: UUID) -> CategorisationRun | None:
         stmt = select(CategorisationRunORM).where(
