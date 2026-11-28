@@ -243,9 +243,9 @@ class _Tile:
 
 
 USE_WORDS = {
-    "main": "On the board",
-    "second": "On a second board",
-    "idea": "Kept as an idea",
+    "main": "For the board",
+    "second": "For a second board",
+    "idea": "As an idea for later",
     "no": "Left out",
 }
 
@@ -446,11 +446,11 @@ class BoardPlanService:
                 TraceItem(label="Their question", text=profile.content.question),
                 *(
                     TraceItem(
-                        label="First tile" if h == hero else "Not chosen",
+                        label="For the first tile" if h == hero else "Not chosen",
                         text=f"{profile.content.hero_title}: {labels[h].text}"
                         if h == hero
                         else labels[h].text,
-                        mark="kept" if h == hero else None,
+                        mark=None if h == hero else "dropped",
                     )
                     for h in heroes
                 ),
@@ -504,20 +504,16 @@ class BoardPlanService:
                     TraceItem(
                         label=USE_WORDS[uses[label]["use"]],
                         text=f"{uses[label]['title']} ({_kind_words(signal=labels[label])})",
-                        mark="kept"
-                        if label in on_boards
-                        else "dropped"
-                        if uses[label]["use"] == "no"
-                        else None,
+                        # A tick is the server's: only a checked tile gets one.
+                        mark="dropped" if uses[label]["use"] == "no" else None,
                     )
                     for label in rest
                 ),
                 *(
                     TraceItem(
-                        label="Its own tile",
+                        label="A tile of its own",
                         text=f"{pick.title}: {pick.template.replace('_', ' ')} of "
                         + ", ".join(pick.names),
-                        mark="kept",
                     )
                     for pick in board.own
                 ),
