@@ -1,0 +1,173 @@
+[
+  {
+    "name": "groceries",
+    "customer": "daniela",
+    "message": "Remove the monthly cash flow tile and add what I spend on groceries.",
+    "selected": null,
+    "seconds": 18.6,
+    "passed": false,
+    "path": "model",
+    "problems": [
+      "Denner not among the shops ['Lidl', 'Aldi', 'Migros']",
+      "1'092.35 missing"
+    ],
+    "calls": [
+      {
+        "tool": "remove_tile",
+        "arguments": {
+          "tile": "T3"
+        },
+        "summary": "Removed \"Monthly cash flow\"",
+        "plan": "Remove the monthly cash flow tile and add a tile showing my grocery spending for this month.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Groceries in November",
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "<every grocery shop from the list of my payees>"
+          ]
+        },
+        "summary": null,
+        "plan": "Remove the monthly cash flow tile and add a tile showing my grocery spending for this month.",
+        "error": "No payment mentions <every grocery shop from the list of my payees>. Check the spelling, or send the call without it. Send the call again with the customer's payees that fit, as this list writes them:\nLargest payees, period last_3_months (01.08.2026 to 31.10.2026), as the bookings name them (total, count):\n  - Wohnbaugenossenschaft Talgut: 4'920.00 (3x)\n  - Lidl: 1'575.67 (32x)\n  - Aldi: 1'284.41 (31x)\n  - Stadt Winterthur, Betreuung Schule: 1'044.00 (3x)\n  - Bancomat Winterthur Töss: 860.00 (10x)\n  - Assura-Basis SA: 814.20 (3x)\n  - Migros: 659.55 (21x)\n  - Denner: 616.23 (27x)\n  - Steueramt Winterthur: 285.00 (3x)\n  - Ratenwerk Finanz AG: 233.40 (3x)\n  - ZVV: 192.00 (3x)\n  - Schwimmschule Delfin Winterthur: 180.00 (1x)\n  - Coop: 161.15 (9x)\n  - Brack: 129.00 (1x)\n  - Kinderturnen TV Töss: 120.00 (1x)\n  - Sunrise GmbH: 119.70 (3x)\n  - Dosenbach: 107.21 (2x)\n  - Stadtwerk Winterthur: 104.54 (1x)\n  - Klarna Bank AB: 89.70 (1x)\n  - Office World: 86.40 (1x)\n  - Serafe AG: 84.00 (1x)\n  - C&A: 59.80 (1x)\n  - Lebara Schweiz: 59.70 (3x)\n  - Brockenhaus: 54.65 (1x)\n  - McDonald's: 52.70 (3x)\nLargest payees, period this_month (01.11.2026 to 27.11.2026), as the bookings name them (total, count):\n  - Lidl: 505.75 (13x)\n  - Stadt Winterthur, Betreuung Schule: 348.00 (1x)\n  - Assura-Basis SA: 271.40 (1x)\n  - Aldi: 228.02 (5x)\n  - Bancomat Winterthur Töss: 220.00 (3x)\n  - Migros: 219.69 (7x)\n  - Denner: 138.89 (7x)\n  - Franz Carl Weber: 99.35 (1x)\n  - Steueramt Winterthur: 95.00 (1x)\n  - Serafe AG: 83.00 (1x)\n  - Ratenwerk Finanz AG: 77.80 (1x)\n  - ZVV: 64.00 (1x)"
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Groceries in November",
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Lidl",
+            "Aldi",
+            "Migros"
+          ]
+        },
+        "summary": "Added \"Groceries in November\"",
+        "plan": "Remove the monthly cash flow tile and add a tile showing my grocery spending for this month using the correct payee names.",
+        "error": null
+      }
+    ],
+    "answer": "Removed “Monthly cash flow”.\n\nGroceries in November: CHF 953.46 went to Lidl (CHF 505.75), Aldi (CHF 228.02) and Migros (CHF 219.69), with Lidl accounting for the largest share.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "2 of 3"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "4 of 4 found"
+      },
+      {
+        "name": "figures_in_context",
+        "passed": true,
+        "detail": "4 of 4 fit"
+      }
+    ]
+  },
+  {
+    "name": "named_shops",
+    "customer": "daniela",
+    "message": "Show me what I spend at Migros and Denner this month.",
+    "selected": null,
+    "seconds": 10.9,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Denner"
+          ]
+        },
+        "summary": "Added \"Shops in November\"",
+        "plan": "Add a tile showing spending at Migros and Denner this month.",
+        "error": null
+      }
+    ],
+    "answer": "You spent CHF 358.58 on groceries at Migros and Denner this month from 01.11. to 27.11., with CHF 219.69 at Migros and CHF 138.89 at Denner.\n\nThe majority of your grocery spending went to Migros at CHF 219.69.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "4 of 4 found"
+      }
+    ]
+  },
+  {
+    "name": "migros_coop",
+    "customer": "daniela",
+    "message": "Show me what I spend at Migros and Coop each month.",
+    "selected": null,
+    "seconds": 13.0,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Groceries at Migros and Coop this month",
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Coop"
+          ]
+        },
+        "summary": "Added \"Groceries at Migros and Coop this month\"",
+        "plan": "Add a tile showing my spending at Migros and Coop each month.",
+        "error": null
+      }
+    ],
+    "answer": "Groceries at Migros and Coop cost you CHF 232.34 this month, broken down into CHF 219.69 at Migros and CHF 12.65 at Coop.\n\nMigros supplied the bulk of this spending, CHF 219.69 out of the total CHF 232.34, while Coop contributed a much smaller CHF 12.65.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "6 of 6 found"
+      },
+      {
+        "name": "figures_in_context",
+        "passed": true,
+        "detail": "3 of 3 fit"
+      }
+    ]
+  }
+]

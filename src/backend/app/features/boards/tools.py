@@ -8,7 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.errors import BadRequestError
 from app.core.tools import Tool, TurnScope
-from app.features.boards.prompts import PROMPTS, board_context, board_guide, figures
+from app.features.boards.prompts import (
+    PROMPTS,
+    board_context,
+    board_guide,
+    figures,
+    payee_lines,
+    payee_names,
+)
 from app.features.boards.schemas import (
     BOARD_ABOUT_MAX_LENGTH,
     BOARD_NAME_MAX_LENGTH,
@@ -27,6 +34,8 @@ from app.features.tiles.schemas import (
     Template,
 )
 
+MERCHANT_TEMPLATES = {"merchant_spending", "monthly_spending"}
+MERCHANTS_MAX = 6
 # Question words and the templates of the tiles that answer such a question, first match wins.
 ANSWERING_TILES: list[tuple[re.Pattern[str], tuple[str, ...]]] = [
     (
@@ -240,6 +249,7 @@ async def get_turn(
             template = args.template
         else:
             raise BadRequestError(PROMPTS["add_tile_needs"])
+        tile_args = _known_merchants(template=template, args=tile_args, facts=customer.text)
         same = await service.find_same_tile(board_id=board.id, template=template, args=tile_args)
         if same is not None:
             payload = await service.resolve_tile(tile=same, token=token, today=today)
@@ -253,15 +263,18 @@ async def get_turn(
             else notes[0],
                 figures=figures(payload=payload),
             )
-        tile, payload = await service.add_tile(
-            board_id=board.id,
-            template=template,
-            args=tile_args,
-            title=args.title,
-            position=None,
-            token=token,
-            today=today,
-        )
+        try:
+            tile, payload = await service.add_tile(
+                board_id=board.id,
+                template=template,
+                args=tile_args,
+                title=args.title,
+                position=None,
+                token=token,
+                today=today,
+            )
+        except BadRequestError as error:
+            raise with_payees(error=error, template=template) from error
         return BoardChange(
             summary=f'Added "{tile.title}"',
             finding=finding,
@@ -273,6 +286,13 @@ async def get_turn(
             figures=figures(payload=payload),
         )
 
+    def with_payees(error: BadRequestError, template: str) -> BadRequestError:
+        # A shop the bookings do not know: the customer's own payees to choose from instead.
+        if template not in MERCHANT_TEMPLATES:
+            return error
+        payees = payee_lines(facts=customer.text)
+        return BadRequestError(PROMPTS["unknown_merchants"].format(error=error, payees=payees))
+
     async def change_tile(args: ChangeTileArgs) -> BoardChange:
         tile = await find(ref=args.tile)
         changes = dict(args.model_extra or {})
@@ -282,15 +302,18 @@ async def get_turn(
         if not changes:
             raise BadRequestError(PROMPTS["change_tile_needs"])
         # The new tile takes the old one's place and title, then the old one goes.
-        changed, payload = await service.add_tile(
-            board_id=board.id,
-            template=tile.template,
-            args={**tile.args, **changes},
-            title=tile.title,
-            position=tile.position,
-            token=token,
-            today=today,
-        )
+        try:
+            changed, payload = await service.add_tile(
+                board_id=board.id,
+                template=tile.template,
+                args={**tile.args, **changes},
+                title=tile.title,
+                position=tile.position,
+                token=token,
+                today=today,
+            )
+        except BadRequestError as error:
+            raise with_payees(error=error, template=tile.template) from error
         await service.remove_tile(tile=tile)
         indexes[indexes.index(tile.id)] = changed.id
         return BoardChange(
@@ -433,7 +456,11 @@ async def get_turn(
     return TurnScope(
         context=context,
         guide=board_guide(
-            signals=customer.signals, labels=on_board, notes=notes, saved=active_notes
+            signals=customer.signals,
+            labels=on_board,
+            notes=notes,
+            saved=active_notes,
+            payees=payee_lines(facts=customer.text),
         ),
         tools=tools,
         fallback=fallback,
@@ -493,6 +520,19 @@ async def _late_income_notes(
 
 def _meaning(payload: AnyPayload | None, today: date) -> str:
     return "" if payload is None else meaning(payload=payload, today=today)
+
+
+def _known_merchants(template: str, args: dict[str, Any], facts: str) -> dict[str, Any]:
+    """A kind of spending keeps only the shops among the customer's payees of its period."""
+    merchants = args.get("merchants")
+    # ponytail: two or fewer are shops the customer named, kept as they are; a third heuristic
+    # would need the message itself
+    if template not in MERCHANT_TEMPLATES or not isinstance(merchants, list) or len(merchants) <= 2:
+        return args
+    period = args.get("period", "this_month") if template == "merchant_spending" else "last_3_months"
+    known = payee_names(facts=facts, period=period)
+    kept = [name for name in merchants if str(name).casefold() in known]
+    return args if not kept else {**args, "merchants": kept[:MERCHANTS_MAX]}
 
 
 def _suggested_note(payload: AnyPayload, notes: list[str]) -> str | None:
