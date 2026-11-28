@@ -1,0 +1,2 @@
+# Check out text files with LF on every system. The repo stores LF, and Prettier checks for it.
+* text=auto eol=lf
