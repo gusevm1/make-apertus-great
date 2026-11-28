@@ -60,9 +60,9 @@ function TrustRoom({ context }: { context: HostContext }) {
   const build = useStream<BoardPlan>();
   const buildLog = useRef<HTMLDivElement>(null);
 
-  // The trace follows the step that is running.
+  // The trace follows the step that is running, in the column or, when narrow, in the page.
   useEffect(() => {
-    buildLog.current?.scrollTo({ top: buildLog.current.scrollHeight });
+    buildLog.current?.lastElementChild?.scrollIntoView({ block: "end" });
   }, [build.steps]);
 
   useEffect(() => {
@@ -217,7 +217,11 @@ function TrustRoom({ context }: { context: HostContext }) {
     .filter((id) => id !== null);
 
   return (
-    <div className="app" data-mode={mode}>
+    <div
+      className="app"
+      data-mode={mode}
+      data-building={loading.state === "building" ? "" : undefined}
+    >
       <header className="top">
         <div className="brand">
           <Mark />

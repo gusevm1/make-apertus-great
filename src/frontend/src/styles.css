@@ -313,6 +313,11 @@ a:hover {
   .main {
     flex-wrap: wrap;
   }
+
+  /* While the first board is built, its steps are the page; the wait would push them below. */
+  .app[data-building] .boardcol {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
