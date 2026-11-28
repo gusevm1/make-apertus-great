@@ -221,8 +221,15 @@ export function BoardScreen({
       ) : (
         <div className="cols" onClick={() => setSelectedId(null)}>
           <div className="stack">{renderUnits(columns.left)}</div>
-          {columns.right.length > 0 && (
+          {columns.right.length > 0 ? (
             <div className="stack">{renderUnits(columns.right)}</div>
+          ) : (
+            <div className="stack">
+              <p className="more-hint">
+                This board is small on purpose: it shows only what your
+                accounts say about it. Tell the chat what else belongs here.
+              </p>
+            </div>
           )}
         </div>
       )}
