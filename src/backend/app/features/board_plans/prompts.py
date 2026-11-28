@@ -49,3 +49,14 @@ def request_prompt(
         {"role": "system", "content": PROMPTS["request_system"].format()},
         {"role": "user", "content": user},
     ]
+
+
+def entry_prompt(request: str, entry: str) -> list[Message]:
+    """Whether one entry of the customer's data is itself about the request."""
+    return [
+        {"role": "system", "content": PROMPTS["entry_system"].format()},
+        {
+            "role": "user",
+            "content": PROMPTS["entry_user"].format(request=request.replace('"', "'"), entry=entry),
+        },
+    ]

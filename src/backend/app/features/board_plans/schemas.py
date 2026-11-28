@@ -147,6 +147,13 @@ def board_schema(
     return create_model("BoardAnswer", **fields)
 
 
+class EntryCheck(BaseModel):
+    """One picked entry checked on its own: what it is, then whether it is about the request."""
+
+    what: str = Field(max_length=80)
+    about: Literal["yes", "no"]
+
+
 class RequestKeywords(BaseModel):
     """What a request is about, as words the server looks for in the customer's data."""
 
