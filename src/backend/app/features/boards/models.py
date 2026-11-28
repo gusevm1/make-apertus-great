@@ -17,6 +17,8 @@ class BoardORM(Base):
     conversation_id: Mapped[UUID | None] = mapped_column(
         ForeignKey("conversations.id", ondelete="SET NULL")
     )
+    # The plan this board was built from; None for a board the customer started empty.
+    plan_id: Mapped[UUID | None] = mapped_column(ForeignKey("board_plans.id", ondelete="SET NULL"))
 
 
 class BoardTileORM(Base):
@@ -44,3 +46,4 @@ class BoardPlanORM(Base):
     model: Mapped[str | None]
     latency_ms: Mapped[int]
     checks: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
+    trace: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))

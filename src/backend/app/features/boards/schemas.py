@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.provenance import Check
+from app.features.board_plans.schemas import TraceStep
 from app.features.tiles.schemas import AnyPayload
 
 BOARD_NAME_MAX_LENGTH = 80
@@ -22,6 +23,7 @@ class Board(BaseModel):
     name: str
     position: int
     conversation_id: UUID | None
+    plan_id: UUID | None
     created_at: datetime
 
 
@@ -66,6 +68,7 @@ class BoardPlan(BaseModel):
     model: str | None
     latency_ms: int
     checks: list[Check]
+    trace: list[TraceStep]
     created_at: datetime
 
 
@@ -96,6 +99,7 @@ class ResponseBoardSummary(BaseModel):
     name: str
     position: int
     conversation_id: UUID | None
+    plan_id: UUID | None
     tile_count: int
 
 
@@ -119,6 +123,7 @@ class ResponseBoard(BaseModel):
     name: str
     position: int
     conversation_id: UUID | None
+    plan_id: UUID | None
     tiles: list[ResponseTile]
     dropped: list[ResponseDroppedTile]
 
@@ -134,6 +139,8 @@ class ResponseBoardPlan(BaseModel):
     model: str | None
     latency_ms: int
     checks: list[Check]
+    # Each step of the build, in order: what the server read and what the model answered.
+    trace: list[TraceStep]
     created_at: datetime
     # The boards this plan built; empty in the list of plans.
     boards: list[ResponseBoardSummary] = []
