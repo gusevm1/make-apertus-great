@@ -1,0 +1,537 @@
+{
+ "customer": "jana",
+ "run": 3,
+ "request": null,
+ "name": null,
+ "seconds": 7.1,
+ "plan": {
+  "kind": "Young professional starting out with a negative monthly cash flow",
+  "evidence": [
+   "S2: On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "S6: 6 payments of together 3'155.45 are due in the next 30 days."
+  ],
+  "question": "Will my money last until the next payday and what do I need to cut to stay afloat?",
+  "boards": [
+   {
+    "name": "Every month",
+    "tiles": [
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "What is left each month"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Emergency fund"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0131"
+      },
+      "title": "Provisional tax bill"
+     },
+     {
+      "template": "due_soon",
+      "args": {
+       "days": 30
+      },
+      "title": "Bills"
+     },
+     {
+      "template": "merchant_spending",
+      "args": {
+       "merchants": [
+        "Coop",
+        "Migros",
+        "Lidl"
+       ],
+       "period": "this_month"
+      },
+      "title": "Grocery spending"
+     }
+    ]
+   }
+  ],
+  "ideas": [
+   {
+    "title": "Paying back a loan",
+    "text": "You pay back CHF 150.00 a month to Andrea Widmer."
+   },
+   {
+    "title": "Pillar 3a savings gap",
+    "text": "CHF 3'658.00 is still open for pillar 3a this year."
+   },
+   {
+    "title": "Fixed costs",
+    "text": "Your 6 largest monthly payments come to CHF 2'125.45."
+   }
+  ],
+  "dropped": [
+   {
+    "title": "Bills due soon",
+    "reason": "No upcoming payment Immobilien Aareblick AG. The next ones are: SO-RENT (Immobilien Aareblick, 27.11.), PAY-0131 (Steuerverwaltung des Kantons Bern, 30.11.), PAY-0133 (Activ Fitness, 01.12.), PAY-0135 (Wingo, 07.12.), PAY-0137 (Sunrise, 14.12.), PAY-0132 (KPT Krankenkasse, 23.12.), SO-RENT (Immobilien Aareblick, 28.12.), SO-MAMA (Andrea Widmer, 28.12.), SO-3A (Vorsorgekonto Säule 3a, 28.12.), SO-SAV (Sparkonto, 28.12.)."
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 6946,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "5 of 6 resolved; dropped: Bills due soon"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Every month",
+   "tiles": [
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "What is left each month",
+     "payload": {
+      "figure_chf": 250.82,
+      "source": {
+       "label": "444 bookings, May to October",
+       "kind": "bookings",
+       "count": 444
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 5768.75,
+        "spending_chf": 5771.55,
+        "left_chf": -2.8
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 5773.75,
+        "spending_chf": 6116.82,
+        "left_chf": -343.07
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 5773.75,
+        "spending_chf": 4995.51,
+        "left_chf": 778.24
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 5763.75,
+        "spending_chf": 5735.49,
+        "left_chf": 28.26
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 5753.75,
+        "spending_chf": 4454.57,
+        "left_chf": 1299.18
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 5742.75,
+        "spending_chf": 5997.64,
+        "left_chf": -254.89
+       }
+      ]
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Emergency fund",
+     "payload": {
+      "figure_chf": 4919.2,
+      "source": {
+       "label": "1 transfer",
+       "kind": "bookings",
+       "count": 1
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto",
+      "goal_text": "Notgroschen CHF 10'000",
+      "goal_chf": 10000.0,
+      "percent": 49.2,
+      "month_change_chf": 250.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0131"
+     },
+     "title": "Provisional tax bill",
+     "payload": {
+      "figure_chf": 1180.0,
+      "source": {
+       "label": "Steuerverwaltung des Kantons Bern, due 30.11.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Steuerverwaltung des Kantons Bern",
+      "due": "2026-11-30",
+      "description": "Steuern 2026, 3. Rate (provisorisch)",
+      "flag": "provisional"
+     }
+    },
+    {
+     "template": "due_soon",
+     "args": {
+      "days": 30
+     },
+     "title": "Bills",
+     "payload": {
+      "figure_chf": 3155.45,
+      "source": {
+       "label": "All 6 payments",
+       "kind": "payments",
+       "count": 6
+      },
+      "template": "due_soon",
+      "days": 30,
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Immobilien Aareblick",
+        "detail": "rent for December",
+        "amount_chf": 1390.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0131",
+        "due": "2026-11-30",
+        "payee": "Steuerverwaltung des Kantons Bern",
+        "detail": "Steuern Rate",
+        "amount_chf": 1180.0,
+        "balance_after_chf": null,
+        "flag": "provisional"
+       },
+       {
+        "id": "PAY-0133",
+        "due": "2026-12-01",
+        "payee": "Activ Fitness",
+        "detail": "Abo",
+        "amount_chf": 79.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0132",
+        "due": "2026-12-23",
+        "payee": "KPT Krankenkasse",
+        "detail": "premium for January",
+        "amount_chf": 421.6,
+        "balance_after_chf": null,
+        "flag": null
+       }
+      ],
+      "count": 6
+     }
+    },
+    {
+     "template": "merchant_spending",
+     "args": {
+      "merchants": [
+       "Coop",
+       "Migros",
+       "Lidl"
+      ],
+      "period": "this_month"
+     },
+     "title": "Grocery spending",
+     "payload": {
+      "figure_chf": 1116.38,
+      "source": {
+       "label": "Card payments at 3 shops",
+       "kind": "bookings",
+       "count": 22
+      },
+      "template": "merchant_spending",
+      "date_from": "2026-11-01",
+      "date_to": "2026-11-27",
+      "rows": [
+       {
+        "merchant": "Migros",
+        "amount_chf": 483.38,
+        "share": 1.0,
+        "count": 11
+       },
+       {
+        "merchant": "Coop",
+        "amount_chf": 482.93,
+        "share": 0.999,
+        "count": 8
+       },
+       {
+        "merchant": "Lidl",
+        "amount_chf": 150.07,
+        "share": 0.31,
+        "count": 3
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [5]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "hero_fits": {
+   "passed": true,
+   "detail": "hero income_and_spending; strongest headline signals: S2 income_and_spending, S3 savings_goal, S5 pillar_3a"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero shows what is left each month over the last six months, directly answering Jana's stated question that she earns well but less is left at month's end than she expected."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every tile is grounded in Jana's real data and her stated concerns: leftover income, the emergency fund she asks about, the tax bill that surprised her, her actual upcoming bills, and her real grocery spending."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Titles are short, natural, and match their tiles ('What is left each month', 'Emergency fund', 'Provisional tax bill', 'Bills', 'Grocery spending'), with no filler words."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "All tiles carry real non-zero figures, and the provisional tax bill standing beside the bills list is the explicitly allowed detail-beside-its-list pattern rather than a duplicate."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board tells one story a career starter would follow: what is left each month, the buffer being built, what is due soon, and where a big chunk of spending goes."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows what is left each month over the last six months, directly answering Jana's stated question that she earns well but less is left at month's end than she expected."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every tile is grounded in Jana's real data and her stated concerns: leftover income, the emergency fund she asks about, the tax bill that surprised her, her actual upcoming bills, and her real grocery spending."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short, natural, and match their tiles ('What is left each month', 'Emergency fund', 'Provisional tax bill', 'Bills', 'Grocery spending'), with no filler words."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All tiles carry real non-zero figures, and the provisional tax bill standing beside the bills list is the explicitly allowed detail-beside-its-list pattern rather than a duplicate."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one story a career starter would follow: what is left each month, the buffer being built, what is due soon, and where a big chunk of spending goes."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows month by month what is left after income and spending, directly answering Jana's stated complaint that at the end of the month there is not as much left as she expected, and her guiding question of what she can afford."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every tile is built on her real situation — her monthly left-over, her savings standing order toward an emergency fund she explicitly asks about, the provisional tax bill from her surprise first tax year, her actual rent/insurance/fitness bills, and her own card payments at Coop, Migros and Lidl — with nothing generic or belonging to another kind of customer."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short, human and in her terms ('What is left each month', 'Emergency fund', 'Provisional tax bill', 'Grocery spending') and each matches exactly what its tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All five tiles carry real non-zero figures, and the spotlighted tax bill beside the bills list follows the confirmed pattern of showing one flagged bill's detail next to the list it belongs to, with different figures (CHF 1'180 vs CHF 3'155.45) and different scopes, so no two tiles show the same thing."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "Under the tab 'Every month' the board tells one followable story of her monthly money — what remains each month, what she is building up in the emergency fund, and what is due next (the tax bill, the bills of the next 30 days, and her grocery spending)."
+   }
+  }
+ ],
+ "acceptable": true
+}

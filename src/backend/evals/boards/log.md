@@ -330,3 +330,26 @@ the wrong signal ("Tax due" on the emergency fund).
   with the finding behind the idea; ask the chat to add more." Result 11 of 12
   (`runs/20261128-054134-apertus/`). The one failure (Jana, "Fixed costs") carried the loan
   note from the dropped selection. The note is now left out, after the run and not measured.
+
+## Night 4 (06:55 to 07:30): each picked entry checked on its own
+
+- After the selection call, each picked payee and each open bill the keywords found gets a
+  tiny call of its own (`{what, about}`, 12 s, at most 4 at once). An entry whose texts hold
+  the request's own words needs no check. A check that times out drops the entry.
+- In code:
+  - A bill whose payee a regular_payments tile on the board lists already is a repeat.
+  - A later tile on a requested board titled like the board or the request gets its default
+    title.
+  - "Subscriptions" requests take the payees whose upcoming payment texts name a
+    subscription. This rule is copied from `boards/subscriptions.py`, with a `ponytail:`
+    comment that the two lists should become one helper.
+  - A year alone ("2027") is no keyword and no request word, since it marked the Engadin
+    holiday flat for "Japan 2027".
+- Requested boards on the final code: 6 of 8 (`runs/20261128-061136-apertus/`) and 5 of 8
+  (`runs/20261128-061825-apertus/`), against 5 and 3 for the committed code. Kept.
+  Intermediate runs during the round: 6, 4, 4.
+- Idea round trip: 12 of 12 (`runs/20261128-055848-apertus/`). First boards: 12 of 12
+  (`runs/20261128-062146-apertus/`); the new repeat rule is shared with them.
+- Still failing: "What does Lina cost me every month" opens on the dentist bill listed as a
+  regular payment. "Subscriptions" can be a single tile without a reason in `dropped` (the
+  tile_count check fails). "What does the house cost us" has no template for the yearly cost.
