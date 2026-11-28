@@ -54,6 +54,25 @@ type ToolResultEvent = Pick<
   "id" | "arguments" | "result" | "error"
 >;
 
+export interface TraceItem {
+  label: string;
+  text: string;
+  mark: "kept" | "dropped" | null;
+}
+
+/** One step of building a board; it arrives when it starts and again when it ends. */
+export interface TraceStep {
+  name: string;
+  title: string;
+  actor: "server" | "apertus";
+  reads: string;
+  is_done: boolean;
+  has_failed: boolean;
+  seconds: number | null;
+  summary: string | null;
+  items: TraceItem[];
+}
+
 interface SseEvent {
   event: string;
   data: string;
@@ -63,6 +82,8 @@ interface StreamState {
   status: "idle" | "streaming";
   text: string;
   toolCalls: StreamToolCall[];
+  /** The steps of a board being built, from the `step` events. */
+  steps: TraceStep[];
   /** The planning round in progress, from the last `planning` event. */
   round: number | null;
   /** The answer is written and its figures are being checked, from the `checking` event. */
@@ -76,6 +97,7 @@ const IDLE: StreamState = {
   status: "idle",
   text: "",
   toolCalls: [],
+  steps: [],
   round: null,
   isChecking: false,
   startedAt: null,
@@ -135,6 +157,15 @@ export function useStream<TDone>() {
             ? { ...toolCall, ...data, isRunning: false }
             : toolCall,
         ),
+      }));
+    } else if (event === "step") {
+      const data: TraceStep = JSON.parse(raw);
+      setState((current) => ({
+        ...current,
+        steps: [
+          ...current.steps.filter((step) => step.name !== data.name),
+          data,
+        ],
       }));
     } else if (event === "error") {
       throw backendErrorOf(JSON.parse(raw));
