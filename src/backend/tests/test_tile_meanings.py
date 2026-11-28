@@ -1,0 +1,55 @@
+from datetime import date
+from decimal import Decimal
+
+import pytest
+
+from app.features.tiles.meanings import meaning
+from app.features.tiles.schemas import PaydayAlternative, PaydayBalancePayload, Source
+
+TODAY = date(2026, 11, 27)
+
+
+def payday(left: str, per_day: str, alternative: PaydayAlternative | None = None) -> PaydayBalancePayload:
+    return PaydayBalancePayload(
+        figure_chf=Decimal(left),
+        source=Source(label="Privatkonto", kind="payments", rows=[], count=0),
+        account_name="Privatkonto",
+        payday=date(2026, 12, 24),
+        day_before=date(2026, 12, 23),
+        days=27,
+        per_day_chf=Decimal(per_day),
+        today=TODAY,
+        today_balance_chf=Decimal("3075.16"),
+        points=[],
+        upcoming_count=8,
+        alternative=alternative,
+    )
+
+
+@pytest.mark.parametrize(
+    ("left", "per_day", "verdict"),
+    [
+        ("124.96", "4.63", "The money lasts, but only just:"),
+        ("1174.96", "43.52", "The money lasts:"),
+        ("5400.00", "200.00", "The money lasts comfortably:"),
+        ("-80.00", "-2.96", "The money does not last:"),
+    ],
+)
+def test_the_payday_verdict_comes_from_the_figures(left: str, per_day: str, verdict: str) -> None:
+    assert meaning(payload=payday(left=left, per_day=per_day), today=TODAY).startswith(verdict)
+
+
+def test_the_payday_meaning_names_the_missing_income_in_swiss_figures() -> None:
+    alternative = PaydayAlternative(
+        counterparty="Patrick Rüegg",
+        label="the child support",
+        amount_chf=Decimal("1050.00"),
+        left_chf=Decimal("1174.96"),
+        per_day_chf=Decimal("43.52"),
+    )
+
+    text = meaning(payload=payday(left="124.96", per_day="4.63", alternative=alternative), today=TODAY)
+
+    assert "CHF 124.96 are left on 23.12. That is CHF 4.63 a day for 27 days." in text
+    assert "The child support from Patrick Rüegg (CHF 1'050.00) has not arrived" in text
+    assert text.endswith("With it, CHF 1'174.96 would be left.")
