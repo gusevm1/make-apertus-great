@@ -124,6 +124,12 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.tr-profile .fact p .error-note {
+  display: block;
+}
+.tr-profile .fact > .acts {
+  flex-wrap: nowrap;
+}
 .tr-profile .fact.editing {
   flex-direction: column;
   align-items: stretch;

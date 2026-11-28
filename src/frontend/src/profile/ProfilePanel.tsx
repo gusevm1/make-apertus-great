@@ -49,6 +49,7 @@ export function ProfilePanel(props: {
         <p className="hint">Waiting for the e-banking…</p>
       ) : (
         <>
+          <Suggestions token={context.access_token} />
           <Notes token={context.access_token} />
           <Documents token={context.access_token} />
         </>
@@ -63,6 +64,120 @@ export function ProfilePanel(props: {
 
 function plural(count: number, one: string, many: string) {
   return `${count} ${count === 1 ? one : many}`;
+}
+
+function Suggestions({ token }: { token: string }) {
+  const [proposals, setProposals] = useState<Note[] | null>(null);
+  const [error, setError] = useState<RequestError | null>(null);
+
+  async function load() {
+    setError(null);
+    try {
+      setProposals(
+        await api<Note[]>("/api/context-entries?status=proposed", token),
+      );
+    } catch (failure) {
+      setError(requestErrorOf(failure));
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    const reload = () => void load();
+    window.addEventListener(NOTES_CHANGED, reload);
+    return () => window.removeEventListener(NOTES_CHANGED, reload);
+  }, []);
+
+  if (proposals?.length === 0 && error === null) return null;
+  return (
+    <div className="sec">
+      <h2>Suggestions</h2>
+      <div className="card">
+        {error !== null && (
+          <Failure
+            message={error.message}
+            detail="Your suggestions were not loaded."
+            onRetry={() => void load()}
+          />
+        )}
+        {error === null && proposals === null && (
+          <p className="hint">Loading…</p>
+        )}
+        {proposals?.map((proposal) => (
+          <SuggestionRow
+            key={proposal.id}
+            token={token}
+            proposal={proposal}
+            onAnswered={() =>
+              setProposals((current) =>
+                (current ?? []).filter((other) => other.id !== proposal.id),
+              )
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SuggestionRow({
+  token,
+  proposal,
+  onAnswered,
+}: {
+  token: string;
+  proposal: Note;
+  onAnswered: () => void;
+}) {
+  const [isSending, setIsSending] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  async function respond(status: "active" | "dismissed") {
+    setIsSending(true);
+    setFailure(null);
+    try {
+      await api(`/api/context-entries/${proposal.id}`, token, {
+        ...json({ status }),
+        method: "PATCH",
+      });
+      onAnswered();
+      if (status === "active") window.dispatchEvent(new Event(NOTES_CHANGED));
+    } catch (error) {
+      setFailure(requestErrorOf(error).message);
+      setIsSending(false);
+    }
+  }
+
+  return (
+    <div className="fact">
+      <p>
+        {proposal.text}
+        {failure !== null && (
+          <span className="error-note" role="alert">
+            {failure}
+          </span>
+        )}
+      </p>
+      <span className="acts">
+        <button
+          className="btn go sm"
+          type="button"
+          disabled={isSending}
+          onClick={() => void respond("active")}
+        >
+          Save
+        </button>
+        <button
+          className="btn sm"
+          type="button"
+          disabled={isSending}
+          onClick={() => void respond("dismissed")}
+        >
+          Decline
+        </button>
+      </span>
+    </div>
+  );
 }
 
 function Notes({ token }: { token: string }) {
