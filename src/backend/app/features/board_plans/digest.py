@@ -497,7 +497,7 @@ def signals(raw: Raw, resolved: dict[str, AnyPayload]) -> list[Signal]:
         if bills is not None and len(bills.rows) >= 3:
             add(
                 "bills_before_payday",
-                f"{len(bills.rows)} payments of together {chf(bills.figure_chf)} leave before "
+                f"{len(bills.rows)} payments of together CHF {chf(bills.figure_chf)} leave before "
                 f"the salary on {day(bills.payday)}.",
                 60 if tight else 15,
                 "bills_until_payday",
@@ -626,7 +626,7 @@ def signals(raw: Raw, resolved: dict[str, AnyPayload]) -> list[Signal]:
         pressing = soon.figure_chf > balance
         add(
             "due_soon",
-            f"{soon.count} payments of together {chf(soon.figure_chf)} are due in the next "
+            f"{soon.count} payments of together CHF {chf(soon.figure_chf)} are due in the next "
             "30 days" + (", more than the salary account holds today." if pressing else "."),
             75 if pressing else 35,
             "due_soon",
@@ -712,7 +712,7 @@ def signals(raw: Raw, resolved: dict[str, AnyPayload]) -> list[Signal]:
         # Months in the red weigh only when the savings beside them are thin.
         thin = savings_total < spending * THIN_SAVINGS_MONTHS
         pressing = len(negative) >= NEGATIVE_MONTHS_MIN and thin
-        text = f"On average {chf(cashflow.figure_chf)} was left per month over the last 6 months"
+        text = f"On average CHF {chf(cashflow.figure_chf)} was left per month over the last 6 months"
         if len(negative) >= NEGATIVE_MONTHS_MIN:
             text += (
                 f"; in {len(negative)} months more went out than came in ({', '.join(negative)})"
@@ -728,7 +728,7 @@ def signals(raw: Raw, resolved: dict[str, AnyPayload]) -> list[Signal]:
     if spent is not None:
         add(
             "spending",
-            f"Spending averaged {chf(spent.figure_chf)} a month over the last 6 "
+            f"Spending averaged CHF {chf(spent.figure_chf)} a month over the last 6 "
             f"months, highest in {spent.highest}.",
             20,
             "monthly_spending",
