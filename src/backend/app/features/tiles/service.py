@@ -454,6 +454,14 @@ class TileService:
             and row.account_id == args.account_id
             and month_start <= row.date <= today
         ]
+        withdrawals = [
+            row
+            for row in rows
+            if row.source == "booking"
+            and row.account_id == args.account_id
+            and row.amount_chf < 0
+            and today.replace(month=1, day=1) <= row.date <= today
+        ]
         month_name = MONTHS[today.month - 1]
         if not month_rows:
             label = f"No bookings in {month_name}"
@@ -470,6 +478,8 @@ class TileService:
             percent=float((balance / goal * 100).quantize(TENTH, rounding=ROUND_HALF_UP)),
             month_change_chf=sum((row.amount_chf for row in month_rows), Decimal(0)),
             month=_month(day=today),
+            withdrawals_this_year=len(withdrawals),
+            withdrawn_this_year_chf=-sum((row.amount_chf for row in withdrawals), Decimal(0)),
         )
 
     async def _bill(self, args: BillArgs, token: str, today: date) -> BillPayload:

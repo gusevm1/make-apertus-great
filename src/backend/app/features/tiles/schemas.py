@@ -207,6 +207,9 @@ class SavingsGoalPayload(Payload):
     # What came in minus what went out in the current month; negative when money left.
     month_change_chf: Chf
     month: str
+    # Money taken out of the account since 1 January: how often and how much.
+    withdrawals_this_year: int = 0
+    withdrawn_this_year_chf: Chf = Decimal(0)
 
 
 # --- bill: one payment that is due ------------------------------------------------------------

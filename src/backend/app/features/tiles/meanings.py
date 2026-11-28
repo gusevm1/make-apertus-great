@@ -261,10 +261,17 @@ def _savings_goal(payload: SavingsGoalPayload) -> str:
     month = _month(month=payload.month)
     change = payload.month_change_chf
     if change < 0:
-        return f"{text}; {_chf(amount=-change)} went out of it in {month}."
-    if change > 0:
-        return f"{text}; {_chf(amount=change)} came in in {month}."
-    return f"{text}; nothing came in or went out in {month}."
+        text = f"{text}; {_chf(amount=-change)} went out of it in {month}."
+    elif change > 0:
+        text = f"{text}; {_chf(amount=change)} came in in {month}."
+    else:
+        text = f"{text}; nothing came in or went out in {month}."
+    if payload.withdrawals_this_year == 0:
+        return f"{text} Nothing was taken out of it this year."
+    return (
+        f"{text} This year it was used {_count(count=payload.withdrawals_this_year, noun='time')}: "
+        f"{_chf(amount=payload.withdrawn_this_year_chf)} taken out in all."
+    )
 
 
 def _pillar_3a(payload: Pillar3aPayload) -> str:
