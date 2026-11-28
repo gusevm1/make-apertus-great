@@ -240,10 +240,12 @@ class ApertusClient:
         model: Model,
         purpose: str,
         timeout_seconds: float | None = None,
+        json_schema_mode: bool | None = None,
     ) -> LLMResult[T]:
-        """Complete a chat and validate the answer against `schema`, retrying once on bad output."""
+        """Complete a chat validated against `schema`; `json_schema_mode` overrides the setting."""
         json_schema = schema.model_json_schema()
-        if self._json_schema_supported:
+        constrained = self._json_schema_supported if json_schema_mode is None else json_schema_mode
+        if constrained:
             response_format: ResponseFormat | None = {
                 "type": "json_schema",
                 "json_schema": {"name": schema.__name__, "schema": json_schema},
