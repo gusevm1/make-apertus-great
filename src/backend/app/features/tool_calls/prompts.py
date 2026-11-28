@@ -9,6 +9,9 @@ from app.core.prompts import load_prompts
 from app.core.tools import Tool
 from app.features.tool_calls.schemas import ToolCall, ToolDecision
 
+# Kept in a stored result for the page, never shown to the model.
+HIDDEN_KEYS = {"tile_source"}
+
 PROMPTS = load_prompts(prompts_py=__file__)
 TOOL_RESULT_MAX_CHARS = 6000
 # The blocks `chat_prompt` puts in front of the question; their own text is escaped.
@@ -189,7 +192,10 @@ def _tool_result(call: ToolCall) -> str:
     if call.error is not None:
         error = _cut(text=_data(text=call.error))
         return PROMPTS["tool_error"].format(tool=tool, reason=reason, error=error)
-    result = _cut(text=_data(text=json.dumps(call.result, ensure_ascii=False)))
+    shown = call.result and {
+        key: value for key, value in call.result.items() if key not in HIDDEN_KEYS
+    }
+    result = _cut(text=_data(text=json.dumps(shown, ensure_ascii=False)))
     return PROMPTS["tool_result"].format(tool=tool, reason=reason, result=result)
 
 

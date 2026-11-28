@@ -156,3 +156,36 @@ async def test_a_tile_figure_without_booking_ids_says_its_meaning_and_count() ->
     assert source.label == "From 01.11. to 27.11., CHF 698.29 went to Migros."
     assert source.count == 15
     assert source.rows == []
+
+
+async def test_a_tile_figure_opens_the_tiles_own_bookings() -> None:
+    tile = call(
+        tool_name="add_tile",
+        title="Add a tile",
+        result={
+            "figures": {"figure_chf": 698.29},
+            "meaning": "From 01.11. to 27.11., CHF 698.29 went to Migros.",
+            "tile_source": {
+                "label": "15 payments at Migros, November",
+                "kind": "bookings",
+                "rows": [
+                    {
+                        "id": f"BK-{n}",
+                        "date": "2026-11-0{n}",
+                        "text": "MIGROS",
+                        "amount_chf": "-40.00",
+                    }
+                    for n in range(1, 8)
+                ],
+                "count": 15,
+            },
+        },
+    )
+
+    [source] = await service().figure_sources(
+        answer="Bei Migros waren es CHF 698.29.", calls=[tile], documents=[]
+    )
+
+    assert source.label == "15 payments at Migros, November"
+    assert source.count == 15
+    assert [row.id for row in source.rows] == ["BK-1", "BK-2", "BK-3", "BK-4", "BK-5"]

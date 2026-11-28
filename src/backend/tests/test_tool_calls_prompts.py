@@ -68,6 +68,28 @@ async def test_answer_prompt_adds_results_and_cuts_long_ones(session: AsyncSessi
     assert "result cut off here" in content
 
 
+async def test_answer_prompt_leaves_the_tile_source_out(session: AsyncSession) -> None:
+    conversation = await make_conversation(session=session)
+    message = await make_message(session=session, conversation_id=conversation.id)
+    call = await make_tool_call(
+        session=session,
+        conversation_id=conversation.id,
+        message_id=message.id,
+        result={
+            "summary": 'Added "Migros in November"',
+            "tile_source": {"label": "15 payments", "rows": [{"id": "BK-77"}], "count": 15},
+        },
+    )
+
+    prompt = answer_prompt(messages=CHAT, calls=[call], tools=[LOOKUP])
+
+    content = prompt[2]["content"]
+    assert isinstance(content, str)
+    assert "Migros in November" in content
+    assert "tile_source" not in content
+    assert "BK-77" not in content
+
+
 @pytest.mark.parametrize(("error", "names_change"), [(None, True), ("No such tile.", False)])
 async def test_answer_prompt_names_only_board_changes_that_happened(
     session: AsyncSession, error: str | None, names_change: bool

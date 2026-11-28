@@ -98,6 +98,15 @@ class FigureSourceService:
                 count=1,
             )
         ids, group = _booking_ids(result=result, path=path)
+        tile = result.get("tile_source")
+        if not ids and isinstance(tile, dict) and isinstance(tile.get("rows"), list):
+            return FigureSource(
+                text=figure.text,
+                label=str(tile.get("label") or call.title),
+                tool_call_id=str(call.id),
+                rows=[_row_of(record=row) for row in tile["rows"][:ROWS_MAX]],
+                count=int(tile.get("count") or len(tile["rows"])),
+            )
         if not ids:
             # Without booking ids the result's own sentence and count say what the figure is.
             meaning = result.get("meaning")
