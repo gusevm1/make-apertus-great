@@ -1361,3 +1361,44 @@
     padding: 32px 16px;
   }
 }
+
+/* Inside the e-banking the page is about 1040 px wide, so a tile sizes its own contents. */
+.tile {
+  container-type: inline-size;
+}
+
+.heronum {
+  font-size: clamp(30px, 12cqi, 54px);
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.cols {
+  padding-bottom: 84px;
+}
+
+@container (max-width: 380px) {
+  .list li,
+  .bills li {
+    padding: 6px 0;
+  }
+
+  .list .who,
+  .bills .who {
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: 2px;
+  }
+}
+
+@container (max-width: 420px) {
+  .list .who .d {
+    display: none;
+  }
+}
+
+/* The board fades out under the dock instead of showing through beside it. */
+.dockwrap {
+  padding-top: 28px;
+  background: linear-gradient(to top, var(--canvas) 55%, transparent);
+}
