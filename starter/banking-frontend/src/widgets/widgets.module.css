@@ -17,6 +17,19 @@
   overflow: hidden;
 }
 
+/* A TrustRoom tile fills its cell: its frame is at least as tall as stored and grows with the row. */
+.bare {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.bare > iframe {
+  flex: 1 0 auto;
+}
+.bare > .sourceLink {
+  align-self: flex-start;
+}
+
 .sourceLink {
   display: inline-block;
   margin-top: 12px;

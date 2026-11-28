@@ -2,6 +2,8 @@ import { Component, type ReactNode } from "react";
 import { Card } from "../components/Card";
 import { Icon } from "../components/Icon";
 import { ErrorTile } from "../components/QueryState";
+import { config } from "../config";
+import { TrustRoomFrame } from "../trustroom/TrustRoomFrame";
 import { WIDGETS, type Widget } from "./registry";
 import styles from "./widgets.module.css";
 
@@ -18,6 +20,17 @@ export function WidgetTile({ widget, edit }: { widget: Widget; edit?: TileEdit }
   const def = WIDGETS[widget.type];
   const { col, row, width = 1, height = 1 } = widget.position;
   const title = widget.title ?? def?.title ?? widget.type;
+  // A TrustRoom tile is a card with its own heading, so it gets no second card around it.
+  const tileHtml = widget.custom?.format === "html" && widget.custom.created_by === "TrustRoom" ? widget.custom : null;
+  // With a TrustRoom configured the tile itself is framed, live; its stored picture is the fallback.
+  const liveTile = config.trustroomUrl
+    ? /^<!-- trustroom-tile:([\w-]+\/[\w-]+) -->/.exec(tileHtml?.html ?? "")?.[1]
+    : null;
+  const content = (
+    <WidgetErrorBoundary>
+      {def ? <def.component widget={widget} /> : <ErrorTile message={`Unknown widget type "${widget.type}"`} />}
+    </WidgetErrorBoundary>
+  );
   return (
     <div
       className={styles.tile}
@@ -25,11 +38,13 @@ export function WidgetTile({ widget, edit }: { widget: Widget; edit?: TileEdit }
       onDragOver={edit && ((e) => e.preventDefault())}
       onDrop={edit && ((e) => edit.onDropWidget(e.dataTransfer.getData(DRAG_TYPE)))}
     >
-      <Card title={title}>
-        <WidgetErrorBoundary>
-          {def ? <def.component widget={widget} /> : <ErrorTile message={`Unknown widget type "${widget.type}"`} />}
-        </WidgetErrorBoundary>
-      </Card>
+      {tileHtml ? (
+        <div className={styles.bare} style={{ minHeight: tileHtml.height }}>
+          {liveTile ? <TrustRoomFrame mode="panel" visible tile={liveTile} /> : content}
+        </div>
+      ) : (
+        <Card title={title}>{content}</Card>
+      )}
       {edit && (
         <div
           className={styles.editOverlay}
