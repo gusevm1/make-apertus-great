@@ -1,0 +1,445 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "What does Lina cost me every month?",
+ "name": null,
+ "seconds": 8.0,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Zahnarztpraxis Neuwiesen, Stadt Winterthur, Betreuung Schule, Lina, Zahnarztpraxis Neuwiesen, Betreuung Schule"
+  ],
+  "question": "What does Lina cost me every month?",
+  "boards": [
+   {
+    "name": "What Lina costs",
+    "tiles": [
+     {
+      "template": "monthly_spending",
+      "args": {
+       "months": 12,
+       "merchants": [
+        "Schwimmschule Delfin Winterthur",
+        "Kinderarztpraxis Rosenberg"
+       ]
+      },
+      "title": "Where the money goes"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Zahnarztpraxis Neuwiesen",
+        "Stadt Winterthur, Betreuung Schule",
+        "Assura-Basis SA"
+       ]
+      },
+      "title": "What Lina costs"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Bill, due 30.11.",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Bill, due 30.11.",
+    "reason": "shows the same payments as another tile on the board"
+   },
+   {
+    "title": "Bill, due 10.12.",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 7803,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "4 of 5 resolved; dropped: Bill, due 30.11.; Bill, due 30.11.; Bill, due 10.12."
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Lina's monthly costs per month (December/January 2026/27): dentist + school care (hort & lunch) bills and upcoming payments for Lina's dentist and school care fees, including any late fees or reminders for her bills this month and next month's due amounts for her school care and dentist bill with reminder status shown for the overdue dentist bill due 30.11.2026 of CHF 440.00 including CHF 20.00 late fee for the second reminder for Lina's dental bill and CHF 348.00 due for school care in December and January 2027 each month for a total of CHF 696.00 for school care over the two months plus the dentist bill of CHF 440.00 for this month's outstanding bill with reminder status shown for the overdue amount due by 30.11.2026; Bill, due 30.11.; Bill, due 10.12."
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "What Lina costs",
+   "tiles": [
+    {
+     "template": "monthly_spending",
+     "args": {
+      "months": 12,
+      "merchants": [
+       "Schwimmschule Delfin Winterthur",
+       "Kinderarztpraxis Rosenberg"
+      ]
+     },
+     "title": "Where the money goes",
+     "payload": {
+      "figure_chf": 41.84,
+      "source": {
+       "label": "3 payments, November 2025 to October 2026",
+       "kind": "bookings",
+       "count": 3
+      },
+      "template": "monthly_spending",
+      "months": [
+       {
+        "month": "2025-11",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2025-12",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-01",
+        "total_chf": 142.1,
+        "count": 1
+       },
+       {
+        "month": "2026-02",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-03",
+        "total_chf": 180.0,
+        "count": 1
+       },
+       {
+        "month": "2026-04",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-05",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-06",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-07",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-08",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-09",
+        "total_chf": 180.0,
+        "count": 1
+       },
+       {
+        "month": "2026-10",
+        "total_chf": 0.0,
+        "count": 0
+       }
+      ],
+      "highest": "2026-03"
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Zahnarztpraxis Neuwiesen",
+       "Stadt Winterthur, Betreuung Schule",
+       "Assura-Basis SA"
+      ]
+     },
+     "title": "What Lina costs",
+     "payload": {
+      "figure_chf": 1077.6,
+      "source": {
+       "label": "3 upcoming payments",
+       "kind": "payments",
+       "count": 3
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Zahnarztpraxis Neuwiesen",
+        "amount_chf": 440.0,
+        "next_due": "2026-11-30"
+       },
+       {
+        "payee": "Stadt Winterthur, Betreuung Schule",
+        "amount_chf": 348.0,
+        "next_due": "2026-12-10"
+       },
+       {
+        "payee": "Assura-Basis SA",
+        "amount_chf": 289.6,
+        "next_due": "2026-12-23"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [2]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The hero answers only a sliver of the request — an average of CHF 41.84 a month at the swimming school and pediatrician — so the large headline wildly understates what Lina costs, while the more direct answer, her recurring dentist, childcare and insurance payments totalling CHF 1'077.60, sits in the second tile."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Both tiles draw on real payees from Daniela's accounts that fit Lina — the children's doctor and swimming school, the dentist bill the persona confirms is Lina's treatment, school childcare and a basic-insurance premium — with no generic filler or off-request signal."
+  },
+  "titles": {
+   "passed": false,
+   "reason": "The hero title 'Where the money goes' is generic template wording that names neither Lina nor the two merchants the tile actually shows, so it neither matches its tile nor uses the customer's terms."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "Both tiles carry real non-zero figures and cover different ground — a year of past activity and health spending versus the upcoming dentist, childcare and insurance bills — so nothing is empty, zero or duplicated."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "Both tiles stay on the single theme of the request — Lina's costs, her small recurring activity and health spending beside her bigger upcoming bills — and nothing on the board wanders off that topic."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero answers only a sliver of the request — an average of CHF 41.84 a month at the swimming school and pediatrician — so the large headline wildly understates what Lina costs, while the more direct answer, her recurring dentist, childcare and insurance payments totalling CHF 1'077.60, sits in the second tile."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Both tiles draw on real payees from Daniela's accounts that fit Lina — the children's doctor and swimming school, the dentist bill the persona confirms is Lina's treatment, school childcare and a basic-insurance premium — with no generic filler or off-request signal."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "The hero title 'Where the money goes' is generic template wording that names neither Lina nor the two merchants the tile actually shows, so it neither matches its tile nor uses the customer's terms."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Both tiles carry real non-zero figures and cover different ground — a year of past activity and health spending versus the upcoming dentist, childcare and insurance bills — so nothing is empty, zero or duplicated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "Both tiles stay on the single theme of the request — Lina's costs, her small recurring activity and health spending beside her bigger upcoming bills — and nothing on the board wanders off that topic."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero shows only swim-school and pediatrician spending (about CHF 42 a month) under a generic title, while the tile that most directly answers 'what does Lina cost me every month' — the CHF 1'077.60 of regular payments for her — sits second."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Both tiles draw on real Lina-related costs from her accounts — swim school, the pediatrician, her open dentist bill, school childcare and the insurance premium — so they are about this request and her actual life."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "'What Lina costs' fits its tile, but the hero title 'Where the money goes' is generic and mislabels a tile that shows only two child-related merchants rather than where her money actually goes."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Both tiles carry real, non-zero figures and show different things — past merchant spending versus upcoming payments — with no duplication between them."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board stays on one theme, what Lina costs, pairing her recurring activity spending with the payments coming up for her."
+   }
+  }
+ ],
+ "acceptable": false
+}

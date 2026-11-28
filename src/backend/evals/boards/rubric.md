@@ -62,3 +62,15 @@ read against the request:
 - **coherent**: the board is about the request and nothing else.
 - A small board (two tiles) passes when the data holds nothing more about the
   request; an off-topic tile added to fill it fails.
+- **tile_count** for a requested board (deterministic): 2 to 5 tiles, or fewer
+  when the plan says why in `dropped` (one tile only when nothing else in the
+  data is about the request; none with "Nothing in your accounts is about this
+  request yet.").
+- When the bank cannot know what the request asks (how much of a private loan
+  is left), the board shows what the data can say and the page says what is
+  missing in a quiet line under the board ("The bank does not know how much of
+  the loan is left; tell me the amount and I add it."). hero_question passes
+  when the first tile shows the closest thing the data holds and that line is
+  there.
+- An idea from the new-board screen is sent as "<title>. <sentence>"; judge it
+  as a request.

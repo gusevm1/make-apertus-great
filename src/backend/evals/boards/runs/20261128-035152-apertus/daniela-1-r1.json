@@ -1,0 +1,454 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "What does Lina cost me every month?",
+ "name": null,
+ "seconds": 5.1,
+ "plan": {
+  "kind": "",
+  "evidence": [],
+  "question": "What does Lina cost me every month?",
+  "boards": [
+   {
+    "name": "Lina's savings",
+    "tiles": [
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-KID"
+       ]
+      },
+      "title": "Lina's savings"
+     },
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-SAV",
+        "ACC-KID"
+       ]
+      },
+      "title": "Two savings accounts exist"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0244"
+      },
+      "title": "Dentist bill for Lina due"
+     },
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "Income and spending"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 4869,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "4 of 4 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Monthly spending exceeds income"
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Lina's savings",
+   "tiles": [
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-KID"
+      ]
+     },
+     "title": "Lina's savings",
+     "payload": {
+      "figure_chf": 3470.5,
+      "source": {
+       "label": "1 savings account",
+       "kind": "accounts",
+       "count": 1
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-KID",
+        "name": "Jugendsparkonto Lina",
+        "balance_chf": 3470.5,
+        "purpose": "Geschenke der Grosseltern für Lina (nicht antasten)"
+       }
+      ]
+     }
+    },
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-SAV",
+       "ACC-KID"
+      ]
+     },
+     "title": "Two savings accounts exist",
+     "payload": {
+      "figure_chf": 3754.75,
+      "source": {
+       "label": "2 savings accounts",
+       "kind": "accounts",
+       "count": 2
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-SAV",
+        "name": "Sparkonto Notgroschen",
+        "balance_chf": 284.25,
+        "purpose": "Reserve für Unvorhergesehenes"
+       },
+       {
+        "account_id": "ACC-KID",
+        "name": "Jugendsparkonto Lina",
+        "balance_chf": 3470.5,
+        "purpose": "Geschenke der Grosseltern für Lina (nicht antasten)"
+       }
+      ]
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0244"
+     },
+     "title": "Dentist bill for Lina due",
+     "payload": {
+      "figure_chf": 440.0,
+      "source": {
+       "label": "Zahnarztpraxis Neuwiesen, due 30.11.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Zahnarztpraxis Neuwiesen",
+      "due": "2026-11-30",
+      "description": "Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+      "flag": "reminder"
+     }
+    },
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "Income and spending",
+     "payload": {
+      "figure_chf": -370.77,
+      "source": {
+       "label": "362 bookings, May to October",
+       "kind": "bookings",
+       "count": 362
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 4267.12,
+        "spending_chf": 4152.76,
+        "left_chf": 114.36
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 4052.12,
+        "spending_chf": 3994.05,
+        "left_chf": 58.07
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 4052.12,
+        "spending_chf": 4662.39,
+        "left_chf": -610.27
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 4052.12,
+        "spending_chf": 4793.17,
+        "left_chf": -741.05
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 4107.12,
+        "spending_chf": 4568.97,
+        "left_chf": -461.85
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 4052.12,
+        "spending_chf": 4636.02,
+        "left_chf": -583.9
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [4]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The hero shows the balance of Lina's youth savings account — money given to Lina that Daniela does not touch — which is not a cost and does not answer what Lina costs her every month."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "Only the dentist bill is a real cost for Lina; the two savings-account tiles and the whole-household income-and-spending tile are not about the request and do not belong on this board."
+  },
+  "titles": {
+   "passed": false,
+   "reason": "'Two savings accounts exist' reads like a database observation rather than a title a person would write, and none of the titles speak to the question of Lina's monthly costs."
+  },
+  "not_empty_or_repeated": {
+   "passed": false,
+   "reason": "The second tile repeats the Lina savings balance of CHF 3'470.50 already shown alone in the first tile, merely adding the emergency fund in a pointless existence listing."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board jumps from savings balances to one due bill to total household cashflow without ever addressing Lina's monthly costs, so it tells no single story about the request."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero shows the balance of Lina's youth savings account — money given to Lina that Daniela does not touch — which is not a cost and does not answer what Lina costs her every month."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Only the dentist bill is a real cost for Lina; the two savings-account tiles and the whole-household income-and-spending tile are not about the request and do not belong on this board."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "'Two savings accounts exist' reads like a database observation rather than a title a person would write, and none of the titles speak to the question of Lina's monthly costs."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The second tile repeats the Lina savings balance of CHF 3'470.50 already shown alone in the first tile, merely adding the emergency fund in a pointless existence listing."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board jumps from savings balances to one due bill to total household cashflow without ever addressing Lina's monthly costs, so it tells no single story about the request."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero shows the balance of Lina's youth savings account — money set aside for Lina that Daniela does not touch — which is not an answer to what Lina costs her every month."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Only the dentist bill touches the request; the two savings-account tiles and the whole-household income-and-spending chart are about Daniela's general budget, not the monthly cost of raising Lina."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "\"Two savings accounts exist\" reads like a system statement rather than something a person would write, even though the other titles are short and match their tiles."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "Tiles 1 and 2 repeat the same Lina savings balance of CHF 3'470.50, the second adding only the emergency-fund row to what the first already showed."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board jumps from savings balances to a single bill to a general income-and-spending chart and never tells one story about Lina's monthly costs, which is what the request asked for."
+   }
+  }
+ ],
+ "acceptable": false
+}

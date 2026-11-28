@@ -244,3 +244,58 @@ the wrong signal ("Tax due" on the emergency fund).
   requests have no template that answers them: when the parents' loan is repaid (no tile shows
   a loan's remaining amount) and what the house costs a year (no tile sums interest,
   amortisation and the house's payees).
+
+## Night 2 (04:50 to 06:00): requested boards, ideas, fallback, expected_label
+
+### Requested boards: the model selects, the server builds
+- Tried first: a yes/no per entry over every account, payee, booking payee, payment and
+  finding (`runs/20261128-035642-apertus/`, 0 of 8). The answer was long, some calls timed
+  out, and Apertus said yes to unrelated findings.
+- Now: one small call returns `entries` (payee names, an enum of this customer's payees),
+  `keywords` (German words of the data), `costs_only`, `open_bills`, a tab name and three
+  group titles. The server matches them against the accounts, upcoming payees, payees of the
+  last 12 months, open payments and the specific findings. General findings (cash flow,
+  spending, due soon, fixed costs, savings pots) are never offered to a request. Then it
+  builds the tiles by type: goal → savings_goal, payees → regular_payments, booking payees →
+  monthly_spending over 12 months, a payment → bill, a finding → its tile. A private-loan
+  payee gets both the standing order and "Repaid each month", plus the note "The bank does not
+  know how much of the loan is left; tell me the amount and I add it." in `dropped`. A board
+  with nothing gets the reason "Nothing in your accounts is about this request yet."
+- Scores over the iterations: 4, 3, 3, 5, 3, 2 of 8 (`runs/20261128-040323` to
+  `-043344-apertus`). Best: 5 of 8 (`runs/20261128-042129-apertus/`); two of the passing
+  boards there came from the keyword fallback after gateway timeouts.
+- What still fails: Apertus names off-topic payees (the Engadin holiday flat for Japan, Andrea
+  Widmer for the emergency fund) and sets `costs_only` for "open bills". Cross-checking
+  entries against keywords did not help, and opening cost questions on monthly bars broke
+  titles. Both were reverted (b8), so the code is at the b6/b7 method.
+
+### Ideas: always three, server-chosen
+- The strongest signals off the first board, findings about one thing before findings about
+  the whole month, never payday or price_rise. Titled by the model's own title for that
+  signal, else a title by kind ("Instalments", "Fixed costs", "Savings pots"). The fallback
+  check shows three per customer.
+- Round trip ("<title>. <sentence>" as a request): 3 of 12 (`runs/20261128-044355-apertus/`),
+  then 2 of 12 (`runs/20261128-045204-apertus/`) after the idea's finding became the hero.
+  That second run looked up the idea's finding among the offered signals only, and spending
+  and fixed costs are not offered (they overlap other tiles), so it missed. Fixed after the
+  run (it now looks in all signals), not yet measured.
+
+### Fallback when the gateway does not answer
+- Each planning call has `timeout_seconds=20` and an `asyncio.wait_for` budget of 28 s (the
+  client's retries happen inside it), so a first plan is at most about 56 s and a request
+  28 s. On a timeout or UpstreamError the board comes from the server's ranking, or from a
+  keyword match for a request. `model` is "server", and the check `planned_by_model` is false
+  with "The model did not answer in time; ...".
+- `uv run python -m evals.boards.fallback` runs every customer's first plan and both requests
+  with a client that always fails: all fall back cleanly, first boards of 6 to 7 tiles with 3
+  ideas, every request a board or an empty board with its reason.
+
+### expected_label
+- The profile call gets the late income's booking text beside the field, with the German to
+  English list. If the model's label is unusable, code maps the booking text (Unterhalt →
+  "the child support"). Daniela's hero now carries `expected_label: "the child support"`.
+
+### First boards after these changes: 9 of 12 (`runs/20261128-043744-apertus/`)
+- Jana 1 and 2: the judge failed the lowercase title "bills". Titles now start with a
+  capital (after this run). Marco 2: the board drifted off the mortgage story (pillar 3a and
+  the car instalments).

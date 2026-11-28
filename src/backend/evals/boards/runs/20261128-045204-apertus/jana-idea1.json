@@ -1,0 +1,293 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": "Pillar 3a savings gap. Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+ "name": "jana-idea1",
+ "seconds": 28.1,
+ "plan": {
+  "kind": "",
+  "evidence": [],
+  "question": "Pillar 3a savings gap. Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+  "boards": [
+   {
+    "name": "New board",
+    "tiles": [
+     {
+      "template": "pillar_3a",
+      "args": {},
+      "title": "Pillar 3a savings gap"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [],
+  "model": "server",
+  "latency_ms": 0,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "1 of 1 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": false,
+    "detail": "The model did not answer in time; this board holds what your request names word for word."
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "New board",
+   "tiles": [
+    {
+     "template": "pillar_3a",
+     "args": {},
+     "title": "Pillar 3a savings gap",
+     "payload": {
+      "figure_chf": 3658.0,
+      "source": {
+       "label": "11 payments in 2026",
+       "kind": "bookings",
+       "count": 11
+      },
+      "template": "pillar_3a",
+      "year": 2026,
+      "maximum_chf": 7258.0,
+      "paid_chf": 3300.0,
+      "standing_orders_chf": 300.0,
+      "balance_chf": 3300.0,
+      "planned": []
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": false,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The first tile shows exactly what the request asks: the pillar 3a gap of CHF 3'658 remaining after standing orders, alongside the CHF 3'300 paid of the CHF 7'258 maximum."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "The tile is about Jana's real pillar 3a account opened in January 2026 with its monthly standing order, matching her persona exactly, and nothing generic or off-topic was added."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "'Pillar 3a savings gap' is short, uses the customer's own terms from the request, and matches what the tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The single tile carries a meaningful non-zero figure with no duplicates."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board is about the requested pillar 3a gap and nothing else, with the one tile telling that story completely."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows exactly what the request asks: the pillar 3a gap of CHF 3'658 remaining after standing orders, alongside the CHF 3'300 paid of the CHF 7'258 maximum."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The tile is about Jana's real pillar 3a account opened in January 2026 with its monthly standing order, matching her persona exactly, and nothing generic or off-topic was added."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "'Pillar 3a savings gap' is short, uses the customer's own terms from the request, and matches what the tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile carries a meaningful non-zero figure with no duplicates."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board is about the requested pillar 3a gap and nothing else, with the one tile telling that story completely."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows exactly what the request asks: the 3'658 gap after standing orders, with 3'300 paid of the 7'258 maximum for 2026."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The tile is about Jana's real pillar 3a account (opened January 2026 with monthly standing orders), using her actual 2026 payment data."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "'Pillar 3a savings gap' is short, uses the customer's own term (pillar 3a), and matches exactly what the tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile carries meaningful, non-zero figures (gap, paid, maximum, standing orders) and there is no duplicate."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board is entirely about the requested pillar 3a gap and nothing else, and the single tile fully covers what the request states."
+   }
+  }
+ ],
+ "acceptable": false
+}

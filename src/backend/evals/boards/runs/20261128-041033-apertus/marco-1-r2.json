@@ -1,0 +1,491 @@
+{
+ "customer": "marco",
+ "run": 1,
+ "request": "What should we decide about the mortgage?",
+ "name": null,
+ "seconds": 28.2,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: What, should, decide, about, mortgage, Hypothek"
+  ],
+  "question": "What should we decide about the mortgage?",
+  "boards": [
+   {
+    "name": "Mortgage",
+    "tiles": [
+     {
+      "template": "mortgage",
+      "args": {},
+      "title": "Mortgage"
+     },
+     {
+      "template": "monthly_spending",
+      "args": {
+       "months": 12,
+       "merchants": [
+        "ti&m Demo Bank AG"
+       ]
+      },
+      "title": "Each month"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "ti&m Demo Bank AG"
+       ]
+      },
+      "title": "Regular payments"
+     },
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-PRIV"
+       ]
+      },
+      "title": "Your accounts"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [],
+  "model": "server",
+  "latency_ms": 0,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "4 of 4 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": false,
+    "detail": "The model did not answer in time; this board holds what your request names word for word."
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Mortgage",
+   "tiles": [
+    {
+     "template": "mortgage",
+     "args": {},
+     "title": "Mortgage",
+     "payload": {
+      "figure_chf": 862500.0,
+      "source": {
+       "label": "3 tranches",
+       "kind": "loans",
+       "count": 3
+      },
+      "template": "mortgage",
+      "annual_interest_chf": 8425.0,
+      "tranches": [
+       {
+        "loan_id": "LOAN-01",
+        "product": "Festhypothek 10 Jahre",
+        "balance_chf": 400000.0,
+        "interest_rate": 1.05,
+        "maturity_date": "2029-03-31",
+        "next_interest_date": "2026-12-31"
+       },
+       {
+        "loan_id": "LOAN-02",
+        "product": "Festhypothek 8 Jahre",
+        "balance_chf": 350000.0,
+        "interest_rate": 0.95,
+        "maturity_date": "2027-03-31",
+        "next_interest_date": "2026-12-31"
+       },
+       {
+        "loan_id": "LOAN-03",
+        "product": "SARON-Hypothek",
+        "balance_chf": 112500.0,
+        "interest_rate": 0.8,
+        "maturity_date": "2028-03-31",
+        "next_interest_date": "2026-12-31"
+       }
+      ],
+      "next_maturity": {
+       "loan_id": "LOAN-02",
+       "product": "Festhypothek 8 Jahre",
+       "balance_chf": 350000.0,
+       "interest_rate": 0.95,
+       "maturity_date": "2027-03-31",
+       "next_interest_date": "2026-12-31"
+      }
+     }
+    },
+    {
+     "template": "monthly_spending",
+     "args": {
+      "months": 12,
+      "merchants": [
+       "ti&m Demo Bank AG"
+      ]
+     },
+     "title": "Each month",
+     "payload": {
+      "figure_chf": 1120.83,
+      "source": {
+       "label": "16 payments, November 2025 to October 2026",
+       "kind": "bookings",
+       "count": 16
+      },
+      "template": "monthly_spending",
+      "months": [
+       {
+        "month": "2025-11",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2025-12",
+        "total_chf": 3366.25,
+        "count": 4
+       },
+       {
+        "month": "2026-01",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-02",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-03",
+        "total_chf": 3363.75,
+        "count": 4
+       },
+       {
+        "month": "2026-04",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-05",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-06",
+        "total_chf": 3361.25,
+        "count": 4
+       },
+       {
+        "month": "2026-07",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-08",
+        "total_chf": 0.0,
+        "count": 0
+       },
+       {
+        "month": "2026-09",
+        "total_chf": 3358.75,
+        "count": 4
+       },
+       {
+        "month": "2026-10",
+        "total_chf": 0.0,
+        "count": 0
+       }
+      ],
+      "highest": "2025-12"
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "ti&m Demo Bank AG"
+      ]
+     },
+     "title": "Regular payments",
+     "payload": {
+      "figure_chf": 1050.0,
+      "source": {
+       "label": "1 payment in December",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "ti&m Demo Bank AG",
+        "amount_chf": 1050.0,
+        "next_due": "2026-12-31"
+       }
+      ]
+     }
+    },
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-PRIV"
+      ]
+     },
+     "title": "Your accounts",
+     "payload": {
+      "figure_chf": 18338.26,
+      "source": {
+       "label": "1 account",
+       "kind": "accounts",
+       "count": 1
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-PRIV",
+        "name": "Privatkonto",
+        "balance_chf": 18338.26,
+        "purpose": "Lohn- und Familienkonto, Hypothekarzinsen, alle Rechnungen"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "mortgage_maturity",
+   "text": "The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "strength": 95,
+   "template": "mortgage",
+   "args": {}
+  },
+  {
+   "id": "S2",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'000.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto Haus holds 19'350.30, 97 % of its goal \"Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-HOUSE"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "instalments",
+   "text": "Instalment plans running: Seeblick Auto-Leasing AG (29 of 48 paid, 9'291.00 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Seeblick Auto-Leasing AG"
+    ]
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "9 payments of together 6'566.00 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "cashflow",
+   "text": "On average -246.13 was left per month over the last 6 months; in 2 months more went out than came in (2026-06, 2026-08).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 11'914.96 is left on Privatkonto after 8 payments, 441.29 a day. A month's spending is about 12'344.47.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S8",
+   "kind": "spending",
+   "text": "Spending averaged 11'716.70 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 6'423.30 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "fixed_costs",
+   "text": "The 3 largest monthly payments add up to 2'812.60 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Steueramt Wädenswil",
+     "Helsana Versicherungen AG",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-HOUSE",
+     "ACC-SAV"
+    ]
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "income_regular",
+   "text": "Simone Baumann sends about 2'600.00 every month, around day 26.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Simone Baumann"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [4]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero lists all three tranches and flags the 8-year fixed (CHF 350'000 at 0.95 %, maturing 31.03.2027) as the next maturity — the very tranche the renewal decision is about — which is the most direct answer the banking data holds for this request."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The first three tiles are about the mortgage, but 'Your accounts' shows only the private account balance, which says nothing about the mortgage decision (the savings that could pay down the tranche sit in the «House», «Family» and 3a accounts, none of which appear), so it reads as filler on a request board."
+  },
+  "titles": {
+   "passed": false,
+   "reason": "'Each month' names no content and mislabels what are actually quarterly interest charges, and 'Your accounts' is plural for a tile that lists a single account."
+  },
+  "not_empty_or_repeated": {
+   "passed": false,
+   "reason": "'Each month' and 'Regular payments' are both filtered to ti&m Demo Bank AG, so two of the four tiles repeat the same bank-payment stream, the second adding only one thin row whose 31.12.2026 due date the hero already shows."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "Tiles 1–3 tell a mortgage status-and-cost story that never frames the pending decision (no deadline, no options, no pay-down funds), and the private-account balance at the end belongs to a different story, so the board is not about the request and nothing else."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero lists all three tranches and flags the 8-year fixed (CHF 350'000 at 0.95 %, maturing 31.03.2027) as the next maturity — the very tranche the renewal decision is about — which is the most direct answer the banking data holds for this request."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The first three tiles are about the mortgage, but 'Your accounts' shows only the private account balance, which says nothing about the mortgage decision (the savings that could pay down the tranche sit in the «House», «Family» and 3a accounts, none of which appear), so it reads as filler on a request board."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "'Each month' names no content and mislabels what are actually quarterly interest charges, and 'Your accounts' is plural for a tile that lists a single account."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "'Each month' and 'Regular payments' are both filtered to ti&m Demo Bank AG, so two of the four tiles repeat the same bank-payment stream, the second adding only one thin row whose 31.12.2026 due date the hero already shows."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "Tiles 1–3 tell a mortgage status-and-cost story that never frames the pending decision (no deadline, no options, no pay-down funds), and the private-account balance at the end belongs to a different story, so the board is not about the request and nothing else."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows the mortgage with the CHF 350'000 8-year fixed tranche maturing 31.03.2027 flagged as the next maturity, which is exactly the object of the renewal decision the request asks about."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Tiles 1–3 are about the mortgage, but the 'Your accounts' tile shows only the CHF 18'338 private account, which informs neither the fixed-versus-SARON choice nor the paydown question (the savings that could fund a paydown sit in the House, Family and 3a accounts it does not show), so it reads as filler on this request."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "'Each month' names neither the bank nor the mortgage and sits oddly on quarterly payments with mostly zero months, and 'Your accounts' is plural over a single account, so the titles do not match what the tiles show."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Every tile carries a real non-zero figure, and the 12-month payment history and the next interest charge are different things — the past pattern versus the upcoming payment — rather than the same thing in different words."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board keeps to one followable thread about the mortgage — what matures, what it costs, what is due next and from which account — so a customer could follow it as a single story."
+   }
+  }
+ ],
+ "acceptable": false
+}

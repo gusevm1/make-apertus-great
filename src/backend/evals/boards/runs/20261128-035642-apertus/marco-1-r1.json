@@ -1,0 +1,277 @@
+{
+ "customer": "marco",
+ "run": 1,
+ "request": "What does the house cost us?",
+ "name": null,
+ "seconds": 28.2,
+ "plan": {
+  "kind": "",
+  "evidence": [],
+  "question": "What does the house cost us?",
+  "boards": [
+   {
+    "name": "New board",
+    "tiles": []
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "What does the house cost us?",
+    "reason": "Nothing in your accounts is about this request yet."
+   }
+  ],
+  "model": "server",
+  "latency_ms": 0,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "0 of 0 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": false,
+    "detail": "The model did not answer in time; this board holds what your request names word for word."
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "New board",
+   "tiles": []
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "mortgage_maturity",
+   "text": "The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "strength": 95,
+   "template": "mortgage",
+   "args": {}
+  },
+  {
+   "id": "S2",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'000.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto Haus holds 19'350.30, 97 % of its goal \"Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-HOUSE"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "instalments",
+   "text": "Instalment plans running: Seeblick Auto-Leasing AG (29 of 48 paid, 9'291.00 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Seeblick Auto-Leasing AG"
+    ]
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "9 payments of together 6'566.00 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "cashflow",
+   "text": "On average -246.13 was left per month over the last 6 months; in 2 months more went out than came in (2026-06, 2026-08).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 11'914.96 is left on Privatkonto after 8 payments, 441.29 a day. A month's spending is about 12'344.47.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S8",
+   "kind": "spending",
+   "text": "Spending averaged 11'716.70 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 6'423.30 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "fixed_costs",
+   "text": "The 3 largest monthly payments add up to 2'812.60 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Steueramt Wädenswil",
+     "Helsana Versicherungen AG",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-HOUSE",
+     "ACC-SAV"
+    ]
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "income_regular",
+   "text": "Simone Baumann sends about 2'600.00 every month, around day 26.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Simone Baumann"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [0]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "There is no first tile at all, even though his accounts hold exactly what 'What does the house cost us?' asks for — quarterly mortgage interest on the CHF 862'500 mortgage, CHF 1'250 quarterly amortisation and upkeep like the CHF 18'000 facade."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The board's only statement about Marco, that nothing in his accounts concerns the house, is false for a customer whose mortgage interest, amortisation and house-savings maintenance payments are all booked at this bank."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "There are no tile titles, so none is too long, generic or mismatched, and on this point alone a demo audience would find nothing wrong."
+  },
+  "not_empty_or_repeated": {
+   "passed": false,
+   "reason": "The board is empty and pointless while the data holds a full picture of the house's yearly cost in interest, amortisation, insurance and repairs, which is exactly the emptiness this criterion rejects."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board tells no story about the request and instead denies that his accounts contain anything about the house, contradicting the mortgage interest and upkeep data the bank itself holds."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "There is no first tile at all, even though his accounts hold exactly what 'What does the house cost us?' asks for — quarterly mortgage interest on the CHF 862'500 mortgage, CHF 1'250 quarterly amortisation and upkeep like the CHF 18'000 facade."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The board's only statement about Marco, that nothing in his accounts concerns the house, is false for a customer whose mortgage interest, amortisation and house-savings maintenance payments are all booked at this bank."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "There are no tile titles, so none is too long, generic or mismatched, and on this point alone a demo audience would find nothing wrong."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The board is empty and pointless while the data holds a full picture of the house's yearly cost in interest, amortisation, insurance and repairs, which is exactly the emptiness this criterion rejects."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board tells no story about the request and instead denies that his accounts contain anything about the house, contradicting the mortgage interest and upkeep data the bank itself holds."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "There is no first tile at all, even though Marco's accounts answer 'What does the house cost us?' directly through quarterly mortgage interest debits, the CHF 1'250 quarterly amortisation of the SARON tranche and house-maintenance payments such as the CHF 18'000 facade repaint."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "With zero tiles there is nothing on the board that could be generic filler or belong to another kind of customer, so this per-tile check finds nothing to fault."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The board has no tiles and therefore no titles that could be too long, filler-worded or mismatched to what a tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The whole board is empty and shows nothing, which is exactly the empty, pointless case this criterion forbids, since the data holds plenty about the house's costs (interest, amortisation, building insurance, repairs)."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "An empty board tells no story about the request, and the line 'Nothing in your accounts is about this request yet' is false for Marco because his accounts carry the mortgage interest, amortisation and maintenance payments that answer it."
+   }
+  }
+ ],
+ "acceptable": false
+}

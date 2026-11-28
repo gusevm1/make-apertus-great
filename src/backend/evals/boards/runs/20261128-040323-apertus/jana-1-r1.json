@@ -1,0 +1,271 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": "How do I get my emergency fund to 10'000?",
+ "name": null,
+ "seconds": 28.6,
+ "plan": {
+  "kind": "",
+  "evidence": [],
+  "question": "How do I get my emergency fund to 10'000?",
+  "boards": [
+   {
+    "name": "New board",
+    "tiles": []
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "How do I get my emergency fu",
+    "reason": "Nothing in your accounts is about this request yet."
+   }
+  ],
+  "model": "server",
+  "latency_ms": 0,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "0 of 0 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": false,
+    "detail": "The model did not answer in time; this board holds what your request names word for word."
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "New board",
+   "tiles": []
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [0]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "There is no first tile at all, and since her savings balance, standing order and monthly surplus would directly answer how to reach 10'000, the empty page with its 'nothing about this request' line does not answer the request."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The board's only content denies that her accounts hold anything about the emergency fund, which is false: her savings account is explicitly her emergency fund and a monthly standing order builds it."
+  },
+  "titles": {
+   "passed": false,
+   "reason": "The only title on the page is the placeholder board name 'New board', a default label that neither reads like a person wrote it for this request nor uses her terms such as 'emergency fund'."
+  },
+  "not_empty_or_repeated": {
+   "passed": false,
+   "reason": "The board is completely empty of tiles and figures — the extreme case of an empty board — when the data holds exactly the savings balance and saving rate this request needs."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "A board with no tiles tells no story about the request, and the line beneath it wrongly claims her accounts say nothing about reaching 10'000, so the board is not coherently about the request."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "There is no first tile at all, and since her savings balance, standing order and monthly surplus would directly answer how to reach 10'000, the empty page with its 'nothing about this request' line does not answer the request."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The board's only content denies that her accounts hold anything about the emergency fund, which is false: her savings account is explicitly her emergency fund and a monthly standing order builds it."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "The only title on the page is the placeholder board name 'New board', a default label that neither reads like a person wrote it for this request nor uses her terms such as 'emergency fund'."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The board is completely empty of tiles and figures — the extreme case of an empty board — when the data holds exactly the savings balance and saving rate this request needs."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "A board with no tiles tells no story about the request, and the line beneath it wrongly claims her accounts say nothing about reaching 10'000, so the board is not coherently about the request."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "There is no first tile at all, and the request is directly answerable from her savings account balance and standing order, so the empty board answers nothing about reaching 10'000."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The board's only content claims nothing in her accounts is about this request, which is false: her savings account is her emergency fund, and the bank holds its balance, her standing order into it and her monthly surplus."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "No tile titles exist and the only visible text is the placeholder board name \"New board\" plus a canned line, so nothing reads like a person wrote it in Jana's terms about her emergency fund."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The board is entirely empty although the data holds her current emergency fund, the gap to 10'000 and her monthly saving rate, which is exactly the emptiness this criterion forbids."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "A blank board that wrongly tells her there is nothing to show tells no story about the request, which her savings data could have answered tile by tile."
+   }
+  }
+ ],
+ "acceptable": false
+}

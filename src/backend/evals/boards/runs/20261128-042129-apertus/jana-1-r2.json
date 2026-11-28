@@ -1,0 +1,273 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": "When have I repaid my parents?",
+ "name": null,
+ "seconds": 28.4,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: repaid, parents"
+  ],
+  "question": "When have I repaid my parents?",
+  "boards": [
+   {
+    "name": "New board",
+    "tiles": []
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "When have I repaid my parent",
+    "reason": "Nothing in your accounts is about this request yet."
+   }
+  ],
+  "model": "server",
+  "latency_ms": 0,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "0 of 0 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": false,
+    "detail": "The model did not answer in time; this board holds what your request names word for word."
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "New board",
+   "tiles": []
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [0]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "There is no first tile at all and the 'nothing in your accounts' line is false, because her accounts hold her monthly repayments to her parents — exactly the payments that should answer when she has repaid them."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The board shows nothing of Jana's real situation and falsely claims her accounts contain nothing about the request, when her standing monthly repayments to her parents are right there in her data."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The board has no tiles and therefore no tile titles, so on the point of titles there is nothing a demo audience could find wrong."
+  },
+  "not_empty_or_repeated": {
+   "passed": false,
+   "reason": "The board is entirely empty — the emptiest possible output — even though the data holds her monthly repayments to her parents, so what she sees is pointless emptiness."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board tells no story about the request, instead wrongly declaring that nothing in her accounts is about repaying her parents."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "There is no first tile at all and the 'nothing in your accounts' line is false, because her accounts hold her monthly repayments to her parents — exactly the payments that should answer when she has repaid them."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The board shows nothing of Jana's real situation and falsely claims her accounts contain nothing about the request, when her standing monthly repayments to her parents are right there in her data."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The board has no tiles and therefore no tile titles, so on the point of titles there is nothing a demo audience could find wrong."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The board is entirely empty — the emptiest possible output — even though the data holds her monthly repayments to her parents, so what she sees is pointless emptiness."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board tells no story about the request, instead wrongly declaring that nothing in her accounts is about repaying her parents."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "There is no first tile at all, even though her accounts hold her monthly repayment transfers to her parents, so the request is directly answerable and the 'Nothing in your accounts is about this request yet' line is false."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The board's only content claims nothing in her accounts relates to repaying her parents, which contradicts her real situation of a monthly repayment to them, so it is not about this customer at all."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The board contains no tile titles, so there is no title that could be found too long, generic, or mismatched."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The board is entirely empty while the data holds months of repayment history to her parents, which is exactly the emptiness this criterion forbids."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "An empty page with a false denial that any relevant data exists tells no story about the request and is about nothing rather than about her repayments."
+   }
+  }
+ ],
+ "acceptable": false
+}
