@@ -19,7 +19,7 @@ import { SPLIT, Split } from "./Split";
 
 type View = "board" | "categories";
 
-// The chat links to the Categorization tab with this hash.
+// The chat links to the Categorization view with this hash.
 const CATEGORIES_HASH = "#categories";
 
 function viewOfHash(): View | null {
@@ -175,11 +175,11 @@ function TrustRoom({
     try {
       await api("/api/categorisations", token, json({}));
     } catch {
-      // Not urgent: the Categorization tab starts it again when it opens.
+      // Not urgent: the Categorization view starts it again when it opens.
     }
   }
 
-  // A link to #categories in a chat answer opens the Categorization tab, on /trustroom.
+  // A link to #categories in a chat answer opens the Categorization view, on /trustroom.
   useEffect(() => {
     function follow() {
       if (viewOfHash() === null) return;
@@ -484,7 +484,7 @@ function TrustRoom({
       className="app"
       data-building={loading.state === "building" ? "" : undefined}
     >
-      <header className="top" data-tabs={isChatOnly ? undefined : ""}>
+      <header className="top">
         <div className="brand">
           <Mark />
           <span>TrustRoom</span>
@@ -493,26 +493,6 @@ function TrustRoom({
             Stays inside the bank
           </span>
         </div>
-        {!isChatOnly && (
-          <nav className="mode" aria-label="What to show">
-            <button
-              type="button"
-              aria-pressed={view === "board"}
-              onClick={() => showView("board")}
-            >
-              <SmallIcon name="board" />
-              Personalized Board
-            </button>
-            <button
-              type="button"
-              aria-pressed={view === "categories"}
-              onClick={() => showView("categories")}
-            >
-              <SmallIcon name="rename" />
-              Categorization
-            </button>
-          </nav>
-        )}
         <div className="tail">
           <DemoReset token={token} onDone={onReset} />
           <button
@@ -542,7 +522,7 @@ function TrustRoom({
         </div>
       ) : view === "categories" ? (
         <div className="main">
-          <CategorizationView token={token} />
+          <CategorizationView token={token} onBack={() => showView("board")} />
         </div>
       ) : chatSide === null ? (
         <div className="main">{boardSide}</div>
@@ -582,6 +562,12 @@ function TrustRoom({
           name={name}
           initials={initials}
           customerSince={customerSince}
+          onOpenCategorization={() => {
+            closeProfile();
+            // The side panel has no room for it: Categorization opens on /trustroom.
+            if (isChatOnly) openTrustRoom();
+            else showView("categories");
+          }}
         />
       </div>
     </div>

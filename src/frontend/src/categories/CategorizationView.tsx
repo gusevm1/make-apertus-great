@@ -14,6 +14,7 @@ import {
   loadAll,
   type Loaded,
   setNecessity,
+  stepText,
 } from "./data";
 import { DecisionList, SwipeDeck } from "./Decisions";
 import { Overview } from "./Overview";
@@ -36,8 +37,14 @@ function isGoing(run: CategorisationRun | null): boolean {
   return run !== null && (run.status === "queued" || run.status === "running");
 }
 
-/** The Categorization tab: settle what Apertus was unsure of, and see what each category holds. */
-export function CategorizationView({ token }: { token: string }) {
+/** The Categorization view: settle what Apertus was unsure of, and see what each category holds. */
+export function CategorizationView({
+  token,
+  onBack,
+}: {
+  token: string;
+  onBack: () => void;
+}) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -257,6 +264,9 @@ export function CategorizationView({ token }: { token: string }) {
 
   return (
     <div className="cat-view">
+      <button type="button" className="cat-back" onClick={onBack}>
+        <span aria-hidden="true">←</span> Personalized Board
+      </button>
       <header className="cat-head">
         <div>
           <h1>Categorization</h1>
@@ -283,12 +293,27 @@ export function CategorizationView({ token }: { token: string }) {
         </div>
       </header>
 
-      {going && (
-        <p className="cat-banner" aria-live="polite">
-          <span className="spinner" aria-hidden="true" />
-          {notice ??
-            "Apertus is sorting your bookings. New decisions show up here when it is done."}
-        </p>
+      {going && run !== null && (
+        <div className="cat-banner cat-progress" aria-live="polite">
+          <div className="cat-progress-text">
+            <span>
+              {notice ??
+                "Apertus is sorting your bookings. New decisions show up here when it is done."}
+            </span>
+            <b className="num">{run.progress} %</b>
+          </div>
+          <div
+            className="cat-progress-track"
+            role="progressbar"
+            aria-label="Sorting your bookings"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={run.progress}
+          >
+            <span style={{ width: `${run.progress}%` }} />
+          </div>
+          <small className="hint">{stepText(run)}</small>
+        </div>
       )}
       {run?.status === "failed" && (
         <p className="cat-banner" data-tone="warn" role="alert">

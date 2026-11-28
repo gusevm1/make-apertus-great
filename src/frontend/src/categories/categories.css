@@ -11,6 +11,20 @@
   margin: 0 auto;
 }
 
+.cat-back {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cat-back:hover {
+  color: var(--deep);
+}
+
 .cat-head {
   display: flex;
   align-items: flex-end;
@@ -41,6 +55,37 @@
   box-shadow: none;
 }
 
+.cat-progress {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.cat-progress-text {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cat-progress-text b {
+  white-space: nowrap;
+}
+
+.cat-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bar-quiet);
+  overflow: hidden;
+}
+
+.cat-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.6s ease;
+}
+
 .cat-banner .spinner {
   width: 16px;
   height: 16px;
@@ -53,8 +98,7 @@
 }
 
 .cat-list,
-.cat-tags,
-.cat-levels {
+.cat-tags {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -210,6 +254,7 @@
 
 /* Swipe: one card, leaning towards the side it would go to. */
 .cat-deck {
+  overflow-x: clip;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -226,7 +271,28 @@
   touch-action: pan-y;
   user-select: none;
   cursor: grab;
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.22s,
+    box-shadow 0.15s;
+  animation: cat-card-in 0.22s ease-out;
+}
+
+/* Under the finger the card follows exactly; it eases only when let go. */
+.cat-swipe[data-dragging] {
   transition: box-shadow 0.15s;
+}
+
+.cat-swipe[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes cat-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
 }
 
 .cat-swipe:active {
@@ -251,7 +317,7 @@
   width: min(460px, 100%);
 }
 
-/* The overview: necessity levels, the categories table and the personal tags. */
+/* The overview: the categories table and the personal tags. */
 .cat-overview {
   display: flex;
   flex-direction: column;
@@ -268,7 +334,6 @@
   font-size: 17px;
 }
 
-.cat-levels li,
 .cat-tags li {
   padding: 12px 16px;
   border-radius: var(--radius);
@@ -351,7 +416,17 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cat-swipe {
+  .cat-progress-track span {
     transition: none;
+  }
+
+  /* Cards fade instead of moving. */
+  .cat-swipe {
+    transition: opacity 0.15s;
+    animation: none;
+  }
+
+  .cat-swipe[data-leaving] {
+    transform: none !important;
   }
 }

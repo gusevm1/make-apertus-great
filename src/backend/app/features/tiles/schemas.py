@@ -172,6 +172,8 @@ class MerchantSpendingArgs(Args):
         description="Merchants as the bookings name them, such as Lidl, Aldi, Migros.",
     )
     period: Literal["this_month", "last_month", "last_3_months"] = "this_month"
+    order: Literal["largest_first", "smallest_first"] | None = None
+    view: Literal["bars", "donut"] | None = None
 
 
 class MerchantRow(BaseModel):
@@ -186,8 +188,9 @@ class MerchantSpendingPayload(Payload):
     template: Literal["merchant_spending"] = "merchant_spending"
     date_from: datetime.date
     date_to: datetime.date
-    # Largest first; a merchant without bookings in the period is left out.
+    # Largest first unless `order` says otherwise; a merchant without bookings is left out.
     rows: list[MerchantRow]
+    view: Literal["bars", "donut"] = "bars"
 
 
 # --- savings_goal: a savings account against the goal the bank holds for it -----------------
@@ -259,6 +262,7 @@ class MonthlySpendingArgs(Args):
         max_length=6,
         description="Only these merchants. Leave out for all spending.",
     )
+    view: Literal["bars", "line"] | None = None
 
 
 class SpendingMonth(BaseModel):
@@ -275,6 +279,7 @@ class MonthlySpendingPayload(Payload):
     months: list[SpendingMonth]
     # The month with the highest total.
     highest: str
+    view: Literal["bars", "line"] = "bars"
 
 
 # --- income_and_spending: what came in, what went out and what was left, per month -----------

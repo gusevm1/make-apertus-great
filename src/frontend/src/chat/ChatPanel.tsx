@@ -18,6 +18,7 @@ import { useVoiceInput } from "../useVoiceInput";
 import { Answer } from "./Answer";
 import { AnswerTrace } from "./AnswerTrace";
 import { BuildTrace } from "./BuildTrace";
+import { ChatTitle, NEW_CHAT, TITLE_LENGTH } from "./ChatTitle";
 import { Composer } from "./Composer";
 import {
   type ChatMessage,
@@ -82,8 +83,6 @@ type Failed =
 // Within this many pixels of the end, the chat counts as scrolled to the end.
 const FOLLOW_DISTANCE = 40;
 const PAGE_TEXT_LENGTH = 200;
-const TITLE_LENGTH = 60;
-const NEW_CHAT = "New chat";
 
 function ChatInner({
   context,
@@ -106,6 +105,9 @@ function ChatInner({
   const boardId = board?.id ?? null;
   const [chosenId, setChosenId] = useState(initialConversationId);
   const [conversations, setConversations] = useState<ConversationRef[]>([]);
+  // The list as it is now, for a naming that runs after a streamed answer.
+  const latestConversations = useRef(conversations);
+  latestConversations.current = conversations;
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<Loaded>({
@@ -273,19 +275,25 @@ function ChatInner({
 
   // A chat without a title is named after its first question.
   async function nameAfter(id: string, content: string) {
-    if (conversations.find((other) => other.id === id)?.title !== null) return;
-    const title = content.slice(0, TITLE_LENGTH);
+    const current = latestConversations.current.find(
+      (other) => other.id === id,
+    );
+    if (current?.title !== null) return;
     try {
-      await api<ConversationRef>(`/api/conversations/${id}`, token, {
-        ...json({ title }),
-        method: "PATCH",
-      });
-      setConversations((current) =>
-        current.map((other) => (other.id === id ? { ...other, title } : other)),
-      );
+      await rename({ id, title: content.slice(0, TITLE_LENGTH) });
     } catch {
       // The chat keeps its place in the list without a name.
     }
+  }
+
+  async function rename({ id, title }: { id: string; title: string }) {
+    await api<ConversationRef>(`/api/conversations/${id}`, token, {
+      ...json({ title }),
+      method: "PATCH",
+    });
+    setConversations((current) =>
+      current.map((other) => (other.id === id ? { ...other, title } : other)),
+    );
   }
 
   async function startChat() {
@@ -509,12 +517,16 @@ function ChatInner({
         >
           <SmallIcon name="board" />
         </button>
-        <div className="chatname" key={activeId}>
-          <b>{active?.title ?? NEW_CHAT}</b>
-          <span>
-            {board === null ? "about no board" : `about ${board.name}`}
-          </span>
-        </div>
+        <ChatTitle
+          key={activeId}
+          title={active?.title ?? null}
+          about={board === null ? "about no board" : `about ${board.name}`}
+          onRename={
+            active === undefined
+              ? null
+              : (title) => rename({ id: active.id, title })
+          }
+        />
         <button
           type="button"
           className="tool"

@@ -28,6 +28,7 @@ from app.features.transaction_tags.schemas import (
     PersonalTag,
     PersonalTagAssignment,
     PersonalTagSummary,
+    Progress,
     RequestPersonalTagAssignmentCreate,
     RequestPersonalTagCreate,
     RequestPersonalTagUpdate,
@@ -36,6 +37,8 @@ from app.features.transaction_tags.schemas import (
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 50
+# As long as a categorisation batch: a busy gateway takes over 100 s for 25 rows.
+ASSIGN_TIMEOUT_SECONDS = 180
 PAYEE_TEXT_LENGTH = 40
 MAX_PARALLEL_BATCHES = 16
 SPENDING_DAYS = 365
@@ -158,7 +161,9 @@ class PersonalTagService:
         if not await self.assignments.delete_in_tag(assignment_id=assignment_id, tag_id=tag.id):
             raise NotFoundError(f"No assignment '{assignment_id}' under '{tag.name}'")
 
-    async def create_inference(self, owner_id: UUID, token: str) -> list[PersonalTagSummary]:
+    async def create_inference(
+        self, owner_id: UUID, token: str, progress: Progress | None = None
+    ) -> list[PersonalTagSummary]:
         """Infer tags once, then assign the candidate rows that no earlier run has judged."""
         rows = await self.ledger.list_rows(token=token)
         tags = await self.personal.list_for_owner(owner_id=owner_id)
@@ -167,7 +172,9 @@ class PersonalTagService:
             await self._infer_tags(owner_id=owner_id, token=token, rows=rows)
             tags = await self.personal.list_for_owner(owner_id=owner_id)
         if tags:
-            await self._assign_rows(owner_id=owner_id, rows=rows, tags=tags, evaluated=evaluated)
+            await self._assign_rows(
+                owner_id=owner_id, rows=rows, tags=tags, evaluated=evaluated, progress=progress
+            )
         return await self._summaries(owner_id=owner_id, rows=rows)
 
     async def _infer_tags(self, owner_id: UUID, token: str, rows: list[LedgerRow]) -> None:
@@ -206,6 +213,7 @@ class PersonalTagService:
         rows: list[LedgerRow],
         tags: list[PersonalTag],
         evaluated: set[tuple[str, str]],
+        progress: Progress | None,
     ) -> None:
         assigned = await self.assignments.list_for_owner(owner_id=owner_id)
         decided = evaluated | {(item.row_source, item.row_id) for item in assigned}
@@ -230,8 +238,10 @@ class PersonalTagService:
         ]
         failed_batches = 0
         # Written one at a time as they finish: one session, and a crash keeps finished batches.
-        for call in asyncio.as_completed(calls):
+        for finished, call in enumerate(asyncio.as_completed(calls), start=1):
             answered = await call
+            if progress is not None:
+                await progress(finished, len(batches))
             if answered is None:
                 failed_batches += 1
                 continue
@@ -286,6 +296,7 @@ class PersonalTagService:
                     schema=BatchPersonalTags,
                     model=Model.SMART,
                     purpose="assign_personal_tags",
+                    timeout_seconds=ASSIGN_TIMEOUT_SECONDS,
                 )
             except UpstreamError:
                 return None

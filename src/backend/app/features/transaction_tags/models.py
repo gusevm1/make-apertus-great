@@ -136,6 +136,7 @@ class CategorisationRunORM(Base):
     __tablename__ = "categorisation_runs"
     __table_args__ = (
         CheckConstraint("status IN ('queued', 'running', 'done', 'failed')", name="status"),
+        CheckConstraint("step IN ('categories', 'necessity', 'personal_tags')", name="step"),
         Index(
             "uq_categorisation_runs_owner_active",
             "owner_id",
@@ -146,6 +147,10 @@ class CategorisationRunORM(Base):
 
     owner_id: Mapped[UUID]
     status: Mapped[str] = mapped_column(server_default="queued")
+    # How far the run is: its step and how many of that step's rows are done.
+    step: Mapped[str] = mapped_column(server_default="categories")
+    step_done: Mapped[int] = mapped_column(server_default="0")
+    step_total: Mapped[int] = mapped_column(server_default="0")
     tagged_by_rule: Mapped[int] = mapped_column(server_default="0")
     tagged_by_correction: Mapped[int] = mapped_column(server_default="0")
     tagged_by_model: Mapped[int] = mapped_column(server_default="0")

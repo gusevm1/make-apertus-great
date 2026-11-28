@@ -11,7 +11,7 @@ from app.core.auth import owner_id
 from app.features.transaction_tags.categorisation_runs import wait_for_runs
 from app.features.transaction_tags.personal_tag_service import PersonalTagService
 from app.features.transaction_tags.repository import TransactionTagRepository
-from app.features.transaction_tags.schemas import Categorisation, CategorisationScope
+from app.features.transaction_tags.schemas import Categorisation, CategorisationScope, Progress
 from app.features.transaction_tags.service import TransactionTagService
 from app.features.transaction_tags.severity_service import SeverityService
 from app.main import app
@@ -189,11 +189,15 @@ async def test_asking_to_judge_again_during_a_run_judges_again_after_it(
     original = TransactionTagService.create_categorisation
 
     async def held(
-        self: TransactionTagService, owner_id: UUID, token: str, scope: CategorisationScope
+        self: TransactionTagService,
+        owner_id: UUID,
+        token: str,
+        scope: CategorisationScope,
+        progress: Progress | None = None,
     ) -> Categorisation:
         scopes.append(scope)
         await release.wait()
-        return await original(self, owner_id=owner_id, token=token, scope=scope)
+        return await original(self, owner_id=owner_id, token=token, scope=scope, progress=progress)
 
     async def skip(*args: object, **kwargs: object) -> None:
         return None

@@ -12,6 +12,9 @@ guide: |
   - The message asks to change what a tile on the board shows, such as more months or other
     shops: change_tile with the tile and only the arguments that change. "This widget" or
     "this chart" is the tile the customer selected.
+    The order of its rows and drawing it as a donut or a line are such arguments too, where
+    its template has them. A change no argument of the template covers, such as a colour or
+    a donut of months: no call, and look_up false.
   - The message asks for a chart, a graph or an overview of something: add_tile with the
     template that shows it. There is no other way to draw.
   - The message brings up a topic of its own that the open board is not about, such as a trip,
@@ -55,6 +58,12 @@ guide: |
     tile with the monthly_spending template.
   - "Ändere dieses Widget auf 12 Monate." with the monthly_spending tile T2 selected:
     change_tile {{"tile": "T2", "months": 12}}.
+  - "Show it in ascending order." with the merchant_spending tile T1 selected: change_tile
+    {{"tile": "T1", "order": "smallest_first"}}.
+  - "I want a donut chart instead." with the merchant_spending tile T1 selected: change_tile
+    {{"tile": "T1", "view": "donut"}}.
+  - "I want a donut chart instead." or "Make it purple." with the monthly_spending tile T2
+    selected: no call, and look_up false, since its template draws only bars or a line.
   - "Add a widget with my spending per month.": add_tile {{"template": "monthly_spending",
     "months": 6}}.
   - "Show me what I spend at <shop A> and <shop B> each month.": add_tile {{"template":
@@ -104,8 +113,8 @@ catalogue: |
   - bills_until_payday: every payment before the next salary, with the balance after each. Args: account_id.
   - due_soon: the largest payments due in the next days, from all accounts. Not past spending. Args: days (14, 30, 60 or 90).
   - expected_income: one regular income and whether it arrived, month by month. Args: counterparty.
-  - merchant_spending: what went to a few named shops in one period, as bars. Args: merchants (1 to 6 names as the bookings write them), period (this_month, last_month or last_3_months).
-  - monthly_spending: spending per month as bars, optionally only at some payees. Not income. Args: months (3, 6 or 12), merchants (optional, up to 6 payee names).
+  - merchant_spending: what went to a few named shops in one period, as bars or a donut. Args: merchants (1 to 6 names as the bookings write them), period (this_month, last_month or last_3_months), order (optional: largest_first or smallest_first), view (optional: bars or donut).
+  - monthly_spending: spending per month as bars or a line, optionally only at some payees. Not income. Args: months (3, 6 or 12), merchants (optional, up to 6 payee names), view (optional: bars or line).
   - income_and_spending: per month what came in, went out and was left. Args: months (3, 6 or 12).
   - savings_goal: a savings account against its goal. Args: account_id.
   - bill: one upcoming payment with its text. Not a list. Args: payment_id.

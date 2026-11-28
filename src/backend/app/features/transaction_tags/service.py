@@ -23,6 +23,7 @@ from app.features.transaction_tags.schemas import (
     CategoryCorrectionResult,
     CategorySummary,
     CustomCategory,
+    Progress,
     RequestCategoryCorrectionCreate,
     RequestSpendingCategoryCreate,
     RowCategory,
@@ -36,6 +37,9 @@ from app.features.transaction_tags.severity import booking_key, normalise_payee,
 
 BATCH_SIZE = 25
 MAX_PARALLEL_BATCHES = 16
+# A batch answer is about 1200 tokens: 30 s on a quiet gateway, over 100 s on a busy one.
+# Cut off sooner, it is sent again and the run never moves.
+CATEGORISE_TIMEOUT_SECONDS = 180
 MAX_CORRECTION_EXAMPLES = 30
 
 
@@ -81,7 +85,11 @@ class TransactionTagService:
         return SpendingCategory(name=created.name, description=created.description, custom=True)
 
     async def create_categorisation(
-        self, owner_id: UUID, token: str, scope: CategorisationScope = "untagged"
+        self,
+        owner_id: UUID,
+        token: str,
+        scope: CategorisationScope = "untagged",
+        progress: Progress | None = None,
     ) -> Categorisation:
         """Give spending rows a category: by rule, by correction, else by Apertus.
 
@@ -129,28 +137,37 @@ class TransactionTagService:
         )
         examples = _examples(corrections=corrections, tags=stored, rows=spending)
         categories = category_names(custom=custom)
+        total = len(by_rule) + len(by_correction) + len(by_model)
+        done = len(by_rule) + len(by_correction)
+        if progress is not None:
+            await progress(done, total)
 
         semaphore = asyncio.Semaphore(MAX_PARALLEL_BATCHES)
         batches = [
             by_model[start : start + BATCH_SIZE] for start in range(0, len(by_model), BATCH_SIZE)
         ]
-        calls = [
-            asyncio.create_task(
-                self._categorise_batch(
-                    rows=batch,
-                    examples=examples,
-                    custom=custom,
-                    categories=categories,
-                    semaphore=semaphore,
-                )
+
+        async def categorise(
+            batch: list[LedgerRow],
+        ) -> tuple[int, list[tuple[LedgerRow, RowCategory, str]] | None]:
+            answered = await self._categorise_batch(
+                rows=batch,
+                examples=examples,
+                custom=custom,
+                categories=categories,
+                semaphore=semaphore,
             )
-            for batch in batches
-        ]
+            return len(batch), answered
+
+        calls = [asyncio.create_task(categorise(batch=batch)) for batch in batches]
         tagged_by_model = 0
         failed_batches = 0
         # Written one at a time as they finish: one session, and a crash keeps finished batches.
         for call in asyncio.as_completed(calls):
-            answered = await call
+            size, answered = await call
+            done += size
+            if progress is not None:
+                await progress(done, total)
             if answered is None:
                 failed_batches += 1
                 continue
@@ -256,6 +273,7 @@ class TransactionTagService:
                     schema=batch_categories_schema(categories=categories),
                     model=Model.SMART,
                     purpose="categorise_spending",
+                    timeout_seconds=CATEGORISE_TIMEOUT_SECONDS,
                 )
             except UpstreamError:
                 return None

@@ -127,34 +127,6 @@ export function Overview({
 
   return (
     <div className="cat-overview">
-      <section aria-labelledby="cat-necessity">
-        <h2 id="cat-necessity">Necessity</h2>
-        <p className="hint">
-          How much you can do without each kind of spending. Saving suggestions
-          start at the bottom.
-        </p>
-        <ul className="cat-levels">
-          {NECESSITIES.map((level) => {
-            const members = categories.filter(
-              (category) =>
-                category.necessity === level.key && category.count > 0,
-            );
-            return (
-              <li key={level.key}>
-                <div className="cat-level-head">
-                  <b>{level.label}</b>
-                </div>
-                <p className="hint">
-                  {members.length === 0
-                    ? "No category"
-                    : members.map((item) => labelOf(item.name)).join(", ")}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
       <section aria-labelledby="cat-spending">
         <h2 id="cat-spending">Spending categories</h2>
         <table className="cat-table">

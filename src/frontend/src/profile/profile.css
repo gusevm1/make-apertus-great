@@ -130,6 +130,21 @@
 .tr-profile .debug-setting {
   cursor: pointer;
 }
+.tr-profile .profile-link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+}
+.tr-profile .profile-link:hover p {
+  color: var(--accent);
+}
+.tr-profile .profile-link p span {
+  display: block;
+  color: var(--muted);
+  font-size: 12.5px;
+}
 .tr-profile .debug-setting p span {
   display: block;
   color: var(--muted);
