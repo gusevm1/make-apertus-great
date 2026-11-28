@@ -1,0 +1,380 @@
+{
+ "customer": "lukas",
+ "run": 1,
+ "request": "What do my subscriptions cost me?",
+ "name": null,
+ "seconds": 17.6,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Fitnesspark Zürich Stadelhofen, Salt Mobile SA, Swisscom (Schweiz) AG, Fitnesspark Zürich Stadelhofen, Salt Mobile SA, Swisscom (Schweiz) AG, Abo, Mobile, Internet"
+  ],
+  "question": "What do my subscriptions cost me?",
+  "boards": [
+   {
+    "name": "Subscriptions",
+    "tiles": [
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Fitnesspark Zürich Stadelhofen",
+        "Salt Mobile SA",
+        "Swisscom (Schweiz) AG"
+       ]
+      },
+      "title": "Subscriptions"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0227"
+      },
+      "title": "Bill, due 12.01."
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Bill, due 14.12.",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 17017,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "3 of 3 resolved; dropped: Bill, due 14.12."
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Bill, due 14.12.; Bill, due 12.01."
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Subscriptions",
+   "tiles": [
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Fitnesspark Zürich Stadelhofen",
+       "Salt Mobile SA",
+       "Swisscom (Schweiz) AG"
+      ]
+     },
+     "title": "Subscriptions",
+     "payload": {
+      "figure_chf": 252.95,
+      "source": {
+       "label": "3 payments in December",
+       "kind": "payments",
+       "count": 3
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Fitnesspark Zürich Stadelhofen",
+        "amount_chf": 119.0,
+        "next_due": "2026-12-01"
+       },
+       {
+        "payee": "Salt Mobile SA",
+        "amount_chf": 39.95,
+        "next_due": "2026-12-03"
+       },
+       {
+        "payee": "Swisscom (Schweiz) AG",
+        "amount_chf": 94.0,
+        "next_due": "2026-12-14"
+       }
+      ]
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0227"
+     },
+     "title": "Bill, due 12.01.",
+     "payload": {
+      "figure_chf": 94.0,
+      "source": {
+       "label": "Swisscom, due 12.01.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Swisscom",
+      "due": "2027-01-12",
+      "description": "Rechnung inOne home Januar 2027",
+      "flag": null
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "depot_large",
+   "text": "Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "strength": 80,
+   "template": "net_worth",
+   "args": {
+    "include_pension": false
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "card_bill",
+   "text": "The Visa Gold bill for 2026-11 is 3'301.74 (provisional), collected on 21.12.2026, 38 purchases.",
+   "strength": 50,
+   "template": "card_bill",
+   "args": {
+    "card_id": "CARD-VISA"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'600.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S4",
+   "kind": "securities",
+   "text": "The depot is worth 72'512.96, 30'800.00 were paid in.",
+   "strength": 40,
+   "template": "securities",
+   "args": {}
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "10 payments of together 8'302.59 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Fitnesspark Zürich Stadelhofen from 109.00 to 119.00 on 01.06.2026; Swisscom (Schweiz) AG from 89.00 to 94.00 on 12.05.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "savings_pots",
+   "text": "3 savings accounts with their own purpose: Sparkonto Steuern (Rücklage für Steuerrechnungen); Sparkonto Rücklagen (Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)); Sparkonto Langfristig (Langfristiger Vermögensaufbau).",
+   "strength": 30,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-TAX",
+     "ACC-RES",
+     "ACC-LT"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "goal_reached",
+   "text": "Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\".",
+   "strength": 25,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-LT"
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "cashflow",
+   "text": "On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 1'413.74 is left on Privatkonto after 10 payments, 52.36 a day. A month's spending is about 11'634.33.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 11'561.65 a month over the last 6 months, highest in 2026-09.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "bills_before_payday",
+   "text": "10 payments of together 8'302.59 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S13",
+   "kind": "fixed_costs",
+   "text": "The 5 largest monthly payments add up to 3'520.35 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+     "Mythen Krankenversicherung AG",
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG",
+     "Salt Mobile SA"
+    ]
+   }
+  },
+  {
+   "id": "S14",
+   "kind": "income_regular",
+   "text": "Sara Keller sends about 2'200.00 every month, around day 27.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Sara Keller"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [2]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero is a direct answer to the request: it lists Lukas's recurring subscription payments (gym, mobile, internet) with their monthly figure of CHF 252.95, exactly the kind of tile \"What do my subscriptions cost me?\" asks for."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every payee shown is part of Lukas's real life per the persona — Fitnesspark gym, Salt mobile, Swisscom internet are his monthly standing costs, and the Swisscom bill is his actual upcoming bill, so no tile is generic or belongs to another kind of customer."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "\"Subscriptions\" uses the customer's own word for the request and matches the list shown, and \"Bill, due 12.01.\" is short, natural, and describes exactly what that tile contains."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The hero gives the monthly subscription overview while the bill tile adds distinct detail about one item in that list (the January due date and the inOne home invoice), following the sanctioned pattern of a single bill standing beside the list it belongs to, so neither tile is empty or a reworded duplicate."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The two tiles tell one story about nothing but the request — what his subscriptions cost each month, with the detail of the next Swisscom bill — which a customer would follow without distraction."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero is a direct answer to the request: it lists Lukas's recurring subscription payments (gym, mobile, internet) with their monthly figure of CHF 252.95, exactly the kind of tile \"What do my subscriptions cost me?\" asks for."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every payee shown is part of Lukas's real life per the persona — Fitnesspark gym, Salt mobile, Swisscom internet are his monthly standing costs, and the Swisscom bill is his actual upcoming bill, so no tile is generic or belongs to another kind of customer."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "\"Subscriptions\" uses the customer's own word for the request and matches the list shown, and \"Bill, due 12.01.\" is short, natural, and describes exactly what that tile contains."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The hero gives the monthly subscription overview while the bill tile adds distinct detail about one item in that list (the January due date and the inOne home invoice), following the sanctioned pattern of a single bill standing beside the list it belongs to, so neither tile is empty or a reworded duplicate."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The two tiles tell one story about nothing but the request — what his subscriptions cost each month, with the detail of the next Swisscom bill — which a customer would follow without distraction."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero lists exactly his recurring subscription payments (gym, mobile, internet) with the monthly total of CHF 252.95 and their due dates, which is the most direct answer to what his subscriptions cost him."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Both tiles use his real payees — Fitnesspark, Salt and Swisscom — and his actual upcoming Swisscom bill, so every tile is about this customer's subscriptions and the request, with no generic filler."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "'Subscriptions' names exactly what the hero shows and 'Bill, due 12.01.' is short, plain and matches the Swisscom bill tile."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The bill tile repeats the hero's Swisscom row — the same payee and the same CHF 94.00 — adding only a due date one month later, and since it carries no reminder to justify showing one bill's detail beside the list, it is the same subscription cost shown twice."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board stays on one story within the request — what his subscriptions cost each month, with one subscription's bill detail — and nothing else."
+   }
+  }
+ ],
+ "acceptable": true
+}

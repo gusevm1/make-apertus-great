@@ -30,6 +30,7 @@ from app.features.board_plans.service import (
     SIDE_MAX,
     SIDE_MIN,
     FILLER,
+    IDEA_ALONE,
     LOAN_UNKNOWN,
     NOTHING_FOUND,
     TITLE_SHORT,
@@ -104,7 +105,7 @@ def _judge_view(boards: list[dict[str, Any]]) -> str:
 
 def _notes(plan: PlannedBoards) -> str:
     """The quiet lines the page shows under a board, such as what the bank does not know."""
-    said = [d.reason for d in plan.dropped if d.reason in {LOAN_UNKNOWN, NOTHING_FOUND}]
+    said = [d.reason for d in plan.dropped if d.reason in {LOAN_UNKNOWN, NOTHING_FOUND, IDEA_ALONE}]
     return "" if not said else "\nThe page also says under the board: " + " ".join(said)
 
 
