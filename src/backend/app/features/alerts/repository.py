@@ -26,9 +26,8 @@ class AlertDismissalRepository(BaseRepository[AlertDismissalORM, AlertDismissal]
         )
         await self.session.execute(stmt)
         await self.session.commit()
-        row = await self.session.scalar(
-            select(AlertDismissalORM).filter_by(owner_id=owner_id, key=key)
-        )
+        existing = select(AlertDismissalORM).filter_by(owner_id=owner_id, key=key)
+        row = (await self.session.scalars(existing)).one()
         return self._to_schema(row=row)
 
 
@@ -43,7 +42,7 @@ class AlertSettingRepository(BaseRepository[AlertSettingORM, AlertSetting]):
             .on_conflict_do_update(index_elements=["owner_id", "kind"], set_={"enabled": enabled})
             .returning(AlertSettingORM)
         )
-        row = await self.session.scalar(stmt)
+        row = (await self.session.scalars(stmt)).one()
         await self.session.commit()
         return self._to_schema(row=row)
 
