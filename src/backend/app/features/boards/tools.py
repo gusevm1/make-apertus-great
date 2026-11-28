@@ -141,6 +141,8 @@ class BoardChange(BaseModel):
     suggested_note_text: str | None = None
     figures: dict[str, Any] | None = None
     tiles: list[BoardTileFigures] | None = None
+    # The records behind the tile's figures, for the figure cards; the model never reads them.
+    tile_source: dict[str, Any] | None = None
 
 
 async def get_turn(
@@ -297,6 +299,7 @@ async def get_turn(
                 if _suggested_note(payload=payload, notes=notes) is None
                 else notes[0],
                 figures=figures(payload=payload),
+                tile_source=payload.source.model_dump(mode="json"),
             )
         before = await service.list_tiles(board_id=board.id)
         try:
@@ -333,6 +336,7 @@ async def get_turn(
             if _suggested_note(payload=payload, notes=notes) is None
             else notes[0],
             figures=figures(payload=payload),
+            tile_source=payload.source.model_dump(mode="json"),
         )
 
     def with_payees(error: BadRequestError, template: str) -> BadRequestError:
@@ -361,6 +365,7 @@ async def get_turn(
             summary=f'Changed "{tile.title}"',
             meaning=meaning(payload=payload, today=today),
             figures=figures(payload=payload),
+            tile_source=payload.source.model_dump(mode="json"),
         )
 
     async def rename_tile(args: RenameTileArgs) -> BoardChange:
