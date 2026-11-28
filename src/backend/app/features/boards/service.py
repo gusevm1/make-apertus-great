@@ -283,6 +283,23 @@ class BoardService:
             tile = await self.get_tile(board_id=board_id, tile_id=tile.id)
         return tile, payload
 
+    async def change_tile(
+        self, tile: Tile, args: dict, token: str, today: date
+    ) -> tuple[Tile, AnyPayload]:
+        """Check and resolve new arguments, then store them on the same tile, so its id stays."""
+        try:
+            validated = self.tile_service.validate_args(template=tile.template, args=args)
+            stored = validated.model_dump(mode="json", exclude_none=True)
+            payload = await self.tile_service.resolve(
+                template=tile.template, args=stored, token=token, today=today
+            )
+        except TileError as error:
+            raise BadRequestError(str(error)) from error
+        changed = await self.tiles.set_args(tile_id=tile.id, args=stored)
+        if changed is None:
+            raise NotFoundError("Tile not found")
+        return changed, payload
+
     async def find_same_tile(self, board_id: UUID, template: str, args: dict) -> Tile | None:
         """The board's tile that shows exactly this already, or None."""
         try:

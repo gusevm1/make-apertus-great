@@ -76,6 +76,14 @@ class TileRepository(BaseRepository[BoardTileORM, Tile]):
         await self.session.commit()
         return self._to_schema(row=row)
 
+    async def set_args(self, tile_id: UUID, args: dict) -> Tile | None:
+        row = await self.session.get(BoardTileORM, tile_id)
+        if row is None:
+            return None
+        row.args = args
+        await self.session.commit()
+        return self._to_schema(row=row)
+
     async def set_positions(self, ordered_ids: list[UUID]) -> None:
         for position, tile_id in enumerate(ordered_ids):
             await self.session.execute(
