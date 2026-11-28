@@ -1,828 +1,376 @@
-import {
-  type ChangeEvent,
-  type FormEvent,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  api,
-  type Conversation,
-  type DocumentRef,
-  json,
-  type Message,
-  type RequestError,
-  requestErrorOf,
-  type ToolCall,
-  type WidgetPublication,
-  type WidgetVersion,
-} from "./api";
-import { type HostContext, sendToHost, useHostContext } from "./host";
-import {
-  builtWidgetOf,
-  Canvas,
-  captionOf,
-  shownViewOf,
-  type View,
-  type Visual,
-} from "./Canvas";
-import { CategoryCenter } from "./CategoryCenter";
-import { Confirmation } from "./Confirmation";
-import { ChatList, type ChatListProps, Home } from "./Home";
-import { Icon } from "./Icon";
-import { canCaptureAudio } from "./lib/audioCapture";
-import { Markdown } from "./lib/markdown";
-import { useStream } from "./lib/useStream";
-import { Trace } from "./Trace";
-import { useVoiceInput } from "./useVoiceInput";
+import { useEffect, useRef, useState } from "react";
+import { api, json, type RequestError, requestErrorOf } from "./api";
+import { BoardScreen } from "./board/BoardScreen";
+import { Dock } from "./board/Dock";
+import { Mark, SmallIcon } from "./board/icons";
+import { NewBoard } from "./board/NewBoard";
+import type { Board, BoardSummary, Tile } from "./board/types";
+import { ChatPanel } from "./chat/ChatPanel";
+import { type HostContext, useHostContext } from "./host";
+import { ProfilePanel } from "./profile/ProfilePanel";
 
-const CATEGORIES_HASH = "#categories";
+type Mode = "board" | "chat";
 
 export function App() {
   const context = useHostContext();
-  const [isCenter, setIsCenter] = useState(location.hash === CATEGORIES_HASH);
-
-  // A chat answer links to the category center with #categories.
-  useEffect(() => {
-    function handleHashChange() {
-      setIsCenter(location.hash === CATEGORIES_HASH);
-    }
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  // Opened by our own button, Back goes back in history, so no duplicate entry is left behind.
-  const isOpenedHere = useRef(false);
-
-  function openCenter() {
-    isOpenedHere.current = true;
-    location.hash = CATEGORIES_HASH;
-  }
-
-  function closeCenter() {
-    if (isOpenedHere.current) {
-      isOpenedHere.current = false;
-      history.back();
-      return;
-    }
-    history.replaceState(null, "", location.pathname + location.search);
-    setIsCenter(false);
-  }
-
   if (context === null) {
-    return <p className="hint">Waiting for the e-banking…</p>;
-  }
-  // A new customer logging in gets a fresh chat, never the previous customer's state.
-  // The chat stays mounted behind the center, so the back button returns to the same chat.
-  return (
-    <>
-      <div hidden={isCenter}>
-        <Chat
-          key={context.customer?.customer_id}
-          context={context}
-          onOpenCategories={openCenter}
-        />
+    return (
+      <div className="app">
+        <div className="state" aria-live="polite">
+          <span className="spinner" aria-hidden="true" />
+          <p>Waiting for the e-banking…</p>
+        </div>
       </div>
-      {isCenter && (
-        <CategoryCenter
-          key={context.customer?.customer_id}
-          token={context.access_token}
-          today={context.today}
-          onBack={closeCenter}
-        />
-      )}
-    </>
+    );
+  }
+  // A new customer logging in gets a fresh page, never the previous customer's state.
+  return (
+    <TrustRoom
+      key={context.customer?.customer_id ?? "anonymous"}
+      context={context}
+    />
   );
 }
 
-function Chat({
-  context,
-  onOpenCategories,
-}: {
-  context: HostContext;
-  onOpenCategories: () => void;
-}) {
+type Loading =
+  | { state: "loading" }
+  | { state: "building" }
+  | { state: "error"; error: RequestError }
+  | { state: "ready" };
+
+// What the page says while the first boards are built, one line every few seconds.
+const BUILDING_LINES = [
+  "Reading your accounts",
+  "Looking at the last months",
+  "Choosing what matters",
+  "Drawing your first board",
+];
+const BUILDING_LINE_MS = 4_000;
+
+function TrustRoom({ context }: { context: HostContext }) {
   const token = context.access_token;
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isLoadingChats, setIsLoadingChats] = useState(true);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
-  const [question, setQuestion] = useState("");
-  const [pending, setPending] = useState<string | null>(null);
-  const [pendingDocuments, setPendingDocuments] = useState<DocumentRef[]>([]);
-  const [failed, setFailed] = useState<{
-    error: RequestError;
-    action: FailedAction;
-  } | null>(null);
-  const [isOpening, setIsOpening] = useState(false);
-  const [attached, setAttached] = useState<DocumentRef[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [visual, setVisual] = useState<Visual | null>(null);
-  const [isLoadingVisual, setIsLoadingVisual] = useState(false);
-  // Bumped by every widget fetch and chat switch, so a late fetch never draws on another chat.
-  const visualRequest = useRef(0);
-  // In a narrow frame one view at a time; wider, the CSS shows both and ignores this.
-  const [view, setView] = useState<View>("chat");
-  const chatRef = useRef<HTMLElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const isFollowing = useRef(true);
-  const lastScrollTop = useRef(0);
-  const stream = useStream<Message>();
-  const voice = useVoiceInput({
-    token,
-    onTranscript: (text) =>
-      setQuestion((current) => (current === "" ? text : `${current} ${text}`)),
-  });
+  const [mode, setMode] = useState<Mode>("board");
+  const [boards, setBoards] = useState<BoardSummary[]>([]);
+  const [loading, setLoading] = useState<Loading>({ state: "loading" });
+  // The open board, or null for the new-board screen.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [askTile, setAskTile] = useState<{ id: string; title: string } | null>(
+    null,
+  );
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [dockError, setDockError] = useState<string | null>(null);
+  const hasStarted = useRef(false);
 
-  async function open(id: string) {
-    const path = `/api/conversations/${id}`;
-    const [storedMessages, storedCalls] = await Promise.all([
-      api<Message[]>(`${path}/messages`, token),
-      api<ToolCall[]>(`${path}/tool-calls`, token),
-    ]);
-    setConversationId(id);
-    setMessages(storedMessages);
-    setToolCalls(storedCalls);
-    return { storedMessages, storedCalls };
-  }
+  const customer = context.customer;
+  const name =
+    customer === null
+      ? "Your profile"
+      : `${customer.first_name} ${customer.last_name}`;
+  const initials =
+    customer === null
+      ? ""
+      : `${customer.first_name.charAt(0)}${customer.last_name.charAt(0)}`;
 
-  // Draws a widget on the canvas; a narrow frame switches to it.
-  async function showWidget(widget: { widgetId: string; version: number }) {
-    const request = ++visualRequest.current;
-    setIsLoadingVisual(true);
-    try {
-      const version = await api<WidgetVersion>(
-        `/api/widgets/${widget.widgetId}/versions/${widget.version}?form=live`,
-        token,
-      );
-      if (request !== visualRequest.current) return;
-      setVisual({
-        widgetId: widget.widgetId,
-        version: version.number,
-        publishedVersion: version.published_version,
-        title: version.title,
-        html: version.html,
-        caption: captionOf(version),
-      });
-      setView("visual");
-    } finally {
-      if (request === visualRequest.current) setIsLoadingVisual(false);
-    }
-  }
-
-  // The customer's click on "Put on dashboard"; the e-banking reloads an open dashboard.
-  async function publishVisual() {
-    if (visual === null) return;
-    const publication = await api<WidgetPublication>(
-      `/api/widgets/${visual.widgetId}/publications`,
-      token,
-      json({ dashboard_id: context.dashboard_id }),
+  async function fetchBoards(): Promise<BoardSummary[]> {
+    const list = await api<BoardSummary[]>("/api/boards", token);
+    const sorted = [...list].sort(
+      (first, second) => first.position - second.position,
     );
-    sendToHost("widgets-changed", { dashboard_id: publication.dashboard_id });
-    setVisual((current) =>
-      current !== null && current.widgetId === publication.widget_id
-        ? { ...current, publishedVersion: publication.version_number }
-        : current,
-    );
+    setBoards(sorted);
+    return sorted;
   }
 
-  function clearVisual() {
-    visualRequest.current += 1;
-    setIsLoadingVisual(false);
-    setVisual(null);
-  }
-
-  async function handleOpenVisual(widget: {
-    widgetId: string;
-    version: number;
-  }) {
-    setFailed(null);
+  // A customer without boards gets their first ones, built from their own data.
+  async function start() {
+    setLoading({ state: "loading" });
     try {
-      await showWidget(widget);
+      let list = await fetchBoards();
+      if (list.length === 0) {
+        setLoading({ state: "building" });
+        await api("/api/board-plans", token, json({}));
+        list = await fetchBoards();
+      }
+      setOpenId(list[0]?.id ?? null);
+      setLoading({ state: "ready" });
     } catch (error) {
-      fail(error, { name: "visual", widget });
+      setLoading({ state: "error", error: requestErrorOf(error) });
     }
   }
 
-  function fail(error: unknown, action: FailedAction) {
-    setFailed({ error: requestErrorOf(error), action });
-  }
-
-  // A failed question stays in the thread above its note, also when its new chat was dropped.
-  const failedQuestion = failed?.action.name === "ask" ? failed.action : null;
-  const isHome =
-    conversationId === null && pending === null && failedQuestion === null;
-
-  // The chat follows new text until the customer scrolls up, and again once they are back down.
-  // The home starts at its top.
+  // Once per customer; the ref keeps StrictMode's second run from building the boards twice.
   useEffect(() => {
-    const chat = chatRef.current;
-    if (chat === null) return;
-    if (isHome) chat.scrollTop = 0;
-    else if (isFollowing.current) chat.scrollTop = chat.scrollHeight;
-  }, [isHome, messages, pending, stream.text, stream.toolCalls.length]);
-
-  // The stored chats come back after a reload, listed on the home in the panel and the full page.
-  async function loadChats() {
-    setFailed(null);
-    setIsLoadingChats(true);
-    try {
-      setConversations(await api<Conversation[]>("/api/conversations", token));
-    } catch (error) {
-      fail(error, { name: "load" });
-    } finally {
-      setIsLoadingChats(false);
-    }
-  }
-
-  // Runs once per customer: Chat is keyed by the customer, and the token only changes with them.
-  useEffect(() => {
-    void loadChats();
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+    void start();
   }, []);
 
-  // Tags the customer's bookings in the background; nothing waits for it and nothing shows it.
-  useEffect(() => {
-    async function startCategorisation() {
-      try {
-        await api("/api/categorisations", token, { method: "POST" });
-      } catch {
-        // A failed start is retried at the next open.
-      }
-    }
-    void startCategorisation();
-    // Runs once per customer: Chat is keyed by the customer, and the token only changes with them.
-  }, []);
-
-  function handleChatScroll() {
-    const chat = chatRef.current;
-    if (chat === null) return;
-    const distance = chat.scrollHeight - chat.scrollTop - chat.clientHeight;
-    // Only the customer moves the chat up. New text that arrives before this event must not
-    // count as scrolling away, or a tall chunk would stop the following for good.
-    if (chat.scrollTop < lastScrollTop.current) isFollowing.current = false;
-    if (distance < FOLLOW_DISTANCE) isFollowing.current = true;
-    lastScrollTop.current = chat.scrollTop;
+  function openBoard(boardId: string | null) {
+    setAskTile(null);
+    setOpenId(boardId);
   }
 
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    void ask(question.trim());
-  }
-
-  async function ask(content: string) {
-    if (content === "" || stream.status === "streaming") return;
-    // The answer streams into the chat, so a narrow frame shows the chat.
-    setView("chat");
-    inputRef.current?.focus();
-    const documents = attached;
-    isFollowing.current = true;
-    // A suggestion from the home leaves a typed draft in the input.
-    setQuestion((current) => (current.trim() === content ? "" : current));
-    setAttached([]);
-    setPending(content);
-    setPendingDocuments(documents);
-    setFailed(null);
-    let createdId: string | null = null;
+  async function handleBoardChanged(boardId?: string) {
+    setRefreshKey((key) => key + 1);
     try {
-      let id = conversationId;
-      if (id === null) {
-        // ponytail: the first question is the title; a model-written title is a later card
-        const title = content.slice(0, TITLE_LENGTH);
-        const created = await api<Conversation>(
-          "/api/conversations",
-          token,
-          json({ title }),
-        );
-        setConversations((current) => [created, ...current]);
-        id = created.id;
-        createdId = id;
-        setConversationId(id);
-      }
-      const path = `/api/conversations/${id}`;
-      await stream.start(`${path}/messages?stream=true`, token, {
-        content,
-        document_ids: documents.map((document) => document.id),
-        page: pageOf(context),
-      });
-      // The reply is stored. A failed reload only costs the tool lines, never a second send.
-      try {
-        const { storedMessages, storedCalls } = await open(id);
-        // Tool calls are stored on the question they answer, the last question of the chat.
-        const asked = storedMessages.findLast(
-          (message) => message.role === "user",
-        );
-        const built = storedCalls
-          .filter((call) => call.message_id === asked?.id)
-          .map(builtWidgetOf)
-          .findLast((widget) => widget !== null);
-        if (built !== undefined && built !== null) await showWidget(built);
-      } catch (error) {
-        fail(error, { name: "open", id });
-      }
-      stream.reset();
-      voice.clear();
-    } catch (error) {
-      if (createdId !== null) await discardEmptyChat(createdId);
-      restoreQuestion(content, documents);
-      fail(error, { name: "ask", content, documents });
-    } finally {
-      setPending(null);
-    }
-  }
-
-  // Drops a chat a failed first question left empty; a reply stored before the drop keeps it.
-  async function discardEmptyChat(id: string) {
-    const path = `/api/conversations/${id}`;
-    try {
-      const stored = await api<Message[]>(`${path}/messages`, token);
-      if (stored.length > 0) return;
-      await api(path, token, { method: "DELETE" });
+      await fetchBoards();
     } catch {
-      return;
+      // The board itself is fetched again by its screen, which shows its own error.
     }
-    setConversations((current) => current.filter((other) => other.id !== id));
-    setConversationId((current) => (current === id ? null : current));
+    if (boardId !== undefined) {
+      setMode("board");
+      openBoard(boardId);
+    }
   }
 
-  // Puts a failed question back, unless the customer has typed or dictated a new one meanwhile.
-  function restoreQuestion(content: string, documents: DocumentRef[]) {
-    setQuestion((current) => (current === "" ? content : current));
-    setAttached((current) => (current.length === 0 ? documents : current));
+  async function handleCreated(board: Board) {
+    try {
+      await fetchBoards();
+    } catch {
+      const summary: BoardSummary = {
+        id: board.id,
+        name: board.name,
+        position: board.position,
+        conversation_id: board.conversation_id,
+        tile_count: board.tiles.length,
+      };
+      setBoards((current) => [...current, summary]);
+    }
+    openBoard(board.id);
   }
 
-  async function handleConfirmation(
-    toolCallId: string,
-    isAllowed: boolean,
-    edited: Record<string, unknown> | null,
-  ) {
-    await api<void>(
-      `/api/conversations/${conversationId}/tool-calls/${toolCallId}/confirmations`,
-      token,
-      json({ is_allowed: isAllowed, arguments: edited }),
+  async function handleRenameBoard(boardId: string, boardName: string) {
+    setDockError(null);
+    setBoards((current) =>
+      current.map((board) =>
+        board.id === boardId ? { ...board, name: boardName } : board,
+      ),
     );
-  }
-
-  async function handleAttach(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    // Cleared, so choosing the same file again fires the event again.
-    event.target.value = "";
-    if (file === undefined) return;
-    await upload(file);
-  }
-
-  async function upload(file: File) {
-    setFailed(null);
-    setIsUploading(true);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      const document = await api<DocumentRef>("/api/documents", token, {
-        method: "POST",
-        body: form,
+      await api(`/api/boards/${boardId}`, token, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: boardName }),
       });
-      setAttached((current) => [...current, document]);
     } catch (error) {
-      fail(error, { name: "upload", file });
-    } finally {
-      setIsUploading(false);
+      setDockError(
+        `The board was not renamed. ${requestErrorOf(error).message}`,
+      );
     }
+    await fetchBoards().catch(() => undefined);
   }
 
-  async function handleOpen(id: string) {
-    setFailed(null);
-    // The chat list is disabled meanwhile, so two picks cannot finish out of order.
-    setIsOpening(true);
+  async function handleDeleteBoard(boardId: string) {
+    setDockError(null);
+    const remaining = boards.filter((board) => board.id !== boardId);
+    setBoards(remaining);
+    if (openId === boardId) openBoard(remaining[0]?.id ?? null);
     try {
-      await open(id);
-      clearVisual();
+      await api(`/api/boards/${boardId}`, token, { method: "DELETE" });
     } catch (error) {
-      fail(error, { name: "open", id });
-    } finally {
-      setIsOpening(false);
+      setDockError(
+        `The board was not deleted. ${requestErrorOf(error).message}`,
+      );
     }
+    await fetchBoards().catch(() => undefined);
   }
 
-  // Try again repeats the failed action with what the page holds now.
-  function retry() {
-    if (failed === null) return voice.retry();
-    const { action } = failed;
-    if (action.name === "ask") void ask(action.content);
-    else if (action.name === "load") void loadChats();
-    else if (action.name === "open") void handleOpen(action.id);
-    else if (action.name === "upload") void upload(action.file);
-    else void handleOpenVisual(action.widget);
+  // The chip above the chat input follows the tile: renamed with it, gone with it.
+  function handleTilesChanged(tiles: Tile[]) {
+    setAskTile((current) => {
+      if (current === null) return null;
+      const tile = tiles.find((other) => other.id === current.id);
+      return tile === undefined ? null : { id: tile.id, title: tile.title };
+    });
   }
 
-  function handleNewChat() {
-    setFailed(null);
-    setConversationId(null);
-    setMessages([]);
-    setToolCalls([]);
-    clearVisual();
-    stream.reset();
-  }
-
-  const isBusy =
-    stream.status === "streaming" ||
-    pending !== null ||
-    isOpening ||
-    isUploading;
-  const waitingCalls = stream.toolCalls.filter(
-    (toolCall) => toolCall.confirmation !== null && toolCall.isRunning,
-  );
-  const title =
-    conversations.find((conversation) => conversation.id === conversationId)
-      ?.title ??
-    pending ??
-    failedQuestion?.content;
-  const failure =
-    failed === null
-      ? voice.failure
-      : { title: failed.error.message, detail: detailOf(failed) };
-  const errorNote = failure !== null && (
-    <div className="failure" role="alert">
-      <p>
-        <strong>{failure.title}</strong>
-        {failure.detail}
-      </p>
-      <button
-        type="button"
-        onClick={retry}
-        disabled={isBusy || voice.phase !== "idle"}
-      >
-        Try again
-      </button>
-    </div>
-  );
-  const shownView = shownViewOf({
-    view,
-    isWaiting: waitingCalls.length > 0,
-    hasError: failure !== null,
-  });
-  const isChatForced = shownView !== view;
-  useEffect(() => {
-    if (isChatForced) inputRef.current?.focus();
-  }, [isChatForced]);
-  const chats: ChatListProps = {
-    conversations,
-    currentId: conversationId,
-    isLoading: isLoadingChats,
-    isBusy,
-    onOpen: (id) => void handleOpen(id),
-  };
+  const openBoardSummary = boards.find((board) => board.id === openId) ?? null;
+  const boardConversationIds = boards
+    .map((board) => board.conversation_id)
+    .filter((id) => id !== null);
 
   return (
-    <div className="trustroom">
-      <div
-        className="layout"
-        data-view={shownView}
-        data-has-visual={visual !== null}
-      >
-        <div className="switch" role="group" aria-label="Show">
+    <div className="app" data-mode={mode}>
+      <header className="top">
+        <div className="brand">
+          <Mark />
+          <span>TrustRoom</span>
+          <span className="private">
+            <SmallIcon name="lock" size={12} />
+            Stays inside the bank
+          </span>
+        </div>
+        <nav className="mode" aria-label="What to show">
           <button
             type="button"
-            aria-pressed={shownView === "chat"}
-            onClick={() => setView("chat")}
+            aria-pressed={mode === "board"}
+            onClick={() => setMode("board")}
           >
+            <SmallIcon name="board" />
+            Board and chat
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === "chat"}
+            onClick={() => setMode("chat")}
+          >
+            <SmallIcon name="ask" />
             Chat
           </button>
-          <button
-            type="button"
-            aria-pressed={shownView === "visual"}
-            onClick={() => setView("visual")}
-          >
-            Visual
-          </button>
-        </div>
-
-        <aside className="sidebar">
-          <button type="button" onClick={handleNewChat} disabled={isBusy}>
-            <Icon name="plus" size={16} /> New chat
-          </button>
-          <button type="button" onClick={onOpenCategories}>
-            Categories
-          </button>
-          <ChatList {...chats} />
-        </aside>
-
-        <div className="canvas-pane">
-          <Canvas
-            visual={visual}
-            isLoading={isLoadingVisual}
-            isBusy={isBusy}
-            onAsk={(text) => void ask(text)}
-            onPublish={publishVisual}
-          />
-        </div>
-
-        <main>
-          {!isHome && (
-            <header className="thread-bar">
-              <button
-                type="button"
-                className="icon back"
-                onClick={handleNewChat}
-                disabled={isBusy}
-                aria-label="All chats"
-              >
-                <Icon name="chevronLeft" />
-              </button>
-              <h1>{title ?? "Untitled chat"}</h1>
-            </header>
-          )}
-
-          <section
-            ref={chatRef}
-            className="chat"
-            aria-live="polite"
-            onScroll={handleChatScroll}
-          >
-            {/* On the home the error goes first, where the customer still looks. */}
-            {isHome && errorNote}
-            {isHome && (
-              <Home
-                context={context}
-                chats={chats}
-                isBusy={isBusy}
-                onAsk={(text) => void ask(text)}
-                onOpenCategories={onOpenCategories}
-              />
-            )}
-            {messages.map((message, index) =>
-              message.role === "user" ? (
-                <Question
-                  key={message.id}
-                  text={message.content}
-                  documents={message.documents}
-                />
-              ) : (
-                <Answer
-                  key={message.id}
-                  // Tool calls are stored on the question they answer.
-                  steps={toolCalls.filter(
-                    (call) => call.message_id === messages[index - 1]?.id,
-                  )}
-                  provenance={message.provenance}
-                  onOpenVisual={(widget) => void handleOpenVisual(widget)}
-                >
-                  <Markdown text={message.content} />
-                </Answer>
-              ),
-            )}
-            {pending !== null && (
-              <>
-                <Question text={pending} documents={pendingDocuments} />
-                <Answer
-                  steps={stream.toolCalls}
-                  provenance={null}
-                  onOpenVisual={(widget) => void handleOpenVisual(widget)}
-                >
-                  {stream.text !== "" ? (
-                    <Markdown text={stream.text} />
-                  ) : (
-                    waitingCalls.length === 0 && (
-                      <p className="hint">
-                        {stream.isChecking
-                          ? "Checking the figures…"
-                          : "Thinking…"}
-                      </p>
-                    )
-                  )}
-                </Answer>
-              </>
-            )}
-            {failedQuestion !== null && (
-              <Question
-                text={failedQuestion.content}
-                documents={failedQuestion.documents}
-              />
-            )}
-            {!isHome && errorNote}
-          </section>
-
-          {waitingCalls.map((toolCall) => (
-            <Confirmation
-              key={toolCall.id}
-              toolCall={toolCall}
-              onAnswer={(isAllowed, edited) =>
-                handleConfirmation(toolCall.id, isAllowed, edited)
-              }
-            />
-          ))}
-        </main>
-
-        {/* Outside main, so the input stays at the bottom when the visual takes a narrow frame. */}
-        <form
-          className="composer"
-          aria-label="Ask TrustRoom"
-          onSubmit={handleSubmit}
+        </nav>
+        <button
+          className="me"
+          type="button"
+          aria-expanded={mode === "chat"}
+          aria-label={
+            mode === "chat"
+              ? `Close the profile of ${name}`
+              : `Open the profile of ${name}`
+          }
+          onClick={() => setMode(mode === "chat" ? "board" : "chat")}
         >
-          {(attached.length > 0 || isUploading) && (
-            <ul className="attached">
-              {attached.map((document) => (
-                <li key={document.id}>
-                  <Icon name="file" size={14} />
-                  <span>{document.name}</span>
-                  <button
-                    type="button"
-                    className="icon"
-                    aria-label={`Remove ${document.name}`}
-                    onClick={() =>
-                      setAttached((current) =>
-                        current.filter((other) => other.id !== document.id),
-                      )
+          <span className="avatar">{initials}</span>
+          <span>
+            <b>{name}</b>
+            <small>Profile and documents</small>
+          </span>
+        </button>
+      </header>
+
+      {mode === "chat" ? (
+        <div className="main">
+          <ChatPanel
+            variant="page"
+            conversationId={null}
+            boardConversationIds={boardConversationIds}
+            board={null}
+            tile={null}
+            onClearTile={() => setAskTile(null)}
+            onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
+            onOpenBoard={(boardId) => {
+              setMode("board");
+              openBoard(boardId);
+            }}
+          />
+          <ProfilePanel name={name} initials={initials} customerSince={null} />
+        </div>
+      ) : (
+        <div className="main">
+          <section
+            className="boardcol"
+            aria-label={
+              openBoardSummary === null
+                ? "New board"
+                : `Board ${openBoardSummary.name}`
+            }
+          >
+            {loading.state === "ready" ? (
+              <>
+                {openBoardSummary === null ? (
+                  <NewBoard
+                    token={token}
+                    onCreated={(board) => void handleCreated(board)}
+                  />
+                ) : (
+                  <BoardScreen
+                    key={openBoardSummary.id}
+                    token={token}
+                    boardId={openBoardSummary.id}
+                    boardName={openBoardSummary.name}
+                    refreshKey={refreshKey}
+                    onAsk={(tile) =>
+                      setAskTile({ id: tile.id, title: tile.title })
                     }
-                  >
-                    <Icon name="close" size={12} />
-                  </button>
-                </li>
-              ))}
-              {isUploading && (
-                <li className="reading">Reading the document…</li>
-              )}
-            </ul>
-          )}
-          <div className="input-row">
-            <label className="icon">
-              <Icon name="paperclip" />
-              <input
-                type="file"
-                aria-label="Attach a document"
-                accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx"
-                onChange={(event) => void handleAttach(event)}
-                disabled={isBusy || attached.length >= DOCUMENTS_PER_MESSAGE}
-                className="visually-hidden"
-              />
-            </label>
-            <input
-              ref={inputRef}
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              placeholder={placeholderOf(voice.phase, waitingCalls.length > 0)}
-              aria-label="Your question"
-              autoComplete="off"
-              disabled={waitingCalls.length > 0}
+                    onTilesChanged={handleTilesChanged}
+                  />
+                )}
+                {dockError !== null && (
+                  <p className="dropped" role="alert">
+                    {dockError}
+                  </p>
+                )}
+                <Dock
+                  boards={boards}
+                  openId={openId}
+                  isNewOpen={openBoardSummary === null}
+                  onOpen={openBoard}
+                  onNew={() => openBoard(null)}
+                  onRename={(boardId, boardName) =>
+                    void handleRenameBoard(boardId, boardName)
+                  }
+                  onDelete={(boardId) => void handleDeleteBoard(boardId)}
+                />
+              </>
+            ) : (
+              <FirstBoards loading={loading} onRetry={() => void start()} />
+            )}
+          </section>
+          {loading.state === "ready" && openBoardSummary !== null && (
+            <ChatPanel
+              key={openBoardSummary.id}
+              variant="side"
+              conversationId={openBoardSummary.conversation_id}
+              boardConversationIds={boardConversationIds}
+              board={{ id: openBoardSummary.id, name: openBoardSummary.name }}
+              tile={askTile}
+              onClearTile={() => setAskTile(null)}
+              onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
+              onOpenBoard={openBoard}
             />
-            {canCaptureAudio() &&
-              (voice.phase === "recording" ? (
-                <button
-                  type="button"
-                  className="recording"
-                  onClick={voice.stop}
-                  aria-pressed="true"
-                >
-                  <span className="recording-dot" /> Stop
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="icon"
-                  onClick={voice.start}
-                  disabled={voice.phase !== "idle"}
-                  aria-label="Speak"
-                >
-                  <Icon name="mic" />
-                </button>
-              ))}
-            <button
-              type="submit"
-              className="send"
-              disabled={isBusy || question.trim() === ""}
-              aria-label="Send"
-            >
-              <Icon name="send" />
-            </button>
-          </div>
-        </form>
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-/** The customer's question, with the documents sent along. */
-function Question({
-  text,
-  documents,
+/** The page before the boards are there: loading the list, or building the first boards. */
+function FirstBoards({
+  loading,
+  onRetry,
 }: {
-  text: string;
-  documents: DocumentRef[];
+  loading: Loading;
+  onRetry: () => void;
 }) {
-  return (
-    <article className="question">
-      <p>{text}</p>
-      {documents.map((document) => (
-        <span key={document.id} className="document">
-          <Icon name="file" size={16} />
-          <span>{document.name}</span>
-        </span>
-      ))}
-    </article>
-  );
-}
+  const [lineIndex, setLineIndex] = useState(0);
+  const isBuilding = loading.state === "building";
 
-/** One answer: how it came about, the text, and which model wrote it from which sources. */
-function Answer({
-  steps,
-  provenance,
-  onOpenVisual,
-  children,
-}: {
-  steps: Parameters<typeof Trace>[0]["steps"];
-  provenance: Message["provenance"];
-  onOpenVisual: (widget: { widgetId: string; version: number }) => void;
-  children: ReactNode;
-}) {
-  const widgets = steps.map(builtWidgetOf).filter((widget) => widget !== null);
-  return (
-    <article className="answer">
-      <Trace steps={steps} />
-      <div className="answer-text">{children}</div>
-      {widgets.map((widget) => (
-        <button
-          key={`${widget.widgetId}-${widget.version}`}
-          type="button"
-          className="visual-ready"
-          onClick={() => onOpenVisual(widget)}
-        >
-          <Icon name="chart" size={16} />
-          <span>
-            <strong>Visual ready</strong> {widget.title}
-          </span>
-          <Icon name="chevronRight" size={16} />
+  useEffect(() => {
+    if (!isBuilding) return;
+    const timer = window.setInterval(
+      () => setLineIndex((index) => (index + 1) % BUILDING_LINES.length),
+      BUILDING_LINE_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [isBuilding]);
+
+  if (loading.state === "error") {
+    return (
+      <div className="state" role="alert">
+        <h1>Your boards did not load</h1>
+        <p>{loading.error.message}</p>
+        <button type="button" className="button go" onClick={onRetry}>
+          Try again
         </button>
-      ))}
-      {provenance !== null && (
-        <footer>
-          <span>
-            {provenance.model} · {(provenance.latency_ms / 1000).toFixed(1)} s
-          </span>
-          {provenance.sources.map(
-            (source) =>
-              // Only web addresses become links; the list comes from a search result.
-              source.url?.startsWith("http") === true && (
-                <a
-                  key={source.id}
-                  href={source.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {source.title}
-                </a>
-              ),
-          )}
-        </footer>
-      )}
-    </article>
-  );
-}
-
-function placeholderOf(phase: string, isWaiting: boolean): string {
-  if (isWaiting) return "Answer the question above first";
-  if (phase === "transcribing") return "Transcribing…";
-  return "Ask about your accounts";
-}
-
-const TITLE_LENGTH = 60;
-// Within this many pixels of the end, the chat counts as scrolled to the end.
-const FOLLOW_DISTANCE = 40;
-// The backend takes at most three documents per message.
-const DOCUMENTS_PER_MESSAGE = 3;
-// The backend takes a page title of 1 to 200 characters.
-const PAGE_TEXT_LENGTH = 200;
-
-/** The page for the prompt; the e-banking has pages without a title, such as its not-found page. */
-function pageOf(context: HostContext) {
-  const title = context.page.title.trim().slice(0, PAGE_TEXT_LENGTH);
-  if (title === "") return null;
-  const account = context.account?.name.trim().slice(0, PAGE_TEXT_LENGTH);
-  return { title, account_name: account === "" ? null : (account ?? null) };
-}
-
-type FailedAction =
-  | { name: "ask"; content: string; documents: DocumentRef[] }
-  | { name: "load" }
-  | { name: "open"; id: string }
-  | { name: "upload"; file: File }
-  | { name: "visual"; widget: { widgetId: string; version: number } };
-
-/** The note's second line: what became of what the customer sent. */
-function detailOf({
-  error,
-  action,
-}: {
-  error: RequestError;
-  action: FailedAction;
-}): string {
-  if (action.name === "ask") {
-    // The backend stores nothing from a turn it ends with an error.
-    return error.kind === "connection"
-      ? "Your question is back in the input."
-      : "Nothing was saved. Your question is back in the input.";
+      </div>
+    );
   }
-  if (action.name === "load") return "Your chats were not loaded.";
-  if (action.name === "open") return "The chat was not loaded.";
-  if (action.name === "upload") return "The document was not attached.";
-  return "The visual was not opened.";
+  if (isBuilding) {
+    return (
+      <div className="state" aria-live="polite">
+        <span className="spinner" aria-hidden="true" />
+        <h1>Building your first boards</h1>
+        <p>
+          From your own accounts and bookings, about what matters to you. This
+          takes up to two minutes, once.
+        </p>
+        <p className="line">{BUILDING_LINES[lineIndex]}…</p>
+      </div>
+    );
+  }
+  return (
+    <div className="state" aria-live="polite">
+      <span className="spinner" aria-hidden="true" />
+      <p>Opening your boards…</p>
+    </div>
+  );
 }

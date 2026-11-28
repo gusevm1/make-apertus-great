@@ -1,5 +1,5 @@
-/* The TrustRoom page, drawn like the e-banking around it: grey page, white cards, rows split by
-   hairlines. Colours, radii and the font come from the e-banking's tokens.css. */
+/* The page frame: base, the top bar and the two modes. Boards are in board/board.css, the chat
+   and the profile in their own folders. Drawn after docs/reference/boards. */
 * {
   box-sizing: border-box;
 }
@@ -7,9 +7,9 @@
 body {
   margin: 0;
   font: 14px/1.5 var(--font-family);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text);
-  background: var(--color-background);
+  color: var(--text);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -34,984 +34,37 @@ input {
   color: inherit;
 }
 
-button,
-.icon {
+button {
   cursor: pointer;
 }
 
-button:disabled,
-.icon:has(input:disabled) {
+button:disabled {
   cursor: default;
   opacity: 0.5;
 }
 
 button:focus-visible,
+a:focus-visible,
 input:focus-visible,
-summary:focus-visible,
-.icon:has(input:focus-visible) {
-  outline: 2px solid var(--color-primary);
+summary:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+a {
+  color: var(--accent);
+}
+
+a:hover {
+  color: var(--deep);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
 }
 
 .hint {
-  color: var(--color-text-muted);
-}
-
-/* Layout: one column in the panel, where a switch picks the chat or the visual and the input stays
-   at the bottom of both. A wide page puts the chat list on the left, or, once there is a visual, the
-   visual on the left and the chat in a column beside it. */
-.trustroom {
-  height: 100vh;
-  container-type: inline-size;
-}
-
-.layout {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: "switch" "pane" "composer";
-  height: 100%;
-}
-
-.switch {
-  grid-area: switch;
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px 0;
-}
-
-.switch button {
-  flex: 1;
-  min-height: 44px;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-surface);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  transition: background var(--transition);
-}
-
-.switch button[aria-pressed="true"] {
-  color: var(--color-sidebar-text);
-  background: var(--color-primary);
-}
-
-.sidebar {
-  grid-area: sidebar;
-  display: none;
-  flex-direction: column;
-  gap: 12px;
-  width: 300px;
-  padding: 16px 0 16px 16px;
-  overflow-y: auto;
-}
-
-main,
-.canvas-pane {
-  grid-area: pane;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-
-.canvas-pane {
-  padding: 16px;
-  overflow-y: auto;
-}
-
-.composer {
-  grid-area: composer;
-}
-
-.layout[data-view="chat"] .canvas-pane,
-.layout[data-view="visual"] main {
-  display: none;
-}
-
-@container (min-width: 760px) {
-  .layout {
-    grid-template-rows: minmax(0, 1fr) auto;
-    grid-template-columns: 300px minmax(0, 1fr);
-    grid-template-areas: "sidebar pane" "sidebar composer";
-  }
-
-  .sidebar {
-    display: flex;
-  }
-
-  .switch,
-  .layout[data-has-visual="false"] .canvas-pane,
-  .layout[data-has-visual="true"] .sidebar {
-    display: none;
-  }
-
-  .layout[data-view] main {
-    display: flex;
-  }
-
-  .layout[data-has-visual="true"] {
-    grid-template-columns: minmax(0, 1fr) 380px;
-    grid-template-areas: "canvas pane" "canvas composer";
-  }
-
-  .layout[data-has-visual="true"] .canvas-pane {
-    grid-area: canvas;
-    display: flex;
-    padding-right: 0;
-  }
-
-  .thread-bar .back,
-  .home-chats {
-    display: none;
-  }
-
-  /* With the visual on the left, the chat list is behind the back button again. */
-  .layout[data-has-visual="true"] .thread-bar .back {
-    display: grid;
-  }
-
-  .layout[data-has-visual="true"] .home-chats {
-    display: block;
-  }
-
-  /* In a wide page the title sits on the chat's column instead of a bar across the page. */
-  main .thread-bar {
-    width: 100%;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 16px 16px 0;
-    background: none;
-    border-bottom: 0;
-  }
-
-  main .thread-bar h1 {
-    font-size: 18px;
-  }
-}
-
-/* Buttons: outlined in the bank's green, filled for the main action. */
-.sidebar > button,
-.sheet-actions button,
-.failure button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 16px;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-surface);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  transition: background var(--transition);
-}
-
-.sheet-actions button.primary {
-  color: var(--color-sidebar-text);
-  background: var(--color-primary);
-}
-
-.sheet-actions button:hover:not(:disabled),
-.failure button:hover:not(:disabled) {
-  background: var(--color-primary-soft);
-}
-
-.sheet-actions button.primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  color: var(--color-text-muted);
-  background: none;
-  border: 0;
-  border-radius: var(--radius-sm);
-}
-
-.icon:hover:not(:disabled) {
-  color: var(--color-primary);
-}
-
-.link {
-  padding: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-primary);
-  text-decoration: underline;
-  background: none;
-  border: 0;
-}
-
-/* Cards and rows, as on the e-banking's dashboard. */
-.card {
-  padding: 16px;
-  background: var(--color-surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-}
-
-.card h2 {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.card-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0 12px;
-}
-
-.card-head .hint {
-  font-size: 12px;
-}
-
-.card > .hint {
-  margin-top: 8px;
-}
-
-.rows {
-  margin-top: 4px;
-}
-
-.rows li + li {
-  border-top: 1px solid var(--color-border);
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 0;
-  text-align: left;
-  background: none;
-  border: 0;
-}
-
-/* A question that wraps keeps its arrow at full size. */
-.row > svg {
-  flex: none;
-}
-
-.row-main.single {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.row:hover:not(:disabled) .row-main,
-.row[aria-current="page"] .row-main {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-.row[aria-current="page"] .row-main {
-  font-weight: 600;
-}
-
-/* Home */
-.home {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.capabilities {
-  margin-top: 4px;
-}
-
-.capabilities li {
-  display: flex;
-  gap: 12px;
-  padding: 8px 0;
-}
-
-.capabilities li + li {
-  border-top: 1px solid var(--color-border);
-}
-
-.capabilities strong,
-.capabilities small {
-  display: block;
-}
-
-.capabilities small {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.capability-icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 32px;
-  height: 32px;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  border-radius: var(--radius-sm);
-}
-
-/* Thread */
-.thread-bar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 16px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.thread-bar h1 {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.back {
-  margin-left: -8px;
-}
-
-.ai-notice {
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary-soft);
-  color: var(--color-text);
-  font-size: 0.875rem;
-}
-
-.chat {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 16px;
-  overflow-y: auto;
-}
-
-.question {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-self: flex-end;
-  max-width: 85%;
-  padding: 10px 14px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  background: var(--color-primary-soft);
-  border-radius: var(--radius);
-}
-
-.document {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  font-size: 13px;
-  white-space: nowrap;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.document svg {
-  flex: none;
-  color: var(--color-primary);
-}
-
-.document span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.answer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  overflow-wrap: anywhere;
-  background: var(--color-surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-}
-
-.answer-text {
-  line-height: 1.6;
-}
-
-.answer-text:empty {
-  display: none;
-}
-
-.timeline + .answer-text {
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border);
-}
-
-.answer footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2px 12px;
-  padding-top: 8px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  border-top: 1px solid var(--color-border);
-}
-
-.answer footer a {
-  color: var(--color-primary);
-}
-
-.error-note {
-  padding: 10px 12px;
-  font-size: 13px;
-  color: var(--color-error);
-  background: var(--color-surface);
-  border-left: 3px solid var(--color-error);
-  border-radius: var(--radius-sm);
-}
-
-/* A failed request in the thread: what failed, what became of the input, Try again. */
-.failure {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-error);
-  border-radius: var(--radius);
-}
-
-.failure p {
-  flex: 1;
-  margin: 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.failure strong {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-error);
-}
-
-.failure button {
-  flex: none;
-}
-
-/* The model's formatting inside an answer. */
-.markdown > * {
-  margin: 0;
-}
-
-.markdown > * + * {
-  margin-top: 8px;
-}
-
-.markdown ul,
-.markdown ol {
-  padding-left: 20px;
-}
-
-.markdown ul {
-  list-style: disc;
-}
-
-.markdown ol {
-  list-style: decimal;
-}
-
-.markdown code {
-  padding: 0 4px;
-  font-size: 13px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-sm);
-}
-
-.markdown pre {
-  padding: 8px;
-  overflow-x: auto;
-  font-size: 12px;
-  white-space: pre;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-sm);
-}
-
-.markdown pre code {
-  padding: 0;
-  font-size: inherit;
-}
-
-.markdown a {
-  color: var(--color-primary);
-}
-
-.markdown .link-host {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-/* Timeline: plan, then one row per tool call with its state as a word. */
-.timeline {
-  font-size: 13px;
-}
-
-.timeline > li {
-  position: relative;
-  padding: 0 0 8px 18px;
-}
-
-.timeline > li:last-child {
-  padding-bottom: 0;
-}
-
-.timeline > li::before {
-  position: absolute;
-  top: 6px;
-  left: 0;
-  width: 7px;
-  height: 7px;
-  background: var(--color-border-strong);
-  border-radius: 50%;
-  content: "";
-}
-
-.timeline > li::after {
-  position: absolute;
-  top: 16px;
-  bottom: -2px;
-  left: 3px;
-  width: 1px;
-  background: var(--color-border-strong);
-  content: "";
-}
-
-.timeline > li:last-child::after {
-  display: none;
-}
-
-.timeline > .done::before {
-  background: var(--color-credit);
-}
-
-.timeline > .running::before,
-.timeline > .waiting::before {
-  background: var(--color-primary);
-}
-
-.timeline > .failed::before {
-  background: var(--color-error);
-}
-
-.timeline .plan p {
-  color: var(--color-text-muted);
-}
-
-.timeline .plan strong {
-  color: var(--color-text);
-}
-
-.timeline summary {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0 12px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.timeline summary::-webkit-details-marker {
-  display: none;
-}
-
-.step-title {
-  font-weight: 600;
-}
-
-.timeline summary:hover .step-title {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-.step-state {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.failed .step-state,
-.step-error {
-  color: var(--color-error);
-}
-
-.waiting .step-state {
-  font-weight: 600;
-  color: var(--color-primary);
-}
-
-.step-reason {
-  grid-column: 1 / -1;
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.timeline details > p {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.timeline details > .step-error {
-  color: var(--color-error);
-}
-
-.timeline pre {
-  max-height: 240px;
-  margin: 2px 0 0;
-  padding: 8px;
-  overflow: auto;
-  font-size: 11px;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-/* Confirmation sheet over the input, like the e-banking's payment confirmation. */
-.sheet {
-  width: 100%;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 16px;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  box-shadow: var(--shadow-pop);
-}
-
-.sheet h2 {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.facts {
-  margin-top: 8px;
-  font-size: 13px;
-}
-
-.facts div {
-  display: flex;
-  gap: 16px;
-  padding: 8px 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.facts dt {
-  flex: none;
-  /* One column for the values, also with "Receiving account" at 440 px. */
-  width: 8.5rem;
-  color: var(--color-text-muted);
-}
-
-.facts dd {
-  flex: 1;
-  min-width: 0;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.facts .detail {
-  display: block;
-  font-weight: 400;
-  color: var(--color-text-muted);
-}
-
-.facts div:has(input) {
-  align-items: center;
-}
-
-.facts input {
-  width: 100%;
-  padding: 6px 8px;
-  font-weight: 600;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-}
-
-.sheet > .hint {
-  padding-top: 8px;
-  font-size: 12px;
-  border-top: 1px solid var(--color-border);
-}
-
-.sheet .error-note {
-  margin-top: 8px;
-}
-
-.sheet-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-/* Input, shaped like the e-banking's own TrustRoom placeholder. */
-.composer {
-  width: 100%;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 12px 16px 16px;
-}
-
-.attached {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
-  font-size: 12px;
-}
-
-.attached li {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  padding: 2px 2px 2px 8px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-}
-
-.attached li span {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.attached .icon {
-  width: 24px;
-  height: 24px;
-}
-
-.attached .reading {
-  padding-right: 8px;
-  color: var(--color-text-muted);
-  border-style: dashed;
-}
-
-.input-row {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius);
-}
-
-.input-row:focus-within {
-  border-color: var(--color-primary);
-}
-
-.input-row:has(> input:focus-visible) {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.input-row > input {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 4px;
-  background: none;
-  border: 0;
-  outline: 0;
-}
-
-.input-row > input:disabled {
-  cursor: not-allowed;
-}
-
-.send {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  color: var(--color-sidebar-text);
-  background: var(--color-primary);
-  border: 0;
-  border-radius: var(--radius-sm);
-}
-
-.send:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.send:disabled {
-  color: var(--color-text-muted);
-  background: var(--color-surface-muted);
-  opacity: 1;
-}
-
-.recording {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-error);
-  background: none;
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-sm);
-}
-
-.recording-dot {
-  width: 8px;
-  height: 8px;
-  background: var(--color-error);
-  border-radius: 50%;
-}
-
-/* Canvas: the widget page in a sandboxed frame, or questions that make one. */
-.canvas {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.canvas > h2 {
-  font-size: 18px;
-}
-
-.canvas .row {
-  min-height: 44px;
-}
-
-.canvas-caption {
-  margin: -8px 0 0;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-/* The widget an answer drew; opens it on the canvas, which a narrow frame switches to. */
-.visual-ready {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.visual-ready span {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.visual-ready strong {
-  color: var(--color-primary);
-}
-
-.visual-ready:hover {
-  border-color: var(--color-primary);
-}
-
-.visual-ready:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.canvas iframe {
-  display: block;
-  width: 100%;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-}
-
-/* "Put v2 on dashboard": the customer's yes to a change on the e-banking dashboard. */
-.canvas-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-}
-
-.canvas-actions .publish {
-  min-height: 44px;
-  padding: 10px 16px;
-  font: inherit;
-  font-weight: 600;
-  color: var(--color-sidebar-text);
-  background: var(--color-primary);
-  border: 0;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.canvas-actions .publish:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.canvas-actions .publish:disabled {
-  opacity: 0.7;
-  cursor: progress;
-}
-
-.canvas-actions .publish:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.publish-status {
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.canvas-actions .error-note {
-  flex-basis: 100%;
-  margin: 0;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .canvas-pane {
-    animation: appear 180ms ease-out;
-  }
-}
-
-@keyframes appear {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+  color: var(--muted);
 }
 
 /* Out of sight, but still reachable with the keyboard. */
@@ -1023,265 +76,246 @@ main,
   clip-path: inset(50%);
 }
 
-/* Category center: bars per category split by certainty, then the bookings to review by payee. */
-.center {
+/* The page: the top bar, then one mode filling the rest of the window. */
+.app {
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-width: 1000px;
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 16px;
 }
 
-.center-bar {
+.app[data-mode="chat"] {
+  background: var(--surface);
+}
+
+.top {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 0 28px;
+  min-height: var(--top-height);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
 }
 
-.center-bar h1 {
-  flex: 1;
-  font-size: 18px;
+.mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--ink);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
 }
 
-.center-bar .link {
+.private {
   display: inline-flex;
   align-items: center;
-  text-decoration: none;
+  gap: 6px;
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--canvas);
 }
 
-.seg {
+.mode {
   display: flex;
-  gap: 4px;
   padding: 3px;
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-sm);
+  background: var(--switch);
+  border-radius: var(--radius);
+  gap: 2px;
 }
 
-.seg button {
-  padding: 4px 10px;
-  background: none;
+.mode button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   border: 0;
-  border-radius: 6px;
+  background: transparent;
+  border-radius: 9px;
+  padding: 0 16px;
+  min-height: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
 }
 
-.seg button[aria-pressed="true"] {
-  font-weight: 600;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+.mode button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-switch);
 }
 
-.bars {
-  margin: 8px 0;
-}
-
-.bar {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr) 150px;
+.me {
+  justify-self: end;
+  display: flex;
+  align-items: center;
   gap: 10px;
-  align-items: center;
-  width: 100%;
-  padding: 6px 8px;
-  text-align: left;
-  background: none;
   border: 0;
-  border-radius: var(--radius-sm);
-}
-
-.bar:hover,
-.bar[aria-pressed="true"] {
-  background: var(--color-primary-soft);
-}
-
-.bar-total {
-  text-align: right;
-}
-
-.stack {
-  display: flex;
-  height: 10px;
-  overflow: hidden;
-  border-radius: 5px;
-}
-
-.count {
-  margin-left: 6px;
-  padding: 0 7px;
-  font-size: 12px;
-  background: var(--color-surface-muted);
-  border: 1px solid var(--chart-2);
+  background: transparent;
   border-radius: 999px;
+  padding: 4px 12px 4px 4px;
+  min-height: 44px;
+  text-align: left;
 }
 
-.certainty-confirmed {
-  background: var(--color-primary);
+.me:hover,
+.me[aria-expanded="true"] {
+  background: var(--canvas);
 }
 
-.certainty-high {
-  background: var(--chart-5);
-}
-
-.certainty-medium {
-  background: var(--chart-2);
-}
-
-.certainty-low {
-  background: var(--chart-1);
-}
-
-.certainty-unknown {
-  background: var(--color-border-strong);
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 4px;
-  border-radius: 3px;
-}
-
-.payees {
-  margin: 8px 0;
-}
-
-.payees > li {
-  border-top: 1px solid var(--color-border);
-}
-
-.payees summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 8px;
-  align-items: baseline;
-  padding: 10px 0;
-  cursor: pointer;
-}
-
-.payees summary strong {
-  flex: 1;
-  text-transform: capitalize;
-}
-
-.payees summary .hint {
-  font-size: 12px;
-}
-
-.payee-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  padding-bottom: 8px;
-}
-
-.payee-actions button {
-  padding: 6px 12px;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-surface);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-}
-
-.payee-actions button.primary {
-  color: var(--color-sidebar-text);
-  background: var(--color-primary);
-}
-
-.center select {
-  max-width: 100%;
-  padding: 4px 6px;
-  font: inherit;
-  color: inherit;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-}
-
-.review-rows li {
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--soft);
+  color: var(--deep);
   display: grid;
-  grid-template-columns: 90px minmax(0, 1fr) auto 170px 100px auto;
-  gap: 8px;
-  align-items: center;
-  padding: 8px 0;
-  border-top: 1px solid var(--color-border);
-}
-
-.review-rows .right {
-  padding: 4px 10px;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-surface);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-}
-
-.review-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.amount {
-  text-align: right;
-}
-
-.chip,
-.tag {
-  padding: 1px 8px;
+  place-items: center;
   font-size: 12px;
-  white-space: nowrap;
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.me b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.me small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* A wait, a failure or an empty state that fills the space it stands in. */
+.state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 56px 28px;
+  text-align: center;
+}
+
+.state h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.state p {
+  max-width: 440px;
+  color: var(--muted);
+  font-size: 15px;
+  text-wrap: pretty;
+}
+
+.state .line {
+  min-height: 1.5em;
+  color: var(--deep);
+  font-weight: 500;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid var(--soft);
+  border-top-color: var(--accent);
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.button {
+  border: 0;
   border-radius: 999px;
+  padding: 0 16px;
+  min-height: 40px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--surface);
+  box-shadow: var(--ring-button);
 }
 
-.tag {
-  margin-left: 6px;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-soft);
+.button:hover:not(:disabled) {
+  background: var(--canvas);
 }
 
-.certainty-chip-low {
-  border-color: var(--chart-1);
+.button.go {
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: none;
 }
 
-.certainty-chip-medium,
-.certainty-chip-unknown {
-  border-color: var(--chart-2);
+.button.go:hover:not(:disabled) {
+  background: var(--ink-hover);
 }
 
-@media (max-width: 600px) {
-  .bar {
-    grid-template-columns: 110px minmax(0, 1fr);
+.error-note {
+  color: var(--bad);
+  font-size: 13px;
+}
+
+/* Narrow, as in the e-banking's side panel: the page scrolls as one, and the panels stack. */
+@media (max-width: 860px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
   }
 
-  .bar-total {
-    grid-column: 2;
-    font-size: 12px;
-    color: var(--color-text-muted);
-    text-align: left;
+  .top {
+    grid-template-columns: 1fr;
+    padding: 12px 16px;
+    justify-items: start;
   }
 
-  .review-rows li {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+  .me {
+    justify-self: start;
   }
 
-  .review-rows .review-text {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    white-space: normal;
+  .private {
+    display: none;
+  }
+
+  .main {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 3s;
   }
 }
