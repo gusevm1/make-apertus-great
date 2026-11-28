@@ -9,6 +9,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from app.core.errors import BadRequestError
 from app.features.widgets.catalogue.charts import (
     LOCALE,
+    OUTGOING,
     THEME,
     chart_spec,
     font_faces,
@@ -327,6 +328,10 @@ def _date(node: Timeline, row: dict[str, Any]) -> str:
 
 def _check_dates(node: Timeline, found: list[dict[str, Any]]) -> None:
     # A timeline shows its rows in DATA's order; it doesn't sort them, so they must be in order.
+    if len(found) > 0 and all(node.date not in row for row in found):
+        raise BadRequestError(
+            f"{node.rows}[0] has no field {node.date}; fields: {', '.join(found[0])}"
+        )
     previous = ""
     for index, row in enumerate(found):
         value = row.get(node.date)
@@ -505,8 +510,10 @@ def _chart(
     ]
     if node.total is None:
         return view | {"legend": legend}
-    # The slices are sizes, so their total is too: money out's -8 is a donut of 8.
-    total = abs(figure(path=node.total, data=data))
+    total = figure(path=node.total, data=data)
+    # Slices of money out are sizes, so their total is too: -8 out is a donut of 8.
+    if OUTGOING.search(node.value) is not None:
+        total = abs(total)
     _check_sum(
         total_path=node.total,
         rows_path=node.data,
