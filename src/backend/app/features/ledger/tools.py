@@ -18,6 +18,7 @@ from app.features.ledger.schemas import (
     SearchMovementsArgs,
     SumByCounterpartyArgs,
     SumByGroupArgs,
+    SumByMonthArgs,
     TaxYearArgs,
     TaxYearSummary,
     UnusualMovements,
@@ -31,7 +32,7 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
     async def search_movements(args: SearchMovementsArgs) -> MovementSearch:
         return await service.search_movements(token=token, args=args)
 
-    async def sum_by_month(args: Filters) -> MonthSums:
+    async def sum_by_month(args: SumByMonthArgs) -> MonthSums:
         return await service.sum_by_month(token=token, filters=args, today=today)
 
     async def sum_by_counterparty(args: SumByCounterpartyArgs) -> CounterpartySums:
@@ -69,7 +70,7 @@ def get_tools(service: LedgerService, token: str, today: date) -> list[Tool[Any]
             title="Add up your months",
             icon="bar-chart-3",
             description=PROMPTS["sum_by_month"],
-            args_schema=Filters,
+            args_schema=SumByMonthArgs,
             handler=sum_by_month,
         ),
         Tool(
