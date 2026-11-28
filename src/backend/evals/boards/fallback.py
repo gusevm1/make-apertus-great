@@ -34,7 +34,7 @@ async def main() -> None:
         recurring = RecurringPaymentService(ledger=ledger)
         service = BoardPlanService(
             apertus=FailingClient(),  # type: ignore[arg-type]
-            tiles=TileService(banking=banking, ledger=ledger, recurring=recurring),
+            tiles=TileService(ledger=ledger, recurring=recurring),
             ledger=ledger,
             recurring=recurring,
             figure_checks=FigureCheckService(),

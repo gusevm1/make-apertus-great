@@ -11,7 +11,6 @@ from urllib.parse import quote
 
 from pydantic import ValidationError
 
-from app.clients.banking import BankingClient
 from app.features.ledger.schemas import PILLAR_3A_LIMITS_CHF, Filters, LedgerRow
 from app.features.ledger.service import LedgerService, _chf, _has_words, _month, _shift
 from app.features.recurring_payments.service import RecurringPaymentService
@@ -169,9 +168,8 @@ class Income(NamedTuple):
 
 class TileService:
     def __init__(
-        self, banking: BankingClient, ledger: LedgerService, recurring: RecurringPaymentService
+        self, ledger: LedgerService, recurring: RecurringPaymentService
     ) -> None:
-        self.banking = banking
         self.ledger = ledger
         self.recurring = recurring
         # A board resolves its tiles at once; they share one read of the ledger.
@@ -429,7 +427,7 @@ class TileService:
     ) -> SavingsGoalPayload:
         accounts, customer, rows = await asyncio.gather(
             self._accounts(token=token),
-            self.banking.get(path="/customer", token=token),
+            self.ledger.read(path="/customer", token=token),
             self._ledger_rows(token=token),
         )
         account = _account(accounts=accounts, account_id=args.account_id)
@@ -504,7 +502,7 @@ class TileService:
         )
 
     async def _net_worth(self, args: NetWorthArgs, token: str, today: date) -> NetWorthPayload:
-        overview = await self.banking.get(path="/asset-overview", token=token)
+        overview = await self.ledger.read(path="/asset-overview", token=token)
         groups = {group["group"]: group for group in overview["groups"]}
         parts: list[WorthPart] = []
         items: list[dict[str, Any]] = []
@@ -616,8 +614,8 @@ class TileService:
 
     async def _securities(self, args: SecuritiesArgs, token: str, today: date) -> SecuritiesPayload:
         portfolio, positions = await asyncio.gather(
-            self.banking.get(path="/portfolio", token=token),
-            self.banking.get(path="/portfolio/positions", token=token),
+            self.ledger.read(path="/portfolio", token=token),
+            self.ledger.read(path="/portfolio/positions", token=token),
         )
         items = positions["items"]
         if not items:
@@ -810,7 +808,7 @@ class TileService:
         )
 
     async def _mortgage(self, args: MortgageArgs, token: str, today: date) -> MortgagePayload:
-        loans = await self.banking.get(path="/loans", token=token)
+        loans = await self.ledger.read(path="/loans", token=token)
         items = loans["items"]
         if not items:
             raise TileError("The customer has no mortgage or loan at this bank.")
@@ -855,7 +853,7 @@ class TileService:
         )
 
     async def _card_bill(self, args: CardBillArgs, token: str, today: date) -> CardBillPayload:
-        cards = (await self.banking.get(path="/cards", token=token))["items"]
+        cards = (await self.ledger.read(path="/cards", token=token))["items"]
         card = next((item for item in cards if item["card_id"] == args.card_id), None)
         credit = [item["card_id"] for item in cards if item["type"] == "credit"]
         credit_hint = (
@@ -870,7 +868,7 @@ class TileService:
                 f"{args.card_id} is a debit card; its payments are bookings already. {credit_hint}"
             )
         card_path = f"/cards/{quote(args.card_id, safe='')}"
-        statements = (await self.banking.get(path=f"{card_path}/statements", token=token))["items"]
+        statements = (await self.ledger.read(path=f"{card_path}/statements", token=token))["items"]
         unpaid = sorted(
             (item for item in statements if item["status"] != "settled"),
             key=lambda item: item["period_from"],
@@ -878,7 +876,7 @@ class TileService:
         if not unpaid:
             raise TileError(f"Nothing is due on the {card['product']}: every statement is paid.")
         statement = unpaid[0]
-        purchases = await self.banking.get(
+        purchases = await self.ledger.read(
             path=f"{card_path}/transactions",
             token=token,
             params={"statement": statement["statement_id"], "limit": SOURCE_ROWS_MAX},
@@ -914,7 +912,7 @@ class TileService:
         return await self._rows[token]
 
     async def _accounts(self, token: str) -> list[dict[str, Any]]:
-        return (await self.banking.get(path="/accounts", token=token))["items"]
+        return (await self.ledger.read(path="/accounts", token=token))["items"]
 
     async def _upcoming(
         self, token: str, date_from: date, date_to: date, account_id: str | None = None
@@ -922,10 +920,10 @@ class TileService:
         params = {"from": date_from.isoformat(), "to": date_to.isoformat()}
         if account_id is not None:
             params["account"] = account_id
-        return await self.banking.get(path="/upcoming-payments", token=token, params=params)
+        return await self.ledger.read(path="/upcoming-payments", token=token, params=params)
 
     async def _balance_preview(self, token: str, account_id: str, date_to: date) -> dict[str, Any]:
-        return await self.banking.get(
+        return await self.ledger.read(
             path=f"/accounts/{quote(account_id, safe='')}/balance-preview",
             token=token,
             params={"to": date_to.isoformat()},

@@ -409,7 +409,7 @@ async def main() -> None:
         for customer in args.customers.split(","):
             ledger = LedgerService(banking=banking)
             recurring = RecurringPaymentService(ledger=ledger)
-            tiles = TileService(banking=banking, ledger=ledger, recurring=recurring)
+            tiles = TileService(ledger=ledger, recurring=recurring)
             service = BoardPlanService(
                 apertus=planner,
                 tiles=tiles,
@@ -443,7 +443,7 @@ async def main() -> None:
             # One ledger per run, as one request in the app has one.
             ledger = LedgerService(banking=banking)
             recurring = RecurringPaymentService(ledger=ledger)
-            tiles = TileService(banking=banking, ledger=ledger, recurring=recurring)
+            tiles = TileService(ledger=ledger, recurring=recurring)
             service = BoardPlanService(
                 apertus=planner,
                 tiles=tiles,

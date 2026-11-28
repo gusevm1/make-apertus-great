@@ -258,7 +258,7 @@ async def get_turn(
         tile_args = _known_merchants(template=template, args=tile_args, facts=customer.text)
         title = _shop_title(template=template, title=args.title)
         if template == "regular_payments":
-            upcoming = await service.tile_service.banking.get(
+            upcoming = await service.tile_service.ledger.read(
                 path="/upcoming-payments",
                 token=token,
                 params={
