@@ -33,6 +33,7 @@ async def test_a_pointer_category_still_builds_the_board(
     response = await client.post("/api/boards", json={"about": "Which ETF should I buy?"})
 
     assert response.status_code == 201
+    assert len(apertus.guardrail_requests) == 1
     assert [board["id"] for board in (await client.get("/api/boards")).json()] == [
         response.json()["id"]
     ]
