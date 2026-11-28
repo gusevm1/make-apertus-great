@@ -405,6 +405,10 @@ class Tranche(BaseModel):
     interest_rate: float
     maturity_date: datetime.date | None
     next_interest_date: datetime.date | None
+    # From the loan's remarks: the date the bank needs the customer's decision by, and what
+    # happens without one, in the bank's words.
+    decide_by: datetime.date | None = None
+    without_decision: str | None = None
 
 
 class MortgagePayload(Payload):
@@ -415,6 +419,8 @@ class MortgagePayload(Payload):
     tranches: list[Tranche]
     # The tranche that runs out first, when it does within 18 months.
     next_maturity: Tranche | None
+    # The tranche whose decision is due first, from today on.
+    next_decision: Tranche | None = None
 
 
 # --- card_bill: the credit card's next statement ----------------------------------------------

@@ -278,6 +278,8 @@ export interface Tranche {
   interest_rate: number;
   maturity_date: string | null;
   next_interest_date: string | null;
+  decide_by: string | null;
+  without_decision: string | null;
 }
 
 export interface MortgagePayload extends PayloadBase {
@@ -285,6 +287,7 @@ export interface MortgagePayload extends PayloadBase {
   annual_interest_chf: number;
   tranches: Tranche[];
   next_maturity: Tranche | null;
+  next_decision: Tranche | null;
 }
 
 export interface CardBillPayload extends PayloadBase {

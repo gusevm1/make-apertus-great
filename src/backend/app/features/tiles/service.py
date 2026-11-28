@@ -822,8 +822,14 @@ class TileService:
                 interest_rate=item["interest_rate"],
                 maturity_date=item["maturity_date"],
                 next_interest_date=item["next_interest_date"],
+                **_decision(remarks=item.get("remarks")),
             )
             for item in items
+        ]
+        deciding = [
+            tranche
+            for tranche in tranches
+            if tranche.decide_by is not None and tranche.decide_by >= today
         ]
         soon = [
             tranche
@@ -851,6 +857,9 @@ class TileService:
             tranches=tranches,
             next_maturity=min(
                 soon, key=lambda tranche: tranche.maturity_date or today, default=None
+            ),
+            next_decision=min(
+                deciding, key=lambda tranche: tranche.decide_by or today, default=None
             ),
         )
 
@@ -951,7 +960,13 @@ def _account(accounts: list[dict[str, Any]], account_id: str) -> dict[str, Any]:
     account = next((item for item in accounts if item["account_id"] == account_id), None)
     if account is None:
         listed = ", ".join(f"{item['account_id']} ({item['name']})" for item in accounts)
-        raise TileError(f"No account {account_id}. The accounts are {listed}.")
+        hint = (
+            " Tranches and loans are not accounts: the mortgage template lists each one with its "
+            "balance, rate and maturity."
+            if _LOAN_WORDS.search(account_id) is not None
+            else ""
+        )
+        raise TileError(f"No account {account_id}. The accounts are {listed}.{hint}")
     return account
 
 
@@ -1206,3 +1221,23 @@ def _text(amount: Decimal) -> str:
 
 def _count(count: int, noun: str) -> str:
     return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
+_LOAN_WORDS = re.compile(r"tranche|loan|mortgage|hypothek", re.IGNORECASE)
+_DECIDE_BY = re.compile(r"Entscheid bis (\d{2})\.(\d{2})\.(\d{4})")
+_WITHOUT_DECISION = re.compile(r"Ohne Entscheid[^.]*\.")
+
+
+def _decision(remarks: str | None) -> dict[str, Any]:
+    """The decision date and its consequence that a loan's remarks name, as Tranche fields."""
+    if remarks is None:
+        return {}
+    match = _DECIDE_BY.search(remarks)
+    if match is None:
+        return {}
+    day, month, year = (int(part) for part in match.groups())
+    without = _WITHOUT_DECISION.search(remarks)
+    return {
+        "decide_by": date(year, month, day),
+        "without_decision": None if without is None else without.group(0),
+    }

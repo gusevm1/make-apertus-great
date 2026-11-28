@@ -137,6 +137,14 @@ def _meaning(payload: AnyPayload, today: date) -> str:
                 f"{_count(count=len(payload.tranches), noun='tranche')}, with "
                 f"{_chf(amount=payload.annual_interest_chf)} interest a year."
             )
+            decision = payload.next_decision
+            if decision is not None and decision.decide_by is not None:
+                text += (
+                    f" The bank needs a decision on the {decision.product} by "
+                    f"{_date(day=decision.decide_by)}."
+                )
+                if decision.without_decision is not None:
+                    text += f" The loan says: {decision.without_decision}"
             soon = payload.next_maturity
             if soon is None or soon.maturity_date is None:
                 return f"{text} No tranche runs out in the next 18 months."

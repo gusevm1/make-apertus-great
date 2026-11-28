@@ -640,6 +640,11 @@ def signals(raw: Raw, resolved: dict[str, AnyPayload]) -> list[Signal]:
             f"The mortgage is {chf(mortgage.figure_chf)} in {len(mortgage.tranches)} tranches, "
             f"{chf(mortgage.annual_interest_chf)} interest a year"
         )
+        decision = mortgage.next_decision
+        if decision is not None and decision.decide_by is not None:
+            text += (
+                f"; the bank needs a decision on {decision.product} by {day(decision.decide_by)}"
+            )
         if mortgage.next_maturity is not None and mortgage.next_maturity.maturity_date:
             text += (
                 f"; the tranche {mortgage.next_maturity.product} of "

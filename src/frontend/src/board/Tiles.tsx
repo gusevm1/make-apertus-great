@@ -99,6 +99,12 @@ export function pillOf(payload: AnyPayload): ReactNode {
         </Pill>
       ) : null;
     case "mortgage":
+      if (payload.next_decision?.decide_by != null)
+        return (
+          <Pill tone="warn">
+            Decide by {fullDate(payload.next_decision.decide_by)}
+          </Pill>
+        );
       return payload.next_maturity?.maturity_date != null ? (
         <Pill tone="warn">
           Runs out {fullDate(payload.next_maturity.maturity_date)}
@@ -816,6 +822,14 @@ function Mortgage({
       <p className="note num">
         CHF {money(payload.annual_interest_chf)} interest a year.
       </p>
+      {payload.next_decision?.decide_by != null && (
+        <p className="note num">
+          Decide on the {payload.next_decision.product} by{" "}
+          {fullDate(payload.next_decision.decide_by)}.
+          {payload.next_decision.without_decision !== null &&
+            ` ${payload.next_decision.without_decision}`}
+        </p>
+      )}
       <SourceLink source={payload.source} onSource={onSource} />
     </>
   );
