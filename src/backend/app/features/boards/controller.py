@@ -173,6 +173,15 @@ async def create_tile(
     return _tile_response(tile=tile, payload=payload)
 
 
+@router.get("/{board_id}/tiles/{tile_id}", response_model=ResponseTile)
+async def get_tile(
+    tile: BoardTileDep, user: CurrentUserDep, service: BoardServiceDep, today: TodayDep
+) -> ResponseTile:
+    """One tile with today's figures, for its widget on the e-banking dashboard."""
+    payload = await service.resolve_tile(tile=tile, token=user.token, today=today)
+    return _tile_response(tile=tile, payload=payload)
+
+
 @router.patch("/{board_id}/tiles/{tile_id}", response_model=ResponseTile)
 async def update_tile(
     body: RequestTileUpdate,
