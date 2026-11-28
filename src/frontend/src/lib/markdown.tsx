@@ -8,14 +8,16 @@ const INLINE =
   /`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+|#[a-z-]+)\)|\*\*(.+?)\*\*|__(.+?)__|(?<![\w*])\*(?![\s*])(.+?)(?<![\s*])\*(?![\w*])|(?<!\w)_(?![\s_])(.+?)(?<![\s_])_(?!\w)/g;
 
 type Item = { text: string; children: List | null };
+/** Draws a run of plain text, such as figures as buttons; plain text stays text without it. */
+type Plain = ((text: string) => ReactNode) | undefined;
 type List = { isOrdered: boolean; start: number; items: Item[] };
 
 // Only React elements are made from the text, so HTML in a model answer stays text.
-export function Markdown({ text }: { text: string }) {
-  return <div className="markdown">{blocksOf(text)}</div>;
+export function Markdown({ text, plain }: { text: string; plain?: Plain }) {
+  return <div className="markdown">{blocksOf(text, plain)}</div>;
 }
 
-function blocksOf(text: string): ReactNode[] {
+function blocksOf(text: string, plain: Plain): ReactNode[] {
   const blocks: ReactNode[] = [];
   let paragraph: string[] = [];
   let list: List | null = null;
@@ -28,7 +30,7 @@ function blocksOf(text: string): ReactNode[] {
         {paragraph.map((line, index) => (
           <Fragment key={index}>
             {index > 0 && <br />}
-            {inlineOf(line)}
+            {inlineOf(line, plain)}
           </Fragment>
         ))}
       </p>,
@@ -38,7 +40,7 @@ function blocksOf(text: string): ReactNode[] {
 
   function flushList() {
     if (list === null) return;
-    blocks.push(listOf(list, blocks.length));
+    blocks.push(listOf(list, blocks.length, plain));
     list = null;
   }
 
@@ -75,7 +77,7 @@ function blocksOf(text: string): ReactNode[] {
       flushList();
       blocks.push(
         <p key={blocks.length}>
-          <strong>{inlineOf(heading[1])}</strong>
+          <strong>{inlineOf(heading[1], plain)}</strong>
         </p>,
       );
     } else if (item !== null) {
@@ -106,11 +108,11 @@ function blocksOf(text: string): ReactNode[] {
   return blocks;
 }
 
-function listOf(list: List, key: number): ReactNode {
+function listOf(list: List, key: number, plain: Plain): ReactNode {
   const items = list.items.map((item, index) => (
     <li key={index}>
-      {inlineOf(item.text)}
-      {item.children !== null && listOf(item.children, 0)}
+      {inlineOf(item.text, plain)}
+      {item.children !== null && listOf(item.children, 0, plain)}
     </li>
   ));
   if (!list.isOrdered) return <ul key={key}>{items}</ul>;
@@ -124,11 +126,20 @@ function listOf(list: List, key: number): ReactNode {
 // The TrustRoom views a chat answer may link to.
 const IN_PAGE_LINK = /^#categories$/;
 
-function inlineOf(text: string): ReactNode[] {
+function inlineOf(text: string, plain: Plain): ReactNode[] {
   const nodes: ReactNode[] = [];
   let last = 0;
+  function pushText(part: string) {
+    nodes.push(
+      plain === undefined ? (
+        part
+      ) : (
+        <Fragment key={`t${last}`}>{plain(part)}</Fragment>
+      ),
+    );
+  }
   for (const match of text.matchAll(INLINE)) {
-    if (match.index > last) nodes.push(text.slice(last, match.index));
+    if (match.index > last) pushText(text.slice(last, match.index));
     const [, code, label, url, bold, boldUnderscore, italic, italicUnderscore] =
       match;
     const key = match.index;
@@ -137,7 +148,7 @@ function inlineOf(text: string): ReactNode[] {
       // A link to a view of the TrustRoom itself, like #categories, stays in this frame.
       nodes.push(
         <a key={key} href={url}>
-          {inlineOf(label)}
+          {inlineOf(label, plain)}
         </a>,
       );
     else if (url !== undefined && URL.canParse(url))
@@ -145,17 +156,22 @@ function inlineOf(text: string): ReactNode[] {
       nodes.push(
         <Fragment key={key}>
           <a href={url} target="_blank" rel="noreferrer">
-            {inlineOf(label)}
+            {inlineOf(label, plain)}
           </a>{" "}
           <span className="link-host">({new URL(url).hostname})</span>
         </Fragment>,
       );
     else if (url !== undefined) nodes.push(match[0]);
     else if (bold !== undefined || boldUnderscore !== undefined)
-      nodes.push(<strong key={key}>{inlineOf(bold ?? boldUnderscore)}</strong>);
-    else nodes.push(<em key={key}>{inlineOf(italic ?? italicUnderscore)}</em>);
+      nodes.push(
+        <strong key={key}>{inlineOf(bold ?? boldUnderscore, plain)}</strong>,
+      );
+    else
+      nodes.push(
+        <em key={key}>{inlineOf(italic ?? italicUnderscore, plain)}</em>,
+      );
     last = match.index + match[0].length;
   }
-  if (last < text.length) nodes.push(text.slice(last));
+  if (last < text.length) pushText(text.slice(last));
   return nodes;
 }
