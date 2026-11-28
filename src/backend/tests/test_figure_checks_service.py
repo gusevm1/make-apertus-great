@@ -262,6 +262,7 @@ def test_a_month_rows_figure_given_for_another_month_fails(answer: str) -> None:
         "Im Oktober haben Sie CHF 2'916.35 ausgegeben.",
         "In October 2026 you spent CHF 2,916.35.",
         "Last month you spent CHF 2’916.35.",
+        "Last month you spent CHF 2′916.35.",
         "- September: CHF 3'210.40\n- Oktober: CHF 2'916.35",
     ],
 )
