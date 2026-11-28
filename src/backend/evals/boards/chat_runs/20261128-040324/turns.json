@@ -1,0 +1,72 @@
+[
+  {
+    "name": "payday",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 6.4,
+    "passed": false,
+    "problems": [
+      "no profile note proposed"
+    ],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "error": null
+      }
+    ],
+    "answer": "No, not yet. After the 8 bills currently due before your payday on 24.12., only CHF 124.96 remains on the Privatkonto on the day before—the money barely lasts at CHF 4.63 per day.\n\nIf the CHF 1'050.00 child support from Patrick Rüegg arrives as expected, CHF 1'174.96 will be left on 23.12. Both scenarios are already visible on your board in tiles \"What is left the day before the salary\" and \"Bills due before the salary\".",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "6 of 6 found"
+      }
+    ]
+  },
+  {
+    "name": "tile_meaning",
+    "customer": "daniela",
+    "message": "What is this tile telling me?",
+    "selected": "payday_balance",
+    "seconds": 2.9,
+    "passed": true,
+    "problems": [],
+    "calls": [],
+    "answer": "It shows only a narrow buffer. After the eight upcoming bills, only CHF 124.96 remain on 23 Dec, which equals CHF 4.63 a day for 27 days. If the CHF 1'050.00 child support from Patrick Rüegg arrives, the balance would climb to CHF 1'174.96.\n\nBoth cases are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "5 of 5 found"
+      }
+    ]
+  }
+]

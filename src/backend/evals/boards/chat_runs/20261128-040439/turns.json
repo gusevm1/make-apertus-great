@@ -1,0 +1,51 @@
+[
+  {
+    "name": "payday",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 5.7,
+    "passed": false,
+    "problems": [
+      "no profile note proposed"
+    ],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add the two ready tiles that answer \"Does my money last until payday?\": payday_balance and bills_until_payday.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Add the two ready tiles that answer \"Does my money last until payday?\": payday_balance and bills_until_payday.",
+        "error": null
+      }
+    ],
+    "answer": "Yes, but only just. The analysis shows that after all bills due before the upcoming payday on 24.12.2026 are paid, CHF 124.96 will remain in your Privatkonto on the day before, which is CHF 4.63 per day over the 27 intervening days.\n\nIf the child support from Patrick Rüegg (CHF 1'050.00), which has not arrived this month, were included, you would be left with CHF 1'174.96 by payday. The dentist bill for Lina due on 30.11. must be paid; it cannot wait.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "6 of 6 found"
+      }
+    ]
+  }
+]

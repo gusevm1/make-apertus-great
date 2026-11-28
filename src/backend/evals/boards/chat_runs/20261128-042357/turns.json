@@ -1,0 +1,196 @@
+[
+  {
+    "name": "payday",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 7.0,
+    "passed": false,
+    "problems": [
+      "a single line break instead of a paragraph"
+    ],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add two tiles that answer the question: payday_balance and bills_until_payday, both using the ready signals S1 and S5.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Add two tiles that answer the question: payday_balance and bills_until_payday, both using the ready signals S1 and S5.",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "fact",
+          "text": "The child support often comes late: on 22.10. last month. Always show both cases."
+        },
+        "summary": null,
+        "plan": "Propose the suggested profile note as a fact.",
+        "error": null
+      }
+    ],
+    "answer": "Yes – but only just.  \nAfter the eight upcoming bills totaling CHF 2'950.20 before the salary on 24 December 2026, CHF 124.96 remain on the Privatkonto as of the evening of 23 December; that is roughly CHF 4.63 a day for the next 27 days.\n\nIf Patrick Rüegg’s CHF 1'050.00 child support (often arriving late, as on 22 October last month) is received in time, CHF 1'174.96 would be available by 23 December – giving about CHF 43.52 per day.\n\nBoth are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "3 of 3"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "7 of 7 found"
+      }
+    ]
+  },
+  {
+    "name": "tile_meaning",
+    "customer": "daniela",
+    "message": "What is this tile telling me?",
+    "selected": "payday_balance",
+    "seconds": 3.2,
+    "passed": false,
+    "problems": [
+      "a single line break instead of a paragraph"
+    ],
+    "calls": [],
+    "answer": "Yes, but only just.  \nOn 23 December 2026 you'll have CHF 124.96 left in the Privatkonto after eight upcoming bills, giving only CHF 4.63 per day for the next 27 days.  \n\nIf the CHF 1'050.00 child support from Patrick Rüegg were received this month, you would instead have CHF 1'174.96 left.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "5 of 5 found"
+      }
+    ]
+  },
+  {
+    "name": "bills_wait",
+    "customer": "daniela",
+    "message": "Which of these can wait?",
+    "selected": "bills_until_payday",
+    "seconds": 41.8,
+    "passed": true,
+    "problems": [],
+    "calls": [],
+    "answer": "No, the reminder for Zahnarztpraxis Neuwiesen (CHF 440.00) due in 3 days on 30.11.2026 cannot wait.\n\nIf any other bill could be deferred, you would have to ask the payee directly; the bank cannot know whether they would agree to wait. The remaining payments fall due in this order: Instalments to Ratenwerk (CHF 77.80) on 07.12., mobile bill to Lebara (CHF 19.90) on 07.12., school care to Stadt Winterthur (CHF 348.00) on 10.12., internet to Sunrise (CHF 39.90) on 15.12., advance tax payment to Steueramt (CHF 95.00) on 21.12., and health premium to Assura (CHF 289.60) on 23.12.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "7 of 7 found"
+      },
+      {
+        "name": "dates_match",
+        "passed": true,
+        "detail": "1 of 1 matched"
+      }
+    ]
+  },
+  {
+    "name": "health_chat",
+    "customer": "lukas",
+    "message": "How much did I pay for health insurance this year?",
+    "selected": null,
+    "seconds": 173.0,
+    "passed": false,
+    "problems": [
+      "banned word: 'field'"
+    ],
+    "calls": [
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "kind": "spending",
+          "text": "health insurance"
+        },
+        "summary": null,
+        "plan": "Need to find all payments related to health insurance by searching movements with the payee name or text containing 'health insurance' or similar terms.",
+        "error": "No movement in the whole ledger contains \"health insurance\". Movements carry no category: call sum_by_counterparty for the period without text to see who the customer pays, then search for those names. For health insurance, search the insurers' names, such as Krankenversicherung, Krankenkasse, Assura, CSS, Helsana, Sanitas, Swica or Visana."
+      },
+      {
+        "tool": "list_payees",
+        "arguments": {
+          "text": "Krankenversicherung Krankenkasse Assura CSS Helsana Sanitas Swica Visana"
+        },
+        "summary": null,
+        "plan": "The previous search for 'health insurance' returned no results because movements do not carry categories. Need to identify the health insurance payee name first by checking known insurers or looking at payees. Then search movements for that specific payee name.",
+        "error": null
+      },
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "kind": "spending",
+          "text": "Krankenversicherung Krankenkasse Assura CSS Helsana Sanitas Swica Visana"
+        },
+        "summary": null,
+        "plan": "The previous search for 'health insurance' returned no results because movements do not carry categories. Need to identify the health insurance payee name first by checking known insurers or looking at payees. Then search movements for that specific payee name.",
+        "error": "No movement in the whole ledger contains \"Krankenversicherung Krankenkasse Assura CSS Helsana Sanitas Swica Visana\". Movements carry no category: call sum_by_counterparty for the period without text to see who the customer pays, then search for those names. For health insurance, search the insurers' names, such as Krankenversicherung, Krankenkasse, Assura, CSS, Helsana, Sanitas, Swica or Visana."
+      },
+      {
+        "tool": "list_payees",
+        "arguments": {},
+        "summary": null,
+        "plan": "The customer asks for health insurance payments this year, but no tool call can locate them yet because the payee name is unknown. Need to first identify the health insurance payee by looking at all payees the customer has ever paid to, then search movements for that name.",
+        "error": null
+      },
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "kind": "spending",
+          "text": "Mythen Krankenversicherung AG"
+        },
+        "summary": null,
+        "plan": "The customer asks for health insurance payments this year. The list_payees response shows a payee named 'Mythen Krankenversicherung AG' which is a health insurance provider. Now search movements specifically for this payee name to find all health insurance payments this year.",
+        "error": null
+      }
+    ],
+    "answer": "\nBased on the examined e-banking ledger data:\n\nYour health insurance provider is Mythen Krankenversicherung AG.\n\nFor the calendar year 2026 (January 1 to December 31, 2026), you paid the following amounts in clear monthly premiums to your health insurance provider according to the available transaction list:\n\n- February 2026: CHF 467.40\n- March 2026: CHF 467.40\n- April 2026: CHF 467.40\n- May 2026: CHF 467.40\n- June 2026: CHF 467.40\n- July 2026: CHF 467.40\n- August 2026: CHF 467.40\n- September 2026: CHF 467.40\n- October 2026: CHF 467.40\n- November 2026: CHF 467.40\n\nThe data source for both the payee identification and the transaction details is the e-banking movement database (transactions listed as spending under counterparty \"Mythen Krankenversicherung AG\"). The data indicates consistent monthly health insurance premiums of CHF 467.40 for the recorded months of 2026 up to November.\n\n**Total amount paid for health insurance in 2026 so far:** (no figure provided)\nNote: The ledger for the complete year 2026 may contain additional records not listed here (as indicated by the 'rows_not_listed' field) or potential provisional entries not included in the sample provided. For a fully definitive total for the entire year, the complete annual ledger query is necessary.\n",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "3 of 5"
+      },
+      {
+        "name": "figures_found_draft",
+        "passed": false,
+        "detail": "12 of 14 found; not found: 4'206.60, 11"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "11 of 11 found"
+      }
+    ]
+  }
+]

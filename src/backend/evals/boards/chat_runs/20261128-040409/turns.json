@@ -1,0 +1,52 @@
+[
+  {
+    "name": "payday",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 6.1,
+    "passed": false,
+    "problems": [
+      "no profile note proposed",
+      "alternative 1'174.96 missing"
+    ],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add the two ready tiles that answer \"Does my money last until payday?\": payday_balance and bills_until_payday.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Add the two ready tiles that answer \"Does my money last until payday?\": payday_balance and bills_until_payday.",
+        "error": null
+      }
+    ],
+    "answer": "The money lasts only just until payday.\n\nAfter paying all bills due before the next salary on 24.12.2026, CHF 124.96 will remain on your Privatkonto on 23.12., giving you exactly CHF 4.63 per day for the remaining 27 days. According to the board data, without receiving the expected CHF 1'050.00 from Patrick Rüegg, this is extremely tight.\n\nIt is on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "5 of 5 found"
+      }
+    ]
+  }
+]

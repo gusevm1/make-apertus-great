@@ -1,0 +1,51 @@
+[
+  {
+    "name": "payday",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 5.6,
+    "passed": false,
+    "problems": [
+      "no profile note proposed"
+    ],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add the two ready tiles that answer \"Does my money last until payday?\": payday_balance and bills_until_payday.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Add the two ready tiles that answer \"Does my money last until payday?\": payday_balance and bills_until_payday.",
+        "error": null
+      }
+    ],
+    "answer": "No, the money will not last until the next payday without the expected Patrick Rüegg payment.\n\nWith the outstanding bills due before 24.12.2026, only CHF 124.96 will remain on 23.12., just enough for roughly CHF 4.63 a day until the salary arrives. If the planned CHF 1'050.00 from Patrick Rüegg arrives, CHF 1'174.96 would be left instead.\n\nBoth relevant cases (\"What is left the day before the salary\"; \"Bills due before the salary\") are already on your board.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "5 of 5 found"
+      }
+    ]
+  }
+]
