@@ -18,6 +18,10 @@
   padding: var(--content-padding);
 }
 
+.flush {
+  padding: 0;
+}
+
 .footer {
   padding: 16px var(--content-padding);
   font-size: 12px;
