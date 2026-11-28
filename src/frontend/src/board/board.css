@@ -1,0 +1,1363 @@
+/* The board, its tiles, the dock and the new-board screen, after docs/reference/boards. */
+
+.boardcol {
+  flex: 999 1 600px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.cols {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: 20px;
+  padding: 28px 28px 20px;
+  align-content: start;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.grow {
+  flex: 1;
+}
+
+/* A tile */
+.tile {
+  --chart: var(--accent);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  min-width: 0;
+  box-shadow: var(--shadow-tile);
+}
+
+.tile.small {
+  padding: 20px;
+}
+
+.tile.sel {
+  box-shadow: var(--shadow-selected);
+}
+
+.tile.drop-target {
+  box-shadow:
+    0 0 0 2px var(--mint),
+    var(--shadow-tile);
+}
+
+.tile[draggable="true"] {
+  cursor: grab;
+}
+
+.th {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-height: 28px;
+}
+
+.chip {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--soft);
+  color: var(--deep);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.th h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  flex: 1 1 0;
+  min-width: min(8em, 100%);
+  overflow-wrap: break-word;
+}
+
+.th .end {
+  margin-left: auto;
+}
+
+.th .rename {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 6px;
+  margin: -2px -6px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--canvas);
+  outline: 2px solid var(--accent);
+}
+
+.fig {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.fig small {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0;
+  margin-right: 6px;
+}
+
+.fig.s {
+  font-size: 24px;
+}
+
+.note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.from {
+  margin-top: auto;
+  align-self: flex-start;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  min-height: 28px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.from:hover {
+  color: var(--deep);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pill.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.pill.bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.pill.soft {
+  background: var(--soft);
+  color: var(--deep);
+}
+
+/* The hero: the first tile, dark, with the large figure */
+.hero {
+  --chart: var(--mint);
+  background: var(--ink);
+  color: var(--surface);
+  gap: 16px;
+  box-shadow: var(--shadow-hero);
+}
+
+.hero.sel {
+  box-shadow: var(--shadow-selected), var(--shadow-hero);
+}
+
+.hero .th h2 {
+  color: var(--hero-title);
+  font-weight: 500;
+}
+
+.hero .chip {
+  background: var(--hero-chip);
+  color: var(--mint);
+}
+
+.hero .th .rename {
+  background: var(--hero-chip);
+  color: var(--surface);
+}
+
+.heronum {
+  font-size: 54px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.heronum small {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--hero-muted);
+  margin-right: 8px;
+  letter-spacing: 0;
+}
+
+.hero .note {
+  color: var(--hero-soft);
+}
+
+.hero .from {
+  color: var(--mint);
+}
+
+.hero .from:hover {
+  color: var(--surface);
+}
+
+.hero .pill.soft {
+  background: var(--hero-chip);
+  color: var(--mint);
+}
+
+/* payday_balance: the figure with the second case, and the step line */
+.herorow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.alt {
+  text-align: right;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.35;
+  max-width: 260px;
+}
+
+.alt b {
+  display: block;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.hero .alt {
+  color: var(--hero-soft);
+}
+
+.hero .alt b {
+  color: var(--mint);
+}
+
+.run {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.run svg {
+  display: block;
+  width: 100%;
+  height: 72px;
+}
+
+.run .area {
+  fill: var(--chart);
+  opacity: 0.14;
+}
+
+.run .line {
+  fill: none;
+  stroke: var(--chart);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.hero .axis {
+  color: var(--hero-muted);
+}
+
+/* bills_until_payday */
+.bills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bills li {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto 74px;
+  gap: 12px;
+  align-items: center;
+  min-height: 35px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+
+.bills li.head {
+  min-height: 26px;
+  border-top: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.bills li.head .amt {
+  font-weight: 500;
+}
+
+.bills li.head .bal {
+  font-size: 11.5px;
+}
+
+.bills time,
+.list time {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.payee {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.payee b {
+  font-weight: 400;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payee .d {
+  color: var(--muted);
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payee .pill {
+  flex: 0 0 auto;
+}
+
+.bills .amt,
+.list .amt {
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bills .bal {
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.sum {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-strong);
+  font-size: 13.5px;
+}
+
+.sum b {
+  font-weight: 600;
+}
+
+.sum .from {
+  margin: 0;
+}
+
+/* due_soon */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.list li {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 36px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+
+.hero .bills li,
+.hero .list li,
+.hero .kv div,
+.hero .sum {
+  border-color: var(--hero-line);
+}
+
+.hero .bills time,
+.hero .list time,
+.hero .bills .bal,
+.hero .bills li.head,
+.hero .payee .d {
+  color: var(--hero-muted);
+}
+
+/* expected_income: the month strip */
+.months {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+
+.mo i {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--chart);
+  margin-bottom: 6px;
+}
+
+.mo.late i {
+  background: var(--late);
+}
+
+.mo.open i {
+  background: var(--line-strong);
+}
+
+.mo b {
+  font-weight: 600;
+}
+
+.mo span {
+  color: var(--muted);
+}
+
+.hero .mo span {
+  color: var(--hero-muted);
+}
+
+.hero .mo.open i {
+  background: var(--hero-track);
+}
+
+/* merchant_spending: the shop bars */
+.shops {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop {
+  display: grid;
+  grid-template-columns: minmax(56px, auto) minmax(0, 1fr) 72px;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.shop .t,
+.track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+
+.shop .t span,
+.track span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--chart);
+}
+
+.shop .v {
+  text-align: right;
+  font-weight: 600;
+}
+
+.hero .shop .t,
+.hero .track {
+  background: var(--hero-track);
+}
+
+/* net_worth and securities: the split bar */
+.split {
+  display: flex;
+  height: 10px;
+  gap: 3px;
+}
+
+.split span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.legend div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.legend b {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.legend i,
+.key i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.hero .legend div {
+  color: var(--hero-soft);
+}
+
+.hero .legend b {
+  color: var(--surface);
+}
+
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.key i {
+  margin-right: 8px;
+}
+
+.hero .key {
+  color: var(--hero-soft);
+}
+
+/* monthly_spending and income_and_spending: bars per month */
+.bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  min-height: 132px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  align-self: stretch;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.col .v {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.col .b {
+  width: 100%;
+  max-width: 54px;
+  border-radius: 10px 10px 0 0;
+  background: var(--bar-quiet);
+}
+
+.col:hover .b {
+  background: var(--part-3);
+}
+
+.col.hi .b {
+  background: var(--chart);
+}
+
+.col.hi .v {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.mlabels {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mlabels span {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.mlabels .hi {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.mlabels small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.mlabels small.minus {
+  color: var(--bad);
+}
+
+.twin .pairbars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+  max-width: 54px;
+}
+
+.twin .b {
+  flex: 1;
+  border-radius: 6px 6px 0 0;
+}
+
+.twin .b.in,
+.key i.in {
+  background: var(--chart);
+}
+
+.twin .b.out,
+.key i.out {
+  background: var(--bar-quiet);
+}
+
+.hero .bars {
+  border-color: var(--hero-line);
+}
+
+.hero .col .b,
+.hero .twin .b.out,
+.hero .key i.out {
+  background: var(--hero-track);
+}
+
+.hero .col.hi .b,
+.hero .twin .b.in,
+.hero .key i.in {
+  background: var(--mint);
+}
+
+.hero .col .v,
+.hero .mlabels {
+  color: var(--hero-muted);
+}
+
+.hero .col.hi .v,
+.hero .mlabels .hi,
+.hero .mlabels small {
+  color: var(--surface);
+}
+
+/* Key and value rows: subscriptions, savings pots, the mortgage */
+.kv {
+  display: flex;
+  flex-direction: column;
+}
+
+.kv div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 34px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+
+.kv div:first-child {
+  border-top: 0;
+}
+
+.kv span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.kv span small {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.hero .kv span small {
+  color: var(--hero-muted);
+}
+
+.kv b {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* The toolbar of the selected tile */
+.bar {
+  position: absolute;
+  top: -19px;
+  right: 22px;
+  z-index: 1;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-toolbar);
+  color: var(--text);
+}
+
+.bar button {
+  min-width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text);
+  padding: 0 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.bar button:hover:not(:disabled) {
+  background: var(--canvas);
+}
+
+.bar button.danger,
+.bar button.danger:hover:not(:disabled) {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+/* Notes under and above the board */
+.dropped {
+  margin: 0 28px 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.board-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 28px 0;
+  padding: 10px 10px 10px 16px;
+  border-radius: var(--radius);
+  background: var(--bad-bg);
+  color: var(--bad);
+  font-size: 13px;
+}
+
+.board-note span {
+  flex: 1;
+}
+
+.board-note button {
+  border: 0;
+  border-radius: 999px;
+  min-height: 32px;
+  padding: 0 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* The dock: the boards as tabs */
+.dockwrap {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  padding: 0 28px 20px;
+  pointer-events: none;
+}
+
+.dock,
+.dockmenu {
+  pointer-events: auto;
+}
+
+.dock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 5px;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow-dock);
+  overflow-x: auto;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 11px;
+  flex: 0 0 auto;
+}
+
+.tab button,
+.dock .plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.tab button:hover,
+.dock .plus:hover {
+  background: var(--canvas);
+  color: var(--text);
+}
+
+.tab.on {
+  background: var(--ink);
+}
+
+.tab.on button {
+  color: var(--surface);
+}
+
+.tab.on button:hover {
+  background: var(--ink-hover);
+  color: var(--surface);
+}
+
+.tab .more {
+  padding: 0 10px 0 4px;
+  color: var(--hero-muted);
+}
+
+.dock .plus {
+  flex: 0 0 auto;
+  width: 38px;
+  padding: 0;
+}
+
+.tabname {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--canvas);
+  font-size: 13px;
+  font-weight: 500;
+  outline: 2px solid var(--accent);
+}
+
+.dockmenu {
+  position: absolute;
+  left: 28px;
+  bottom: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 5px;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow-toolbar);
+}
+
+.dockmenu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.dockmenu button:hover {
+  background: var(--canvas);
+}
+
+.dockmenu button.danger {
+  color: var(--bad);
+  background: var(--bad-bg);
+}
+
+/* The drawer with the records behind a tile */
+.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  width: min(460px, 100vw);
+  height: 100dvh;
+  max-width: 100vw;
+  max-height: 100dvh;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-toolbar);
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer:not([open]) {
+  display: none;
+}
+
+.drawer::backdrop {
+  background: var(--backdrop);
+}
+
+.drawer header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.drawer header div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawer .kicker {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--deep);
+}
+
+.drawer h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.drawer header p {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.drawer .close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--canvas);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.drawer .close:hover {
+  background: var(--line-strong);
+}
+
+.drawer ol {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 24px 12px;
+}
+
+.drawer li {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 48px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+
+.drawer li:first-child {
+  border-top: 0;
+}
+
+.drawer li time {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.drawer .text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.drawer .text small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.drawer li b {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.drawer-empty {
+  flex: 1;
+  padding: 24px;
+  color: var(--muted);
+}
+
+.drawer footer {
+  padding: 14px 24px 20px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* The new-board screen */
+.newboard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 56px 28px 40px;
+}
+
+.ask {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--deep);
+  background: var(--soft);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+
+.ask h1 {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.ask p {
+  margin: 0;
+  max-width: 520px;
+  color: var(--muted);
+  font-size: 15.5px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.topic {
+  width: 100%;
+  max-width: 680px;
+  border-radius: 26px;
+  padding: 18px 12px 12px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-compose);
+}
+
+.topic input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  font-size: 16.5px;
+  color: var(--text);
+  min-height: 44px;
+  background: transparent;
+}
+
+.topic input::placeholder {
+  color: var(--muted);
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tools .hint {
+  margin-right: auto;
+  font-size: 12.5px;
+}
+
+.round {
+  border: 0;
+  background: transparent;
+  min-width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.round:hover:not(:disabled) {
+  background: var(--canvas);
+}
+
+.round.send {
+  background: var(--ink);
+  color: var(--surface);
+  margin-left: 4px;
+}
+
+.round.send:hover:not(:disabled) {
+  background: var(--ink-hover);
+}
+
+.round.recording {
+  padding: 0 14px;
+  color: var(--bad);
+  background: var(--bad-bg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.round .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.newboard .error-note {
+  width: 100%;
+  max-width: 680px;
+}
+
+.ideas {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lab {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.ideagrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 12px;
+}
+
+.idea {
+  text-align: left;
+  border: 0;
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 112px;
+  box-shadow: var(--shadow-idea);
+}
+
+.idea:hover {
+  box-shadow: var(--shadow-idea-hover);
+}
+
+.idea b {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.idea span {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.idea svg {
+  margin-top: auto;
+  color: var(--accent);
+}
+
+/* Narrow, as in the e-banking's side panel */
+@media (max-width: 860px) {
+  .boardcol {
+    overflow-y: visible;
+  }
+
+  .cols {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bills li {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+  }
+
+  .bills .bal {
+    display: none;
+  }
+
+  .heronum {
+    font-size: 44px;
+  }
+
+  .alt {
+    text-align: left;
+  }
+
+  .dockwrap {
+    position: relative;
+    padding: 0 16px 16px;
+  }
+
+  .dockmenu {
+    left: 16px;
+  }
+
+  .dropped {
+    margin: 0 16px 12px;
+  }
+
+  .board-note {
+    margin: 16px 16px 0;
+  }
+
+  .ask h1 {
+    font-size: 32px;
+  }
+
+  .newboard {
+    padding: 32px 16px;
+  }
+}
