@@ -24,11 +24,15 @@ STRUCTURED_TEMPERATURE = 0.0
 TRANSCRIBE_TEMPERATURE = 0.0
 STRUCTURED_MAX_ATTEMPTS = 2
 RETRY_INSTRUCTION = "That JSON was invalid. Return corrected JSON only. Errors:"
+# The -thinking models write their reasoning into the content, between these two markers.
+THINKING_START = "<|inner_prefix|>"
+THINKING_END = "<|inner_suffix|>"
 
 
 class Model(StrEnum):
     FAST = "fast"
     SMART = "smart"
+    THINKING = "thinking"
 
 
 class TextPart(TypedDict):
@@ -148,7 +152,9 @@ class ApertusClient:
         self._models = {
             Model.FAST: settings.llm_name_fast or settings.llm_name,
             Model.SMART: settings.llm_name,
+            Model.THINKING: settings.llm_name_thinking or settings.llm_name,
         }
+        self.has_thinking_model = settings.llm_name_thinking is not None
         self._json_schema_supported = settings.apertus_json_schema_supported
         self._log_content = settings.log_llm_content
         self._log = _call_logger(path=settings.llm_log_path)
@@ -168,7 +174,7 @@ class ApertusClient:
         purpose: str,
         temperature: float | None = None,
     ) -> LLMResult[str]:
-        """Complete a chat; returns the full text."""
+        """Complete a chat; returns the full text, without a thinking model's reasoning."""
         return await self._complete(
             messages=messages, model=model, purpose=purpose, temperature=temperature
         )
@@ -330,6 +336,9 @@ class ApertusClient:
             response=text,
             error=None,
         )
+        if THINKING_START in text and THINKING_END not in text:
+            raise UpstreamError("Apertus stopped while still thinking")
+        text = text.split(THINKING_END)[-1].strip() if THINKING_END in text else text
         return self._result(text=text, model=model, started=started, usage=response.usage)
 
     def _result(self, text: str, model: Model, started: float, usage: Any) -> LLMResult[str]:

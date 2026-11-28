@@ -37,6 +37,8 @@ OK_CHECK = GuardrailCheck(category=GuardrailCategory.OK, language="en")
 
 
 class RecordingApertus:
+    has_thinking_model = False
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.decisions: list[ToolDecision] = []

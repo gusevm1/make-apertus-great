@@ -398,6 +398,12 @@ function ChatInner({
           </button>
         </div>
       )}
+      {isEmpty && (
+        <p className="ai-notice">
+          You are talking to an AI. It works with your own data only and gives
+          no investment advice.
+        </p>
+      )}
       {load === "ready" && plan !== null && plan.trace.length > 0 && (
         <BuildTrace
           steps={plan.trace}

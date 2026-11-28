@@ -137,6 +137,14 @@ def _meaning(payload: AnyPayload, today: date) -> str:
                 f"{_count(count=len(payload.tranches), noun='tranche')}, with "
                 f"{_chf(amount=payload.annual_interest_chf)} interest a year."
             )
+            decision = payload.next_decision
+            if decision is not None and decision.decide_by is not None:
+                text += (
+                    f" The bank needs a decision on the {decision.product} by "
+                    f"{_date(day=decision.decide_by)}."
+                )
+                if decision.without_decision is not None:
+                    text += f" The loan says: {decision.without_decision}"
             soon = payload.next_maturity
             if soon is None or soon.maturity_date is None:
                 return f"{text} No tranche runs out in the next 18 months."
@@ -253,10 +261,17 @@ def _savings_goal(payload: SavingsGoalPayload) -> str:
     month = _month(month=payload.month)
     change = payload.month_change_chf
     if change < 0:
-        return f"{text}; {_chf(amount=-change)} went out of it in {month}."
-    if change > 0:
-        return f"{text}; {_chf(amount=change)} came in in {month}."
-    return f"{text}; nothing came in or went out in {month}."
+        text = f"{text}; {_chf(amount=-change)} went out of it in {month}."
+    elif change > 0:
+        text = f"{text}; {_chf(amount=change)} came in in {month}."
+    else:
+        text = f"{text}; nothing came in or went out in {month}."
+    if payload.withdrawals_this_year == 0:
+        return f"{text} Nothing was taken out of it this year."
+    return (
+        f"{text} This year it was used {_count(count=payload.withdrawals_this_year, noun='time')}: "
+        f"{_chf(amount=payload.withdrawn_this_year_chf)} taken out in all."
+    )
 
 
 def _pillar_3a(payload: Pillar3aPayload) -> str:
