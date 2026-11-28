@@ -7,6 +7,7 @@ import { NewBoard } from "./board/NewBoard";
 import type { Board, BoardPlan, BoardSummary, Tile } from "./board/types";
 import { BuildTrace } from "./chat/BuildTrace";
 import { ChatPanel } from "./chat/ChatPanel";
+import { DemoReset } from "./DemoReset";
 import type { ConversationRef } from "./chat/types";
 import { type HostContext, useHostContext } from "./host";
 import { useStream } from "./lib/useStream";
@@ -16,6 +17,8 @@ type Mode = "board" | "chat";
 
 export function App() {
   const context = useHostContext();
+  // Counts the demo resets: a wiped customer gets a fresh page, as on a first visit.
+  const [resets, setResets] = useState(0);
   if (context === null) {
     return (
       <div className="app">
@@ -29,8 +32,9 @@ export function App() {
   // A new customer logging in gets a fresh page, never the previous customer's state.
   return (
     <TrustRoom
-      key={context.customer?.customer_id ?? "anonymous"}
+      key={`${context.customer?.customer_id ?? "anonymous"}-${resets}`}
       context={context}
+      onReset={() => setResets((count) => count + 1)}
     />
   );
 }
@@ -41,7 +45,13 @@ type Loading =
   | { state: "error"; error: RequestError }
   | { state: "ready" };
 
-function TrustRoom({ context }: { context: HostContext }) {
+function TrustRoom({
+  context,
+  onReset,
+}: {
+  context: HostContext;
+  onReset: () => void;
+}) {
   const token = context.access_token;
   const [mode, setMode] = useState<Mode>("board");
   const [boards, setBoards] = useState<BoardSummary[]>([]);
@@ -255,23 +265,26 @@ function TrustRoom({ context }: { context: HostContext }) {
             Chat
           </button>
         </nav>
-        <button
-          className="me"
-          type="button"
-          aria-expanded={mode === "chat"}
-          aria-label={
-            mode === "chat"
-              ? `Close the profile of ${name}`
-              : `Open the profile of ${name}`
-          }
-          onClick={() => setMode(mode === "chat" ? "board" : "chat")}
-        >
-          <span className="avatar">{initials}</span>
-          <span>
-            <b>{name}</b>
-            <small>Profile and documents</small>
-          </span>
-        </button>
+        <div className="tail">
+          <DemoReset token={token} onDone={onReset} />
+          <button
+            className="me"
+            type="button"
+            aria-expanded={mode === "chat"}
+            aria-label={
+              mode === "chat"
+                ? `Close the profile of ${name}`
+                : `Open the profile of ${name}`
+            }
+            onClick={() => setMode(mode === "chat" ? "board" : "chat")}
+          >
+            <span className="avatar">{initials}</span>
+            <span>
+              <b>{name}</b>
+              <small>Profile and documents</small>
+            </span>
+          </button>
+        </div>
       </header>
 
       {mode === "chat" ? (
