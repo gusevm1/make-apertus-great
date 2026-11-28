@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 import time
@@ -28,6 +29,7 @@ from app.features.tool_calls.prompts import (
     answer_prompt,
     dated_prompt,
     decision_prompt,
+    plan_prompt,
     scoped_decision_prompt,
 )
 from app.features.tool_calls.repository import ToolCallRepository
@@ -50,6 +52,9 @@ SCOPED_PURPOSE = "scoped_decision"
 SCOPE_SHARED = ("propose_context_entry",)
 DECISION_MODEL = Model.SMART
 DECISION_PURPOSE = "tool_decision"
+# The thinking model plans once per turn; the decision goes on without a plan when it runs out.
+PLAN_PURPOSE = "tool_plan"
+PLAN_BUDGET_SECONDS = 45
 ANSWER_MODEL = Model.SMART
 ANSWER_PURPOSE = "answer"
 # The server's own calls when the board decision made none for a question its tiles answer.
@@ -372,6 +377,7 @@ class ToolCallService:
                 return
             # The full decision reads the question as before; the board only distracted it.
             messages = _replaced(messages=messages, text=scope.context, by="")
+        plan = await self._plan(message_id=message_id, messages=messages, tools=full)
         async for step in self._rounds(
             first_round=first_round,
             conversation_id=conversation_id,
@@ -383,7 +389,7 @@ class ToolCallService:
             max_rounds=MAX_TOOL_ROUNDS,
             decide=lambda: self.apertus.structured(
                 messages=decision_prompt(
-                    messages=messages, rounds=rounds, tools=full, today=self.today
+                    messages=messages, rounds=rounds, tools=full, today=self.today, plan=plan
                 ),
                 schema=self.decision_schema,
                 model=DECISION_MODEL,
@@ -392,6 +398,26 @@ class ToolCallService:
         ):
             if not isinstance(step, ToolDecision):
                 yield step
+
+    async def _plan(
+        self, message_id: UUID, messages: list[LLMMessage], tools: list[Tool[Any]]
+    ) -> str | None:
+        if not self.apertus.has_thinking_model:
+            return None
+        try:
+            result = await asyncio.wait_for(
+                self.apertus.chat(
+                    messages=plan_prompt(messages=messages, tools=tools, today=self.today),
+                    model=Model.THINKING,
+                    purpose=PLAN_PURPOSE,
+                    timeout_seconds=PLAN_BUDGET_SECONDS,
+                ),
+                timeout=PLAN_BUDGET_SECONDS,
+            )
+        except (TimeoutError, UpstreamError):
+            logger.exception("Tool plan for message %s failed", message_id)
+            return None
+        return result.content if result.content != "" else None
 
     async def _rounds(
         self,

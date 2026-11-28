@@ -3,6 +3,7 @@ import re
 from datetime import date, timedelta
 from typing import Any
 
+from app.clients.apertus import ContentPart
 from app.clients.apertus import Message as LLMMessage
 from app.core.prompts import load_prompts
 from app.core.tools import Tool
@@ -30,14 +31,34 @@ COMMON_WORDS = {
 type ToolRound = tuple[ToolDecision, list[ToolCall]]
 
 
-def decision_prompt(
-    messages: list[LLMMessage], rounds: list[ToolRound], tools: list[Tool[Any]], today: date
+def plan_prompt(
+    messages: list[LLMMessage], tools: list[Tool[Any]], today: date
 ) -> list[LLMMessage]:
     tool_lines = "\n".join(_tool_line(tool=tool) for tool in tools)
-    system: LLMMessage = {
-        "role": "system",
-        "content": PROMPTS["decision_system"].format(today=_today(today=today), tools=tool_lines),
-    }
+    instructions = PROMPTS["plan_instructions"].format(today=_today(today=today), tools=tool_lines)
+    *earlier, last = [message for message in messages if message["role"] != "system"]
+    content = last["content"]
+    # A system message switches the thinking model's reasoning off, so the last message holds them.
+    question: str | list[ContentPart] = (
+        f"{instructions}\n{PROMPTS['plan_question']}\n{content}"
+        if isinstance(content, str)
+        else [{"type": "text", "text": f"{instructions}\n{PROMPTS['plan_question']}"}, *content]
+    )
+    return [*earlier, {"role": last["role"], "content": question}]
+
+
+def decision_prompt(
+    messages: list[LLMMessage],
+    rounds: list[ToolRound],
+    tools: list[Tool[Any]],
+    today: date,
+    plan: str | None = None,
+) -> list[LLMMessage]:
+    tool_lines = "\n".join(_tool_line(tool=tool) for tool in tools)
+    content = PROMPTS["decision_system"].format(today=_today(today=today), tools=tool_lines)
+    if plan is not None:
+        content += PROMPTS["decision_plan_given"].format(plan=plan)
+    system: LLMMessage = {"role": "system", "content": content}
     prompt = [system, *(message for message in messages if message["role"] != "system")]
     for decision, calls in rounds:
         prompt.append({"role": "assistant", "content": decision.model_dump_json()})

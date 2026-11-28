@@ -43,6 +43,8 @@ CHAT: list[Message] = [
 
 
 class RecordingApertus:
+    has_thinking_model = False
+
     def __init__(self, decisions: list[ToolDecision], answer: str = "ok") -> None:
         self.decisions = decisions
         self.answer = answer

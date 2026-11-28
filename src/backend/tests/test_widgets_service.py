@@ -51,6 +51,8 @@ MONTHS_RESULT = {
 class ScriptedApertus:
     """Answers tool decisions and widget specs from two scripts; an exception fails the call."""
 
+    has_thinking_model = False
+
     def __init__(
         self, decisions: list[ToolDecision], specs: list[dict[str, Any] | Exception]
     ) -> None:
