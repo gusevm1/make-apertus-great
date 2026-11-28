@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   api,
   type DocumentRef,
@@ -18,7 +18,8 @@ import { useVoiceInput } from "../useVoiceInput";
 import { Answer } from "./Answer";
 import { AnswerTrace } from "./AnswerTrace";
 import { BuildTrace } from "./BuildTrace";
-import { ChatTitle, NEW_CHAT, TITLE_LENGTH } from "./ChatTitle";
+import { ChatHistory } from "./ChatHistory";
+import { ChatTitle, TITLE_LENGTH } from "./ChatTitle";
 import { Composer } from "./Composer";
 import {
   type ChatMessage,
@@ -296,6 +297,16 @@ function ChatInner({
     );
   }
 
+  // Deleting the open chat opens the newest one left about this board, or a new one.
+  async function remove({ id }: { id: string }) {
+    await api<void>(`/api/conversations/${id}`, token, { method: "DELETE" });
+    setConversations((current) => current.filter((other) => other.id !== id));
+    if (id !== activeId) return;
+    resolving.current = null;
+    setChosenId(null);
+    setReloadKey((current) => current + 1);
+  }
+
   async function startChat() {
     setFailed(null);
     setIsHistoryOpen(false);
@@ -558,7 +569,7 @@ function ChatInner({
         </button>
       </div>
       <div className="chatbody">
-        <History
+        <ChatHistory
           isOpen={isHistoryOpen}
           conversations={conversations}
           isLoading={load === "loading"}
@@ -566,6 +577,8 @@ function ChatInner({
           boardId={boardId}
           boards={boards}
           onPick={pick}
+          onRename={(id, title) => rename({ id, title })}
+          onDelete={(id) => remove({ id })}
           onClose={() => setIsHistoryOpen(false)}
         />
         <div className="talk-in">
@@ -614,110 +627,6 @@ function ChatInner({
   );
 }
 
-/** Every chat, this board's first, sliding in over the thread with a search. */
-function History({
-  isOpen,
-  conversations,
-  isLoading,
-  activeId,
-  boardId,
-  boards,
-  onPick,
-  onClose,
-}: {
-  isOpen: boolean;
-  conversations: ConversationRef[];
-  isLoading: boolean;
-  activeId: string | null;
-  boardId: string | null;
-  boards: { id: string; name: string }[];
-  onPick: (conversation: ConversationRef) => void;
-  onClose: () => void;
-}) {
-  const [query, setQuery] = useState("");
-  const search = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isOpen) search.current?.focus({ preventScroll: true });
-  }, [isOpen]);
-
-  const words = query.trim().toLowerCase();
-  const matches = conversations.filter((conversation) =>
-    (conversation.title ?? NEW_CHAT).toLowerCase().includes(words),
-  );
-  const order = [
-    ...boards.filter((board) => board.id === boardId),
-    ...boards.filter((board) => board.id !== boardId),
-  ];
-  const groups = [
-    ...order.map((board) => ({
-      label: `About ${board.name}`,
-      items: matches.filter(
-        (conversation) => conversation.board_id === board.id,
-      ),
-    })),
-    {
-      label: "About no board",
-      items: matches.filter((conversation) => conversation.board_id === null),
-    },
-  ].filter((group) => group.items.length > 0);
-
-  function close(event: KeyboardEvent<HTMLElement>) {
-    if (event.key === "Escape") onClose();
-  }
-
-  return (
-    <>
-      <div
-        className="histback"
-        data-shown={isOpen ? "" : undefined}
-        onClick={onClose}
-      />
-      <nav
-        className="histpanel"
-        aria-label="Your chats"
-        data-shown={isOpen ? "" : undefined}
-        inert={!isOpen}
-        onKeyDown={close}
-      >
-        <input
-          ref={search}
-          type="search"
-          value={query}
-          placeholder="Search your chats"
-          aria-label="Search your chats"
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        {groups.map((group) => (
-          <section key={group.label}>
-            <h3>{group.label}</h3>
-            {group.items.map((conversation) => (
-              <button
-                key={conversation.id}
-                type="button"
-                aria-current={conversation.id === activeId}
-                onClick={() => onPick(conversation)}
-              >
-                <b>{conversation.title ?? NEW_CHAT}</b>
-                <span>{startedOf(conversation)}</span>
-              </button>
-            ))}
-          </section>
-        ))}
-        {groups.length === 0 && (
-          <p className="hint">
-            {isLoading
-              ? "Loading your chats…"
-              : conversations.length === 0
-                ? "No chats yet."
-                : "No chat has these words in its name."}
-          </p>
-        )}
-      </nav>
-    </>
-  );
-}
-
 /** The customer's message, with the documents sent along as file cards. */
 function Turn({ text, documents }: { text: string; documents: DocumentRef[] }) {
   return (
@@ -731,15 +640,6 @@ function Turn({ text, documents }: { text: string; documents: DocumentRef[] }) {
       <div className="you">{text}</div>
     </div>
   );
-}
-
-function startedOf(conversation: ConversationRef): string {
-  return new Date(conversation.created_at).toLocaleString("de-CH", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function extensionOf(name: string): string {

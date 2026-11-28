@@ -278,34 +278,125 @@
   text-transform: uppercase;
   color: var(--faint);
 }
-.tr-chat .histpanel button {
+.tr-chat .histrow {
+  border-radius: 9px;
+}
+.tr-chat .histrow[data-step] {
+  background: var(--canvas);
+}
+.tr-chat .histline {
+  display: flex;
+  align-items: center;
+}
+.tr-chat .histpick {
+  flex: 1;
+  min-width: 0;
   display: grid;
-  width: 100%;
   gap: 1px;
   padding: 8px 10px;
   border: 0;
   border-radius: 9px;
   background: none;
+  font: inherit;
+  color: inherit;
   text-align: left;
   transition: background 0.15s;
 }
-.tr-chat .histpanel button b {
+.tr-chat .histpick b {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
   font-weight: 500;
 }
-.tr-chat .histpanel button span {
+.tr-chat .histpick span {
   font-size: 12px;
   color: var(--muted);
 }
-.tr-chat .histpanel button:hover {
+.tr-chat .histpick:hover {
   background: var(--canvas);
 }
-.tr-chat .histpanel button[aria-current="true"] {
+.tr-chat .histpick[aria-current="true"] {
   background: var(--soft);
   color: var(--deep);
+}
+.tr-chat .histrow input {
+  flex: 1;
+  min-width: 0;
+  margin: 4px;
+  padding: 6px 8px;
+  background: var(--surface);
+  font-weight: 500;
+}
+.tr-chat .histrow input[aria-invalid="true"] {
+  outline: 2px solid var(--bad);
+  outline-offset: 0;
+}
+.tr-chat .histmore {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-right: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--muted);
+  opacity: 0;
+}
+.tr-chat .histrow:hover .histmore,
+.tr-chat .histmore:focus-visible,
+.tr-chat .histmore[aria-expanded="true"] {
+  opacity: 1;
+}
+.tr-chat .histmore:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+@media (hover: none) {
+  .tr-chat .histmore {
+    opacity: 1;
+  }
+}
+.tr-chat .histactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 10px;
+  font-size: 13px;
+}
+.tr-chat .histactions span {
+  flex: 1 0 100%;
+  color: var(--text);
+}
+.tr-chat .histactions button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+.tr-chat .histactions button:hover {
+  background: var(--soft);
+}
+.tr-chat .histactions .danger {
+  background: var(--bad);
+  color: var(--surface);
+}
+.tr-chat .histactions .danger:hover {
+  background: var(--bad);
+  opacity: 0.9;
+}
+.tr-chat .histnote {
+  margin: 0;
+  padding: 0 10px 8px;
+  font-size: 12.5px;
+  color: var(--bad);
 }
 .tr-chat .histpanel .hint {
   padding: 10px;
