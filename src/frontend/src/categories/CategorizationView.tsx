@@ -59,9 +59,10 @@ export function CategorizationView({ token }: { token: string }) {
     let isCurrent = true;
     async function load() {
       try {
+        // Starts a run for bookings still without a category, or returns the one going.
         const [next, current] = await Promise.all([
           loadAll(token),
-          latestRun(token),
+          api<CategorisationRun>("/api/categorisations", token, json({})),
         ]);
         if (!isCurrent) return;
         setLoaded(next);
@@ -98,6 +99,7 @@ export function CategorizationView({ token }: { token: string }) {
         if (!isCurrent) return;
         await reload();
         setRun(newest);
+        setNotice(null);
       } catch {
         // Asks again after the same wait; the decisions shown stay usable.
         if (isCurrent) setPollFailures((count) => count + 1);
@@ -129,9 +131,6 @@ export function CategorizationView({ token }: { token: string }) {
     setDecided((current) => new Set(current).add(decision.id));
     try {
       await decide(token, decision, category);
-      // The next card can be decided while the settled rows load.
-      setBusyId(null);
-      await reload();
     } catch (failure) {
       setDecided((current) => {
         const next = new Set(current);
@@ -141,8 +140,15 @@ export function CategorizationView({ token }: { token: string }) {
       setError(
         `${decision.payee} was not saved. ${requestErrorOf(failure).message}`,
       );
-    } finally {
       setBusyId(null);
+      return;
+    }
+    // The next card can be decided while the settled rows load.
+    setBusyId(null);
+    try {
+      await reload();
+    } catch {
+      // Saved; the list shows it settled on the next load.
     }
   }
 

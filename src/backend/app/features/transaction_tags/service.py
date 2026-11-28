@@ -72,9 +72,12 @@ class TransactionTagService:
         taken = {name.casefold() for name in await self._known_categories(owner_id=owner_id)}
         if data.name.casefold() in taken | {NOT_CATEGORISED}:
             raise ConflictError(f"There is a category '{data.name}' already")
-        created = await self.custom.create(
+        created = await self.custom.create_unique(
             owner_id=owner_id, name=data.name, description=data.description
         )
+        # A second request with the same name can pass the check before the first is stored.
+        if created is None:
+            raise ConflictError(f"There is a category '{data.name}' already")
         return SpendingCategory(name=created.name, description=created.description, custom=True)
 
     async def create_categorisation(

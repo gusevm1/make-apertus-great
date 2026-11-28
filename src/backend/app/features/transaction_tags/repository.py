@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 
 from app.core.repository import BaseRepository
 from app.features.transaction_tags.models import (
@@ -139,6 +140,16 @@ class CustomCategoryRepository(BaseRepository[CustomCategoryORM, CustomCategory]
     orm_model = CustomCategoryORM
     schema = CustomCategory
     sortable_fields = frozenset({"created_at"})
+
+    async def create_unique(
+        self, owner_id: UUID, name: str, description: str
+    ) -> CustomCategory | None:
+        """Add the category; None when the customer has one of that name, in any case."""
+        try:
+            return await self.create(owner_id=owner_id, name=name, description=description)
+        except IntegrityError:
+            await self.session.rollback()
+            return None
 
     async def list_for_owner(self, owner_id: UUID) -> list[CustomCategory]:
         categories = await self.list(sort="created_at", owner_id=owner_id)
