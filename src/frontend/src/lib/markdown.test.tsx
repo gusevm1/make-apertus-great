@@ -93,3 +93,24 @@ test("keeps single line breaks inside a paragraph", () => {
     '<div class="markdown"><p>line one<br/>line two</p></div>',
   );
 });
+
+test("takes – and • as list markers, nested by indent", () => {
+  expect(html("• Einnahmen\n  – Lohn: CHF 6,500.00\n– Ausgaben")).toBe(
+    '<div class="markdown"><ul>' +
+      "<li>Einnahmen<ul><li>Lohn: CHF 6,500.00</li></ul></li>" +
+      "<li>Ausgaben</li></ul></div>",
+  );
+});
+
+test("draws nothing for a line that is only a marker", () => {
+  expect(html("- Miete: –CHF 1,850.00\n-\n– \n•\n- Coop: –CHF 87.40")).toBe(
+    '<div class="markdown"><ul>' +
+      "<li>Miete: –CHF 1,850.00</li><li>Coop: –CHF 87.40</li></ul></div>",
+  );
+});
+
+test("keeps a sentence with a dash in the middle as text", () => {
+  expect(html("Miete – CHF 1,850.00\n–CHF 87.40 an Coop")).toBe(
+    '<div class="markdown"><p>Miete – CHF 1,850.00<br/>–CHF 87.40 an Coop</p></div>',
+  );
+});

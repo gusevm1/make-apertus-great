@@ -1,7 +1,8 @@
 import { Fragment, type ReactNode } from "react";
 
 const HEADING = /^#{1,6}\s+(.*)$/;
-const ITEM = /^(\s*)(?:[-*+]|(\d+)[.)])\s+(.*)$/;
+// Apertus also starts items with – or •; a lone marker line has no text.
+const ITEM = /^(\s*)(?:[-*+–•]|(\d+)[.)])(?:\s+(.*))?$/;
 const FENCE = /^\s*```/;
 // Code, http(s) link, bold, italic. A link to any other scheme stays text.
 const INLINE =
@@ -80,6 +81,7 @@ function blocksOf(text: string): ReactNode[] {
       );
     } else if (item !== null) {
       const [, indent, number, itemText] = item;
+      if (itemText === undefined) continue;
       const entry = {
         isOrdered: number !== undefined,
         start: Number(number ?? 1),
