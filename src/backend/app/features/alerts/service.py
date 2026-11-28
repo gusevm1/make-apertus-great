@@ -131,7 +131,10 @@ def _bill(document: Document) -> Alert | None:
         document_id=document.id,
         document_name=document.name,
         document_kind=document.kind,
-        payee=payee.text if payee is not None and payee.text is not None else document.issuer,
+        # The payee field often carries the address too; the issuer is the plain name.
+        payee=document.issuer
+        if document.issuer is not None
+        else (payee.text if payee is not None else None),
         amount_chf=Decimal(str(amount.amount)).quantize(Decimal("0.01")),
         due_date=due.date if due is not None else None,
         document_date=document.document_date,
