@@ -11,6 +11,7 @@ import { ChatPanel } from "./chat/ChatPanel";
 import { DemoReset } from "./DemoReset";
 import type { ConversationRef } from "./chat/types";
 import { type HostContext, sendToHost, useHostContext } from "./host";
+import { useDebugMode } from "./lib/debugMode";
 import { useStream } from "./lib/useStream";
 import { ProfilePanel } from "./profile/ProfilePanel";
 import { SPLIT, Split } from "./Split";
@@ -59,6 +60,7 @@ function TrustRoom({
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   // Counts the openings, so the drawer loads what the chat changed while it was closed.
   const [profileOpenings, setProfileOpenings] = useState(0);
+  const isDebugMode = useDebugMode();
   // The side panel over an e-banking page is for asking; boards live on /trustroom.
   const isChatOnly =
     context.mode === "panel" && context.page.id !== "dashboard";
@@ -371,9 +373,16 @@ function TrustRoom({
           <div className="msgs" ref={buildLog}>
             <div className="bot">
               I am building your first board from your own accounts and
-              bookings. Every step shows here as it happens.
+              bookings.
+              {isDebugMode && " Every step shows here as it happens."}
             </div>
-            <BuildTrace steps={build.steps} isLive isOpen />
+            {isDebugMode ? (
+              <BuildTrace steps={build.steps} isLive isOpen />
+            ) : (
+              <span className="status" role="status">
+                Building…
+              </span>
+            )}
           </div>
         </div>
       </section>

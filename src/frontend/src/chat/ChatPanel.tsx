@@ -9,6 +9,7 @@ import {
 } from "../api";
 import { Confirmation } from "../Confirmation";
 import { type HostContext, useHostContext } from "../host";
+import { useDebugMode } from "../lib/debugMode";
 import { Markdown } from "../lib/markdown";
 import { useStream } from "../lib/useStream";
 import { SmallIcon } from "../board/icons";
@@ -355,6 +356,7 @@ function ChatInner({
 
   const isStreaming = pending !== null;
   const active = conversations.find((other) => other.id === activeId);
+  const isDebugMode = useDebugMode();
   const isBusy = isStreaming || isUploading || stream.status === "streaming";
   const waitingCalls = stream.toolCalls.filter(
     (call) => call.confirmation !== null && call.isRunning,
@@ -404,13 +406,16 @@ function ChatInner({
           no investment advice.
         </p>
       )}
-      {load === "ready" && plan !== null && plan.trace.length > 0 && (
-        <BuildTrace
-          steps={plan.trace}
-          isLive={false}
-          isOpen={loaded.messages.length === 0 && !isStreaming}
-        />
-      )}
+      {isDebugMode &&
+        load === "ready" &&
+        plan !== null &&
+        plan.trace.length > 0 && (
+          <BuildTrace
+            steps={plan.trace}
+            isLive={false}
+            isOpen={loaded.messages.length === 0 && !isStreaming}
+          />
+        )}
       {isEmpty && (
         <p className="hint">
           {board === null
@@ -445,7 +450,7 @@ function ChatInner({
         <>
           <Turn text={pending} documents={pendingDocuments} />
           <div className="bot">
-            {stream.toolCalls.length > 0 && (
+            {isDebugMode && stream.toolCalls.length > 0 && (
               <AnswerTrace calls={stream.toolCalls} provenance={null} isLive />
             )}
             {stream.text !== "" && <Markdown text={stream.text} />}
