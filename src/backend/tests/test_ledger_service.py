@@ -1106,7 +1106,14 @@ async def test_a_settled_bill_without_purchases_counts_as_spending_once(
             "transactions_count": 0,
         }
     )
-    old_bill = _booking("BK-9", "card_settlement", -2264.35, reference="STMT-2023-11")
+    old_bill = _booking(
+        "BK-9",
+        "card_settlement",
+        -2264.35,
+        reference="STMT-2023-11",
+        card_id="CARD-VISA",
+        booking_date="2023-12-20",
+    )
     ledger = _fake_ledger(
         bookings=[*BOOKINGS, old_bill], purchases=PURCHASES, statements=statements, pages_read=[]
     )
@@ -1115,3 +1122,8 @@ async def test_a_settled_bill_without_purchases_counts_as_spending_once(
 
     assert (rows["BK-9"].kind, rows["BK-9"].statement_id) == ("spending", "STMT-2023-11")
     assert rows["BK-5"].kind == "card_settlement"
+    december = await ledger.search_movements(
+        token=TOKEN,
+        args=SearchMovementsArgs(date_from=date(2023, 12, 1), date_to=date(2023, 12, 31)),
+    )
+    assert (december.row_ids, december.money_out_chf) == (["BK-9"], Decimal("-2264.35"))
