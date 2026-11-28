@@ -1,15 +1,19 @@
 import { type KeyboardEvent, useEffect, useState } from "react";
+import { requestErrorOf } from "../api";
 import { SmallIcon, TileIcon } from "./icons";
 import { pillOf, TileBody } from "./Tiles";
 import type { SourceView, Tile } from "./types";
 
 const TITLE_MAX_LENGTH = 80;
+const PUBLISH_NOTE_MS = 6000;
+const PUBLISH_LABEL = "Put on my e-banking dashboard";
 
 export interface TileActions {
   onSelect: (tileId: string | null) => void;
   onMove: (tileId: string, position: number) => void;
   onRename: (tileId: string, title: string) => void;
   onAsk: (tile: Tile) => void;
+  onPublish: (tileId: string) => Promise<void>;
   onRemove: (tileId: string) => void;
   onSource: (view: SourceView) => void;
 }
@@ -37,6 +41,17 @@ export function TileCard({
   const [draft, setDraft] = useState<string | null>(null);
   const [isRemoveArmed, setIsRemoveArmed] = useState(false);
   const [isDropTarget, setIsDropTarget] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishNote, setPublishNote] = useState<{
+    text: string;
+    isError: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (publishNote === null) return;
+    const timer = setTimeout(() => setPublishNote(null), PUBLISH_NOTE_MS);
+    return () => clearTimeout(timer);
+  }, [publishNote]);
 
   // Leaving the tile ends a rename or an armed remove.
   useEffect(() => {
@@ -58,6 +73,18 @@ export function TileCard({
       event.stopPropagation();
       setDraft(null);
     }
+  }
+
+  async function handlePublish() {
+    setIsPublishing(true);
+    setPublishNote(null);
+    try {
+      await actions.onPublish(tile.id);
+      setPublishNote({ text: "On your dashboard", isError: false });
+    } catch (error) {
+      setPublishNote({ text: requestErrorOf(error).message, isError: true });
+    }
+    setIsPublishing(false);
   }
 
   function handleRemove() {
@@ -141,6 +168,15 @@ export function TileCard({
           </button>
           <button
             type="button"
+            aria-label={PUBLISH_LABEL}
+            title={PUBLISH_LABEL}
+            disabled={isPublishing}
+            onClick={() => void handlePublish()}
+          >
+            <SmallIcon name="dashboard" />
+          </button>
+          <button
+            type="button"
             className={isRemoveArmed ? "danger" : undefined}
             aria-label={isRemoveArmed ? "Click again to remove" : "Remove"}
             title={isRemoveArmed ? "Click again to remove" : "Remove"}
@@ -178,6 +214,14 @@ export function TileCard({
         isSmall={isSmall}
         onSource={actions.onSource}
       />
+      {publishNote !== null && (
+        <p
+          className={publishNote.isError ? "pinned failed" : "pinned"}
+          role={publishNote.isError ? "alert" : "status"}
+        >
+          {publishNote.text}
+        </p>
+      )}
     </article>
   );
 }
