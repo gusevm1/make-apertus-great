@@ -140,6 +140,16 @@ def _strip_code_fences(text: str) -> str:
     return match.group(1) if match is not None else text
 
 
+# Apertus sometimes writes a second object or a note after the JSON; only the first value counts.
+def _first_json(text: str) -> str:
+    stripped = text.lstrip()
+    try:
+        _, end = json.JSONDecoder().raw_decode(stripped)
+    except json.JSONDecodeError:
+        return text
+    return stripped[:end]
+
+
 class ApertusClient:
     def __init__(self, settings: Settings, http_client: httpx2.AsyncClient | None = None) -> None:
         self._openai = openai.AsyncOpenAI(
@@ -277,7 +287,9 @@ class ApertusClient:
                 timeout_seconds=timeout_seconds,
             )
             try:
-                parsed = schema.model_validate_json(_strip_code_fences(text=raw.content))
+                parsed = schema.model_validate_json(
+                    _first_json(text=_strip_code_fences(text=raw.content))
+                )
             except ValidationError as exc:
                 last_error = str(exc)
                 reason = _first_error(exc=exc)
