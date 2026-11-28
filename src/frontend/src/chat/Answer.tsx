@@ -27,7 +27,10 @@ export function Answer({
   onOpenBoard: (boardId: string) => void;
 }) {
   const did = didLinesOf(calls);
-  const failed = calls.filter((call) => call.error !== null);
+  // A refused note proposal is the server's own business, not a failure the customer has to read.
+  const failed = calls.filter(
+    (call) => call.error !== null && call.tool_name !== PROPOSE_TOOL,
+  );
   const proposal = calls
     .filter((call) => call.tool_name === PROPOSE_TOOL && call.error === null)
     .map((call) => proposals.find((entry) => entry.id === call.result?.id))
@@ -61,7 +64,7 @@ export function Answer({
       {proposal !== undefined && (
         <MemoryCard token={token} entryId={proposal.id} text={proposal.text} />
       )}
-      {provenance !== null && <Meta provenance={provenance} />}
+      {provenance !== null && <Meta provenance={provenance} hasFailedCall={failed.length > 0} />}
     </div>
   );
 }
@@ -86,9 +89,18 @@ function OpenLink({
   );
 }
 
-function Meta({ provenance }: { provenance: NonNullable<ChatMessage["provenance"]> }) {
+function Meta({
+  provenance,
+  hasFailedCall,
+}: {
+  provenance: NonNullable<ChatMessage["provenance"]>;
+  hasFailedCall: boolean;
+}) {
   const checks = provenance.checks ?? [];
-  const failedCheck = checks.find((check) => !check.passed);
+  const failedCheck = checks.find(
+    (check) =>
+      !check.passed && (check.name !== "tool_calls_valid" || hasFailedCall),
+  );
   const model = /apertus/i.test(provenance.model) ? "Apertus" : provenance.model;
   let note = "every figure comes from your bookings";
   if (failedCheck !== undefined) note = `a check did not pass: ${failedCheck.name}`;
