@@ -54,7 +54,7 @@ DECISION_MODEL = Model.SMART
 DECISION_PURPOSE = "tool_decision"
 # The thinking model plans once per turn; the decision goes on without a plan when it runs out.
 PLAN_PURPOSE = "tool_plan"
-PLAN_BUDGET_SECONDS = 45
+PLAN_BUDGET_SECONDS = 20
 ANSWER_MODEL = Model.SMART
 ANSWER_PURPOSE = "answer"
 # The server's own calls when the board decision made none for a question its tiles answer.
