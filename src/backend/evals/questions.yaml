@@ -98,25 +98,6 @@
         year: "2025"
   answer: (tax advice|Steuerberatung)
   not_called: [search_web]
-- question: Show my monthly spending over the last 6 months as a chart
-  calls:
-    - tool: sum_by_month
-    - tool: build_widget
-  rule: widgets
-- question: Create a widget listing the payments due in the next 30 days
-  calls:
-    - tool: list_upcoming_payments
-    - tool: build_widget
-  rule: widgets
-- question: Zeig mir meine Ausgaben der letzten 6 Monate als Grafik
-  calls:
-    - tool: sum_by_month
-    - tool: build_widget
-  rule: widgets
-- question: Show me my bookings from last week
-  any_calls: true
-  not_called: [build_widget]
-  rule: widgets
 - question: Was kannst du für mich tun?
   answer: Zahlung
   answer_not: keinen Zugriff|kein Zugriff|Prüfen Sie|Schauen Sie|Sehen Sie

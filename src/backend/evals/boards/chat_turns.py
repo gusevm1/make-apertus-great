@@ -40,7 +40,9 @@ BOARD_TOOLS = {
 PROPOSE = "propose_context_entry"
 # Words an answer beside a board never uses.
 BANNED = re.compile(
-    r"\btools?\b|\btile id\b|\bT\d\b|displayed in place|pre-existing|\bfield\b|\bWerkzeug",
+    r"\btools?\b|\btile id\b|\bT\d\b|displayed in place|pre-existing|\bfield\b|\bWerkzeug"
+    r"|(?:cannot|can't) (?:create|draw|change) (?:a |the |this )?(?:visual )?(?:widget|chart)"
+    r"|kann (?:kein|keine|dieses) (?:Widget|Grafik)",
     re.IGNORECASE,
 )
 SENTENCE_END = re.compile(r"[.!?](?:\s|$)")
@@ -250,6 +252,14 @@ TURNS = [
         name="twelve_months",
         customer="daniela",
         message="Make the spending chart show 12 months.",
+        board_tools={"change_tile"},
+        max_sentences=3,
+    ),
+    Turn(
+        name="widget_twelve_months",
+        customer="daniela",
+        message="Ändere dieses Widget auf 12 Monate.",
+        selected="monthly_spending",
         board_tools={"change_tile"},
         max_sentences=3,
     ),
