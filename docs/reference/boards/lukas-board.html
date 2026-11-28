@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TrustRoom board of Lukas Meier</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0}
+a{color:#2e6b66}a:hover{color:#245652}
+.tr{--ink:#0b1e2a;--text:#12202a;--muted:#5b6870;--line:rgb(11 30 42 / 0.08);--canvas:#f4f6f6;--accent:#2e6b66;--deep:#245652;--soft:#e7f0ef;--mint:#8fd6cc;font-family:Geist,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--canvas);min-height:1060px;display:flex;flex-direction:column;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.tr *{box-sizing:border-box}
+.tr button{font:inherit;color:inherit;cursor:pointer}
+.tr button:focus-visible,.tr a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 28px;min-height:64px;background:#ffffff;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-0.01em}
+.mark{width:28px;height:28px;border-radius:9px;background:var(--ink);display:grid;place-items:center;flex:0 0 auto}
+.private{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;font-weight:500;color:var(--muted);padding:4px 10px;border-radius:999px;background:var(--canvas)}
+.mode{display:flex;padding:3px;background:#eceff0;border-radius:12px;gap:2px}
+.mode a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:9px;padding:0 16px;min-height:36px;font-size:13px;font-weight:500;color:var(--muted)}
+.mode a.on{background:#ffffff;color:var(--text);box-shadow:0 1px 2px rgb(11 30 42 / 0.1),0 0 0 1px rgb(11 30 42 / 0.04)}
+.me{justify-self:end;display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:999px;padding:4px 12px 4px 4px;min-height:44px;text-align:left}
+.me:hover{background:var(--canvas)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--deep);display:grid;place-items:center;font-size:12px;font-weight:600;flex:0 0 auto}
+.me b{display:block;font-size:13px;font-weight:600;line-height:1.25}
+.me small{display:block;font-size:12px;color:var(--muted);line-height:1.25}
+.main{flex:1;display:flex;flex-wrap:wrap;min-height:0}
+.boardcol{flex:999 1 600px;min-width:0;display:flex;flex-direction:column}
+.cols{flex:1;display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:20px;padding:28px 28px 20px;align-content:start}
+.stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.tile{background:#ffffff;border-radius:20px;padding:22px 24px;display:flex;flex-direction:column;gap:14px;position:relative;min-width:0;box-shadow:0 0 0 1px rgb(11 30 42 / 0.05),0 1px 2px rgb(11 30 42 / 0.04),0 12px 32px -16px rgb(11 30 42 / 0.12)}
+.grow{flex:1}
+.th{display:flex;align-items:center;gap:10px;min-height:28px}
+.chip{width:28px;height:28px;border-radius:9px;background:var(--soft);color:var(--deep);display:grid;place-items:center;flex:0 0 auto}
+.th h2{margin:0;font-size:14px;font-weight:600;letter-spacing:-0.005em}
+.th .end{margin-left:auto}
+.fig{font-size:30px;font-weight:600;letter-spacing:-0.03em;line-height:1.1}
+.fig small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0;margin-right:6px}
+.fig.s{font-size:24px}
+.note{margin:0;font-size:13px;color:var(--muted)}
+.tr .from{margin-top:auto;align-self:flex-start;text-align:left;display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:4px 0;min-height:28px;font-size:12.5px;font-weight:500;color:var(--accent)}
+.tr .from:hover{color:var(--deep)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.soft{background:var(--soft);color:var(--deep)}
+.hero{background:var(--ink);color:#ffffff;gap:16px;box-shadow:0 24px 44px -26px rgb(11 30 42 / 0.6)}
+.hero .th h2{color:#c5d2d8;font-weight:500}
+.hero .chip{background:rgb(255 255 255 / 0.09);color:var(--mint)}
+.heronum{font-size:54px;font-weight:600;letter-spacing:-0.04em;line-height:0.95}
+.heronum small{font-size:20px;font-weight:500;color:#9fb2ba;margin-right:8px;letter-spacing:0}
+.hero .note{color:#a9bcc4}
+.tr .hero .from{color:var(--mint)}
+.split{display:flex;height:10px;gap:3px}
+.split span{display:block;height:100%;border-radius:999px}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.legend div{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:#a9bcc4}
+.legend b{color:#ffffff;font-size:18px;font-weight:600;letter-spacing:-0.02em}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.bars{flex:1;display:flex;align-items:flex-end;gap:14px;min-height:132px;border-bottom:1px solid #e3e7e8}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+.col .v{font-size:12px;color:var(--muted)}
+.col .b{width:100%;max-width:54px;border-radius:10px 10px 0 0;background:#d9e7e5}
+.col.hi .b{background:var(--accent)}
+.col.hi .v{color:var(--text);font-weight:600}
+.mlabels{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.mlabels span{flex:1;text-align:center}
+.mlabels .hi{color:var(--text);font-weight:600}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.list li{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:36px;border-top:1px solid #eef1f1;font-size:13.5px}
+.list time{font-size:12.5px;color:var(--muted)}
+.list .who{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap}
+.list .who b{font-weight:400;overflow:hidden;text-overflow:ellipsis}
+.list .amt{font-weight:600;white-space:nowrap}
+.kv{display:flex;flex-direction:column}
+.kv div{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:34px;border-top:1px solid #eef1f1;font-size:13.5px}
+.kv div:first-child{border-top:0}
+.kv span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.kv b{font-weight:600;white-space:nowrap}
+.tile.small{padding:20px}
+.track{height:6px;border-radius:999px;background:#eef1f1;overflow:hidden}
+.track span{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.key{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:12.5px;color:var(--muted)}
+.key i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+.sel{box-shadow:0 0 0 2px var(--accent),0 18px 40px -20px rgb(46 107 102 / 0.5)}
+.bar{position:absolute;top:-19px;right:22px;display:flex;gap:2px;padding:4px;background:#ffffff;border-radius:12px;box-shadow:0 0 0 1px rgb(11 30 42 / 0.08),0 10px 24px -8px rgb(11 30 42 / 0.28)}
+.bar button{width:32px;height:32px;border:0;background:transparent;border-radius:8px;display:grid;place-items:center;color:var(--text);padding:0}
+.bar button:hover{background:var(--canvas)}
+.grab{position:absolute;right:7px;bottom:7px;color:#9aa5ab}
+.dock{align-self:flex-start;display:flex;align-items:center;gap:4px;margin:0 28px 20px;padding:5px;background:#ffffff;border-radius:16px;box-shadow:0 0 0 1px rgb(11 30 42 / 0.05),0 10px 28px -14px rgb(11 30 42 / 0.22);max-width:calc(100% - 56px);overflow-x:auto}
+.dock a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;border-radius:11px;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;white-space:nowrap}
+.dock a:hover{background:var(--canvas);color:var(--text)}
+.dock a.on{background:var(--ink);color:#ffffff}
+.dock a.plus{width:38px;padding:0}
+.dock a i{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.chat{flex:1 1 400px;max-width:436px;min-width:0;background:#ffffff;border-left:1px solid var(--line);display:flex;flex-direction:column}
+.chathead{display:flex;align-items:baseline;gap:8px;padding:20px 24px 4px}
+.chathead b{font-size:14px;font-weight:600}
+.chathead span{font-size:12.5px;color:var(--muted)}
+.msgs{flex:1;display:flex;flex-direction:column;gap:20px;padding:16px 24px 20px}
+.you{align-self:flex-end;max-width:86%;background:var(--canvas);border-radius:18px 18px 6px 18px;padding:10px 14px;font-size:14.5px}
+.bot{display:flex;flex-direction:column;gap:12px;font-size:14.5px;line-height:1.6}
+.bot p{margin:0}
+.did{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.did div{display:flex;align-items:center;gap:8px}
+.did svg{flex:0 0 auto}
+.did a{margin-left:4px;font-weight:500;text-decoration:none}
+.mem{border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;background:#f5faf9;box-shadow:inset 0 0 0 1px rgb(46 107 102 / 0.2)}
+.mem .k{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--deep)}
+.mem p{margin:0;font-size:14px;line-height:1.5}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:999px;padding:0 16px;min-height:40px;font-size:13px;font-weight:500;background:#ffffff;box-shadow:inset 0 0 0 1px rgb(11 30 42 / 0.16)}
+.btn:hover{background:var(--canvas)}
+.btn.go{background:var(--ink);color:#ffffff;box-shadow:none}
+.btn.go:hover{background:#13303f}
+.meta{font-size:12px;color:var(--muted)}
+.compose{margin:0 20px 20px;border-radius:22px;padding:12px 10px 10px 16px;display:flex;flex-direction:column;gap:6px;background:#ffffff;box-shadow:0 0 0 1px rgb(11 30 42 / 0.1),0 14px 34px -16px rgb(11 30 42 / 0.26)}
+.about{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;background:var(--soft);color:var(--deep);border-radius:8px;padding:2px 2px 2px 8px;font-size:12px;font-weight:500}
+.about button{border:0;background:transparent;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;padding:0}
+.inputrow{display:flex;align-items:center;gap:2px}
+.inputrow label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.inputrow input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:14.5px;color:var(--text);min-height:40px;background:transparent}
+.inputrow input::placeholder{color:var(--muted)}
+.tr .icon{border:0;background:transparent;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--muted);padding:0;flex:0 0 auto}
+.tr .icon:hover{background:var(--canvas)}
+.tr .icon.send{background:var(--ink);color:#ffffff;margin-left:4px}
+@media (max-width:860px){.top{grid-template-columns:1fr;padding:12px 16px;justify-items:start}.me{justify-self:start}.cols{grid-template-columns:minmax(0,1fr);padding:16px}.pair{grid-template-columns:minmax(0,1fr)}.chat{max-width:none;border-left:0;border-top:1px solid var(--line)}.dock{margin:0 16px 16px}.private{display:none}}
+</style>
+<div class="tr">
+  <header class="top">
+    <div class="brand">
+      <span class="mark"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="1" width="5.2" height="7.5" rx="1.4" fill="#8fd6cc"></rect><rect x="7.8" y="1" width="5.2" height="4.2" rx="1.4" fill="#ffffff"></rect><rect x="7.8" y="6.8" width="5.2" height="6.2" rx="1.4" fill="#ffffff" opacity="0.55"></rect><rect x="1" y="10.1" width="5.2" height="2.9" rx="1.4" fill="#ffffff" opacity="0.55"></rect></svg></span>
+      <span>TrustRoom</span>
+      <span class="private"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.2" y="5.3" width="7.6" height="5.2" rx="1.4"></rect><path d="M4 5.3V3.8a2 2 0 0 1 4 0v1.5"></path></svg>Stays inside the bank</span>
+    </div>
+    <nav class="mode" aria-label="What to show">
+      <a class="on" href="Lukas.dc.html" aria-current="page"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2" width="11" height="10" rx="2.2"></rect><path d="M8.8 2v10"></path></svg>Board and chat</a>
+      <a href="#chat"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2 3.8A1.8 1.8 0 0 1 3.8 2h6.4A1.8 1.8 0 0 1 12 3.8v4.4a1.8 1.8 0 0 1-1.8 1.8H6.5L4 12.2V10h-.2A1.8 1.8 0 0 1 2 8.2Z"></path></svg>Chat</a>
+    </nav>
+    <button class="me" type="button" aria-label="Open the profile of Lukas Meier">
+      <span class="avatar">LM</span>
+      <span><b>Lukas Meier</b><small>Profile and documents</small></span>
+    </button>
+  </header>
+
+  <div class="main">
+    <section class="boardcol" aria-label="Board Overview">
+      <div class="cols">
+        <div class="stack">
+
+          <article class="tile hero">
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.2 13.2h11.600M3.6 13.200V7.2M8 13.200V2.800M12.4 13.200V9.600"></path></svg></span>
+              <h2>What you own</h2>
+            </div>
+            <div class="heronum num"><small>CHF</small>131'212.64</div>
+            <div class="split" role="img" aria-label="44.7 percent in accounts, 55.3 percent in securities"><span style="width: 44.7%; background: #8fd6cc"></span><span style="width: 55.3%; background: #3f8b84"></span></div>
+            <div class="legend num">
+              <div><span><i style="background: #8fd6cc"></i>Accounts</span><b>58'699.68</b></div>
+              <div><span><i style="background: #3f8b84"></i>Securities</span><b>72'512.96</b></div>
+            </div>
+            <button class="from" type="button">4 accounts and 1 depot, without pillar 3a
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+            </button>
+          </article>
+
+          <article class="tile sel grow">
+            <div class="bar" role="toolbar" aria-label="Tile Where the money goes">
+              <button type="button" aria-label="Move"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><circle cx="4.6" cy="3" r="1.15"></circle><circle cx="9.4" cy="3" r="1.15"></circle><circle cx="4.6" cy="7" r="1.15"></circle><circle cx="9.4" cy="7" r="1.15"></circle><circle cx="4.6" cy="11" r="1.15"></circle><circle cx="9.4" cy="11" r="1.15"></circle></svg></button>
+              <button type="button" aria-label="Rename"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 2.6 11.4 5.4 5 11.8H2.2V9Z"></path></svg></button>
+              <button type="button" aria-label="Ask about this tile"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2 3.8A1.8 1.8 0 0 1 3.8 2h6.4A1.8 1.8 0 0 1 12 3.8v4.4a1.8 1.8 0 0 1-1.8 1.8H6.5L4 12.2V10h-.2A1.8 1.8 0 0 1 2 8.2Z"></path></svg></button>
+              <button type="button" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h9M5.5 4V2.6h3V4M3.6 4l.6 7.4h5.6L10.4 4"></path></svg></button>
+            </div>
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13V8.500M6.4 13V4.500M9.800 13V6.500M13.200 13V3"></path></svg></span>
+              <h2>Where the money goes</h2>
+              <span class="pill soft end">May to October</span>
+            </div>
+            <div class="bars num" role="img" aria-label="Spending per month from May to October 2026, highest in September with CHF 17'273.60">
+              <div class="col"><span class="v">15'646</span><span class="b" style="height: 94px"></span></div>
+              <div class="col"><span class="v">9'191</span><span class="b" style="height: 55px"></span></div>
+              <div class="col"><span class="v">9'630</span><span class="b" style="height: 58px"></span></div>
+              <div class="col"><span class="v">7'031</span><span class="b" style="height: 42px"></span></div>
+              <div class="col hi"><span class="v">17'274</span><span class="b" style="height: 104px"></span></div>
+              <div class="col"><span class="v">10'599</span><span class="b" style="height: 64px"></span></div>
+            </div>
+            <div class="mlabels"><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span class="hi">Sep</span><span>Oct</span></div>
+            <button class="from" type="button">Click a month to see its bookings
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+            </button>
+            <svg class="grab" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M11 5 5 11M11 9 9 11"></path></svg>
+          </article>
+
+          <div class="pair">
+            <article class="tile small">
+              <div class="th">
+                <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.800 6.200A5 5 0 1 0 13 9M12.800 2.800v3.400H9.400"></path></svg></span>
+                <h2>Subscriptions</h2>
+              </div>
+              <div class="fig s num"><small>CHF</small>252.95</div>
+              <div class="kv num">
+                <div><span>Fitnesspark</span><b>119.00</b></div>
+                <div><span>Swisscom inOne</span><b>94.00</b></div>
+                <div><span>Salt Mobile</span><b>39.95</b></div>
+              </div>
+              <button class="from" type="button">3 payments in December
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+              </button>
+            </article>
+
+            <article class="tile small">
+              <div class="th">
+                <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 13 3.6v4.1c0 3-2 5.3-5 6.5-3-1.2-5-3.5-5-6.5V3.6Z"></path></svg></span>
+                <h2>Pillar 3a, 2026</h2>
+              </div>
+              <div class="fig s num"><small>CHF</small>58.00</div>
+              <div class="track" role="img" aria-label="CHF 7'200 of CHF 7'258 paid in"><span style="width: 99.2%"></span></div>
+              <p class="note num">Left to reach the maximum of CHF 7'258. The transfer is planned for 18.12.</p>
+              <button class="from" type="button">1 planned transfer
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+              </button>
+            </article>
+          </div>
+        </div>
+
+        <div class="stack">
+          <article class="tile">
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2.5"></rect><path d="M2 6.800h12M5.500 1.600v2.600M10.500 1.600v2.600"></path></svg></span>
+              <h2>Due in the next 30 days</h2>
+            </div>
+            <div class="fig num"><small>CHF</small>8'302.59</div>
+            <ul class="list num">
+              <li><time>27.11.</time><span class="who"><b>Rent for December</b></span><span class="amt">2'800.00</span></li>
+              <li><time>07.12.</time><span class="who"><b>ETF savings plan</b></span><span class="amt">600.00</span></li>
+              <li><time>10.12.</time><span class="who"><b>Ferienwohnungen Engadin</b></span><span class="amt">600.00</span></li>
+              <li><time>21.12.</time><span class="who"><b>Visa Gold, November</b><span class="pill soft">provisional</span></span><span class="amt">3'301.74</span></li>
+            </ul>
+            <button class="from" type="button">All 10 payments
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+            </button>
+          </article>
+
+          <article class="tile">
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 11.500 6 7.500l2.600 2.600L14 4.700M10.400 4.700H14v3.600"></path></svg></span>
+              <h2>Securities</h2>
+            </div>
+            <div class="fig num"><small>CHF</small>72'512.96</div>
+            <div class="split" role="img" aria-label="93.16 percent shares, 6.84 percent bonds"><span style="width: 93.16%; background: #2e6b66"></span><span style="width: 6.84%; background: #a9cbc6"></span></div>
+            <div class="key num">
+              <span><i style="background: #2e6b66"></i>Shares 93.16 %</span>
+              <span><i style="background: #a9cbc6"></i>Bonds 6.84 %</span>
+            </div>
+            <button class="from" type="button">4 ETFs, CHF 30'800.00 paid in
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+            </button>
+          </article>
+
+          <article class="tile grow">
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="8" cy="4.200" rx="5" ry="2.200"></ellipse><path d="M3 4.200v3.800c0 1.200 2.200 2.200 5 2.200s5-1 5-2.200V4.200M3 8v3.800c0 1.200 2.200 2.200 5 2.200s5-1 5-2.200V8"></path></svg></span>
+              <h2>Savings pots</h2>
+            </div>
+            <div class="fig num"><small>CHF</small>48'983.35</div>
+            <div class="kv num">
+              <div><span>Steuern</span><b>4'638.04</b></div>
+              <div><span>Rücklagen</span><b>6'779.02</b></div>
+              <div><span>Langfristig</span><b>37'566.29</b></div>
+            </div>
+            <button class="from" type="button">3 savings accounts
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+            </button>
+          </article>
+        </div>
+      </div>
+
+      <nav class="dock" aria-label="Your boards">
+        <a class="on" href="Lukas.dc.html" aria-current="page">Overview</a>
+        <a href="#japan"><i aria-hidden="true"></i>Japan 2027</a>
+        <a href="#subscriptions">Subscriptions</a>
+        <a href="#taxes">Taxes 2026</a>
+        <a class="plus" href="#new" aria-label="New board"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 2.5v9M2.5 7h9"></path></svg></a>
+      </nav>
+    </section>
+
+    <aside class="chat" id="chat" aria-label="Chat about this board">
+      <div class="chathead"><b>Chat</b><span>about Overview</span></div>
+      <div class="msgs">
+        <div class="you">We want to go to Japan in 2027. Keep an eye on that for me.</div>
+        <div class="bot">
+          <p class="num">I made a board for it. It starts with your savings account Langfristig, which holds CHF 37'566.29, and the travel offer you uploaded.</p>
+          <p>Tell me what the trip may cost, or let me read it from the offer, and I add how far along you are.</p>
+          <div class="did">
+            <div><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2e6b66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 5.5 10.5 11.5 4"></path></svg>New board "Japan 2027" <a href="#japan">Open</a></div>
+            <div><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2e6b66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 5.5 10.5 11.5 4"></path></svg>Added 2 tiles to it</div>
+          </div>
+          <div class="mem">
+            <span class="k"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 1.8h7v10.4L7 9.8l-3.5 2.4Z"></path></svg>Remember this for next time?</span>
+            <p>You are planning a trip to Japan in 2027.</p>
+            <div class="acts">
+              <button class="btn go" type="button">Save to my profile</button>
+              <button class="btn" type="button">Not now</button>
+            </div>
+          </div>
+          <span class="meta">Apertus · every figure comes from your accounts</span>
+        </div>
+      </div>
+      <div class="compose">
+        <span class="about">Where the money goes <button type="button" aria-label="Stop talking about this tile"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6"></path></svg></button></span>
+        <div class="inputrow">
+          <label for="ask-lukas">Message</label>
+          <input id="ask-lukas" type="text" placeholder="Ask, or change the board">
+          <button class="icon" type="button" aria-label="Attach a document"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 8.5 9 14a3.5 3.5 0 0 1-5-5l6-6a2.3 2.3 0 0 1 3.3 3.3l-6 6a1.2 1.2 0 0 1-1.7-1.7L11 5.3"></path></svg></button>
+          <button class="icon" type="button" aria-label="Speak"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2" width="5" height="9" rx="2.5"></rect><path d="M3.5 9a5.5 5.5 0 0 0 11 0M9 14.5V16"></path></svg></button>
+          <button class="icon send" type="button" aria-label="Send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"></path></svg></button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

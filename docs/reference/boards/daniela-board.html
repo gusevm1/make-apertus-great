@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TrustRoom board of Daniela Rüegg</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0}
+a{color:#2e6b66}a:hover{color:#245652}
+.tr{--ink:#0b1e2a;--text:#12202a;--muted:#5b6870;--line:rgb(11 30 42 / 0.08);--canvas:#f4f6f6;--accent:#2e6b66;--deep:#245652;--soft:#e7f0ef;--mint:#8fd6cc;font-family:Geist,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--canvas);min-height:1000px;display:flex;flex-direction:column;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.tr *{box-sizing:border-box}
+.tr button{font:inherit;color:inherit;cursor:pointer}
+.tr button:focus-visible,.tr a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 28px;min-height:64px;background:#ffffff;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-0.01em}
+.mark{width:28px;height:28px;border-radius:9px;background:var(--ink);display:grid;place-items:center;flex:0 0 auto}
+.private{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;font-weight:500;color:var(--muted);padding:4px 10px;border-radius:999px;background:var(--canvas)}
+.mode{display:flex;padding:3px;background:#eceff0;border-radius:12px;gap:2px}
+.mode a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:9px;padding:0 16px;min-height:36px;font-size:13px;font-weight:500;color:var(--muted)}
+.mode a.on{background:#ffffff;color:var(--text);box-shadow:0 1px 2px rgb(11 30 42 / 0.1),0 0 0 1px rgb(11 30 42 / 0.04)}
+.me{justify-self:end;display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:999px;padding:4px 12px 4px 4px;min-height:44px;text-align:left}
+.me:hover{background:var(--canvas)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--deep);display:grid;place-items:center;font-size:12px;font-weight:600;flex:0 0 auto}
+.me b{display:block;font-size:13px;font-weight:600;line-height:1.25}
+.me small{display:block;font-size:12px;color:var(--muted);line-height:1.25}
+.main{flex:1;display:flex;flex-wrap:wrap;min-height:0}
+.boardcol{flex:999 1 600px;min-width:0;display:flex;flex-direction:column}
+.cols{flex:1;display:grid;grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:20px;padding:28px 28px 20px;align-content:start}
+.stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;flex:1}
+.tile{background:#ffffff;border-radius:20px;padding:22px 24px;display:flex;flex-direction:column;gap:14px;position:relative;min-width:0;box-shadow:0 0 0 1px rgb(11 30 42 / 0.05),0 1px 2px rgb(11 30 42 / 0.04),0 12px 32px -16px rgb(11 30 42 / 0.12)}
+.grow{flex:1}
+.th{display:flex;align-items:center;gap:10px;min-height:28px}
+.chip{width:28px;height:28px;border-radius:9px;background:var(--soft);color:var(--deep);display:grid;place-items:center;flex:0 0 auto}
+.th h2{margin:0;font-size:14px;font-weight:600;letter-spacing:-0.005em}
+.th .end{margin-left:auto}
+.fig{font-size:30px;font-weight:600;letter-spacing:-0.03em;line-height:1.1}
+.fig small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0;margin-right:6px}
+.fig.s{font-size:24px}
+.note{margin:0;font-size:13px;color:var(--muted)}
+.tr .from{margin-top:auto;align-self:flex-start;text-align:left;display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:4px 0;min-height:28px;font-size:12.5px;font-weight:500;color:var(--accent)}
+.tr .from:hover{color:var(--deep)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.warn{background:#fdf1dc;color:#7d4500}
+.pill.bad{background:#fdeceb;color:#a1211a}
+.hero{background:var(--ink);color:#ffffff;gap:16px;box-shadow:0 24px 44px -26px rgb(11 30 42 / 0.6)}
+.hero .th h2{color:#c5d2d8;font-weight:500}
+.hero .chip{background:rgb(255 255 255 / 0.09);color:var(--mint)}
+.herorow{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.heronum{font-size:54px;font-weight:600;letter-spacing:-0.04em;line-height:0.95}
+.heronum small{font-size:20px;font-weight:500;color:#9fb2ba;margin-right:8px;letter-spacing:0}
+.alt{text-align:right;font-size:12.5px;color:#a9bcc4;line-height:1.35}
+.alt b{display:block;color:var(--mint);font-weight:600;font-size:20px;letter-spacing:-0.02em}
+.hero .note{color:#a9bcc4}
+.run{display:flex;flex-direction:column;gap:6px}
+.run svg{display:block;width:100%;height:72px}
+.axis{display:flex;justify-content:space-between;font-size:11.5px;color:#9fb2ba}
+.tr .hero .from{color:var(--mint)}
+.months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mo{display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.mo i{height:5px;border-radius:999px;background:var(--accent);margin-bottom:6px}
+.mo.late i{background:#d98a1f}
+.mo.open i{background:#e3e7e8}
+.mo b{font-weight:600}
+.mo span{color:var(--muted)}
+.shops{display:flex;flex-direction:column;gap:10px}
+.shop{display:grid;grid-template-columns:56px minmax(0,1fr) 64px;gap:12px;align-items:center;font-size:13px}
+.shop .t{height:6px;border-radius:999px;background:#eef1f1;overflow:hidden}
+.shop .t span{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.shop .v{text-align:right;font-weight:600}
+.tile.small{padding:20px}
+.track{height:6px;border-radius:999px;background:#eef1f1;overflow:hidden}
+.track span{display:block;height:100%;border-radius:999px;background:var(--accent)}
+.bills{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.bills li{display:grid;grid-template-columns:46px minmax(0,1fr) auto 74px;gap:12px;align-items:center;min-height:35px;border-top:1px solid #eef1f1;font-size:13.5px}
+.bills li.head{min-height:26px;border-top:0;font-size:11.5px;color:var(--muted);font-weight:500}
+.bills time{font-size:12.5px;color:var(--muted)}
+.bills .who{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}
+.bills .who b{font-weight:400;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis}
+.bills .who .d{color:var(--muted);flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.bills .who .pill{flex:0 0 auto}
+.bills .amt{font-weight:600;text-align:right;white-space:nowrap}
+.bills .bal{color:var(--muted);text-align:right;white-space:nowrap;font-size:12.5px}
+.sum{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;border-top:1px solid #e3e7e8;font-size:13.5px}
+.sum b{font-weight:600}
+.tr .sum .from{margin:0}
+.sel{box-shadow:0 0 0 2px var(--accent),0 18px 40px -20px rgb(46 107 102 / 0.5)}
+.bar{position:absolute;top:-19px;right:22px;display:flex;gap:2px;padding:4px;background:#ffffff;border-radius:12px;box-shadow:0 0 0 1px rgb(11 30 42 / 0.08),0 10px 24px -8px rgb(11 30 42 / 0.28)}
+.bar button{width:32px;height:32px;border:0;background:transparent;border-radius:8px;display:grid;place-items:center;color:var(--text);padding:0}
+.bar button:hover{background:var(--canvas)}
+.grab{position:absolute;right:7px;bottom:7px;color:#9aa5ab}
+.dock{align-self:flex-start;display:flex;align-items:center;gap:4px;margin:0 28px 20px;padding:5px;background:#ffffff;border-radius:16px;box-shadow:0 0 0 1px rgb(11 30 42 / 0.05),0 10px 28px -14px rgb(11 30 42 / 0.22);max-width:calc(100% - 56px);overflow-x:auto}
+.dock a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;border-radius:11px;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;white-space:nowrap}
+.dock a:hover{background:var(--canvas);color:var(--text)}
+.dock a.on{background:var(--ink);color:#ffffff}
+.dock a.plus{width:38px;padding:0}
+.chat{flex:1 1 400px;max-width:436px;min-width:0;background:#ffffff;border-left:1px solid var(--line);display:flex;flex-direction:column}
+.chathead{display:flex;align-items:baseline;gap:8px;padding:20px 24px 4px}
+.chathead b{font-size:14px;font-weight:600}
+.chathead span{font-size:12.5px;color:var(--muted)}
+.msgs{flex:1;display:flex;flex-direction:column;gap:20px;padding:16px 24px 20px}
+.you{align-self:flex-end;max-width:86%;background:var(--canvas);border-radius:18px 18px 6px 18px;padding:10px 14px;font-size:14.5px}
+.bot{display:flex;flex-direction:column;gap:12px;font-size:14.5px;line-height:1.6}
+.bot p{margin:0}
+.did{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.did div{display:flex;align-items:center;gap:8px}
+.did svg{flex:0 0 auto}
+.mem{border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;background:#f5faf9;box-shadow:inset 0 0 0 1px rgb(46 107 102 / 0.2)}
+.mem .k{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--deep)}
+.mem p{margin:0;font-size:14px;line-height:1.5}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:999px;padding:0 16px;min-height:40px;font-size:13px;font-weight:500;background:#ffffff;box-shadow:inset 0 0 0 1px rgb(11 30 42 / 0.16)}
+.btn:hover{background:var(--canvas)}
+.btn.go{background:var(--ink);color:#ffffff;box-shadow:none}
+.btn.go:hover{background:#13303f}
+.meta{font-size:12px;color:var(--muted)}
+.compose{margin:0 20px 20px;border-radius:22px;padding:12px 10px 10px 16px;display:flex;flex-direction:column;gap:6px;background:#ffffff;box-shadow:0 0 0 1px rgb(11 30 42 / 0.1),0 14px 34px -16px rgb(11 30 42 / 0.26)}
+.about{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;background:var(--soft);color:var(--deep);border-radius:8px;padding:2px 2px 2px 8px;font-size:12px;font-weight:500}
+.about button{border:0;background:transparent;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;padding:0}
+.inputrow{display:flex;align-items:center;gap:2px}
+.inputrow label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.inputrow input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:14.5px;color:var(--text);min-height:40px;background:transparent}
+.inputrow input::placeholder{color:var(--muted)}
+.tr .icon{border:0;background:transparent;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--muted);padding:0;flex:0 0 auto}
+.tr .icon:hover{background:var(--canvas)}
+.tr .icon.send{background:var(--ink);color:#ffffff;margin-left:4px}
+@media (max-width:860px){.top{grid-template-columns:1fr;padding:12px 16px;justify-items:start}.me{justify-self:start}.cols{grid-template-columns:minmax(0,1fr);padding:16px}.pair{grid-template-columns:minmax(0,1fr)}.chat{max-width:none;border-left:0;border-top:1px solid var(--line)}.bills li{grid-template-columns:44px minmax(0,1fr) auto}.bills .bal{display:none}.dock{margin:0 16px 16px}.private{display:none}}
+</style>
+<div class="tr">
+  <header class="top">
+    <div class="brand">
+      <span class="mark"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="1" width="5.2" height="7.5" rx="1.4" fill="#8fd6cc"></rect><rect x="7.8" y="1" width="5.2" height="4.2" rx="1.4" fill="#ffffff"></rect><rect x="7.8" y="6.8" width="5.2" height="6.2" rx="1.4" fill="#ffffff" opacity="0.55"></rect><rect x="1" y="10.1" width="5.2" height="2.9" rx="1.4" fill="#ffffff" opacity="0.55"></rect></svg></span>
+      <span>TrustRoom</span>
+      <span class="private"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.2" y="5.3" width="7.6" height="5.2" rx="1.4"></rect><path d="M4 5.3V3.8a2 2 0 0 1 4 0v1.5"></path></svg>Stays inside the bank</span>
+    </div>
+    <nav class="mode" aria-label="What to show">
+      <a class="on" href="Main.dc.html" aria-current="page"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2" width="11" height="10" rx="2.2"></rect><path d="M8.8 2v10"></path></svg>Board and chat</a>
+      <a href="Chat.dc.html"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2 3.8A1.8 1.8 0 0 1 3.8 2h6.4A1.8 1.8 0 0 1 12 3.8v4.4a1.8 1.8 0 0 1-1.8 1.8H6.5L4 12.2V10h-.2A1.8 1.8 0 0 1 2 8.2Z"></path></svg>Chat</a>
+    </nav>
+    <button class="me" type="button" aria-label="Open the profile of Daniela Rüegg">
+      <span class="avatar">DR</span>
+      <span><b>Daniela Rüegg</b><small>Profile and documents</small></span>
+    </button>
+  </header>
+
+  <div class="main">
+    <section class="boardcol" aria-label="Board Until payday">
+      <div class="cols">
+        <div class="stack">
+
+          <article class="tile hero">
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2.5"></rect><path d="M2 6.8h12M5.5 1.6v2.6M10.5 1.6v2.6"></path></svg></span>
+              <h2>Left on 23.12., the day before your salary</h2>
+            </div>
+            <div class="herorow">
+              <div class="heronum num"><small>CHF</small>124.96</div>
+              <div class="alt num">If the child support arrives<b>CHF 1'174.96</b></div>
+            </div>
+            <p class="note num">CHF 4.63 a day for 27 days, or CHF 43.52 with the child support.</p>
+            <div class="run">
+              <svg viewBox="0 0 512 110" preserveAspectRatio="none" role="img" aria-label="Your Privatkonto falls from CHF 3'075.16 today to CHF 124.96 on 23.12., one step per bill">
+                <path d="M0,15.4 H24 V60.5 H80.3 V72.6 H211.7 V75.3 H268 V84.9 H361.9 V86 H474.5 V88.6 H512 V96.6 V110 H0 Z" fill="#8fd6cc" opacity="0.14"></path>
+                <path d="M0,15.4 H24 V60.5 H80.3 V72.6 H211.7 V75.3 H268 V84.9 H361.9 V86 H474.5 V88.6 H512 V96.6" fill="none" stroke="#8fd6cc" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+              </svg>
+              <div class="axis num"><span>Today, CHF 3'075.16</span><span>10.12.</span><span>23.12.</span></div>
+            </div>
+            <button class="from" type="button">Privatkonto and 8 upcoming payments
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+            </button>
+          </article>
+
+          <article class="tile sel grow">
+            <div class="bar" role="toolbar" aria-label="Tile Bills until payday">
+              <button type="button" aria-label="Move"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><circle cx="4.6" cy="3" r="1.15"></circle><circle cx="9.4" cy="3" r="1.15"></circle><circle cx="4.6" cy="7" r="1.15"></circle><circle cx="9.4" cy="7" r="1.15"></circle><circle cx="4.6" cy="11" r="1.15"></circle><circle cx="9.4" cy="11" r="1.15"></circle></svg></button>
+              <button type="button" aria-label="Rename"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 2.6 11.4 5.4 5 11.8H2.2V9Z"></path></svg></button>
+              <button type="button" aria-label="Ask about this tile"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2 3.8A1.8 1.8 0 0 1 3.8 2h6.4A1.8 1.8 0 0 1 12 3.8v4.4a1.8 1.8 0 0 1-1.8 1.8H6.5L4 12.2V10h-.2A1.8 1.8 0 0 1 2 8.2Z"></path></svg></button>
+              <button type="button" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4h9M5.5 4V2.6h3V4M3.6 4l.6 7.4h5.6L10.4 4"></path></svg></button>
+            </div>
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 4.5h8M5.5 8h8M5.5 11.5h8"></path><circle cx="2.6" cy="4.5" r="0.6" fill="currentColor"></circle><circle cx="2.6" cy="8" r="0.6" fill="currentColor"></circle><circle cx="2.6" cy="11.5" r="0.6" fill="currentColor"></circle></svg></span>
+              <h2>Bills until payday</h2>
+            </div>
+            <ul class="bills num">
+              <li class="head"><span>Due</span><span>To</span><span class="amt" style="font-weight: 500">Amount</span><span class="bal" style="font-size: 11.5px">Balance after</span></li>
+              <li><time>27.11.</time><span class="who"><b>Wohnbaugenossenschaft Talgut</b><span class="d">rent for December</span></span><span class="amt">1'640.00</span><span class="bal">1'435.16</span></li>
+              <li><time>30.11.</time><span class="who"><b>Zahnarztpraxis Neuwiesen</b><span class="pill bad"><i></i>Reminder</span></span><span class="amt">440.00</span><span class="bal">995.16</span></li>
+              <li><time>07.12.</time><span class="who"><b>Ratenwerk Finanz AG</b><span class="d">instalment 21 of 24</span></span><span class="amt">77.80</span><span class="bal">917.36</span></li>
+              <li><time>07.12.</time><span class="who"><b>Lebara Schweiz</b><span class="d">mobile</span></span><span class="amt">19.90</span><span class="bal">897.46</span></li>
+              <li><time>10.12.</time><span class="who"><b>Stadt Winterthur</b><span class="d">Hort und Mittagstisch</span></span><span class="amt">348.00</span><span class="bal">549.46</span></li>
+              <li><time>15.12.</time><span class="who"><b>Sunrise</b><span class="d">internet</span></span><span class="amt">39.90</span><span class="bal">509.56</span></li>
+              <li><time>21.12.</time><span class="who"><b>Steueramt Winterthur</b><span class="d">advance payment</span></span><span class="amt">95.00</span><span class="bal">414.56</span></li>
+              <li><time>23.12.</time><span class="who"><b>Assura</b><span class="d">premium for January</span></span><span class="amt">289.60</span><span class="bal">124.96</span></li>
+            </ul>
+            <div class="sum num">
+              <span>Together <b>CHF 2'950.20</b></span>
+              <button class="from" type="button">8 upcoming payments
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+              </button>
+            </div>
+            <svg class="grab" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M11 5 5 11M11 9 9 11"></path></svg>
+          </article>
+        </div>
+
+        <div class="stack">
+          <article class="tile">
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2v8M4.8 7.2 8 10.4l3.2-3.2M3 13.6h10"></path></svg></span>
+              <h2>Child support for Lina</h2>
+              <span class="pill warn end"><i></i>Not arrived yet</span>
+            </div>
+            <div class="fig num"><small>CHF</small>1'050.00</div>
+            <div class="months num">
+              <div class="mo"><i></i><b>September</b><span>came on 01.09.</span></div>
+              <div class="mo late"><i></i><b>October</b><span>came on 22.10.</span></div>
+              <div class="mo open"><i></i><b>November</b><span>nothing so far</span></div>
+            </div>
+            <button class="from" type="button">2 bookings from Patrick Rüegg
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+            </button>
+          </article>
+
+          <article class="tile">
+            <div class="th">
+              <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.8 2.5h2l1.5 7.6h6.6l1.3-5.3H4.6"></path><circle cx="6" cy="12.8" r="0.9"></circle><circle cx="11.2" cy="12.8" r="0.9"></circle></svg></span>
+              <h2>Groceries in November</h2>
+            </div>
+            <div class="fig num"><small>CHF</small>1'092.35</div>
+            <div class="shops num">
+              <div class="shop"><span>Lidl</span><span class="t"><span style="width: 100%"></span></span><span class="v">505.75</span></div>
+              <div class="shop"><span>Aldi</span><span class="t"><span style="width: 45%"></span></span><span class="v">228.02</span></div>
+              <div class="shop"><span>Migros</span><span class="t"><span style="width: 43%"></span></span><span class="v">219.69</span></div>
+              <div class="shop"><span>Denner</span><span class="t"><span style="width: 27%"></span></span><span class="v">138.89</span></div>
+            </div>
+            <button class="from" type="button">Card payments at 4 shops
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+            </button>
+          </article>
+
+          <div class="pair">
+            <article class="tile small">
+              <div class="th">
+                <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.8 13 3.6v4.1c0 3-2 5.3-5 6.5-3-1.2-5-3.5-5-6.5V3.6Z"></path></svg></span>
+                <h2>Emergency fund</h2>
+              </div>
+              <div class="fig s num"><small>CHF</small>284.25</div>
+              <div class="track" role="img" aria-label="9.5 percent of the goal"><span style="width: 9.5%"></span></div>
+              <p class="note num">of CHF 3'000.00, your goal.</p>
+              <p class="note num">CHF 600.00 went out of it in November.</p>
+              <button class="from" type="button">2 transfers
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+              </button>
+            </article>
+
+            <article class="tile small">
+              <div class="th">
+                <span class="chip"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 1.8h5.2L12.4 5v9.2H4Z"></path><path d="M9 1.8V5h3.4M6.2 8.2h4M6.2 10.8h4"></path></svg></span>
+                <h2>Dentist bill</h2>
+              </div>
+              <div class="fig s num"><small>CHF</small>440.00</div>
+              <p class="note num">Due on 30.11. CHF 420.00 for Lina plus a fee of CHF 20.00.</p>
+              <button class="from" type="button">Second reminder, PDF
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6l-3.5 3.5"></path></svg>
+              </button>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <nav class="dock" aria-label="Your boards">
+        <a class="on" href="Main.dc.html" aria-current="page">Until payday</a>
+        <a href="#lina">Lina</a>
+        <a href="#bills">Bills and reminders</a>
+        <a class="plus" href="New.dc.html" aria-label="New board"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 2.5v9M2.5 7h9"></path></svg></a>
+      </nav>
+    </section>
+
+    <aside class="chat" aria-label="Chat about this board">
+      <div class="chathead"><b>Chat</b><span>about Until payday</span></div>
+      <div class="msgs">
+        <div class="you">Does my money last until payday?</div>
+        <div class="bot">
+          <p class="num">Yes, but only just. Eight bills fall due before your next salary, and after them CHF 124.96 are left on 23.12.</p>
+          <p class="num">The child support of CHF 1'050.00 has not arrived this month. With it you would have CHF 1'174.96. Both cases are on your board now.</p>
+          <div class="did">
+            <div><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2e6b66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 5.5 10.5 11.5 4"></path></svg>Added "Left on 23.12."</div>
+            <div><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#2e6b66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 5.5 10.5 11.5 4"></path></svg>Added "Bills until payday"</div>
+          </div>
+          <div class="mem">
+            <span class="k"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 1.8h7v10.4L7 9.8l-3.5 2.4Z"></path></svg>Remember this for next time?</span>
+            <p class="num">The child support often comes late: on 22.10. last month. Always show both cases.</p>
+            <div class="acts">
+              <button class="btn go" type="button">Save to my profile</button>
+              <button class="btn" type="button">Not now</button>
+            </div>
+          </div>
+          <span class="meta">Apertus · every figure comes from your bookings</span>
+        </div>
+      </div>
+      <div class="compose">
+        <span class="about">Bills until payday <button type="button" aria-label="Stop talking about this tile"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6"></path></svg></button></span>
+        <div class="inputrow">
+          <label for="ask-daniela">Message</label>
+          <input id="ask-daniela" type="text" placeholder="Ask, or change the board">
+          <button class="icon" type="button" aria-label="Attach a document"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 8.5 9 14a3.5 3.5 0 0 1-5-5l6-6a2.3 2.3 0 0 1 3.3 3.3l-6 6a1.2 1.2 0 0 1-1.7-1.7L11 5.3"></path></svg></button>
+          <button class="icon" type="button" aria-label="Speak"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2" width="5" height="9" rx="2.5"></rect><path d="M3.5 9a5.5 5.5 0 0 0 11 0M9 14.5V16"></path></svg></button>
+          <button class="icon send" type="button" aria-label="Send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"></path></svg></button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</body>
+</html>

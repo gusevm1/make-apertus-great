@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A new, empty board for Daniela Rüegg</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0}
+a{color:#2e6b66}a:hover{color:#245652}
+.tr{--ink:#0b1e2a;--text:#12202a;--muted:#5b6870;--line:rgb(11 30 42 / 0.08);--canvas:#f4f6f6;--accent:#2e6b66;--deep:#245652;--soft:#e7f0ef;--mint:#8fd6cc;font-family:Geist,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--canvas);min-height:900px;display:flex;flex-direction:column;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.tr *{box-sizing:border-box}
+.tr button{font:inherit;color:inherit;cursor:pointer}
+.tr button:focus-visible,.tr a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 28px;min-height:64px;background:#ffffff;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-0.01em}
+.mark{width:28px;height:28px;border-radius:9px;background:var(--ink);display:grid;place-items:center;flex:0 0 auto}
+.private{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;font-weight:500;color:var(--muted);padding:4px 10px;border-radius:999px;background:var(--canvas)}
+.mode{display:flex;padding:3px;background:#eceff0;border-radius:12px;gap:2px}
+.mode a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:9px;padding:0 16px;min-height:36px;font-size:13px;font-weight:500;color:var(--muted)}
+.mode a.on{background:#ffffff;color:var(--text);box-shadow:0 1px 2px rgb(11 30 42 / 0.1),0 0 0 1px rgb(11 30 42 / 0.04)}
+.me{justify-self:end;display:flex;align-items:center;gap:10px;border:0;background:transparent;border-radius:999px;padding:4px 12px 4px 4px;min-height:44px;text-align:left}
+.me:hover{background:var(--canvas)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--deep);display:grid;place-items:center;font-size:12px;font-weight:600;flex:0 0 auto}
+.me b{display:block;font-size:13px;font-weight:600;line-height:1.25}
+.me small{display:block;font-size:12px;color:var(--muted);line-height:1.25}
+.boardcol{flex:1;min-width:0;display:flex;flex-direction:column}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;padding:56px 28px 40px}
+.ask{width:100%;max-width:680px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.tag{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:var(--deep);background:var(--soft);border-radius:999px;padding:5px 12px}
+.ask h1{margin:0;font-size:44px;font-weight:600;letter-spacing:-0.04em;line-height:1.08;text-wrap:balance}
+.ask p{margin:0;max-width:520px;color:var(--muted);font-size:15.5px;line-height:1.55;text-wrap:pretty}
+.compose{width:100%;max-width:680px;border-radius:26px;padding:18px 12px 12px 22px;display:flex;flex-direction:column;gap:10px;background:#ffffff;box-shadow:0 0 0 1px rgb(11 30 42 / 0.1),0 24px 48px -24px rgb(11 30 42 / 0.3)}
+.compose label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.compose input{width:100%;border:0;outline:0;font:inherit;font-size:16.5px;color:var(--text);min-height:44px;background:transparent}
+.compose input::placeholder{color:var(--muted)}
+.tools{display:flex;align-items:center;gap:2px}
+.tools .hint{margin-right:auto;font-size:12.5px;color:var(--muted)}
+.tr .icon{border:0;background:transparent;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--muted);padding:0;flex:0 0 auto}
+.tr .icon:hover{background:var(--canvas)}
+.tr .icon.send{background:var(--ink);color:#ffffff;margin-left:4px}
+.ideas{width:100%;max-width:680px;display:flex;flex-direction:column;gap:12px}
+.lab{font-size:12.5px;font-weight:500;color:var(--muted)}
+.ideagrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px}
+.tr .idea{text-align:left;border:0;background:#ffffff;border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-height:112px;box-shadow:0 0 0 1px rgb(11 30 42 / 0.05),0 1px 2px rgb(11 30 42 / 0.04),0 12px 32px -18px rgb(11 30 42 / 0.14)}
+.tr .idea:hover{box-shadow:0 0 0 1px rgb(46 107 102 / 0.4),0 14px 34px -18px rgb(46 107 102 / 0.4)}
+.idea b{font-size:14.5px;font-weight:600;letter-spacing:-0.01em}
+.idea span{font-size:13px;color:var(--muted);line-height:1.45}
+.idea svg{margin-top:auto;color:var(--accent)}
+.dock{align-self:flex-start;display:flex;align-items:center;gap:4px;margin:0 28px 20px;padding:5px;background:#ffffff;border-radius:16px;box-shadow:0 0 0 1px rgb(11 30 42 / 0.05),0 10px 28px -14px rgb(11 30 42 / 0.22);max-width:calc(100% - 56px);overflow-x:auto}
+.dock a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 16px;border-radius:11px;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;white-space:nowrap}
+.dock a:hover{background:var(--canvas);color:var(--text)}
+.dock a.on{background:var(--ink);color:#ffffff}
+.dock a.plus{width:38px;padding:0}
+@media (max-width:860px){.top{grid-template-columns:1fr;padding:12px 16px;justify-items:start}.me{justify-self:start}.ask h1{font-size:32px}.empty{padding:32px 16px}.dock{margin:0 16px 16px}.private{display:none}}
+</style>
+<div class="tr">
+  <header class="top">
+    <div class="brand">
+      <span class="mark"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="1" width="5.2" height="7.5" rx="1.4" fill="#8fd6cc"></rect><rect x="7.8" y="1" width="5.2" height="4.2" rx="1.4" fill="#ffffff"></rect><rect x="7.8" y="6.8" width="5.2" height="6.2" rx="1.4" fill="#ffffff" opacity="0.55"></rect><rect x="1" y="10.1" width="5.2" height="2.9" rx="1.4" fill="#ffffff" opacity="0.55"></rect></svg></span>
+      <span>TrustRoom</span>
+      <span class="private"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.2" y="5.3" width="7.6" height="5.2" rx="1.4"></rect><path d="M4 5.3V3.8a2 2 0 0 1 4 0v1.5"></path></svg>Stays inside the bank</span>
+    </div>
+    <nav class="mode" aria-label="What to show">
+      <a class="on" href="New.dc.html" aria-current="page"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2" width="11" height="10" rx="2.2"></rect><path d="M8.8 2v10"></path></svg>Board and chat</a>
+      <a href="Chat.dc.html"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2 3.8A1.8 1.8 0 0 1 3.8 2h6.4A1.8 1.8 0 0 1 12 3.8v4.4a1.8 1.8 0 0 1-1.8 1.8H6.5L4 12.2V10h-.2A1.8 1.8 0 0 1 2 8.2Z"></path></svg>Chat</a>
+    </nav>
+    <button class="me" type="button" aria-label="Open the profile of Daniela Rüegg">
+      <span class="avatar">DR</span>
+      <span><b>Daniela Rüegg</b><small>Profile and documents</small></span>
+    </button>
+  </header>
+
+  <section class="boardcol" aria-label="New board">
+    <div class="empty">
+      <div class="ask">
+        <span class="tag"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 2v8M2 6h8"></path></svg>New board</span>
+        <h1>What should this board be about?</h1>
+        <p>Say it in your own words. I build it from your accounts, your documents and what I know about you.</p>
+      </div>
+
+      <div class="compose">
+        <label for="topic">What this board is about</label>
+        <input id="topic" type="text" placeholder="For example: what does Lina cost me every month?">
+        <div class="tools">
+          <span class="hint">You can change everything on it afterwards.</span>
+          <button class="icon" type="button" aria-label="Attach a document"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 8.5 9 14a3.5 3.5 0 0 1-5-5l6-6a2.3 2.3 0 0 1 3.3 3.3l-6 6a1.2 1.2 0 0 1-1.7-1.7L11 5.3"></path></svg></button>
+          <button class="icon" type="button" aria-label="Speak"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2" width="5" height="9" rx="2.5"></rect><path d="M3.5 9a5.5 5.5 0 0 0 11 0M9 14.5V16"></path></svg></button>
+          <button class="icon send" type="button" aria-label="Build the board"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"></path></svg></button>
+        </div>
+      </div>
+
+      <div class="ideas">
+        <span class="lab">Ideas from your last months</span>
+        <div class="ideagrid">
+          <button class="idea" type="button">
+            <b>Lina's school days</b>
+            <span class="num">Hort und Mittagstisch come to CHF 348.00 a month.</span>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h8M7.5 3.5 11 7l-3.5 3.5"></path></svg>
+          </button>
+          <button class="idea" type="button">
+            <b>The washing machine</b>
+            <span class="num">Instalment 21 of 24 is due on 07.12., CHF 77.80 each.</span>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h8M7.5 3.5 11 7l-3.5 3.5"></path></svg>
+          </button>
+          <button class="idea" type="button">
+            <b>Health insurance in 2027</b>
+            <span class="num">The premium for January is CHF 289.60.</span>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h8M7.5 3.5 11 7l-3.5 3.5"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="dock" aria-label="Your boards">
+      <a href="Main.dc.html">Until payday</a>
+      <a href="#lina">Lina</a>
+      <a href="#bills">Bills and reminders</a>
+      <a class="on" href="New.dc.html" aria-current="page">New board</a>
+      <a class="plus" href="New.dc.html" aria-label="New board"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 2.5v9M2.5 7h9"></path></svg></a>
+    </nav>
+  </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TrustRoom chat of Daniela Rüegg, with her profile</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap">
+<style>
+body{margin:0}
+a{color:#2e6b66}a:hover{color:#245652}
+.tr{--ink:#0b1e2a;--text:#12202a;--muted:#5b6870;--line:rgb(11 30 42 / 0.08);--canvas:#f4f6f6;--accent:#2e6b66;--deep:#245652;--soft:#e7f0ef;--mint:#8fd6cc;font-family:Geist,Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:#ffffff;min-height:960px;display:flex;flex-direction:column;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.tr *{box-sizing:border-box}
+.tr button{font:inherit;color:inherit;cursor:pointer}
+.tr button:focus-visible,.tr a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;padding:0 28px;min-height:64px;background:#ffffff;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-0.01em}
+.mark{width:28px;height:28px;border-radius:9px;background:var(--ink);display:grid;place-items:center;flex:0 0 auto}
+.private{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:12px;font-weight:500;color:var(--muted);padding:4px 10px;border-radius:999px;background:var(--canvas)}
+.mode{display:flex;padding:3px;background:#eceff0;border-radius:12px;gap:2px}
+.mode a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;border-radius:9px;padding:0 16px;min-height:36px;font-size:13px;font-weight:500;color:var(--muted)}
+.mode a.on{background:#ffffff;color:var(--text);box-shadow:0 1px 2px rgb(11 30 42 / 0.1),0 0 0 1px rgb(11 30 42 / 0.04)}
+.me{justify-self:end;display:flex;align-items:center;gap:10px;border:0;background:var(--canvas);border-radius:999px;padding:4px 12px 4px 4px;min-height:44px;text-align:left}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--deep);display:grid;place-items:center;font-size:12px;font-weight:600;flex:0 0 auto}
+.me b{display:block;font-size:13px;font-weight:600;line-height:1.25}
+.me small{display:block;font-size:12px;color:var(--muted);line-height:1.25}
+.main{flex:1;display:flex;flex-wrap:wrap;min-height:0}
+.talk{flex:999 1 560px;min-width:0;display:flex;flex-direction:column;align-items:center}
+.talk-in{width:100%;max-width:728px;flex:1;display:flex;flex-direction:column;padding:0 24px}
+.msgs{flex:1;display:flex;flex-direction:column;gap:22px;padding:36px 0 24px}
+.turn{align-self:flex-end;display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:80%}
+.file{display:flex;align-items:center;gap:12px;background:#ffffff;border-radius:14px;padding:10px 16px 10px 10px;box-shadow:0 0 0 1px rgb(11 30 42 / 0.08),0 8px 20px -14px rgb(11 30 42 / 0.2)}
+.pdf{width:36px;height:36px;border-radius:10px;background:#fdeceb;color:#a1211a;display:grid;place-items:center;font-size:10px;font-weight:700;letter-spacing:0.02em;flex:0 0 auto}
+.file b{display:block;color:var(--text);font-size:13.5px;font-weight:600;line-height:1.3}
+.file span{font-size:12px;color:var(--muted)}
+.you{background:var(--canvas);border-radius:18px 18px 6px 18px;padding:10px 14px;font-size:15px}
+.bot{display:flex;flex-direction:column;gap:14px;font-size:15px;line-height:1.65;max-width:620px}
+.bot p{margin:0}
+.check{border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px rgb(11 30 42 / 0.08),0 12px 28px -18px rgb(11 30 42 / 0.2)}
+.check .r{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 16px;border-bottom:1px solid #eef1f1;font-size:14px;line-height:1.4}
+.check .r small{display:block;font-size:12.5px;color:var(--muted)}
+.check .r b{font-weight:600;white-space:nowrap}
+.check .ok{display:flex;align-items:center;gap:8px;padding:11px 16px;background:#eef7f1;color:#17613a;font-size:13.5px;font-weight:600}
+.check .ok a{margin-left:auto;font-weight:500;color:#17613a}
+.mem{border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;background:#f5faf9;box-shadow:inset 0 0 0 1px rgb(46 107 102 / 0.2)}
+.mem .k{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--deep)}
+.mem p{margin:0;font-size:14.5px;line-height:1.5}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:999px;padding:0 16px;min-height:40px;font-size:13px;font-weight:500;background:#ffffff;box-shadow:inset 0 0 0 1px rgb(11 30 42 / 0.16)}
+.btn:hover{background:var(--canvas)}
+.btn.go{background:var(--ink);color:#ffffff;box-shadow:none}
+.btn.go:hover{background:#13303f}
+.meta{font-size:12px;color:var(--muted)}
+.compose{margin:0 0 24px;border-radius:24px;padding:14px 10px 10px 18px;display:flex;flex-direction:column;gap:6px;background:#ffffff;box-shadow:0 0 0 1px rgb(11 30 42 / 0.1),0 18px 40px -20px rgb(11 30 42 / 0.28)}
+.inputrow{display:flex;align-items:center;gap:2px}
+.inputrow label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.inputrow input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:15.5px;color:var(--text);min-height:42px;background:transparent}
+.inputrow input::placeholder{color:var(--muted)}
+.tr .icon{border:0;background:transparent;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--muted);padding:0;flex:0 0 auto}
+.tr .icon:hover{background:var(--canvas)}
+.tr .icon.send{background:var(--ink);color:#ffffff;margin-left:4px}
+.tr .icon.sm{width:32px;height:32px}
+.side{flex:1 1 340px;max-width:392px;min-width:0;background:var(--canvas);border-left:1px solid var(--line);display:flex;flex-direction:column;gap:20px;padding:24px}
+.who{display:flex;align-items:center;gap:14px}
+.who .avatar{width:48px;height:48px;font-size:15px;background:#ffffff}
+.who b{display:block;color:var(--text);font-size:17px;font-weight:600;letter-spacing:-0.02em;line-height:1.25}
+.who span{font-size:13px;color:var(--muted)}
+.card{background:#ffffff;border-radius:18px;padding:6px 18px;box-shadow:0 0 0 1px rgb(11 30 42 / 0.05),0 12px 32px -18px rgb(11 30 42 / 0.14)}
+.sec{display:flex;flex-direction:column;gap:10px}
+.sec h2{margin:0;font-size:12.5px;font-weight:600;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.sec h2 span{font-weight:500}
+.fact{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #eef1f1;font-size:13.5px;line-height:1.45}
+.fact:first-child,.doc:first-child{border-top:0}
+.fact p{margin:0;flex:1;min-width:0}
+.doc{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #eef1f1}
+.doc b{display:block;color:var(--text);font-size:13.5px;font-weight:500;line-height:1.3}
+.doc span{font-size:12px;color:var(--muted)}
+.doc .pdf{width:32px;height:32px;border-radius:9px;font-size:9px}
+.tr .drop{border:1.5px dashed #b8c1c4;border-radius:16px;min-height:52px;background:transparent;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:500;color:var(--muted)}
+.tr .drop:hover{border-color:var(--accent);color:var(--deep)}
+.foot{margin-top:auto;font-size:12px;color:var(--muted);line-height:1.5}
+@media (max-width:860px){.top{grid-template-columns:1fr;padding:12px 16px;justify-items:start}.me{justify-self:start}.side{max-width:none;border-left:0;border-top:1px solid var(--line)}.turn{max-width:100%}.private{display:none}}
+</style>
+<div class="tr">
+  <header class="top">
+    <div class="brand">
+      <span class="mark"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="1" y="1" width="5.2" height="7.5" rx="1.4" fill="#8fd6cc"></rect><rect x="7.8" y="1" width="5.2" height="4.2" rx="1.4" fill="#ffffff"></rect><rect x="7.8" y="6.8" width="5.2" height="6.2" rx="1.4" fill="#ffffff" opacity="0.55"></rect><rect x="1" y="10.1" width="5.2" height="2.9" rx="1.4" fill="#ffffff" opacity="0.55"></rect></svg></span>
+      <span>TrustRoom</span>
+      <span class="private"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.2" y="5.3" width="7.6" height="5.2" rx="1.4"></rect><path d="M4 5.3V3.8a2 2 0 0 1 4 0v1.5"></path></svg>Stays inside the bank</span>
+    </div>
+    <nav class="mode" aria-label="What to show">
+      <a href="Main.dc.html"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="2" width="11" height="10" rx="2.2"></rect><path d="M8.8 2v10"></path></svg>Board and chat</a>
+      <a class="on" href="Chat.dc.html" aria-current="page"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2 3.8A1.8 1.8 0 0 1 3.8 2h6.4A1.8 1.8 0 0 1 12 3.8v4.4a1.8 1.8 0 0 1-1.8 1.8H6.5L4 12.2V10h-.2A1.8 1.8 0 0 1 2 8.2Z"></path></svg>Chat</a>
+    </nav>
+    <button class="me" type="button" aria-label="Close the profile of Daniela Rüegg" aria-expanded="true">
+      <span class="avatar">DR</span>
+      <span><b>Daniela Rüegg</b><small>Profile and documents</small></span>
+    </button>
+  </header>
+
+  <div class="main">
+    <section class="talk" aria-label="Chat">
+      <div class="talk-in">
+        <div class="msgs">
+          <div class="turn">
+            <div class="file">
+              <span class="pdf">PDF</span>
+              <span><b>Lohnabrechnung_2026-11.pdf</b><span>Payslip, 2 pages</span></span>
+            </div>
+            <div class="you">Does the salary on this payslip match what I received?</div>
+          </div>
+
+          <div class="bot">
+            <p>Yes, it matches to the Rappen.</p>
+            <div class="check num">
+              <div class="r"><span>Payslip for November<small>Payout on 25.11.2026</small></span><b>CHF 3'002.12</b></div>
+              <div class="r"><span>Privatkonto<small>Booked on 25.11.2026, Apotheke Lindenplatz AG</small></span><b>CHF 3'002.12</b></div>
+              <div class="ok"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 5.5 10.5 11.5 4"></path></svg>Same amount, same day<a href="#booking">Show the booking</a></div>
+            </div>
+            <p class="num">The payout is your net salary of CHF 2'787.12 plus the child allowance of CHF 215.00. The payslip also says that your 13th monthly salary comes with the December salary.</p>
+            <div class="mem">
+              <span class="k"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 1.8h7v10.4L7 9.8l-3.5 2.4Z"></path></svg>Remember this for next time?</span>
+              <p>Your 13th monthly salary is paid with the December salary.</p>
+              <div class="acts">
+                <button class="btn go" type="button">Save to my profile</button>
+                <button class="btn" type="button">Not now</button>
+              </div>
+            </div>
+            <span class="meta">Apertus · figures from your payslip and 1 booking</span>
+          </div>
+        </div>
+
+        <div class="compose">
+          <div class="inputrow">
+            <label for="ask-chat">Message</label>
+            <input id="ask-chat" type="text" placeholder="Ask anything about your money">
+            <button class="icon" type="button" aria-label="Attach a document"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 8.5 9 14a3.5 3.5 0 0 1-5-5l6-6a2.3 2.3 0 0 1 3.3 3.3l-6 6a1.2 1.2 0 0 1-1.7-1.7L11 5.3"></path></svg></button>
+            <button class="icon" type="button" aria-label="Speak"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2" width="5" height="9" rx="2.5"></rect><path d="M3.5 9a5.5 5.5 0 0 0 11 0M9 14.5V16"></path></svg></button>
+            <button class="icon send" type="button" aria-label="Send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"></path></svg></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side" aria-label="Your profile">
+      <div class="who">
+        <span class="avatar">DR</span>
+        <span><b>Daniela Rüegg</b><span>Customer since 2011</span></span>
+      </div>
+
+      <div class="sec">
+        <h2>What I know about you <span>3 notes</span></h2>
+        <div class="card">
+          <div class="fact"><p>Lina is 6 and started school in August 2026.</p><button class="icon sm" type="button" aria-label="Edit this note"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 2.6 11.4 5.4 5 11.8H2.2V9Z"></path></svg></button></div>
+          <div class="fact"><p>The child support often comes late. Always show both cases.</p><button class="icon sm" type="button" aria-label="Edit this note"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 2.6 11.4 5.4 5 11.8H2.2V9Z"></path></svg></button></div>
+          <div class="fact"><p>No offers for loans.</p><button class="icon sm" type="button" aria-label="Edit this note"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.6 2.6 11.4 5.4 5 11.8H2.2V9Z"></path></svg></button></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <h2>Your documents <span>3 files</span></h2>
+        <div class="card">
+          <div class="doc"><span class="pdf">PDF</span><span><b>Lohnabrechnung 2026-11</b><span>Payslip</span></span></div>
+          <div class="doc"><span class="pdf">PDF</span><span><b>Ratenvertrag Waschmaschine</b><span>Instalment contract</span></span></div>
+          <div class="doc"><span class="pdf">PDF</span><span><b>Mahnung Zahnarzt Lina</b><span>Second payment reminder</span></span></div>
+        </div>
+        <button class="drop" type="button"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M7 2.5v9M2.5 7h9"></path></svg>Add a document</button>
+      </div>
+
+      <p class="foot">Only you and your TrustRoom see this. You can change or delete every note and every document.</p>
+    </aside>
+  </div>
+</div>
+</body>
+</html>
