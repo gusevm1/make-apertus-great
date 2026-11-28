@@ -449,14 +449,14 @@ def write_results(split: str, reports: dict[str, Any], results: list[RunResult])
             result.model_dump(mode="json") | {"passed": result.passed} for result in results
         ],
     }
-    path.write_text(json.dumps(content, indent=1, ensure_ascii=False))
+    path.write_text(json.dumps(content, indent=1, ensure_ascii=False), encoding="utf-8")
     return path
 
 
 def earlier_turns(path: Path, questions: list[GoldQuestion]) -> dict[tuple[str, int], Turn]:
     """The turns of an earlier results file, only those of the selected questions."""
     asked = {question.id for question in questions}
-    results = json.loads(path.read_text())["results"]
+    results = json.loads(path.read_text(encoding="utf-8"))["results"]
     return {
         (result["question_id"], result["run"]): Turn.model_validate(result["turn"])
         for result in results

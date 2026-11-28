@@ -42,7 +42,11 @@ def split_of(persona: str, payee: str) -> str:
 
 
 def load_gold() -> list[dict[str, Any]]:
-    return [json.loads(line) for line in GOLD_PATH.read_text().splitlines() if line.strip()]
+    return [
+        json.loads(line)
+        for line in GOLD_PATH.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
 async def login(client: httpx.AsyncClient, banking_url: str, persona: str) -> tuple[str, str]:
@@ -257,7 +261,7 @@ async def main() -> None:
     }
     print(json.dumps(summary, indent=1, ensure_ascii=False))  # noqa: T201
     if args.out is not None:
-        args.out.write_text(json.dumps(result, indent=1, ensure_ascii=False))
+        args.out.write_text(json.dumps(result, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":

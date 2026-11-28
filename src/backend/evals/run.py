@@ -105,7 +105,7 @@ async def log_in(bank: httpx.AsyncClient, customer: str, settings: EvalSettings)
 
 def load_questions(path: Path) -> list[Question]:
     # A file with only comments loads as None; a mapping holds shared patterns beside `questions`.
-    content = yaml.safe_load(path.read_text()) or []
+    content = yaml.safe_load(path.read_text(encoding="utf-8")) or []
     items = content["questions"] if isinstance(content, dict) else content
     return [Question.model_validate(item) for item in items]
 

@@ -48,7 +48,7 @@ class FieldScore(BaseModel):
 
 
 def load_catalogue(path: Path) -> Catalogue:
-    return Catalogue.model_validate(yaml.safe_load(path.read_text()))
+    return Catalogue.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
 def _squeezed(text: str) -> str:

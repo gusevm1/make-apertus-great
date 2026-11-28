@@ -180,7 +180,9 @@ async def run_one(
             plan = await service.plan_boards(token=token, today=today, request=request)
         except AppError as exc:
             record |= {"error": str(exc), "acceptable": False}
-            (out / f"{_name(record=record)}.json").write_text(json.dumps(record, indent=1))
+            (out / f"{_name(record=record)}.json").write_text(
+                json.dumps(record, indent=1), encoding="utf-8"
+            )
             return record
         record["seconds"] = round(time.perf_counter() - started, 1)
         digest = await service.read_customer(token=token, today=today)
@@ -430,7 +432,9 @@ async def main() -> None:
             )
         records = [r for found in await asyncio.gather(*jobs) for r in found]
         spend = transport.spend.line()
-        (out / "index.md").write_text(_index(records=records, model=args.model, spend=spend))
+        (out / "index.md").write_text(
+            _index(records=records, model=args.model, spend=spend), encoding="utf-8"
+        )
         print(f"{sum(r['acceptable'] for r in records)} of {len(records)} acceptable; {spend}")  # noqa: T201
         print(f"written to {out.relative_to(ROOT)}")  # noqa: T201
         await http.aclose()
@@ -472,7 +476,9 @@ async def main() -> None:
                 json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8"
             )
     spend = transport.spend.line()
-    (out / "index.md").write_text(_index(records=records, model=args.model, spend=spend))
+    (out / "index.md").write_text(
+        _index(records=records, model=args.model, spend=spend), encoding="utf-8"
+    )
     print(f"{sum(r['acceptable'] for r in records)} of {len(records)} acceptable; {spend}")  # noqa: T201
     print(f"written to {out.relative_to(ROOT)}")  # noqa: T201
     await http.aclose()

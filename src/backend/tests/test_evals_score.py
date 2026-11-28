@@ -64,11 +64,11 @@ def _turn(answer: str, sources: list[str] | None = None, flagged: str | None = N
 
 
 def _written(folder: Path) -> dict:
-    return json.loads(next(folder.glob("*-tune.json")).read_text())
+    return json.loads(next(folder.glob("*-tune.json")).read_text(encoding="utf-8"))
 
 
 def _write(path: Path, results: list[dict]) -> None:
-    path.write_text(json.dumps({"results": results}))
+    path.write_text(json.dumps({"results": results}), encoding="utf-8")
 
 
 def _score(turn: Turn) -> score.RunResult:

@@ -54,7 +54,9 @@ class TurnFailedError(Exception):
 
 
 def load_gold(path: Path) -> list[GoldItem]:
-    return [GoldItem.model_validate(item) for item in yaml.safe_load(path.read_text())]
+    return [
+        GoldItem.model_validate(item) for item in yaml.safe_load(path.read_text(encoding="utf-8"))
+    ]
 
 
 def effective(category: str) -> str:
@@ -229,7 +231,8 @@ async def main() -> int:
                 },
                 indent=2,
                 ensure_ascii=False,
-            )
+            ),
+            encoding="utf-8",
         )
     return 0
 

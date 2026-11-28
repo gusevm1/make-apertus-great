@@ -108,7 +108,7 @@ async def main() -> None:
         for persona, counts in result.items()
     }
     print(json.dumps(summary, indent=1))  # noqa: T201
-    args.out.write_text(json.dumps(result, indent=1, ensure_ascii=False))
+    args.out.write_text(json.dumps(result, indent=1, ensure_ascii=False), encoding="utf-8")
 
 
 if __name__ == "__main__":

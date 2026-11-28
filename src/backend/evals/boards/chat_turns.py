@@ -643,8 +643,10 @@ async def main() -> int:
         results.append(result)
     folder = RUNS_PATH / datetime.now().strftime("%Y%m%d-%H%M%S")
     folder.mkdir(parents=True)
-    (folder / "turns.json").write_text(json.dumps(results, ensure_ascii=False, indent=2))
-    (folder / "turns.md").write_text(markdown(results=results))
+    (folder / "turns.json").write_text(
+        json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (folder / "turns.md").write_text(markdown(results=results), encoding="utf-8")
     print(f"{sum(r['passed'] for r in results)} of {len(results)} passed, see {folder}")  # noqa: T201
     return 0 if all(result["passed"] for result in results) else 1
 

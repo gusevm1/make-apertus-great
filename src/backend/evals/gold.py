@@ -305,14 +305,14 @@ _TextDates.yaml_implicit_resolvers = {
 
 
 def load_gold(path: Path = GOLD_PATH) -> list[GoldQuestion]:
-    content = yaml.load(path.read_text(), Loader=_TextDates)  # noqa: S506
+    content = yaml.load(path.read_text(encoding="utf-8"), Loader=_TextDates)  # noqa: S506
     return [GoldQuestion.model_validate(item) for item in content["questions"]]
 
 
 def load_frozen(path: Path = FROZEN_PATH) -> dict[str, dict[str, dict[str, Any]]]:
     if not path.exists():
         return {}
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def freeze(
@@ -782,7 +782,9 @@ async def main() -> int:
     if problems:
         return 1
     if args.write:
-        FROZEN_PATH.write_text(json.dumps(frozen, indent=1, sort_keys=True) + "\n")
+        FROZEN_PATH.write_text(
+            json.dumps(frozen, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+        )
     return 0
 
 
