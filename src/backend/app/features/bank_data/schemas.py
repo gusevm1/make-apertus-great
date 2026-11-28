@@ -18,6 +18,12 @@ class ResponseUpcomingPayments(RootModel[dict[str, Any]]):
     """The banking API's upcoming payments, unchanged."""
 
 
+class ResponseCustomer(BaseModel):
+    first_name: str
+    last_name: str
+    customer_since: date | None = None
+
+
 class Args(BaseModel):
     # An argument the tool does not have is an error the model can correct, not a dropped filter.
     model_config = ConfigDict(extra="forbid")

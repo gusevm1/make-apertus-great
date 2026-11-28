@@ -5,9 +5,16 @@ from fastapi import APIRouter, Depends, Query
 
 from app.core.auth import CurrentUserDep, require_user
 from app.features.bank_data.dependencies import BankDataServiceDep
-from app.features.bank_data.schemas import ResponseUpcomingPayments
+from app.features.bank_data.schemas import ResponseCustomer, ResponseUpcomingPayments
 
 router = APIRouter(tags=["bank-data"], dependencies=[Depends(require_user)])
+
+
+@router.get("/customer", response_model=ResponseCustomer)
+async def get_customer(user: CurrentUserDep, service: BankDataServiceDep) -> ResponseCustomer:
+    """Your name and since when you bank here, as the bank holds them."""
+    customer = await service.get_customer(token=user.token)
+    return ResponseCustomer.model_validate(customer)
 
 
 @router.get("/upcoming-payments", response_model=ResponseUpcomingPayments)

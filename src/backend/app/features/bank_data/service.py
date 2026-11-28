@@ -19,6 +19,10 @@ class BankDataService:
         data = await self.ledger.read(path=path, token=token, params=params)
         return BankData(root=fit(data=data))
 
+    async def get_customer(self, token: str) -> dict[str, Any]:
+        """The customer's own record at the bank."""
+        return await self.ledger.read(path="/customer", token=token)
+
     async def list_upcoming_payments(
         self, token: str, date_from: date | None, date_to: date | None
     ) -> dict[str, Any]:

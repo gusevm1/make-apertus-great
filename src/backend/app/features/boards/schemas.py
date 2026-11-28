@@ -135,3 +135,5 @@ class ResponseBoardPlan(BaseModel):
     latency_ms: int
     checks: list[Check]
     created_at: datetime
+    # The boards this plan built; empty in the list of plans.
+    boards: list[ResponseBoardSummary] = []

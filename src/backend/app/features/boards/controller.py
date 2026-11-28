@@ -92,11 +92,14 @@ async def list_boards(user: CurrentUserDep, service: BoardServiceDep) -> list[Re
 
 @router.post("", response_model=ResponseBoard, status_code=201)
 async def create_board(
-    body: RequestBoardCreate, user: CurrentUserDep, service: BoardServiceDep
+    body: RequestBoardCreate, user: CurrentUserDep, service: BoardServiceDep, today: TodayDep
 ) -> ResponseBoard:
-    """Create a board with a conversation of its own."""
-    board = await service.create_board(owner_id=user.id, data=body, token=user.token)
-    return _board_response(board=board, resolved=[], dropped=[])
+    """Create a board with a conversation of its own; with `about`, the model fills it."""
+    board = await service.create_board(owner_id=user.id, data=body, token=user.token, today=today)
+    resolved, dropped = await service.get_board_resolved(
+        board=board, token=user.token, today=today
+    )
+    return _board_response(board=board, resolved=resolved, dropped=dropped)
 
 
 @router.get("/{board_id}", response_model=ResponseBoard)
@@ -171,6 +174,24 @@ async def update_tile(
 async def delete_tile(tile: BoardTileDep, service: BoardServiceDep) -> None:
     """Remove a tile from its board."""
     await service.remove_tile(tile=tile)
+
+
+@plans_router.post("", response_model=ResponseBoardPlan, status_code=201)
+async def create_board_plan(
+    user: CurrentUserDep, service: BoardServiceDep, today: TodayDep
+) -> ResponseBoardPlan:
+    """Build your first boards from your own data; once you have boards, return their plan."""
+    plan, summaries = await service.create_first_boards(
+        owner_id=user.id, token=user.token, today=today
+    )
+    return _plan_response(plan=plan).model_copy(
+        update={
+            "boards": [
+                _summary_response(board=summary.board, tile_count=summary.tile_count)
+                for summary in summaries
+            ]
+        }
+    )
 
 
 @plans_router.get("", response_model=list[ResponseBoardPlan])
