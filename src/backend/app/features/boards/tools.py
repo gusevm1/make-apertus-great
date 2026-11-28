@@ -298,6 +298,7 @@ async def get_turn(
                 else notes[0],
                 figures=figures(payload=payload),
             )
+        before = await service.list_tiles(board_id=board.id)
         try:
             tile, payload = await service.add_tile(
                 board_id=board.id,
@@ -310,8 +311,21 @@ async def get_turn(
             )
         except BadRequestError as error:
             raise with_payees(error=error, template=template) from error
+        summary = f'Added "{tile.title}"'
+        revised = _revised_tile(tiles=before, template=template, title=tile.title)
+        if revised is not None:
+            # The same kind under the same name is a change to that tile, not a second one.
+            await service.move_tile(tile=tile, position=revised.position)
+            await service.remove_tile(tile=revised)
+            if revised.id in indexes:
+                indexes[indexes.index(revised.id)] = tile.id
+            summary = f'Changed "{tile.title}"'
+        free = _free_title(title=tile.title, taken=[item.title for item in before])
+        if revised is None and free != tile.title:
+            tile = await service.rename_tile(tile=tile, title=free)
+            summary = f'Added "{tile.title}"'
         return BoardChange(
-            summary=f'Added "{tile.title}"',
+            summary=summary,
             finding=finding,
             meaning=meaning(payload=payload, today=today),
             suggested_note=_suggested_note(payload=payload, notes=notes),
@@ -580,6 +594,29 @@ def _shop_title(template: str, title: str | None) -> str | None:
     if template not in MERCHANT_TEMPLATES or title is None or len(title) <= SHOP_TITLE_MAX:
         return title
     return None
+
+
+def _revised_tile(tiles: list[Tile], template: str, title: str) -> Tile | None:
+    """The tile of the same kind and name that a newly added one replaces, or None."""
+    return next(
+        (
+            tile
+            for tile in tiles
+            if tile.template == template and tile.title.casefold() == title.casefold()
+        ),
+        None,
+    )
+
+
+def _free_title(title: str, taken: list[str]) -> str:
+    """The title, numbered when another tile on the board already has it."""
+    names = {name.casefold() for name in taken}
+    number = 2
+    candidate = title
+    while candidate.casefold() in names:
+        candidate = f"{title} {number}"
+        number += 1
+    return candidate
 
 
 def _suggested_note(payload: AnyPayload, notes: list[str]) -> str | None:
