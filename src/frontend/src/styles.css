@@ -182,8 +182,7 @@ a:hover {
 }
 
 .reset[data-state="armed"] {
-  background: var(--warn-bg);
-  color: var(--warn);
+  color: var(--text);
 }
 
 .reset:disabled {

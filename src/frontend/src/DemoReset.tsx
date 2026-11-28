@@ -11,7 +11,7 @@ async function removeAll(listPath: string, path: string, token: string) {
     await api<void>(`${path}/${row.id}`, token, { method: "DELETE" });
 }
 
-/** Wipes what the TrustRoom stored for this customer, so a demo starts again from the first visit. */
+/** Removes the boards, chats and notes the TrustRoom made for this customer; their documents stay. */
 export function DemoReset({
   token,
   onDone,
@@ -19,11 +19,11 @@ export function DemoReset({
   token: string;
   onDone: () => void;
 }) {
-  const [state, setState] = useState<"idle" | "armed" | "wiping">("idle");
+  const [state, setState] = useState<"idle" | "armed" | "resetting">("idle");
   const [error, setError] = useState<string | null>(null);
 
   async function wipe() {
-    setState("wiping");
+    setState("resetting");
     setError(null);
     try {
       // Boards first: a board takes its tiles and its chats along.
@@ -35,7 +35,6 @@ export function DemoReset({
           "/api/context-entries",
           token,
         );
-      await removeAll("/api/documents", "/api/documents", token);
       onDone();
     } catch (error) {
       setError(requestErrorOf(error).message);
@@ -44,22 +43,22 @@ export function DemoReset({
   }
 
   let label = "Reset";
-  if (state === "armed") label = "Wipe all?";
-  else if (state === "wiping") label = "Wiping…";
+  if (state === "armed") label = "Reset?";
+  else if (state === "resetting") label = "Resetting…";
   return (
     <>
       {error !== null && (
         <span className="reset-error" role="alert">
-          Not everything was wiped. {error}
+          Not everything was reset. {error}
         </span>
       )}
       <button
         type="button"
         className="reset"
         data-state={state}
-        disabled={state === "wiping"}
-        title="Delete this customer's boards, chats, notes and uploaded documents, and start again from the first visit"
-        // The first click arms, the second wipes; leaving the button disarms it.
+        disabled={state === "resetting"}
+        title="Delete the boards, chats and notes the TrustRoom made for this customer, and start again from the first visit"
+        // The first click asks, the second resets; leaving the button takes the question back.
         onClick={() => (state === "armed" ? void wipe() : setState("armed"))}
         onBlur={() =>
           setState((current) => (current === "armed" ? "idle" : current))
