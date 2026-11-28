@@ -346,17 +346,21 @@ class PlannedTransfer(BaseModel):
 
 
 class Pillar3aPayload(Payload):
-    """`figure_chf` is what is still missing to the maximum, after the planned transfers."""
+    """`figure_chf` is what the standing orders leave missing to the maximum this year.
+
+    The one-off transfers in `planned` are what covers it; negative is over the maximum.
+    """
 
     template: Literal["pillar_3a"] = "pillar_3a"
     year: int
     maximum_chf: Chf
+    # Paid into the 3a account this year until today, without interest.
     paid_chf: Chf
+    # What the standing orders still pay in until 31 December.
+    standing_orders_chf: Chf
     balance_chf: Chf
-    # Transfers to the 3a account that are planned until the end of the year.
+    # One-off transfers to the 3a account that are planned until the end of the year.
     planned: list[PlannedTransfer]
-    # What is missing today, before the planned transfers.
-    missing_today_chf: Chf
 
 
 # --- account_balances: a few accounts side by side --------------------------------------------
