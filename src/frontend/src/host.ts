@@ -32,15 +32,20 @@ export function sendToHost(
   );
 }
 
+// The last context the e-banking sent, so a panel that mounts later starts with it.
+let lastContext: HostContext | null = null;
+
 /** The current context from the e-banking, or null until it has answered the handshake. */
 export function useHostContext(): HostContext | null {
-  const [context, setContext] = useState<HostContext | null>(null);
+  const [context, setContext] = useState<HostContext | null>(lastContext);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.origin !== HOST_ORIGIN || event.data?.protocol !== "trustroom")
         return;
-      if (event.data.type === "context") setContext(event.data.payload);
+      if (event.data.type !== "context") return;
+      lastContext = event.data.payload;
+      setContext(event.data.payload);
     }
     window.addEventListener("message", handleMessage);
     // The host answers only the first `ready`; after a reload inside the iframe we have to ask.
