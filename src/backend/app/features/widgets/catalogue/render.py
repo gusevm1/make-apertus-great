@@ -9,6 +9,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from app.core.errors import BadRequestError
 from app.features.widgets.catalogue.charts import (
     LOCALE,
+    OUTGOING,
     THEME,
     chart_spec,
     font_faces,
@@ -294,12 +295,8 @@ def _cut_note(count: int) -> str | None:
 
 
 def _entries(node: ItemList | Timeline, data: dict[str, Any]) -> dict[str, Any]:
-    dated = isinstance(node, Timeline)
-    fields = (
-        ([node.date] if isinstance(node, Timeline) else [])
-        + [node.label, node.value]
-        + ([node.detail] if node.detail is not None else [])
-    )
+    # A timeline's date may be missing: what hasn't arrived yet has no date.
+    fields = [node.label, node.value] + ([node.detail] if node.detail is not None else [])
     found = rows(path=node.rows, data=data, fields=fields)
     if isinstance(node, Timeline):
         _check_dates(node=node, found=found)
@@ -311,7 +308,7 @@ def _entries(node: ItemList | Timeline, data: dict[str, Any]) -> dict[str, Any]:
             "detail": None
             if node.detail is None
             else display(field=node.detail, value=row[node.detail]),
-            "date": display(field=fields[0], value=row[fields[0]]) if dated else None,
+            "date": _date(node=node, row=row) if isinstance(node, Timeline) else None,
         }
         for index, row in enumerate(found[:TABLE_ROWS])
     ]
@@ -324,11 +321,22 @@ def _entries(node: ItemList | Timeline, data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _date(node: Timeline, row: dict[str, Any]) -> str:
+    value = row.get(node.date)
+    return "not yet" if value is None else display(field=node.date, value=value)
+
+
 def _check_dates(node: Timeline, found: list[dict[str, Any]]) -> None:
     # A timeline shows its rows in DATA's order; it doesn't sort them, so they must be in order.
+    if len(found) > 0 and all(node.date not in row for row in found):
+        raise BadRequestError(
+            f"{node.rows}[0] has no field {node.date}; fields: {', '.join(found[0])}"
+        )
     previous = ""
     for index, row in enumerate(found):
-        value = row[node.date]
+        value = row.get(node.date)
+        if value is None:
+            continue
         if not is_date(value=value):
             raise BadRequestError(f"{node.rows}[{index}].{node.date} is not a date: {value!r}")
         if value < previous:
@@ -502,14 +510,21 @@ def _chart(
     ]
     if node.total is None:
         return view | {"legend": legend}
+    total = figure(path=node.total, data=data)
+    # Slices of money out are sizes, so their total is too: -8 out is a donut of 8.
+    if OUTGOING.search(node.value) is not None:
+        total = abs(total)
     _check_sum(
         total_path=node.total,
         rows_path=node.data,
         column=node.value,
         cells=[value["y"] for value in values],
-        total=figure(path=node.total, data=data),
+        total=total,
     )
-    return view | {"legend": legend, "total": _figure(path=node.total, data=data)}
+    shown = _figure(path=node.total, data=data) | {
+        "text": display(field=last_field(path=node.total), value=total)
+    }
+    return view | {"legend": legend, "total": shown}
 
 
 def _row(path: str, row: dict[str, Any]) -> dict[str, Any]:

@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { fullDate, money } from "../board/format";
 import { SmallIcon } from "../board/icons";
 import type { ToolCall } from "../api";
+import { useDebugMode } from "../lib/debugMode";
 import { Markdown } from "../lib/markdown";
 import { AnswerTrace } from "./AnswerTrace";
 import { checkFailure, decides } from "./checks";
@@ -31,6 +32,7 @@ export function Answer({
   proposals: ContextEntry[];
   onOpenBoard: (boardId: string) => void;
 }) {
+  const isDebugMode = useDebugMode();
   const did = didLinesOf(calls);
   // A refused note proposal is the server's own business, not a failure the customer has to read.
   const failed = calls.filter(
@@ -91,7 +93,7 @@ export function Answer({
       {provenance !== null && (
         <Meta provenance={provenance} hasFailedCall={failed.length > 0} />
       )}
-      {(calls.length > 0 || provenance !== null) && (
+      {isDebugMode && (calls.length > 0 || provenance !== null) && (
         <AnswerTrace calls={calls} provenance={provenance} isLive={false} />
       )}
     </div>

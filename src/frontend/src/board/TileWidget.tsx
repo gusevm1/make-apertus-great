@@ -50,6 +50,13 @@ export function TileWidget({
     return () => window.removeEventListener("blur", deselect);
   }, []);
 
+  if (error?.status === 404) {
+    return (
+      <div className="state" role="status">
+        <p>This tile was removed from your board.</p>
+      </div>
+    );
+  }
   if (error !== null) {
     return (
       <div className="state" role="alert">

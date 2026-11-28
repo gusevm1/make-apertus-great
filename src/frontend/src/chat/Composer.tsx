@@ -1,4 +1,10 @@
-import { type ChangeEvent, type FormEvent, type RefObject } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  type RefObject,
+  useLayoutEffect,
+} from "react";
 import type { DocumentRef } from "../api";
 import { canCaptureAudio } from "../lib/audioCapture";
 import { CloseIcon, MicIcon, PaperclipIcon, SendIcon } from "./icons";
@@ -24,7 +30,7 @@ export function Composer({
   onVoiceStart,
   onVoiceStop,
 }: {
-  inputRef: RefObject<HTMLInputElement | null>;
+  inputRef: RefObject<HTMLTextAreaElement | null>;
   question: string;
   placeholder: string;
   isDisabled: boolean;
@@ -41,9 +47,30 @@ export function Composer({
   onVoiceStart: () => void;
   onVoiceStop: () => void;
 }) {
+  const canSend = !isBusy && !isDisabled && question.trim() !== "";
+
+  // Grows with the text up to the CSS max-height, then scrolls.
+  useLayoutEffect(() => {
+    const input = inputRef.current;
+    if (input === null) return;
+    input.style.height = "auto";
+    input.style.height = `${input.scrollHeight}px`;
+  }, [inputRef, question]);
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     onSubmit();
+  }
+
+  function handleKey(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing
+    )
+      return;
+    event.preventDefault();
+    if (canSend) onSubmit();
   }
 
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
@@ -89,11 +116,12 @@ export function Composer({
         </ul>
       )}
       <div className="inputrow">
-        <input
+        <textarea
           ref={inputRef}
-          type="text"
+          rows={1}
           value={question}
           onChange={(event) => onChange(event.target.value)}
+          onKeyDown={handleKey}
           placeholder={placeholder}
           aria-label="Message"
           autoComplete="off"
@@ -134,7 +162,7 @@ export function Composer({
           type="submit"
           className="icon send"
           aria-label="Send"
-          disabled={isBusy || isDisabled || question.trim() === ""}
+          disabled={!canSend}
         >
           <SendIcon />
         </button>

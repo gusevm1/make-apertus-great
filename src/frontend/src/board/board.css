@@ -659,6 +659,15 @@
   font-weight: 600;
 }
 
+.bars.many .col:not(.hi) .v {
+  visibility: hidden;
+}
+
+.bars.many .col:hover .v,
+.bars.many .col:focus-visible .v {
+  visibility: visible;
+}
+
 .mlabels {
   display: flex;
   gap: 14px;

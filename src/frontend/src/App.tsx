@@ -11,6 +11,7 @@ import { ChatPanel } from "./chat/ChatPanel";
 import { DemoReset } from "./DemoReset";
 import type { ConversationRef } from "./chat/types";
 import { type HostContext, sendToHost, useHostContext } from "./host";
+import { useDebugMode } from "./lib/debugMode";
 import { useStream } from "./lib/useStream";
 import { ProfilePanel } from "./profile/ProfilePanel";
 import { SPLIT, Split } from "./Split";
@@ -57,6 +58,9 @@ function TrustRoom({
   const [share, setShare] = useState(SPLIT);
   const [lastSplit, setLastSplit] = useState(SPLIT);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  // Counts the openings, so the drawer loads what the chat changed while it was closed.
+  const [profileOpenings, setProfileOpenings] = useState(0);
+  const isDebugMode = useDebugMode();
   // The side panel over an e-banking page is for asking; boards live on /trustroom.
   const isChatOnly =
     context.mode === "panel" && context.page.id !== "dashboard";
@@ -196,6 +200,11 @@ function TrustRoom({
     if (share === 1) setShare(lastSplit);
   }
 
+  function openProfile() {
+    setProfileOpenings((count) => count + 1);
+    setIsProfileOpen(true);
+  }
+
   function closeProfile() {
     setIsProfileOpen(false);
     profileButton.current?.focus();
@@ -292,7 +301,7 @@ function TrustRoom({
           <NeedsAttention
             token={token}
             customerId={customer?.customer_id ?? "anonymous"}
-            onOpenSettings={() => setIsProfileOpen(true)}
+            onOpenSettings={openProfile}
           />
           {openBoardSummary === null ? (
             <NewBoard
@@ -364,9 +373,16 @@ function TrustRoom({
           <div className="msgs" ref={buildLog}>
             <div className="bot">
               I am building your first board from your own accounts and
-              bookings. Every step shows here as it happens.
+              bookings.
+              {isDebugMode && " Every step shows here as it happens."}
             </div>
-            <BuildTrace steps={build.steps} isLive isOpen />
+            {isDebugMode ? (
+              <BuildTrace steps={build.steps} isLive isOpen />
+            ) : (
+              <span className="status" role="status">
+                Building…
+              </span>
+            )}
           </div>
         </div>
       </section>
@@ -446,9 +462,7 @@ function TrustRoom({
                 ? `Close the profile of ${name}`
                 : `Open the profile of ${name}`
             }
-            onClick={() =>
-              isProfileOpen ? closeProfile() : setIsProfileOpen(true)
-            }
+            onClick={() => (isProfileOpen ? closeProfile() : openProfile())}
           >
             <span className="avatar">{initials}</span>
             <span>
@@ -497,6 +511,7 @@ function TrustRoom({
           <SmallIcon name="close" />
         </button>
         <ProfilePanel
+          key={profileOpenings}
           name={name}
           initials={initials}
           customerSince={customerSince}
@@ -514,6 +529,7 @@ function FirstBoards({
   loading: Loading;
   onRetry: () => void;
 }) {
+  const isDebugMode = useDebugMode();
   if (loading.state === "error") {
     return (
       <div className="state" role="alert">
@@ -532,7 +548,8 @@ function FirstBoards({
         <h1>Building your first boards</h1>
         <p>
           From your own accounts and bookings, about what matters to you. This
-          takes a moment, once. The chat shows each step.
+          takes a moment, once.
+          {isDebugMode && " The chat shows each step."}
         </p>
       </div>
     );

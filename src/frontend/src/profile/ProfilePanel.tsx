@@ -2,6 +2,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { api, json, type RequestError, requestErrorOf } from "../api";
 import { AlertSettings } from "../alerts/AlertSettings";
 import { useHostContext } from "../host";
+import { setDebugMode, useDebugMode } from "../lib/debugMode";
 
 // The chat announces a saved proposal with this event, so the notes reload.
 const NOTES_CHANGED = "trustroom:notes-changed";
@@ -54,6 +55,7 @@ export function ProfilePanel(props: {
           <Notes token={context.access_token} />
           <Documents token={context.access_token} />
           <AlertSettings token={context.access_token} />
+          <DebugSettings />
         </>
       )}
       <p className="foot">
@@ -61,6 +63,29 @@ export function ProfilePanel(props: {
         note and every document.
       </p>
     </aside>
+  );
+}
+
+/** The profile's Debug section: one switch that shows the plans and tool calls behind each answer. */
+function DebugSettings() {
+  const isDebugMode = useDebugMode();
+  return (
+    <div className="sec">
+      <h2>Debug</h2>
+      <div className="card">
+        <label className="fact debug-setting">
+          <p>
+            Debug mode
+            <span>Show the plans and tool calls behind each answer</span>
+          </p>
+          <input
+            type="checkbox"
+            checked={isDebugMode}
+            onChange={() => setDebugMode({ isOn: !isDebugMode })}
+          />
+        </label>
+      </div>
+    </div>
   );
 }
 

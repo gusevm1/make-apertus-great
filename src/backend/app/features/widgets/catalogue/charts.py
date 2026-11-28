@@ -2,6 +2,7 @@ import base64
 import json
 import re
 from datetime import date, timedelta
+from decimal import Decimal
 from functools import cache
 from pathlib import Path
 from typing import Any
@@ -85,6 +86,8 @@ PALETTE = {
     "amber_light": "#c27a12",
 }
 # A series value naming a year, month or day; the newest such series gets the accent colour.
+# Fields whose negative sign only says the money went out, such as amount_chf or money_out_chf.
+OUTGOING = re.compile(r"amount|(^|_)out(_|$)")
 PERIOD = re.compile(r"^\d{4}(-\d{2}){0,2}$")
 # The newest period in the accent colour, earlier ones in quieter colours that are still 3:1 on
 # white and never the accent again; a chart shows at most this many periods.
@@ -153,42 +156,43 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
         _check_forecast(component=component, found=found)
     if isinstance(component, Calendar):
         _check_days(component=component, found=found)
-    if isinstance(component, Donut) and len(found) > len(SLICES):
-        raise BadRequestError(
-            f"{component.data} has {len(found)} parts; a donut shows at most {len(SLICES)}"
-        )
-    series = [None if series_field is None else str(row[series_field]) for row in found]
-    seen: set[tuple[str | None, str]] = set()
     for index, row in enumerate(found):
-        key = (series[index], str(row[x_field]))
-        # Vega-Lite would draw the sum of two rows with one label, a figure DATA doesn't hold.
-        if key in seen:
-            raise BadRequestError(
-                f"{component.data}[{index}] repeats {x_field} {key[1]}: a chart shows one "
-                "value per label"
-            )
-        seen.add(key)
         if not is_number(value=row[y_field]):
             raise BadRequestError(f"{component.data}[{index}].{y_field} is not a number")
-        # A slice, or a day's cell on one scale, has no negative size.
-        if isinstance(component, Donut | Calendar) and row[y_field] < 0:
-            raise BadRequestError(f"{component.data}[{index}].{y_field} is negative")
     if isinstance(component, Waterfall):
         _check_steps(component=component, found=found)
-    shorts = [short(field=x_field, value=row[x_field]) for row in found]
+    marks = _one_per_label(component=component, found=found, x_field=x_field, y_field=y_field)
+    # Money out comes signed negative; a slice or bar then shows its size. A left, net or change
+    # field keeps its sign, which is its meaning.
+    if (
+        isinstance(component, Donut | BarChart)
+        and OUTGOING.search(y_field) is not None
+        and all(row[y_field] <= 0 for _, row in marks)
+    ):
+        marks = [(index, {**row, y_field: abs(row[y_field])}) for index, row in marks]
+    for index, row in marks:
+        # Slices of money in and out, or days on one scale, have no negative size.
+        if isinstance(component, Donut | Calendar) and row[y_field] < 0:
+            raise BadRequestError(f"{component.data}[{index}].{y_field} is negative")
+    if isinstance(component, Donut) and len(marks) > len(SLICES):
+        raise BadRequestError(
+            f"{component.data} has {len(marks)} parts; a donut shows at most {len(SLICES)}"
+        )
+    series = [None if series_field is None else str(row[series_field]) for _, row in marks]
+    shorts = [short(field=x_field, value=row[x_field]) for _, row in marks]
     # Two rows of one series with the same short label ("Oct" of two years) get the full one.
-    is_unique = len(set(zip(series, shorts, strict=True))) == len(found)
+    is_unique = len(set(zip(series, shorts, strict=True))) == len(marks)
     values = []
-    for index, row in enumerate(found):
+    for mark, (index, row) in enumerate(marks):
         full = display(field=x_field, value=row[x_field])
         shown = display(field=y_field, value=row[y_field])
         path = f"{component.data}[{index}]"
         value = {
             "key": str(row[x_field]),
-            "label": shorts[index] if is_unique else full,
+            "label": shorts[mark] if is_unique else full,
             "y": row[y_field],
             "shown": shown,
-            "series": series[index],
+            "series": series[mark],
             "path": path,
             # What a screen reader says for the mark; the bridge reads the path in brackets.
             "description": f"{full}, {shown} ({path})",
@@ -230,6 +234,33 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
     has_series = series_field is not None
     filled = isinstance(component, AreaChart)
     return {**size, **_line(values=values, has_series=has_series, filled=filled, scale=scale)}
+
+
+def _one_per_label(
+    component: Chart | Trend, found: list[dict[str, Any]], x_field: str, y_field: str
+) -> list[tuple[int, dict[str, Any]]]:
+    # Rows that repeat a label (in one series) become one mark: their sum, with all bookings.
+    series_field = _fields(component=component)[2]
+    marks: dict[tuple[Any, str], tuple[int, dict[str, Any]]] = {}
+    for index, row in enumerate(found):
+        key = (None if series_field is None else str(row[series_field]), str(row[x_field]))
+        if key not in marks:
+            marks[key] = (index, row)
+            continue
+        # A step, forecast row or day holds more than its value, so two can't become one.
+        if isinstance(component, Waterfall | ForecastChart | Calendar):
+            raise BadRequestError(
+                f"{component.data}[{index}] repeats {x_field} {key[1]}: a chart shows one "
+                "value per label"
+            )
+        first_index, first = marks[key]
+        total = Decimal(str(first[y_field])) + Decimal(str(row[y_field]))
+        bookings = first.get("booking_ids", []) + row.get("booking_ids", [])
+        marks[key] = (
+            first_index,
+            {**first, y_field: float(total), "booking_ids": list(dict.fromkeys(bookings))},
+        )
+    return list(marks.values())
 
 
 def _chosen(

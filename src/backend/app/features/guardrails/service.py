@@ -14,8 +14,10 @@ from app.features.guardrails.schemas import (
     Guardrail,
     GuardrailCategory,
     GuardrailCheck,
+    Language,
 )
 from app.features.ledger.service import LedgerService
+from app.features.tool_calls.prompts import question_language
 
 CHECK_MODEL = Model.SMART
 CHECK_PURPOSE = "guardrail_check"
@@ -24,6 +26,13 @@ ADVISOR_CATEGORIES = {
     GuardrailCategory.PRODUCT_CHOICE,
     GuardrailCategory.FORECAST,
     GuardrailCategory.TAX_ADVICE,
+}
+# The refusal texts exist in German and English; every other language gets English.
+REFUSAL_LANGUAGES: dict[str, Language] = {
+    "German": "de",
+    "English": "en",
+    "French": "en",
+    "Italian": "en",
 }
 
 
@@ -56,10 +65,13 @@ class GuardrailService:
                 ),
             )
         check = result.content
+        detected = question_language(message={"role": "user", "content": text})
+        # The model reads Swiss topics as German, so the message's own words decide when they can.
+        language = check.language if detected is None else REFUSAL_LANGUAGES.get(detected, "en")
         return Guardrail(
             category=check.category,
-            decline=self._decline(check=check),
-            pointer=await self._pointer(check=check),
+            decline=self._decline(category=check.category, language=language),
+            pointer=await self._pointer(category=check.category, language=language),
             provenance=Provenance(
                 model=result.model,
                 latency_ms=result.latency_ms,
@@ -67,18 +79,18 @@ class GuardrailService:
             ),
         )
 
-    def _decline(self, check: GuardrailCheck) -> str | None:
-        if check.category == GuardrailCategory.OFF_TOPIC:
-            return decline(category="off_topic", language=check.language)
-        if check.category == GuardrailCategory.OTHER_CUSTOMER:
-            return decline(category="other_customer", language=check.language)
+    def _decline(self, category: GuardrailCategory, language: Language) -> str | None:
+        if category == GuardrailCategory.OFF_TOPIC:
+            return decline(category="off_topic", language=language)
+        if category == GuardrailCategory.OTHER_CUSTOMER:
+            return decline(category="other_customer", language=language)
         return None
 
-    async def _pointer(self, check: GuardrailCheck) -> str | None:
-        if check.category == GuardrailCategory.NEW_CREDIT:
-            return counselling_pointer(language=check.language)
-        if check.category not in ADVISOR_CATEGORIES:
+    async def _pointer(self, category: GuardrailCategory, language: Language) -> str | None:
+        if category == GuardrailCategory.NEW_CREDIT:
+            return counselling_pointer(language=language)
+        if category not in ADVISOR_CATEGORIES:
             return None
         customer = await self.ledger.read(path="/customer", token=self.token)
         advisor = CustomerAdvisor.model_validate(customer).advisor
-        return advisor_pointer(advisor=advisor, language=check.language)
+        return advisor_pointer(advisor=advisor, language=language)

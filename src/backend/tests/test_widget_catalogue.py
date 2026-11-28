@@ -31,6 +31,7 @@ from app.features.widgets.catalogue.schemas import (
     Calendar,
     ColourName,
     Comparison,
+    Donut,
     ForecastChart,
     LineChart,
     Waterfall,
@@ -400,12 +401,26 @@ def test_a_figure_carries_the_booking_ids_of_its_row() -> None:
     )
 
 
-def test_a_chart_refuses_two_rows_with_one_label() -> None:
-    # Vega-Lite would draw their sum, 150, which DATA doesn't hold.
-    payees = [{"label": "Migros", "total_chf": 100.0}, {"label": "Migros", "total_chf": 50.0}]
+def test_a_chart_draws_two_rows_with_one_label_as_their_sum_with_both_bookings() -> None:
+    payees = [
+        {"label": "Migros", "total_chf": 100.1, "booking_ids": ["BK-1"]},
+        {"label": "Coop", "total_chf": 20.0, "booking_ids": ["BK-2"]},
+        {"label": "Migros", "total_chf": 50.2, "booking_ids": ["BK-3"]},
+    ]
     body = {"type": "bar_chart", "data": "payees", "x": "label", "y": "total_chf"}
-    with pytest.raises(BadRequestError, match=r"payees\[1\] repeats label Migros"):
-        render(spec=spec(body=body), data={"payees": payees}, form="static")
+    values = _values(body=body, data={"payees": payees})
+    assert [(value["label"], value["y"], value["booking_ids"]) for value in values] == [
+        ("Migros", 150.3, ["BK-1", "BK-3"]),
+        ("Coop", 20.0, ["BK-2"]),
+    ]
+    assert values[0]["path"] == "payees[0]"
+    assert payees[0]["total_chf"] == 100.1
+
+
+def test_a_waterfall_still_refuses_two_steps_with_one_label() -> None:
+    flow = [{**step, "step": "Rent"} for step in DATA["flow"]]
+    with pytest.raises(BadRequestError, match=r"flow\[1\] repeats step Rent"):
+        render(spec=spec(body=BODIES["waterfall"]), data={**DATA, "flow": flow}, form="static")
 
 
 def test_a_figure_must_be_a_number() -> None:
@@ -434,10 +449,27 @@ def test_a_total_that_is_not_the_sum_of_its_column_is_refused() -> None:
         render(spec=spec(body=BODIES["table"]), data=wrong, form="static")
 
 
-def test_a_donut_refuses_a_negative_part_and_a_total_that_is_not_its_sum() -> None:
-    negative = {"months": [{"label": "2026-10", "total_chf": -5.0}], "months_total_chf": -5.0}
+def test_a_donut_draws_money_out_by_its_size_and_refuses_mixed_signs_and_a_wrong_total() -> None:
+    body = {**BODIES["donut"], "value": "money_out_chf"}
+    out = {
+        "months": [
+            {"label": "2026-09", "money_out_chf": -5.0},
+            {"label": "2026-10", "money_out_chf": -3.0},
+        ],
+        "months_total_chf": -8.0,
+    }
+    page = render(spec=spec(body=body), data=out, form="static")
+    assert page.count('data-component="donut-slice"') == 2
+    assert 'data-value="5.0"' in page
+    assert "CHF 8.00" in page
+    assert "-CHF" not in page and "CHF -" not in page
+    mixed = {**out, "months": [out["months"][0], {"label": "2026-10", "money_out_chf": 3.0}]}
+    with pytest.raises(BadRequestError, match=r"months\[0\].money_out_chf is negative"):
+        render(spec=spec(body=body), data=mixed, form="static")
+    # A field whose sign is its meaning draws no slices from negatives.
+    left = {"months": [{"label": "2026-09", "total_chf": -5.0}], "months_total_chf": -5.0}
     with pytest.raises(BadRequestError, match=r"months\[0\].total_chf is negative"):
-        render(spec=spec(body=BODIES["donut"]), data=negative, form="static")
+        render(spec=spec(body=BODIES["donut"]), data=left, form="static")
     with pytest.raises(BadRequestError, match="months_total_chf is 1.0, but the total_chf column"):
         render(
             spec=spec(body=BODIES["donut"]), data={**DATA, "months_total_chf": 1.0}, form="static"
@@ -484,6 +516,174 @@ def test_a_timeline_needs_dates_in_order() -> None:
     undated = {**DATA, "payments": [{**DATA["payments"][0], "due_date": "soon"}]}
     with pytest.raises(BadRequestError, match=r"payments\[0\].due_date is not a date"):
         render(spec=spec(body=BODIES["timeline"]), data=undated, form="static")
+
+
+def _values(body: dict[str, Any], data: dict[str, Any]) -> list[dict[str, Any]]:
+    chart = spec(body=body).body
+    assert isinstance(chart, BarChart | Comparison | Donut | LineChart)
+    return chart_spec(component=chart, data=data, live=False)["data"]["values"]
+
+
+# The five refusals of #275, on DATA as widget_data() builds it from the tools' results.
+def test_lukas_donut_of_last_month_draws_his_signed_bookings_as_slices() -> None:
+    movements = [
+        {
+            "id": "BK-02278",
+            "date": "2026-10-30",
+            "amount_chf": -1240.0,
+            "counterparty": "Schreinerei Holzwerk Binz GmbH",
+            "kind": "spending",
+            "booking_ids": ["BK-02278"],
+        },
+        {
+            "id": "CTX-01436",
+            "date": "2026-10-31",
+            "amount_chf": -184.9,
+            "counterparty": "IKEA",
+            "kind": "spending",
+            "booking_ids": ["CTX-01436"],
+        },
+        {
+            "id": "BK-02277",
+            "date": "2026-10-30",
+            "amount_chf": -11.62,
+            "counterparty": "Migros",
+            "kind": "spending",
+            "booking_ids": ["BK-02277"],
+        },
+        {
+            "id": "BK-02270",
+            "date": "2026-10-28",
+            "amount_chf": -24.35,
+            "counterparty": "Migros",
+            "kind": "spending",
+            "booking_ids": ["BK-02270"],
+        },
+    ]
+    body = {"type": "donut", "data": "movements", "label": "counterparty", "value": "amount_chf"}
+    page = render(spec=spec(body=body), data={"movements": movements}, form="static")
+    assert page.count('data-component="donut-slice"') == 3
+    assert 'data-path="movements[2]" data-value="35.97"' in page
+    assert "BK-02270" in page
+
+
+def test_lukas_going_out_compares_sum_by_month_months_year_against_year() -> None:
+    months = [
+        {"month": month, "count": 1, "money_out_chf": out, "booking_ids": [f"CTX-{month}"]}
+        for month, out in [
+            ("2025-01", 132.33),
+            ("2025-02", 13.52),
+            ("2026-01", 98.4),
+            ("2026-02", 41.0),
+        ]
+    ]
+    body = {
+        "type": "comparison",
+        "data": "months",
+        "x": "month",
+        "y": "money_out_chf",
+        "series": "year",
+    }
+    values = _values(body=body, data={"months": months})
+    assert [(value["label"], value["series"], value["y"]) for value in values] == [
+        ("Jan", "2025", 132.33),
+        ("Feb", "2025", 13.52),
+        ("Jan", "2026", 98.4),
+        ("Feb", "2026", 41.0),
+    ]
+    assert "year" not in months[0]
+
+
+def test_daniela_support_timeline_shows_the_month_it_has_not_arrived_as_not_yet() -> None:
+    months = [
+        {"month": "2026-09", "arrived": "2026-09-22", "amount_chf": 1050.0},
+        {"month": "2026-10", "arrived": "2026-10-22", "amount_chf": 1050.0},
+        {"month": "2026-11", "arrived": None, "amount_chf": 0.0},
+    ]
+    body = {
+        "type": "timeline",
+        "rows": "months",
+        "date": "arrived",
+        "label": "month",
+        "value": "amount_chf",
+    }
+    page = render(spec=spec(body=body), data={"months": months}, form="static")
+    assert page.count('data-component="timeline-item"') == 3
+    assert '<span class="tl-date">not yet</span>' in page
+    # The banking API's reads drop empty fields, so the date can be missing too.
+    dropped = [*months[:2], {"month": "2026-11", "amount_chf": 0.0}]
+    page = render(spec=spec(body=body), data={"months": dropped}, form="static")
+    assert '<span class="tl-date">not yet</span>' in page
+    # A date field no row has is a wrong name, not dates still to come.
+    wrong = {**body, "date": "paid_on"}
+    with pytest.raises(BadRequestError, match=r"months\[0\] has no field paid_on; fields: month"):
+        render(spec=spec(body=wrong), data={"months": months}, form="static")
+
+
+def test_daniela_fixed_costs_draw_rent_due_twice_as_one_bar() -> None:
+    payments = [
+        {
+            "due_date": "2026-11-27",
+            "payee_name": "Wohnbaugenossenschaft Talgut",
+            "amount_chf": 1640.0,
+            "source_id": "SO-RENT",
+        },
+        {
+            "due_date": "2026-12-07",
+            "payee_name": "Lebara Schweiz",
+            "amount_chf": 19.9,
+            "source_id": "PAY-0247",
+        },
+        {
+            "due_date": "2026-12-28",
+            "payee_name": "Wohnbaugenossenschaft Talgut",
+            "amount_chf": 1640.0,
+            "source_id": "SO-RENT",
+        },
+    ]
+    body = {
+        "type": "bar_chart",
+        "data": "upcoming_payments",
+        "x": "payee_name",
+        "y": "amount_chf",
+        "horizontal": True,
+    }
+    values = _values(body=body, data={"upcoming_payments": payments})
+    assert [(value["label"], value["y"]) for value in values] == [
+        ("Wohnbaugenossenschaft Talgut", 3280.0),
+        ("Lebara Schweiz", 19.9),
+    ]
+
+
+def test_marco_interest_by_tranche_sums_each_loans_payments() -> None:
+    items = [
+        {"loan_id": "LOAN-01", "date": "2026-06-30", "interest_chf": 1050.0},
+        {"loan_id": "LOAN-02", "date": "2026-06-30", "interest_chf": 831.25},
+        {"loan_id": "LOAN-03", "date": "2026-06-30", "interest_chf": 230.0},
+        {"loan_id": "LOAN-03", "date": "2026-09-30", "interest_chf": 227.5},
+    ]
+    body = {"type": "bar_chart", "data": "loan_payments", "x": "loan_id", "y": "interest_chf"}
+    values = _values(body=body, data={"loan_payments": items})
+    assert [(value["label"], value["y"]) for value in values] == [
+        ("LOAN-01", 1050.0),
+        ("LOAN-02", 831.25),
+        ("LOAN-03", 457.5),
+    ]
+
+
+def test_bars_of_money_out_stand_up_and_mixed_signs_keep_their_sign() -> None:
+    body = {"type": "bar_chart", "data": "months", "x": "label", "y": "amount_chf"}
+    out = [{"label": "2026-09", "amount_chf": -5.0}, {"label": "2026-10", "amount_chf": -3.5}]
+    values = _values(body=body, data={"months": out})
+    assert [(value["y"], value["shown"]) for value in values] == [
+        (5.0, "CHF 5.00"),
+        (3.5, "CHF 3.50"),
+    ]
+    net = [out[0], {"label": "2026-10", "amount_chf": 3.5}]
+    assert [value["y"] for value in _values(body=body, data={"months": net})] == [-5.0, 3.5]
+    left = [{"category": "Groceries", "left_chf": -72.4}, {"category": "Fun", "left_chf": -9.0}]
+    body = {"type": "bar_chart", "data": "budgets", "x": "category", "y": "left_chf"}
+    assert [value["y"] for value in _values(body=body, data={"budgets": left})] == [-72.4, -9.0]
 
 
 def test_a_comparison_needs_its_period_field() -> None:

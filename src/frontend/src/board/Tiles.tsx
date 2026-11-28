@@ -118,6 +118,9 @@ export function pillOf(payload: AnyPayload): ReactNode {
   }
 }
 
+// More bars than this leave no room for a value over each; only the highest keeps it.
+const LABELLED_BARS_MAX = 6;
+
 function Pill({
   tone,
   children,
@@ -634,7 +637,11 @@ function MonthlySpending({
         </>
       )}
       <div
-        className="bars num"
+        className={
+          payload.months.length > LABELLED_BARS_MAX
+            ? "bars many num"
+            : "bars num"
+        }
         role="group"
         aria-label={
           top === undefined
@@ -854,6 +861,7 @@ function Pillar3a({
   }
   return (
     <>
+      <p className="note">Left to pay in for {payload.year}</p>
       <Figure amount={payload.figure_chf} isHero={isHero} isSmall={isSmall} />
       <Track
         share={covered}
@@ -861,7 +869,7 @@ function Pillar3a({
       />
       <p className="note num">
         {payload.figure_chf > 0
-          ? `Left to reach the maximum of CHF ${money(maximum)}.${plan}`
+          ? `Of the maximum of CHF ${money(maximum)}.${plan}`
           : `The maximum of CHF ${money(maximum)} for ${payload.year} is reached.${plan}`}
       </p>
       <SourceLink source={payload.source} onSource={onSource} />
