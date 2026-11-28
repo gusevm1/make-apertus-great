@@ -53,20 +53,10 @@ export function TileWidget({
   if (error !== null) {
     return (
       <div className="state" role="alert">
-        <p>
-          {error.status === 404
-            ? "This tile is no longer in your TrustRoom."
-            : error.message}
-        </p>
-        {error.status !== 404 && (
-          <button
-            type="button"
-            className="button go"
-            onClick={() => void load()}
-          >
-            Try again
-          </button>
-        )}
+        <p>{error.message}</p>
+        <button type="button" className="button go" onClick={() => void load()}>
+          Try again
+        </button>
       </div>
     );
   }
