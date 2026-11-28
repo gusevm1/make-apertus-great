@@ -107,11 +107,11 @@ export function BoardScreen({
     onSelect: setSelectedId,
     onSource: setSourceView,
     onAsk,
-    onPublish: async (tileId) => {
+    onPublish: async (tileId, snapshot) => {
       const published = await api<TilePublication>(
         `/api/boards/${board.id}/tiles/${tileId}/publications`,
         token,
-        json({ dashboard_id: dashboardId }),
+        json({ dashboard_id: dashboardId, snapshot }),
       );
       sendToHost("widgets-changed", { dashboard_id: published.dashboard_id });
     },

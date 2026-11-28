@@ -1466,3 +1466,29 @@
   font-size: 13px;
   color: var(--muted);
 }
+
+/* A tile alone in its frame on the e-banking dashboard: it fills the cell and has no shadow there. */
+.tile-widget,
+.tile-widget body,
+.tile-widget #root {
+  height: 100%;
+}
+
+.tile-widget body {
+  background: transparent;
+}
+
+.tile-widget #root {
+  display: flex;
+  flex-direction: column;
+}
+
+.tile-widget .tile {
+  flex: 1;
+  box-shadow: none;
+}
+
+.tile-widget .bar {
+  top: 8px;
+  right: 8px;
+}
