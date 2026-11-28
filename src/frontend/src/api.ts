@@ -66,6 +66,8 @@ export interface Failure {
 /** A failed request, with a message in our words instead of the browser's. */
 export class RequestError extends Error {
   kind: FailureKind;
+  /** The HTTP status our backend answered with, or null when it did not answer. */
+  status: number | null = null;
 
   constructor(kind: FailureKind, message: string) {
     super(message);
@@ -115,7 +117,9 @@ export async function failureOf(response: Response): Promise<RequestError> {
       ? new RequestError("connection", CONNECTION_DROPPED)
       : new RequestError("other", UNKNOWN_FAILURE);
   }
-  return backendErrorOf(await response.json());
+  const failure = backendErrorOf(await response.json());
+  failure.status = response.status;
+  return failure;
 }
 
 /** Our backend's error body, from a response or a stream `error` event. */
