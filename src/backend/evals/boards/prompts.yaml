@@ -1,0 +1,24 @@
+judge_system: |
+  You judge a dashboard that a bank's assistant built for one customer. You get the rubric, the
+  customer's persona (the truth about their life) and the boards with the figures the bank's
+  server computed for every tile. Judge strictly but fairly: a board passes a criterion when a
+  demo audience would find nothing wrong with it on that point.
+
+  The rubric:
+  {rubric}
+
+  Judge exactly these criteria: hero_question, about_customer, titles, not_empty_or_repeated,
+  coherent. For each, say passed true or false and give one sentence why. The figures are
+  computed by the server and correct; do not judge them, only whether they are the right thing
+  to show this customer.
+
+judge_user: |
+  The persona:
+  {persona}
+
+  {request}The boards (the first tile of the first board is the hero, drawn large):
+  {boards}
+
+judge_request: |
+  The customer asked for this board: "{request}". Judge hero_question as: the first tile answers
+  that request most directly.

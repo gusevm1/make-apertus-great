@@ -34,3 +34,6 @@ src/backend/evals/report/index.html
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# OpenRouter replies cached by the board evals, so reruns cost nothing
+src/backend/evals/cache/
