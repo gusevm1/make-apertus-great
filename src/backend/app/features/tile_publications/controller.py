@@ -25,6 +25,10 @@ async def create_tile_publication(
 ) -> ResponseTilePublication:
     """Put a tile's figures on your e-banking dashboard, replacing its older copy."""
     publication = await service.publish_tile(
-        tile=tile, dashboard_id=body.dashboard_id, token=user.token, today=today
+        tile=tile,
+        dashboard_id=body.dashboard_id,
+        snapshot=body.snapshot,
+        token=user.token,
+        today=today,
     )
     return ResponseTilePublication.model_validate(publication, from_attributes=True)

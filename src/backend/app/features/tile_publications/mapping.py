@@ -5,6 +5,8 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
+from app.features.boards.schemas import Tile
+from app.features.tile_publications.schemas import TileSnapshot
 from app.features.tiles.schemas import (
     AccountBalancesPayload,
     AnyPayload,
@@ -61,6 +63,28 @@ def widget_of(payload: AnyPayload, title: str, tile_id: UUID, today: date) -> di
             )
             spec["footnote"] = f"{spec['footnote']} {note}" if "footnote" in spec else note
     return {"title": title, "custom": custom}
+
+
+def snapshot_widget_of(
+    widget: dict[str, Any], snapshot: TileSnapshot, tile: Tile, today: date
+) -> dict[str, Any]:
+    """The widget with the page's own drawing of the tile in place of the e-banking's."""
+    custom = {key: value for key, value in widget["custom"].items() if key != "spec"}
+    custom |= {
+        "format": "html",
+        # Our e-banking reads the board and the tile from this comment and frames the live tile.
+        "html": f"<!-- trustroom-tile:{tile.board_id}/{tile.id} -->{snapshot.html}",
+        "height": snapshot.height,
+        "prompt": f"A tile from your TrustRoom, with the figures of {_day(day=today)}",
+    }
+    return {"title": widget["title"], "custom": custom}
+
+
+def is_widget_of(widget: dict[str, Any], tile_id: UUID) -> bool:
+    """Whether the dashboard widget is this tile's copy, in either format."""
+    custom = widget.get("custom") or {}
+    in_page = f"/{tile_id} -->" in (custom.get("html") or "")[:120]
+    return custom.get("prompt") == tile_marker(tile_id=tile_id) or in_page
 
 
 def widget_width(widget: dict[str, Any]) -> int:

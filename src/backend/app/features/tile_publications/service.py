@@ -9,11 +9,12 @@ from app.features.ledger.service import LedgerService
 from app.features.payments.service import PaymentService
 from app.features.tile_publications.mapping import (
     first_free_position,
-    tile_marker,
+    is_widget_of,
+    snapshot_widget_of,
     widget_of,
     widget_width,
 )
-from app.features.tile_publications.schemas import TilePublication
+from app.features.tile_publications.schemas import TilePublication, TileSnapshot
 
 
 class TilePublicationService:
@@ -25,26 +26,32 @@ class TilePublicationService:
         self.payments = payments
 
     async def publish_tile(
-        self, tile: Tile, dashboard_id: str | None, token: str, today: date
+        self,
+        tile: Tile,
+        dashboard_id: str | None,
+        snapshot: TileSnapshot | None,
+        token: str,
+        today: date,
     ) -> TilePublication:
         """Put the tile as it is now on the dashboard after the click, replacing an older copy."""
         payload = await self.boards.resolve_tile(tile=tile, token=token, today=today)
         widget = widget_of(payload=payload, title=tile.title, tile_id=tile.id, today=today)
+        width = widget_width(widget=widget)
+        if snapshot is not None:
+            widget = snapshot_widget_of(widget=widget, snapshot=snapshot, tile=tile, today=today)
+            width = snapshot.columns
         dashboard = await self._dashboard(dashboard_id=dashboard_id, token=token)
         path = f"/dashboards/{quote(dashboard['id'], safe='')}/widgets"
-        marker = tile_marker(tile_id=tile.id)
         widget_id = next(
             (
                 item["id"]
                 for item in dashboard["widgets"]
-                if (item.get("custom") or {}).get("prompt") == marker
+                if is_widget_of(widget=item, tile_id=tile.id)
             ),
             None,
         )
         if widget_id is None:
-            position = first_free_position(
-                widgets=dashboard["widgets"], width=widget_width(widget=widget)
-            )
+            position = first_free_position(widgets=dashboard["widgets"], width=width)
             created = await self.payments.write(
                 method="POST",
                 path=path,
