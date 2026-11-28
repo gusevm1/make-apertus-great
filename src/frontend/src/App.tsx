@@ -12,8 +12,7 @@ import type { ConversationRef } from "./chat/types";
 import { type HostContext, useHostContext } from "./host";
 import { useStream } from "./lib/useStream";
 import { ProfilePanel } from "./profile/ProfilePanel";
-
-type Mode = "board" | "chat";
+import { SPLIT, Split } from "./Split";
 
 export function App() {
   const context = useHostContext();
@@ -53,7 +52,10 @@ function TrustRoom({
   onReset: () => void;
 }) {
   const token = context.access_token;
-  const [mode, setMode] = useState<Mode>("board");
+  // The board's share of the screen, and the last split to come back to.
+  const [share, setShare] = useState(SPLIT);
+  const [lastSplit, setLastSplit] = useState(SPLIT);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [boards, setBoards] = useState<BoardSummary[]>([]);
   const [loading, setLoading] = useState<Loading>({ state: "loading" });
   // The open board, or null for the new-board screen.
@@ -68,8 +70,12 @@ function TrustRoom({
   const [freshId, setFreshId] = useState<string | null>(null);
   const [customerSince, setCustomerSince] = useState<string | null>(null);
   const [plans, setPlans] = useState<BoardPlan[]>([]);
-  // A chat picked from the list in another panel, for the panel that opens next.
+  // The board the chat is about, null for a chat about no board; it follows the board opened.
+  const [chatBoardId, setChatBoardId] = useState<string | null>(null);
+  // A chat picked from the list about another board, or about none, for the chat that opens next.
   const [picked, setPicked] = useState<ConversationRef | null>(null);
+  const profileButton = useRef<HTMLButtonElement>(null);
+  const drawerClose = useRef<HTMLButtonElement>(null);
   const build = useStream<BoardPlan>();
   const buildLog = useRef<HTMLDivElement>(null);
 
@@ -77,6 +83,10 @@ function TrustRoom({
   useEffect(() => {
     buildLog.current?.lastElementChild?.scrollIntoView({ block: "end" });
   }, [build.steps]);
+
+  useEffect(() => {
+    if (isProfileOpen) drawerClose.current?.focus();
+  }, [isProfileOpen]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -132,6 +142,7 @@ function TrustRoom({
         list = await fetchBoards();
       }
       setOpenId(list[0]?.id ?? null);
+      setChatBoardId(list[0]?.id ?? null);
       setLoading({ state: "ready" });
     } catch (error) {
       setLoading({ state: "error", error: requestErrorOf(error) });
@@ -145,17 +156,40 @@ function TrustRoom({
     void start();
   }, []);
 
+  function changeShare(next: number) {
+    setShare(next);
+    if (next > 0 && next < 1) setLastSplit(next);
+  }
+
+  // The chat comes along to the board it opens, as its newest chat.
   function openBoard(boardId: string | null) {
     setPicked(null);
     setAskTile(null);
     setOpenId(boardId);
+    if (boardId !== null) setChatBoardId(boardId);
     if (boardId === freshId) setFreshId(null);
+    if (share === 0) setShare(lastSplit);
   }
 
   function openConversation(conversation: ConversationRef) {
-    setMode(conversation.board_id === null ? "chat" : "board");
     if (conversation.board_id !== null) openBoard(conversation.board_id);
+    setChatBoardId(conversation.board_id);
     setPicked(conversation);
+  }
+
+  // A tile is asked about in its board's chat, so the chat moves there first.
+  function askAbout(tile: Tile) {
+    if (openId !== null && chatBoardId !== openId) {
+      setPicked(null);
+      setChatBoardId(openId);
+    }
+    setAskTile({ id: tile.id, title: tile.title });
+    if (share === 1) setShare(lastSplit);
+  }
+
+  function closeProfile() {
+    setIsProfileOpen(false);
+    profileButton.current?.focus();
   }
 
   async function handleBoardChanged(boardId?: string) {
@@ -211,6 +245,7 @@ function TrustRoom({
     const remaining = boards.filter((board) => board.id !== boardId);
     setBoards(remaining);
     if (openId === boardId) openBoard(remaining[0]?.id ?? null);
+    if (chatBoardId === boardId) setChatBoardId(remaining[0]?.id ?? null);
     try {
       await api(`/api/boards/${boardId}`, token, { method: "DELETE" });
     } catch (error) {
@@ -231,11 +266,127 @@ function TrustRoom({
   }
 
   const openBoardSummary = boards.find((board) => board.id === openId) ?? null;
+  const chatBoard = boards.find((board) => board.id === chatBoardId) ?? null;
+  const isBoardShown = share > 0;
+
+  const boardSide = (
+    <section
+      className="boardcol"
+      aria-label={
+        openBoardSummary === null
+          ? "New board"
+          : `Board ${openBoardSummary.name}`
+      }
+    >
+      {loading.state === "ready" ? (
+        <>
+          {openBoardSummary === null ? (
+            <NewBoard
+              token={token}
+              onCreated={(board) => void handleCreated(board)}
+            />
+          ) : (
+            <BoardScreen
+              key={openBoardSummary.id}
+              token={token}
+              boardId={openBoardSummary.id}
+              boardName={openBoardSummary.name}
+              refreshKey={refreshKey}
+              onAsk={askAbout}
+              onTilesChanged={handleTilesChanged}
+            />
+          )}
+          {dockError !== null && (
+            <p className="dropped" role="alert">
+              {dockError}
+            </p>
+          )}
+          <Dock
+            boards={boards}
+            openId={openId}
+            freshId={freshId}
+            isNewOpen={openBoardSummary === null}
+            onOpen={openBoard}
+            onNew={() => openBoard(null)}
+            onRename={(boardId, boardName) =>
+              void handleRenameBoard(boardId, boardName)
+            }
+            onDelete={(boardId) => void handleDeleteBoard(boardId)}
+          />
+        </>
+      ) : (
+        <FirstBoards loading={loading} onRetry={() => void start()} />
+      )}
+      {loading.state === "ready" && (
+        <button
+          type="button"
+          className="askfab"
+          data-shown={share === 1 ? "" : undefined}
+          tabIndex={share === 1 ? 0 : -1}
+          onClick={() => setShare(lastSplit)}
+        >
+          <SmallIcon name="ask" />
+          {openBoardSummary === null
+            ? "Open the chat"
+            : `Ask about ${openBoardSummary.name}`}
+        </button>
+      )}
+    </section>
+  );
+
+  let chatSide = null;
+  if (loading.state === "building") {
+    chatSide = (
+      <section
+        className="tr-chat"
+        data-variant="side"
+        aria-label="How your first board is built"
+      >
+        <div className="talk-in">
+          <div className="chathead">
+            <b>Chat</b>
+            <span>building your first board</span>
+          </div>
+          <div className="msgs" ref={buildLog}>
+            <div className="bot">
+              I am building your first board from your own accounts and
+              bookings. Every step shows here as it happens.
+            </div>
+            <BuildTrace steps={build.steps} isLive isOpen />
+          </div>
+        </div>
+      </section>
+    );
+  }
+  if (loading.state === "ready") {
+    chatSide = (
+      <ChatPanel
+        key={chatBoardId ?? "no-board"}
+        variant={isBoardShown ? "side" : "page"}
+        initialConversationId={
+          picked?.board_id === chatBoardId ? (picked?.id ?? null) : null
+        }
+        boards={boards}
+        board={
+          chatBoard === null ? null : { id: chatBoard.id, name: chatBoard.name }
+        }
+        newChatBoardId={isBoardShown ? openId : null}
+        plan={plans.find((plan) => plan.id === chatBoard?.plan_id) ?? null}
+        tile={askTile}
+        isBoardShown={isBoardShown}
+        onToggleBoard={() => setShare(isBoardShown ? 0 : lastSplit)}
+        onClose={() => setShare(1)}
+        onClearTile={() => setAskTile(null)}
+        onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
+        onOpenBoard={openBoard}
+        onOpenConversation={openConversation}
+      />
+    );
+  }
 
   return (
     <div
       className="app"
-      data-mode={mode}
       data-building={loading.state === "building" ? "" : undefined}
     >
       <header className="top">
@@ -247,36 +398,21 @@ function TrustRoom({
             Stays inside the bank
           </span>
         </div>
-        <nav className="mode" aria-label="What to show">
-          <button
-            type="button"
-            aria-pressed={mode === "board"}
-            onClick={() => setMode("board")}
-          >
-            <SmallIcon name="board" />
-            Board and chat
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "chat"}
-            onClick={() => setMode("chat")}
-          >
-            <SmallIcon name="ask" />
-            Chat
-          </button>
-        </nav>
         <div className="tail">
           <DemoReset token={token} onDone={onReset} />
           <button
+            ref={profileButton}
             className="me"
             type="button"
-            aria-expanded={mode === "chat"}
+            aria-expanded={isProfileOpen}
             aria-label={
-              mode === "chat"
+              isProfileOpen
                 ? `Close the profile of ${name}`
                 : `Open the profile of ${name}`
             }
-            onClick={() => setMode(mode === "chat" ? "board" : "chat")}
+            onClick={() =>
+              isProfileOpen ? closeProfile() : setIsProfileOpen(true)
+            }
           >
             <span className="avatar">{initials}</span>
             <span>
@@ -286,127 +422,45 @@ function TrustRoom({
           </button>
         </div>
       </header>
-
-      {mode === "chat" ? (
-        <div className="main">
-          <ChatPanel
-            variant="page"
-            initialConversationId={
-              picked !== null && picked.board_id === null ? picked.id : null
-            }
-            boards={boards}
-            board={null}
-            plan={null}
-            tile={null}
-            onClearTile={() => setAskTile(null)}
-            onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
-            onOpenBoard={(boardId) => {
-              setMode("board");
-              openBoard(boardId);
-            }}
-            onOpenConversation={openConversation}
-          />
-          <ProfilePanel
-            name={name}
-            initials={initials}
-            customerSince={customerSince}
-          />
-        </div>
+      {chatSide === null ? (
+        <div className="main">{boardSide}</div>
       ) : (
-        <div className="main">
-          <section
-            className="boardcol"
-            aria-label={
-              openBoardSummary === null
-                ? "New board"
-                : `Board ${openBoardSummary.name}`
-            }
-          >
-            {loading.state === "ready" ? (
-              <>
-                {openBoardSummary === null ? (
-                  <NewBoard
-                    token={token}
-                    onCreated={(board) => void handleCreated(board)}
-                  />
-                ) : (
-                  <BoardScreen
-                    key={openBoardSummary.id}
-                    token={token}
-                    boardId={openBoardSummary.id}
-                    boardName={openBoardSummary.name}
-                    refreshKey={refreshKey}
-                    onAsk={(tile) =>
-                      setAskTile({ id: tile.id, title: tile.title })
-                    }
-                    onTilesChanged={handleTilesChanged}
-                  />
-                )}
-                {dockError !== null && (
-                  <p className="dropped" role="alert">
-                    {dockError}
-                  </p>
-                )}
-                <Dock
-                  boards={boards}
-                  openId={openId}
-                  freshId={freshId}
-                  isNewOpen={openBoardSummary === null}
-                  onOpen={openBoard}
-                  onNew={() => openBoard(null)}
-                  onRename={(boardId, boardName) =>
-                    void handleRenameBoard(boardId, boardName)
-                  }
-                  onDelete={(boardId) => void handleDeleteBoard(boardId)}
-                />
-              </>
-            ) : (
-              <FirstBoards loading={loading} onRetry={() => void start()} />
-            )}
-          </section>
-          {loading.state === "building" && (
-            <section
-              className="tr-chat"
-              data-variant="side"
-              aria-label="How your first board is built"
-            >
-              <div className="talk-in">
-                <div className="chathead">
-                  <b>Chat</b>
-                  <span>building your first board</span>
-                </div>
-                <div className="msgs" ref={buildLog}>
-                  <div className="bot">
-                    I am building your first board from your own accounts and
-                    bookings. Every step shows here as it happens.
-                  </div>
-                  <BuildTrace steps={build.steps} isLive isOpen />
-                </div>
-              </div>
-            </section>
-          )}
-          {loading.state === "ready" && openBoardSummary !== null && (
-            <ChatPanel
-              key={openBoardSummary.id}
-              variant="side"
-              initialConversationId={
-                picked?.board_id === openBoardSummary.id ? picked.id : null
-              }
-              boards={boards}
-              board={{ id: openBoardSummary.id, name: openBoardSummary.name }}
-              plan={
-                plans.find((plan) => plan.id === openBoardSummary.plan_id) ??
-                null
-              }
-              tile={askTile}
-              onClearTile={() => setAskTile(null)}
-              onBoardChanged={(boardId) => void handleBoardChanged(boardId)}
-              onOpenBoard={openBoard}
-              onOpenConversation={openConversation}
-            />
-          )}
-        </div>
+        <Split
+          share={share}
+          onShare={changeShare}
+          board={boardSide}
+          chat={chatSide}
+        />
       )}
+      <div
+        className="scrim"
+        data-shown={isProfileOpen ? "" : undefined}
+        onClick={closeProfile}
+      />
+      <div
+        className="drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Profile of ${name}`}
+        data-shown={isProfileOpen ? "" : undefined}
+        inert={!isProfileOpen}
+        onKeyDown={(event) => event.key === "Escape" && closeProfile()}
+      >
+        <button
+          type="button"
+          ref={drawerClose}
+          className="drawer-close"
+          aria-label="Close the profile"
+          onClick={closeProfile}
+        >
+          <SmallIcon name="close" />
+        </button>
+        <ProfilePanel
+          name={name}
+          initials={initials}
+          customerSince={customerSince}
+        />
+      </div>
     </div>
   );
 }

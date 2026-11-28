@@ -6,11 +6,9 @@
   --profile-pdf-ink: #a1211a;
   --profile-ink-hover: #13303f;
 
-  flex: 1 1 340px;
-  max-width: 392px;
+  flex: 1;
   min-width: 0;
   background: var(--canvas);
-  border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -283,12 +281,4 @@
   font-size: 12px;
   color: var(--muted);
   line-height: 1.5;
-}
-
-@media (max-width: 860px) {
-  .tr-profile {
-    max-width: none;
-    border-left: 0;
-    border-top: 1px solid var(--line);
-  }
 }

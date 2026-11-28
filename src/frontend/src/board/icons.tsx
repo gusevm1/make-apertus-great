@@ -89,6 +89,7 @@ const SMALL_PATHS = {
   more: "M3 7h.01M7 7h.01M11 7h.01",
   arrow: "M3 7h8M7.5 3.5 11 7l-3.5 3.5",
   lock: "M2.6 6.2h8.8v6H2.6ZM4.7 6.2V4.4a2.3 2.3 0 0 1 4.6 0v1.8",
+  history: "M7 1.8a5.2 5.2 0 1 1 0 10.4A5.2 5.2 0 0 1 7 1.8ZM7 4.3V7l1.9 1.2",
 };
 
 export type SmallIconName = keyof typeof SMALL_PATHS;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import {
   api,
   type DocumentRef,
@@ -11,6 +11,7 @@ import { Confirmation } from "../Confirmation";
 import { type HostContext, useHostContext } from "../host";
 import { Markdown } from "../lib/markdown";
 import { useStream } from "../lib/useStream";
+import { SmallIcon } from "../board/icons";
 import type { BoardPlan } from "../board/types";
 import { useVoiceInput } from "../useVoiceInput";
 import { Answer } from "./Answer";
@@ -26,15 +27,21 @@ import {
 } from "./types";
 
 export interface ChatPanelProps {
+  /** Beside the board, or wide while the board is hidden. */
   variant: "side" | "page";
   /** A chat picked from another board's panel, opened first; null opens the newest one. */
   initialConversationId: string | null;
   /** Every board, to say in the list of chats which board a chat is about. */
   boards: { id: string; name: string }[];
   board: { id: string; name: string } | null;
+  /** Where a new chat goes: the board on screen, or null for no board. */
+  newChatBoardId: string | null;
   /** How the open board was built; null for the page chat and for a board started empty. */
   plan: BoardPlan | null;
   tile: { id: string; title: string } | null;
+  isBoardShown: boolean;
+  onToggleBoard: () => void;
+  onClose: () => void;
   onClearTile: () => void;
   onBoardChanged: (boardId?: string) => void;
   onOpenBoard: (boardId: string) => void;
@@ -83,8 +90,12 @@ function ChatInner({
   initialConversationId,
   boards,
   board,
+  newChatBoardId,
   plan,
   tile,
+  isBoardShown,
+  onToggleBoard,
+  onClose,
   onClearTile,
   onBoardChanged,
   onOpenBoard,
@@ -142,11 +153,13 @@ function ChatInner({
     return { messages, toolCalls, proposals };
   }
 
-  /** A new chat about the open board, or about none on the chat page. */
-  async function createConversation(): Promise<ConversationRef> {
-    return boardId === null
+  /** A new chat about a board, or about none. */
+  async function createConversation(
+    aboutId: string | null,
+  ): Promise<ConversationRef> {
+    return aboutId === null
       ? api<ConversationRef>("/api/conversations", token, json({}))
-      : api<ConversationRef>(`/api/boards/${boardId}/conversations`, token, {
+      : api<ConversationRef>(`/api/boards/${aboutId}/conversations`, token, {
           method: "POST",
         });
   }
@@ -158,7 +171,7 @@ function ChatInner({
     const chosen = own.find((conversation) => conversation.id === chosenId);
     const existing = chosen ?? own[0];
     if (existing !== undefined) return { id: existing.id, all };
-    const created = await createConversation();
+    const created = await createConversation(boardId);
     return { id: created.id, all: [created, ...all] };
   }
 
@@ -278,7 +291,9 @@ function ChatInner({
     setFailed(null);
     setIsHistoryOpen(false);
     try {
-      const created = await createConversation();
+      const created = await createConversation(newChatBoardId);
+      // A chat about another board, or about none, opens where that chat lives.
+      if (newChatBoardId !== boardId) return onOpenConversation(created);
       resolving.current = {
         chosenId: created.id,
         result: Promise.resolve({
@@ -365,7 +380,7 @@ function ChatInner({
       ? "Answer the question above first"
       : voice.phase === "transcribing"
         ? "Transcribing…"
-        : variant === "page"
+        : board === null
           ? "Ask anything about your money"
           : "Ask, or change the board";
 
@@ -458,94 +473,218 @@ function ChatInner({
     </>
   );
 
+  // An empty chat is the new chat already, unless a new one goes elsewhere.
+  const isNewChatDisabled =
+    isBusy ||
+    load !== "ready" ||
+    (newChatBoardId === boardId && loaded.messages.length === 0);
+
   return (
     <section
       className="tr-chat"
       data-variant={variant}
-      aria-label={variant === "side" ? "Chat about this board" : "Chat"}
+      aria-label={board === null ? "Chat" : `Chat about ${board.name}`}
     >
-      <div className="talk-in">
-        <div className="chathead">
-          <details
-            className="history"
-            open={isHistoryOpen}
-            onToggle={(event) => setIsHistoryOpen(event.currentTarget.open)}
-          >
-            <summary>
-              <b>{active?.title ?? NEW_CHAT}</b>
-              <span>
-                {board === null ? "about no board" : `about ${board.name}`}
-              </span>
-            </summary>
-            <ul>
-              {conversations.map((conversation) => (
-                <li key={conversation.id}>
-                  <button
-                    type="button"
-                    aria-current={conversation.id === activeId}
-                    onClick={() => pick(conversation)}
-                  >
-                    <b>{conversation.title ?? NEW_CHAT}</b>
-                    <span>
-                      {boardNameOf(conversation, boards)} ·{" "}
-                      {startedOf(conversation)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </details>
-          <button
-            type="button"
-            className="newchat"
-            onClick={() => void startChat()}
-            // An empty chat is the new chat already.
-            disabled={
-              isBusy || load !== "ready" || loaded.messages.length === 0
-            }
-          >
-            New chat
-          </button>
-        </div>
-        <div
-          className="msgs"
-          ref={scroller}
-          onScroll={handleScroll}
-          aria-live="polite"
+      <div className="chatbar">
+        <button
+          type="button"
+          className="tool"
+          aria-pressed={isBoardShown}
+          aria-label={isBoardShown ? "Hide the board" : "Show the board"}
+          title={isBoardShown ? "Hide the board" : "Show the board"}
+          onClick={onToggleBoard}
         >
-          {thread}
+          <SmallIcon name="board" />
+        </button>
+        <div className="chatname" key={activeId}>
+          <b>{active?.title ?? NEW_CHAT}</b>
+          <span>
+            {board === null ? "about no board" : `about ${board.name}`}
+          </span>
         </div>
-        {waitingCalls.map((call) => (
-          <Confirmation
-            key={call.id}
-            toolCall={call}
-            onAnswer={(isAllowed, edited) =>
-              handleConfirmation(call.id, isAllowed, edited)
-            }
-          />
-        ))}
-        <Composer
-          inputRef={inputRef}
-          question={question}
-          placeholder={placeholder}
-          isDisabled={waitingCalls.length > 0 || load !== "ready"}
-          isBusy={isBusy}
-          isUploading={isUploading}
-          attached={attached}
-          tile={tile}
-          voicePhase={voice.phase}
-          onChange={setQuestion}
-          onSubmit={() => void ask(question.trim())}
-          onAttach={(file) => void upload(file)}
-          onDetach={(id) =>
-            setAttached((current) => current.filter((other) => other.id !== id))
-          }
-          onClearTile={onClearTile}
-          onVoiceStart={voice.start}
-          onVoiceStop={voice.stop}
+        <button
+          type="button"
+          className="tool"
+          aria-expanded={isHistoryOpen}
+          aria-label="Your chats"
+          title="Your chats"
+          onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+        >
+          <SmallIcon name="history" />
+        </button>
+        <button
+          type="button"
+          className="tool"
+          aria-label="New chat"
+          title="New chat"
+          onClick={() => void startChat()}
+          disabled={isNewChatDisabled}
+        >
+          <SmallIcon name="rename" />
+        </button>
+        <button
+          type="button"
+          className="tool"
+          aria-label="Close the chat"
+          title="Close the chat"
+          onClick={onClose}
+        >
+          <SmallIcon name="close" />
+        </button>
+      </div>
+      <div className="chatbody">
+        <History
+          isOpen={isHistoryOpen}
+          conversations={conversations}
+          activeId={activeId}
+          boardId={boardId}
+          boards={boards}
+          onPick={pick}
+          onClose={() => setIsHistoryOpen(false)}
         />
+        <div className="talk-in">
+          <div
+            className="msgs"
+            ref={scroller}
+            onScroll={handleScroll}
+            aria-live="polite"
+          >
+            {thread}
+          </div>
+          {waitingCalls.map((call) => (
+            <Confirmation
+              key={call.id}
+              toolCall={call}
+              onAnswer={(isAllowed, edited) =>
+                handleConfirmation(call.id, isAllowed, edited)
+              }
+            />
+          ))}
+          <Composer
+            inputRef={inputRef}
+            question={question}
+            placeholder={placeholder}
+            isDisabled={waitingCalls.length > 0 || load !== "ready"}
+            isBusy={isBusy}
+            isUploading={isUploading}
+            attached={attached}
+            tile={tile}
+            voicePhase={voice.phase}
+            onChange={setQuestion}
+            onSubmit={() => void ask(question.trim())}
+            onAttach={(file) => void upload(file)}
+            onDetach={(id) =>
+              setAttached((current) =>
+                current.filter((other) => other.id !== id),
+              )
+            }
+            onClearTile={onClearTile}
+            onVoiceStart={voice.start}
+            onVoiceStop={voice.stop}
+          />
+        </div>
       </div>
     </section>
+  );
+}
+
+/** Every chat, this board's first, sliding in over the thread with a search. */
+function History({
+  isOpen,
+  conversations,
+  activeId,
+  boardId,
+  boards,
+  onPick,
+  onClose,
+}: {
+  isOpen: boolean;
+  conversations: ConversationRef[];
+  activeId: string | null;
+  boardId: string | null;
+  boards: { id: string; name: string }[];
+  onPick: (conversation: ConversationRef) => void;
+  onClose: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const search = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) search.current?.focus();
+  }, [isOpen]);
+
+  const words = query.trim().toLowerCase();
+  const matches = conversations.filter((conversation) =>
+    (conversation.title ?? NEW_CHAT).toLowerCase().includes(words),
+  );
+  const order = [
+    ...boards.filter((board) => board.id === boardId),
+    ...boards.filter((board) => board.id !== boardId),
+  ];
+  const groups = [
+    ...order.map((board) => ({
+      label: `About ${board.name}`,
+      items: matches.filter(
+        (conversation) => conversation.board_id === board.id,
+      ),
+    })),
+    {
+      label: "About no board",
+      items: matches.filter((conversation) => conversation.board_id === null),
+    },
+  ].filter((group) => group.items.length > 0);
+
+  function close(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Escape") onClose();
+  }
+
+  return (
+    <>
+      <div
+        className="histback"
+        data-shown={isOpen ? "" : undefined}
+        onClick={onClose}
+      />
+      <nav
+        className="histpanel"
+        aria-label="Your chats"
+        data-shown={isOpen ? "" : undefined}
+        inert={!isOpen}
+        onKeyDown={close}
+      >
+        <input
+          ref={search}
+          type="search"
+          value={query}
+          placeholder="Search your chats"
+          aria-label="Search your chats"
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        {groups.map((group) => (
+          <section key={group.label}>
+            <h3>{group.label}</h3>
+            {group.items.map((conversation) => (
+              <button
+                key={conversation.id}
+                type="button"
+                aria-current={conversation.id === activeId}
+                onClick={() => onPick(conversation)}
+              >
+                <b>{conversation.title ?? NEW_CHAT}</b>
+                <span>{startedOf(conversation)}</span>
+              </button>
+            ))}
+          </section>
+        ))}
+        {groups.length === 0 && (
+          <p className="hint">
+            {conversations.length === 0
+              ? "No chats yet."
+              : "No chat has these words in its name."}
+          </p>
+        )}
+      </nav>
+    </>
   );
 }
 
@@ -561,17 +700,6 @@ function Turn({ text, documents }: { text: string; documents: DocumentRef[] }) {
       ))}
       <div className="you">{text}</div>
     </div>
-  );
-}
-
-function boardNameOf(
-  conversation: ConversationRef,
-  boards: { id: string; name: string }[],
-): string {
-  if (conversation.board_id === null) return "No board";
-  return (
-    boards.find((board) => board.id === conversation.board_id)?.name ??
-    "A board"
   );
 }
 
