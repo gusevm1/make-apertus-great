@@ -12,6 +12,7 @@ from app.features.transaction_tags.personal_tag_service import PersonalTagServic
 from app.features.transaction_tags.repository import (
     CategorisationRunRepository,
     CategoryCorrectionRepository,
+    CustomCategoryRepository,
     PersonalTagAssignmentRepository,
     PersonalTagEvaluationRepository,
     PersonalTagRepository,
@@ -41,6 +42,7 @@ def get_transaction_tag_service(
     return TransactionTagService(
         tags=tags,
         corrections=CategoryCorrectionRepository(session=session),
+        custom=CustomCategoryRepository(session=session),
         ledger=ledger,
         apertus=apertus,
     )
@@ -52,10 +54,17 @@ TransactionTagServiceDep = Annotated[TransactionTagService, Depends(get_transact
 def get_severity_service(
     tags: Annotated[TransactionTagRepository, Depends(get_transaction_tag_repo)],
     severities: Annotated[SeveritySettingRepository, Depends(get_severity_setting_repo)],
+    session: SessionDep,
     ledger: LedgerServiceDep,
     apertus: ApertusClientDep,
 ) -> SeverityService:
-    return SeverityService(tags=tags, severities=severities, ledger=ledger, apertus=apertus)
+    return SeverityService(
+        tags=tags,
+        severities=severities,
+        custom=CustomCategoryRepository(session=session),
+        ledger=ledger,
+        apertus=apertus,
+    )
 
 
 SeverityServiceDep = Annotated[SeverityService, Depends(get_severity_service)]

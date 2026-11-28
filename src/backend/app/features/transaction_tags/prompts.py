@@ -3,24 +3,31 @@ import json
 from app.clients.apertus import Message as LLMMessage
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import LedgerRow
-from app.features.transaction_tags.schemas import CategoryCorrection, PersonalTag
+from app.features.transaction_tags.schemas import CustomCategory, PersonalTag
 
 PROMPTS = load_prompts(prompts_py=__file__)
 
 
 def categorise_prompt(
-    rows: dict[str, LedgerRow], examples: list[CategoryCorrection]
+    rows: dict[str, LedgerRow],
+    examples: list[dict[str, str]],
+    custom: list[CustomCategory],
 ) -> list[LLMMessage]:
-    """The batch for Apertus; `rows` are the ledger rows by their batch-local ref."""
+    """The batch for Apertus; `rows` by batch-local ref, `examples` the customer's decisions."""
     lines = "\n".join(_row_line(ref=ref, row=row) for ref, row in rows.items())
     # Escaped, a booking text can neither close the block nor open a tag of its own.
     lines = lines.replace("<", "&lt;").replace(">", "&gt;")
     system = PROMPTS["categorise_system"]
-    if examples:
-        corrections = "\n".join(
-            json.dumps({"payee": example.payee, "category": example.category}, ensure_ascii=False)
-            for example in examples
+    if custom:
+        categories = "\n".join(
+            json.dumps(
+                {"name": category.name, "description": category.description}, ensure_ascii=False
+            )
+            for category in custom
         )
+        system += PROMPTS["categorise_custom"].format(categories=_escape(text=categories))
+    if examples:
+        corrections = "\n".join(json.dumps(example, ensure_ascii=False) for example in examples)
         system += PROMPTS["categorise_examples"].format(corrections=_escape(text=corrections))
     return [
         {"role": "system", "content": system},

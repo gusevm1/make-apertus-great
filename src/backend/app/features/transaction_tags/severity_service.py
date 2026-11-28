@@ -9,17 +9,18 @@ from app.features.ledger.service import LedgerService
 from app.features.transaction_tags.goals import read_goal_hints
 from app.features.transaction_tags.prompts import severity_prompt
 from app.features.transaction_tags.repository import (
+    CustomCategoryRepository,
     SeveritySettingRepository,
     TransactionTagRepository,
 )
 from app.features.transaction_tags.schemas import (
-    CATEGORIES,
     SEVERITIES,
-    CategorySeverities,
     CertaintyFilter,
     RatedTransactionTag,
     RequestSeverityUpdate,
     SeveritySetting,
+    category_names,
+    category_severities_schema,
 )
 from app.features.transaction_tags.severity import (
     booking_key,
@@ -36,11 +37,13 @@ class SeverityService:
         self,
         tags: TransactionTagRepository,
         severities: SeveritySettingRepository,
+        custom: CustomCategoryRepository,
         ledger: LedgerService,
         apertus: ApertusClient,
     ) -> None:
         self.tags = tags
         self.severities = severities
+        self.custom = custom
         self.ledger = ledger
         self.apertus = apertus
 
@@ -100,7 +103,11 @@ class SeverityService:
         """Have Apertus rate the categories still without a severity; returns the stored ones."""
         settings = await self.severities.list_for_owner(owner_id=owner_id)
         rated = {setting.key for setting in settings if setting.scope == "category"}
-        missing = [category for category in CATEGORIES if category not in rated]
+        missing = [
+            category
+            for category in await self._known_categories(owner_id=owner_id)
+            if category not in rated
+        ]
         if missing:
             await self._propose(owner_id=owner_id, token=token, missing=missing)
             settings = await self.severities.list_for_owner(owner_id=owner_id)
@@ -111,8 +118,10 @@ class SeverityService:
     ) -> SeveritySetting:
         """Set the customer's own severity for a category, a payee or one booking."""
         key = data.key
-        if data.scope == "category" and key not in CATEGORIES:
-            raise BadRequestError(f"Unknown category '{key}'. Allowed: {', '.join(CATEGORIES)}")
+        if data.scope == "category":
+            known = await self._known_categories(owner_id=owner_id)
+            if key not in known:
+                raise BadRequestError(f"Unknown category '{key}'. Allowed: {', '.join(known)}")
         if data.scope == "payee":
             key = normalise_payee(name=key)
             if key == "":
@@ -138,6 +147,9 @@ class SeverityService:
             }
         )
 
+    async def _known_categories(self, owner_id: UUID) -> list[str]:
+        return category_names(custom=await self.custom.list_for_owner(owner_id=owner_id))
+
     async def _propose(self, owner_id: UUID, token: str, missing: list[str]) -> None:
         account_names, transfers = await read_goal_hints(ledger=self.ledger, token=token)
         today = await self.ledger.get_today()
@@ -157,7 +169,7 @@ class SeverityService:
                 totals={category: str(total) for category, total in sorted(totals.items())},
                 categories=missing,
             ),
-            schema=CategorySeverities,
+            schema=category_severities_schema(categories=missing),
             model=Model.SMART,
             purpose="propose_category_severity",
         )

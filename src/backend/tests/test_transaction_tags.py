@@ -19,7 +19,7 @@ from app.features.transaction_tags import service as tag_service
 from app.features.transaction_tags.categorisation_runs import wait_for_runs
 from app.features.transaction_tags.models import CategorisationRunORM
 from app.features.transaction_tags.personal_tag_service import PersonalTagService
-from app.features.transaction_tags.schemas import CATEGORIES, Categorisation
+from app.features.transaction_tags.schemas import CATEGORIES, Categorisation, CategorisationScope
 from app.features.transaction_tags.service import TransactionTagService
 from app.features.transaction_tags.severity import effective_severity, payee_key
 from app.features.transaction_tags.severity_service import SeverityService
@@ -698,9 +698,11 @@ async def test_a_second_post_while_a_run_goes_returns_that_run_and_a_later_one_s
     release = asyncio.Event()
     original = TransactionTagService.create_categorisation
 
-    async def held(self: TransactionTagService, owner_id: UUID, token: str) -> Categorisation:
+    async def held(
+        self: TransactionTagService, owner_id: UUID, token: str, scope: CategorisationScope
+    ) -> Categorisation:
         await release.wait()
-        return await original(self, owner_id=owner_id, token=token)
+        return await original(self, owner_id=owner_id, token=token, scope=scope)
 
     monkeypatch.setattr(TransactionTagService, "create_categorisation", held)
 

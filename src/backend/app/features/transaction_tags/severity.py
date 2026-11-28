@@ -17,6 +17,8 @@ DEFAULT_SEVERITY = {
     "restaurants": "minor",
     "other": "moderate",
 }
+# A category the customer added counts as this until it is rated.
+CUSTOM_DEFAULT_SEVERITY = "moderate"
 
 
 def payee_key(row: LedgerRow) -> str:
@@ -42,4 +44,4 @@ def effective_severity(
         return payee_severity, "payee"
     if (category_severity := stored.get(("category", category))) is not None:
         return category_severity, "category"
-    return DEFAULT_SEVERITY[category], "default"
+    return DEFAULT_SEVERITY.get(category, CUSTOM_DEFAULT_SEVERITY), "default"
