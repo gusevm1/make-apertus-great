@@ -32,7 +32,12 @@ from app.features.figure_checks.service import FigureCheckService
 from app.features.ledger.service import LedgerService
 from app.features.recurring_payments.service import RecurringPaymentService
 from app.features.tiles.schemas import (
+    AccountBalancesPayload,
     AnyPayload,
+    ExpectedIncomePayload,
+    Pillar3aPayload,
+    SavingsGoalPayload,
+    SecuritiesPayload,
     BillPayload,
     BillsUntilPaydayPayload,
     CardBillPayload,
@@ -57,6 +62,7 @@ KEYWORD_MIN = 4
 REQUEST_BILLS = 2
 # An idea's board: its finding and what the request call found beside it.
 REQUEST_IDEA_TILES = 3
+IDEA_ALONE = "This board starts with the finding behind the idea; ask the chat to add more."
 # The German words of a finding's kind, as the findings are written in English.
 KIND_WORDS = {
     "mortgage_maturity": "Hypothek Haus house",
@@ -105,6 +111,37 @@ IDEA_TITLES = {
     "due_soon": "Bills due soon",
     "bills_before_payday": "Bills until payday",
 }
+# After a mortgage hero: the house and the decision first, the car and pillar 3a last.
+MORTGAGE_ORDER = {
+    "goal_progress": 0,
+    "goal_far": 0,
+    "goal_reached": 0,
+    "savings_pots": 1,
+    "due_soon": 2,
+    "fixed_costs": 2,
+    "cashflow": 3,
+    "pillar_3a": 5,
+    "instalments": 5,
+}
+MORTGAGE_REST = 4
+# Ideas about one concrete thing in the customer's life, the most concrete first.
+CONCRETE_KINDS = [
+    "instalments",
+    "private_loan",
+    "goal_far",
+    "goal_progress",
+    "goal_reached",
+    "reminder",
+    "tax_bill",
+    "large_bill",
+    "card_bill",
+    "income_regular",
+    "income_late",
+    "pillar_3a",
+    "securities",
+    "fixed_costs",
+    "savings_pots",
+]
 # Findings about the whole month make no board of their own.
 NO_IDEA_KINDS = {"spending", "cashflow", "due_soon", "bills_before_payday", "payday", "payday_tight"}
 # Findings about the whole month, which a requested board about one thing never needs.
@@ -331,9 +368,14 @@ class BoardPlanService:
         def own(place: str) -> list[TileChoice]:
             return [_choice(pick=pick) for pick in board.own if pick.board == place]
 
-        boards = [
-            BoardChoice(name=board.name, tiles=[hero_tile, *placed("main"), *own("main")])
-        ]
+        main = [*placed("main"), *own("main")]
+        if labels[hero].template == "mortgage":
+            # The blueprint of a house with a decision ahead: the house first, then the rest.
+            by_id = {signal.id: signal for signal in labels.values()}
+            main.sort(key=lambda c: MORTGAGE_ORDER.get(
+                by_id[c.signal].kind if c.signal in by_id else "", MORTGAGE_REST
+            ))
+        boards = [BoardChoice(name=board.name, tiles=[hero_tile, *main])]
         second = placed("second") + own("second")
         if second:
             boards.append(BoardChoice(name=board.second_name or "", tiles=second))
@@ -356,6 +398,7 @@ class BoardPlanService:
         offered: list[Signal],
         lists: digest.RequestLists,
         existing: list[str] | None,
+        payloads: dict[str, AnyPayload],
     ) -> tuple[PlanAnswer, str | None, int]:
         bills = next(
             (s for s in offered if s.kind in {"bills_before_payday", "due_soon"}), None
@@ -366,7 +409,13 @@ class BoardPlanService:
         }
         # An idea from the first plan carries its finding's sentence: that finding answers it.
         idea = next(
-            (s for s in customer.signals if s.template is not None and s.text in request), None
+            (
+                s
+                for s in customer.signals
+                if s.template is not None
+                and (s.text in request or idea_text(signal=s, payload=payloads[s.id]) in request)
+            ),
+            None,
         )
         try:
             result = await self._structured(
@@ -435,6 +484,7 @@ class BoardPlanService:
                 offered=offered,
                 lists=digest.request_lists(raw=raw),
                 existing=existing,
+                payloads=payloads,
             )
         signals = {signal.id: signal for signal in customer.signals}
         tight = any(signal.kind == "payday_tight" for signal in customer.signals)
@@ -589,10 +639,9 @@ class BoardPlanService:
             and signal.kind not in {"payday", "payday_tight", "price_rise"}
             and not self._signal_used(signal, used)
         ]
-        # Findings about one thing first; those about the whole month only to make three.
-        ranked = [s for s in free if s.kind not in NO_IDEA_KINDS] + [
-            s for s in free if s.kind in NO_IDEA_KINDS
-        ]
+        # Findings about one concrete thing first, in this order; the whole month only to fill.
+        rank = {kind: index for index, kind in enumerate(CONCRETE_KINDS)}
+        ranked = sorted(free, key=lambda s: rank.get(s.kind, len(rank) + (s.kind in NO_IDEA_KINDS)))
         ideas: list[Idea] = []
         for signal in ranked:
             title = (titles.get(signal.id) or "").strip()
@@ -603,7 +652,7 @@ class BoardPlanService:
                 )
             if any(idea.title.casefold() == title.casefold() for idea in ideas):
                 continue
-            ideas.append(Idea(title=title, text=signal.text))
+            ideas.append(Idea(title=title, text=idea_text(signal=signal, payload=payloads[signal.id])))
             if len(ideas) == IDEAS_MAX:
                 break
         return ideas
@@ -944,16 +993,17 @@ def _matches(keywords: list[str], text: str) -> bool:
 
 
 def _with_idea(answer: PlanAnswer, idea: Signal | None, request: str) -> PlanAnswer:
-    """An idea's board opens on the finding it was made from, titled as the idea was."""
+    """An idea's board is the finding it was made from; others drift off it, so none is added."""
     if idea is None:
         return answer
     title = request.split(".", 1)[0].strip()
-    board = answer.boards[0]
-    hero = TileChoice(signal=idea.id, title=title)
-    rest = [t for t in board.tiles if t.signal != idea.id]
-    name = board.name or title
+    name = answer.boards[0].name or title
     return answer.model_copy(
-        update={"boards": [BoardChoice(name=name, tiles=[hero, *rest][:REQUEST_IDEA_TILES])]}
+        update={
+            "boards": [BoardChoice(name=name, tiles=[TileChoice(signal=idea.id, title=title)])],
+            # The selection's own notes (such as the loan's) belong to tiles left out here.
+            "notes": [DroppedTile(title=title, reason=IDEA_ALONE)],
+        }
     )
 
 
@@ -1103,3 +1153,35 @@ def _board_name(name: str, index: int, tiles: list[_Tile], request: str | None) 
         return HERO_NAMES.get(hero or "", "Overview")
     first = tiles[0].title if tiles else ""
     return first if name_fits(name=first) else "New board"
+
+
+def _chf(value: Any) -> str:
+    return f"CHF {digest.chf(value)}"
+
+
+def idea_text(signal: Signal, payload: AnyPayload) -> str:
+    """An idea card's sentence: one short line about one thing, figures from the payload."""
+    figure = _chf(payload.figure_chf)
+    match payload:
+        case RegularPaymentsPayload() if signal.kind == "instalments":
+            row = payload.rows[0]
+            return f"The next instalment to {row.payee} is due on {row.next_due:%d.%m.}, {_chf(row.amount_chf)}."
+        case RegularPaymentsPayload() if signal.kind == "private_loan":
+            return f"You pay back {figure} a month to {payload.rows[0].payee}."
+        case RegularPaymentsPayload():
+            return f"Your {len(payload.rows)} largest monthly payments come to {figure}."
+        case SavingsGoalPayload():
+            return f"{payload.account_name} holds {figure} for {payload.goal_text}."
+        case BillPayload():
+            return f"{payload.payee} is due on {payload.due:%d.%m.}: {figure}."
+        case CardBillPayload():
+            return f"The {payload.card_name} bill is {figure}."
+        case ExpectedIncomePayload():
+            return f"{payload.counterparty} sends about {figure} a month."
+        case Pillar3aPayload():
+            return f"{figure} is still open for pillar 3a this year."
+        case SecuritiesPayload():
+            return f"The depot is worth {figure}."
+        case AccountBalancesPayload():
+            return f"Your {len(payload.rows)} savings accounts hold {figure} together."
+    return signal.text
