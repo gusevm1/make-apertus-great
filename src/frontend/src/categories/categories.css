@@ -112,10 +112,9 @@
   color: var(--muted);
 }
 
+/* Wrapped, not cut: a payment to a person names its purpose at the end. */
 .cat-sample-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: var(--text);
 }
 
