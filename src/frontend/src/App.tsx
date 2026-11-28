@@ -529,6 +529,7 @@ function FirstBoards({
   loading: Loading;
   onRetry: () => void;
 }) {
+  const isDebugMode = useDebugMode();
   if (loading.state === "error") {
     return (
       <div className="state" role="alert">
@@ -547,7 +548,8 @@ function FirstBoards({
         <h1>Building your first boards</h1>
         <p>
           From your own accounts and bookings, about what matters to you. This
-          takes a moment, once. The chat shows each step.
+          takes a moment, once.
+          {isDebugMode && " The chat shows each step."}
         </p>
       </div>
     );
