@@ -399,3 +399,23 @@ def test_a_list_dash_an_en_dash_or_no_minus_is_no_sign(answer: str) -> None:
 def test_figures_no_result_holds_are_left_to_figures_found() -> None:
     assert check_context(answer="Im Oktober CHF 39.90.", calls=[SEPTEMBER_TO_OCTOBER]) is None
     assert check_context(answer="Im Oktober CHF 2'916.35.", calls=[]) is None
+
+
+def test_a_swiss_day_without_its_year_is_no_figure() -> None:
+    check = FigureCheckService().check_figures(
+        answer="Due on 07.12. and 23.12., then CHF 4.12. are left of CHF 1'050.00.",
+        sources=['{"left_chf": 4.12, "amount_chf": 1050.0}'],
+    )
+
+    assert check is not None
+    assert check.detail == "2 of 2 found"
+
+
+def test_a_day_without_its_dot_is_no_figure_but_an_amount_is() -> None:
+    check = FigureCheckService().check_figures(
+        answer="Ratenwerk on 07.12 at CHF 77.80, and 12.10 % more.",
+        sources=['{"amount_chf": 77.8}'],
+    )
+
+    assert check is not None
+    assert check.detail == "1 of 2 found; not found: 12.10 %"

@@ -18,7 +18,11 @@ def get_tools(
     service: SpendingService, figure_checks: FigureCheckService, owner_id: UUID, token: str
 ) -> list[Tool[Any]]:
     async def sum_spending(args: SumSpendingArgs) -> SpendingSums:
-        return await service.sum_spending(owner_id=owner_id, token=token, args=args)
+        sums = await service.sum_spending(owner_id=owner_id, token=token, args=args)
+        if sums.count > 0 or args.category is None:
+            return sums
+        # A payee's bookings can carry another category, such as health insurance under "other".
+        return sums.model_copy(update={"note": PROMPTS["sum_spending_none"]})
 
     def uncertain_pointer(result: dict[str, Any], answer: str) -> str | None:
         sums = SpendingSums.model_validate(result)

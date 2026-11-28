@@ -28,6 +28,11 @@ _HYPHEN = "[-\u2010\u2011\u2012\u2013]"
 _DATES = re.compile(
     rf"\b\d{{4}}{_HYPHEN}\d{{2}}{_HYPHEN}\d{{2}}\b|\b\d{{1,2}}\.\d{{1,2}}\.\d{{2,4}}\b"
     rf"|\b\d{{1,2}}\.?\s+(?:{_MONTHS})\b|\b(?:{_MONTHS})\b\.?\s+(?:\d{{4}}|\d{{1,2}})\b"
+    # A Swiss day without its year, such as 23.12., never after a currency.
+    r"|(?<!CHF )(?<!CHF)(?<![\d.'\u2019])(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?!\d)"
+    rf"|\b\d{{1,2}}(?:st|nd|rd|th)\s+(?:of\s+)?(?:{_MONTHS})\b"
+    # Without its last dot only after a word that names a day: "on 07.12 at".
+    r"|\b(?:on|by|until|from|am|bis|vom|ab) (?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])(?![\d.])"
 )
 # Only dates with a day: 2026-12-15, 15.12.2026, 15 December, 15. Dezember, December 15.
 _DAY_DATES = re.compile(

@@ -56,7 +56,7 @@ class RequestToolCallConfirmationCreate(BaseModel):
 
 
 class ToolRequest(BaseModel):
-    reason: str = Field(description=PROMPTS["request_reason"])
+    reason: str = Field(default="", description=PROMPTS["request_reason"])
     tool: str = Field(description=PROMPTS["request_tool"])
     arguments: dict[str, Any] = Field(
         default_factory=dict, description=PROMPTS["request_arguments"]

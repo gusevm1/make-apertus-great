@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import date
@@ -50,6 +51,10 @@ DECISION_MODEL = Model.SMART
 DECISION_PURPOSE = "tool_decision"
 ANSWER_MODEL = Model.SMART
 ANSWER_PURPOSE = "answer"
+# ponytail: board edits by name; their summaries under the answer say it all, so no answer is
+# written. A Tool flag once a second feature has such tools.
+SILENT_EDITS = {"rename_tile", "move_tile", "remove_tile", "change_tile", "rename_board"}
+EDIT_DONE = "Done."
 UNKNOWN_TOOL_ICON = "circle-help"
 TOOL_FAILED = "The tool failed."
 NOT_ALLOWED = "The customer has not allowed this call. Continue without it."
@@ -61,6 +66,20 @@ SHARP_S = {"ß": "ss", "ẞ": "SS"}
 OPENING_QUOTES = "«‹„"
 CLOSING_QUOTES = "»›”"
 EITHER_QUOTES = '“"'
+# Thousands written with a space of any width or a comma, which Swiss amounts write as 1'050.00.
+_SEPARATORS = " \u00a0\u2009\u202f,"
+_AMOUNT = re.compile(
+    rf"(?<![\d'\u2019.,])(?<!\d[{_SEPARATORS}])"
+    rf"(\d{{1,3}}(?:([{_SEPARATORS}])\d{{3}})(?:\2\d{{3}})*)(\.\d{{1,2}}(?!\d))?(?![\d'\u2019])"
+)
+_CURRENCY_BEFORE = re.compile(r"(?:CHF|Fr\.|EUR|USD|\u20ac|\$)\s?-?$")
+_CURRENCY_AFTER = re.compile(r"^\s?(?:CHF|Franken|francs?)\b", re.IGNORECASE)
+# A number may still go on: held back until the text after it arrives.
+_OPEN_NUMBER = re.compile(rf"\d[\d.'\u2019{_SEPARATORS}]*$")
+_CONTEXT_CHARS = 8
+# A tile's index in the board block, such as T2 in: T2 "Bills due before the salary".
+TILE_INDEX = re.compile(r"\bT\d+ (?=\")")
+_TYPOGRAPHIC_THOUSANDS = re.compile(r"(?<=\d)\u2019(?=\d{3}(?!\d))")
 
 
 logger = logging.getLogger(__name__)
@@ -101,10 +120,16 @@ class ToolCallService:
             scope=scope,
         )
         calls = [step async for step in steps if isinstance(step, ToolCall)]
+        if _is_silent_edit(calls=calls):
+            model = _decision_model(calls=calls)
+            return EDIT_DONE, self._provenance(model=model, started=started, calls=calls)
         # Streamed, so the timeout counts the wait per chunk, not the whole answer.
         stream = self.apertus.stream_chat(
             messages=answer_prompt(
-                messages=dated_prompt(messages=messages, today=self.today),
+                messages=dated_prompt(
+                    messages=_answer_messages(messages=messages, scope=scope, calls=calls),
+                    today=self.today,
+                ),
                 calls=calls,
                 tools=list(self.tools.values()),
                 scoped=scope is not None,
@@ -117,7 +142,10 @@ class ToolCallService:
         if stream.result is None:
             raise UpstreamError("Apertus stream ended without a result")
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
-        return SwissSpelling().feed(text=stream.result.content), provenance
+        content = swiss_text(text=stream.result.content)
+        if scope is not None:
+            content = Paragraphs(is_on=True).feed(text=content)
+        return content, provenance
 
     async def stream_answer(
         self,
@@ -143,9 +171,17 @@ class ToolCallService:
             yield ToolResultEvent(
                 id=step.id, arguments=step.arguments, result=step.result, error=step.error
             )
+        if _is_silent_edit(calls=calls):
+            yield TokenEvent(text=EDIT_DONE)
+            provenance = self._provenance(model=_decision_model(calls=calls), started=started, calls=calls)
+            yield DoneEvent(result=(EDIT_DONE, provenance))
+            return
         stream = self.apertus.stream_chat(
             messages=answer_prompt(
-                messages=dated_prompt(messages=messages, today=self.today),
+                messages=dated_prompt(
+                    messages=_answer_messages(messages=messages, scope=scope, calls=calls),
+                    today=self.today,
+                ),
                 calls=calls,
                 tools=list(self.tools.values()),
                 scoped=scope is not None,
@@ -154,12 +190,20 @@ class ToolCallService:
             purpose=ANSWER_PURPOSE,
         )
         spelling = SwissSpelling()
+        numbers = SwissFigures()
+        paragraphs = Paragraphs(is_on=scope is not None)
         async for text in stream:
-            yield TokenEvent(text=spelling.feed(text=text))
+            yield TokenEvent(text=paragraphs.feed(text=numbers.feed(text=spelling.feed(text=text))))
+        rest = numbers.flush()
+        if rest != "":
+            yield TokenEvent(text=rest)
         if stream.result is None:
             raise UpstreamError("Apertus stream ended without a result")
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
-        yield DoneEvent(result=(SwissSpelling().feed(text=stream.result.content), provenance))
+        content = swiss_text(text=stream.result.content)
+        if scope is not None:
+            content = Paragraphs(is_on=True).feed(text=content)
+        yield DoneEvent(result=(content, provenance))
 
     async def list_tool_calls(self, conversation_id: UUID) -> list[ToolCall]:
         """List the tool calls made in a conversation, oldest first."""
@@ -243,7 +287,7 @@ class ToolCallService:
             if not look_up:
                 return
             # The full decision reads the question as before; the board only distracted it.
-            messages = _without(messages=messages, text=scope.context)
+            messages = _replaced(messages=messages, text=scope.context, by="")
         async for step in self._rounds(
             first_round=first_round,
             conversation_id=conversation_id,
@@ -473,12 +517,37 @@ class ToolCallService:
         )
 
 
-def _without(messages: list[LLMMessage], text: str) -> list[LLMMessage]:
+def _is_silent_edit(calls: list[ToolCall]) -> bool:
+    return bool(calls) and all(
+        call.tool_name in SILENT_EDITS and call.error is None for call in calls
+    )
+
+
+def _decision_model(calls: list[ToolCall]) -> str:
+    provenance = calls[-1].provenance
+    return "" if provenance is None else provenance.model
+
+
+def _answer_messages(
+    messages: list[LLMMessage], scope: TurnScope | None, calls: list[ToolCall]
+) -> list[LLMMessage]:
+    # With tool results, the board would pull its other tiles into the answer; they carry the meanings.
+    if scope is None:
+        return messages
+    if not calls:
+        # The indexes are for the board tools; an answer that repeats them reads like code.
+        return _replaced(
+            messages=messages, text=scope.context, by=TILE_INDEX.sub("", scope.context)
+        )
+    return _replaced(messages=messages, text=scope.context, by="")
+
+
+def _replaced(messages: list[LLMMessage], text: str, by: str) -> list[LLMMessage]:
     *earlier, last = messages
     content = last["content"]
     if not isinstance(content, str):
         return messages
-    return [*earlier, {**last, "content": content.replace(text, "")}]
+    return [*earlier, {**last, "content": content.replace(text, by)}]
 
 
 def _problems(exc: ValidationError) -> str:
@@ -555,3 +624,79 @@ class SwissSpelling:
     def _is_verbatim(self) -> bool:
         is_url = "://" in self.word or "www." in self.word
         return is_url or self.open_quotes > 0 or self.line.lstrip().startswith(">")
+
+
+def swiss_figures(text: str) -> str:
+    """Writes the thousands of an amount with an apostrophe: CHF 1 050.00 becomes CHF 1'050.00."""
+    text = _TYPOGRAPHIC_THOUSANDS.sub("'", text)
+    return _AMOUNT.sub(lambda match: _swiss_amount(match=match, text=text), text)
+
+
+def _swiss_amount(match: re.Match[str], text: str) -> str:
+    before = text[max(match.start() - _CONTEXT_CHARS, 0) : match.start()]
+    after = text[match.end() : match.end() + _CONTEXT_CHARS]
+    is_amount = (
+        match[3] is not None
+        or _CURRENCY_BEFORE.search(before) is not None
+        or _CURRENCY_AFTER.match(after) is not None
+    )
+    if not is_amount:
+        return match[0]
+    return match[1].replace(match[2], "'") + (match[3] or "")
+
+
+# swiss_figures for a text that arrives in pieces: a number at the end waits for what follows.
+class SwissFigures:
+    def __init__(self) -> None:
+        self.pending = ""
+        self.before = ""
+
+    def feed(self, text: str) -> str:
+        text = self.pending + text
+        open_number = _OPEN_NUMBER.search(text)
+        cut = len(text) if open_number is None else open_number.start()
+        self.pending = text[cut:]
+        return self._emit(text=text[:cut])
+
+    def flush(self) -> str:
+        text, self.pending = self.pending, ""
+        return self._emit(text=text)
+
+    def _emit(self, text: str) -> str:
+        # Each change keeps the length, so the context before can be cut off again.
+        spelled = swiss_figures(text=self.before + text)[len(self.before) :]
+        self.before = (self.before + text)[-_CONTEXT_CHARS:]
+        return spelled
+
+
+def swiss_text(text: str) -> str:
+    """A whole answer in Swiss spelling, with Swiss amounts."""
+    return swiss_figures(text=SwissSpelling().feed(text=text))
+
+
+# Beside a board, a line is a paragraph unless a list item follows; leading breaks are dropped.
+class Paragraphs:
+    def __init__(self, is_on: bool) -> None:
+        self.is_on = is_on
+        self.last = ""
+        self.breaks = 0
+
+    def feed(self, text: str) -> str:
+        if not self.is_on:
+            return text
+        return "".join(self._char(char=char) for char in text)
+
+    def _char(self, char: str) -> str:
+        if char == "\n":
+            self.breaks += 1
+            return ""
+        if char.isspace() and self.breaks > 0:
+            return ""
+        out = ""
+        if self.breaks > 0 and self.last != "":
+            # A line break ends a paragraph, except before the next item of a list.
+            out = "\n" if self.breaks == 1 and (char in "-*•" or char.isdigit()) else "\n\n"
+        self.breaks = 0
+        if not char.isspace():
+            self.last = char
+        return out + char

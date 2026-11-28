@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 from app.clients.apertus import Message as LLMMessage
 from app.core.prompts import load_prompts
+from app.core.tools import TurnScope
 from app.features.conversations.schemas import Message, PageContext, Quote
 from app.features.documents.schemas import Document
 
@@ -67,3 +68,8 @@ def _quote(quote: Quote) -> str:
     if quote.comment is None:
         return block
     return block + PROMPTS["quote_comment"].format(comment=quote.comment)
+
+
+def guardrail_text(text: str, scope: TurnScope | None) -> str:
+    """The message as the guardrail sorts it: beside a board, a request about a board is on topic."""
+    return text if scope is None else PROMPTS["guardrail_board"].format(text=text)

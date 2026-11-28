@@ -10,7 +10,7 @@ from app.core.errors import BadRequestError, NotFoundError
 from app.core.provenance import Check, Provenance
 from app.core.tools import TurnScope
 from app.core.streaming import CheckingEvent, DoneEvent, StreamEvent, TokenEvent, ToolResultEvent
-from app.features.conversations.prompts import chat_prompt
+from app.features.conversations.prompts import chat_prompt, guardrail_text
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import (
     Conversation,
@@ -26,7 +26,7 @@ from app.features.figure_checks.service import FigureCheckService
 from app.features.figure_corrections.service import FigureCorrectionService
 from app.features.guardrails.schemas import Guardrail
 from app.features.guardrails.service import GuardrailService
-from app.features.tool_calls.service import SwissSpelling, ToolCallService
+from app.features.tool_calls.service import ToolCallService, swiss_text
 
 HISTORY_LIMIT = 20
 # The first round's figure check, kept beside the check of the corrected answer.
@@ -117,7 +117,9 @@ class ConversationService:
             conversation_id=conversation_id, data=data, owner_id=owner_id
         )
         try:
-            guardrail = await self.guardrails.check_message(text=data.content)
+            guardrail = await self.guardrails.check_message(
+                text=guardrail_text(text=data.content, scope=scope)
+            )
             if guardrail.decline is not None:
                 content, provenance = guardrail.decline, guardrail.provenance
             else:
@@ -164,7 +166,9 @@ class ConversationService:
         )
         is_stored = False
         try:
-            guardrail = await self.guardrails.check_message(text=data.content)
+            guardrail = await self.guardrails.check_message(
+                text=guardrail_text(text=data.content, scope=scope)
+            )
             if guardrail.decline is not None:
                 yield TokenEvent(text=guardrail.decline)
                 content, provenance = guardrail.decline, guardrail.provenance
@@ -297,7 +301,7 @@ class ConversationService:
             sources=sources,
         )
         draft = figures.model_copy(update={"name": DRAFT_CHECK})
-        content = SwissSpelling().feed(text=corrected.content)
+        content = swiss_text(text=corrected.content)
         checks = self._checks(content=content, sources=sources, outputs=outputs, texts=texts)
         return content, provenance.model_copy(
             update={

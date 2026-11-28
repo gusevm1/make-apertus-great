@@ -16,8 +16,8 @@ BLOCK_END = re.compile(r"</(?:customer|document|page|quote)>")
 COMMON_WORDS = {
     language: set(words.split())
     for language, words in {
-        "English": "and are at did do does for how is much my of show that the this to"
-        " what when where which who why with you your",
+        "English": "a about and are at can did do does for how is it me much my of show that the"
+        " this to what when where which who why with you your",
         "German": "auf bei bin das dem den der ein eine für habe hat ich im ist mein"
         " meine meinem meinen mir mit sind und viel von wie wo zeig zu",
         "French": "ai au avec combien dans est et je les ma mes mon où pour quel quelle"
@@ -78,7 +78,9 @@ def answer_prompt(
         else PROMPTS["answer_language"].format(language=language)
     )
     if not calls and scoped:
-        content = PROMPTS["answer_scoped_direct"].format(language=language_line)
+        content = PROMPTS["answer_scoped_direct"].format(
+            board=PROMPTS["answer_board"], language=language_line
+        )
         return [*messages, {"role": "user", "content": content}]
     if not calls:
         abilities = PROMPTS["answer_abilities"].format(
@@ -95,6 +97,8 @@ def answer_prompt(
     ]
     if changes:
         content += PROMPTS["answer_changes"].format(changes="; ".join(changes))
+    if scoped:
+        content += "\n" + PROMPTS["answer_board"]
     return [*messages, {"role": "user", "content": content}]
 
 
@@ -148,6 +152,13 @@ def _tool_line(tool: Tool[Any]) -> str:
 def _decision_feedback(calls: list[ToolCall]) -> str:
     has_failed = any(call.error is not None for call in calls)
     next_step = PROMPTS["decision_retry"] if has_failed else PROMPTS["decision_next"]
+    notes = [
+        call.result["suggested_note"]
+        for call in calls
+        if call.result is not None and call.result.get("suggested_note") is not None
+    ]
+    if notes and not any(call.tool_name == "propose_context_entry" for call in calls):
+        next_step = PROMPTS["decision_note"].format(note=notes[0])
     return "".join(_tool_result(call=call) for call in calls) + next_step
 
 
