@@ -1401,17 +1401,36 @@
   padding-bottom: 84px;
 }
 
-@container (max-width: 380px) {
+@container (max-width: 400px) {
   .list li,
   .bills li {
-    padding: 6px 0;
+    padding: 5px 0;
+    gap: 8px;
   }
 
+  /* The name keeps one line; a pill moves under it. */
   .list .payee,
   .bills .payee {
     flex-wrap: wrap;
-    white-space: normal;
-    row-gap: 2px;
+    row-gap: 3px;
+  }
+
+  .list .payee b,
+  .bills .payee b {
+    flex: 1 1 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bills .payee .d,
+  .bills .bal {
+    display: none;
+  }
+
+  /* Without the balance column, as the design does on a small screen. */
+  .bills li {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
   }
 }
 
