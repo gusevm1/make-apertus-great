@@ -18,6 +18,7 @@ from app.features.context_entries.controller import router as context_entries_ro
 from app.features.conversations.controller import router as conversations_router
 from app.features.documents.controller import router as documents_router
 from app.features.recurring_payments.controller import router as recurring_payments_router
+from app.features.tile_publications.controller import router as tile_publications_router
 from app.features.transaction_tags.controller import router as transaction_tags_router
 from app.features.transcriptions.controller import router as transcriptions_router
 from app.features.widgets.controller import router as widgets_router
@@ -61,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(conversations_router, prefix="/api")
     app.include_router(documents_router, prefix="/api")
     app.include_router(recurring_payments_router, prefix="/api")
+    app.include_router(tile_publications_router, prefix="/api")
     app.include_router(transaction_tags_router, prefix="/api")
     app.include_router(transcriptions_router, prefix="/api")
     app.include_router(widgets_router, prefix="/api")

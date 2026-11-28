@@ -18,6 +18,12 @@ export interface Board {
   dropped: DroppedTile[];
 }
 
+export interface TilePublication {
+  tile_id: string;
+  dashboard_id: string;
+  dashboard_widget_id: string;
+}
+
 export interface DroppedTile {
   tile_id: string;
   title: string;

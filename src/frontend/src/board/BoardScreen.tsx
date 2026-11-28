@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { api, type RequestError, requestErrorOf } from "../api";
+import { api, json, type RequestError, requestErrorOf } from "../api";
+import { sendToHost, useHostContext } from "../host";
 import { columnsOf, isSmall, type Unit } from "./layout";
 import { SourceDrawer } from "./SourceDrawer";
 import { type TileActions, TileCard } from "./TileCard";
-import type { Board, SourceView, Tile } from "./types";
+import type { Board, SourceView, Tile, TilePublication } from "./types";
 
 function patch(body: unknown): RequestInit {
   return {
@@ -30,6 +31,8 @@ export function BoardScreen({
   onAsk: (tile: Tile) => void;
   onTilesChanged: (tiles: Tile[]) => void;
 }) {
+  // The dashboard the customer is on, if any; a published tile goes there.
+  const dashboardId = useHostContext()?.dashboard_id ?? null;
   const [board, setBoard] = useState<Board | null>(null);
   const [loadError, setLoadError] = useState<RequestError | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -104,6 +107,14 @@ export function BoardScreen({
     onSelect: setSelectedId,
     onSource: setSourceView,
     onAsk,
+    onPublish: async (tileId) => {
+      const published = await api<TilePublication>(
+        `/api/boards/${board.id}/tiles/${tileId}/publications`,
+        token,
+        json({ dashboard_id: dashboardId }),
+      );
+      sendToHost("widgets-changed", { dashboard_id: published.dashboard_id });
+    },
     onMove: (tileId, position) => {
       const from = tiles.findIndex((tile) => tile.id === tileId);
       if (
