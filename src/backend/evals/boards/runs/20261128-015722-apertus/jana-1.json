@@ -1,0 +1,1264 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": null,
+ "seconds": 11.0,
+ "plan": {
+  "kind": "A young professional repaying a private loan while building an emergency fund, with tight cash flow and upcoming tax and rent bills.",
+  "evidence": [
+   "S2: average monthly deficit of 250.82 over the last 6 months",
+   "S3: savings account at 49 % of its CHF 10'000 goal",
+   "S8: only CHF 5'363.93 left on payday after upcoming bills",
+   "S11: six largest monthly payments total CHF 2'103.25"
+  ],
+  "question": "Will I make it to payday without running out of money?",
+  "boards": [
+   {
+    "name": "Until payday",
+    "tiles": [
+     {
+      "template": "bills_until_payday",
+      "args": {
+       "account_id": "ACC-PRIV"
+      },
+      "title": "Bills until payday"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0131"
+      },
+      "title": "Tax bill"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Tax due"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Andrea Widmer"
+       ]
+      },
+      "title": "Loan repayment"
+     },
+     {
+      "template": "pillar_3a",
+      "args": {},
+      "title": "Pillar 3a, 2026"
+     }
+    ]
+   },
+   {
+    "name": "Building the safety net",
+    "tiles": [
+     {
+      "template": "monthly_spending",
+      "args": {
+       "months": 6,
+       "merchants": [
+        "Coop",
+        "Migros",
+        "Lidl"
+       ]
+      },
+      "title": "Groceries"
+     },
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "Last six months"
+     },
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-PRIV",
+        "ACC-SAV",
+        "ACC-3A"
+       ]
+      },
+      "title": "Three accounts"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Left the day before salary",
+    "reason": "no tile for S8"
+   },
+   {
+    "title": "Due soon",
+    "reason": "shows the same payments as another tile on the board"
+   },
+   {
+    "title": "Big monthly costs",
+    "reason": "shows the same payments as another tile on the board"
+   },
+   {
+    "title": "Emergency fund progress",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Notgroschen goal",
+    "reason": "repeats another tile"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 10492,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "9 of 12 resolved; dropped: Left the day before salary; Due soon; Big monthly costs; Emergency fund progress; Notgroschen goal"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": false,
+    "detail": "Until payday: 1 added"
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Until payday",
+   "tiles": [
+    {
+     "template": "bills_until_payday",
+     "args": {
+      "account_id": "ACC-PRIV"
+     },
+     "title": "Bills until payday",
+     "payload": {
+      "figure_chf": 3155.45,
+      "source": {
+       "label": "6 upcoming payments",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "SO-RENT",
+         "date": "2026-11-27",
+         "text": "Immobilien Aareblick AG: Miete Dezember 2026",
+         "amount_chf": -1390.0
+        },
+        {
+         "id": "PAY-0131",
+         "date": "2026-11-30",
+         "text": "Steuerverwaltung des Kantons Bern: Steuern 2026, 3. Rate (provisorisch)",
+         "amount_chf": -1180.0
+        },
+        {
+         "id": "PAY-0133",
+         "date": "2026-12-01",
+         "text": "Activ Fitness AG: Abo Dezember 2026",
+         "amount_chf": -79.0
+        },
+        {
+         "id": "PAY-0135",
+         "date": "2026-12-07",
+         "text": "Wingo (Swisscom Schweiz AG): Abo Mobile Dezember 2026",
+         "amount_chf": -34.95
+        },
+        {
+         "id": "PAY-0137",
+         "date": "2026-12-14",
+         "text": "Sunrise GmbH: Internet Dezember 2026",
+         "amount_chf": -49.9
+        },
+        {
+         "id": "PAY-0132",
+         "date": "2026-12-23",
+         "text": "KPT Krankenkasse AG: Prämie Januar 2027",
+         "amount_chf": -421.6
+        }
+       ],
+       "count": 6
+      },
+      "template": "bills_until_payday",
+      "payday": "2026-12-24",
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Immobilien Aareblick",
+        "detail": "rent for December",
+        "amount_chf": 1390.0,
+        "balance_after_chf": 7129.38,
+        "flag": null
+       },
+       {
+        "id": "PAY-0131",
+        "due": "2026-11-30",
+        "payee": "Steuerverwaltung des Kantons Bern",
+        "detail": "Steuern Rate",
+        "amount_chf": 1180.0,
+        "balance_after_chf": 5949.38,
+        "flag": "provisional"
+       },
+       {
+        "id": "PAY-0133",
+        "due": "2026-12-01",
+        "payee": "Activ Fitness",
+        "detail": "Abo",
+        "amount_chf": 79.0,
+        "balance_after_chf": 5870.38,
+        "flag": null
+       },
+       {
+        "id": "PAY-0135",
+        "due": "2026-12-07",
+        "payee": "Wingo",
+        "detail": "mobile",
+        "amount_chf": 34.95,
+        "balance_after_chf": 5835.43,
+        "flag": null
+       },
+       {
+        "id": "PAY-0137",
+        "due": "2026-12-14",
+        "payee": "Sunrise",
+        "detail": "internet",
+        "amount_chf": 49.9,
+        "balance_after_chf": 5785.53,
+        "flag": null
+       },
+       {
+        "id": "PAY-0132",
+        "due": "2026-12-23",
+        "payee": "KPT Krankenkasse",
+        "detail": "premium for January",
+        "amount_chf": 421.6,
+        "balance_after_chf": 5363.93,
+        "flag": null
+       }
+      ]
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0131"
+     },
+     "title": "Tax bill",
+     "payload": {
+      "figure_chf": 1180.0,
+      "source": {
+       "label": "Steuerverwaltung des Kantons Bern, due 30.11.",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "PAY-0131",
+         "date": "2026-11-30",
+         "text": "Steuerverwaltung des Kantons Bern: Steuern 2026, 3. Rate (provisorisch)",
+         "amount_chf": -1180.0
+        }
+       ],
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Steuerverwaltung des Kantons Bern",
+      "due": "2026-11-30",
+      "description": "Steuern 2026, 3. Rate (provisorisch)",
+      "flag": "provisional"
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Tax due",
+     "payload": {
+      "figure_chf": 4919.2,
+      "source": {
+       "label": "1 transfer",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-02243",
+         "date": "2026-11-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Notgroschen)",
+         "amount_chf": 250.0
+        }
+       ],
+       "count": 1
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto",
+      "goal_text": "Notgroschen CHF 10'000",
+      "goal_chf": 10000.0,
+      "percent": 49.2,
+      "month_change_chf": 250.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Andrea Widmer"
+      ]
+     },
+     "title": "Loan repayment",
+     "payload": {
+      "figure_chf": 150.0,
+      "source": {
+       "label": "1 payment in December",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "SO-MAMA",
+         "date": "2026-12-28",
+         "text": "Andrea Widmer: Rückzahlung Darlehen",
+         "amount_chf": -150.0
+        }
+       ],
+       "count": 1
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Andrea Widmer",
+        "amount_chf": 150.0,
+        "next_due": "2026-12-28"
+       }
+      ]
+     }
+    },
+    {
+     "template": "pillar_3a",
+     "args": {},
+     "title": "Pillar 3a, 2026",
+     "payload": {
+      "figure_chf": 3658.0,
+      "source": {
+       "label": "11 payments in 2026",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01480",
+         "date": "2026-01-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-01558",
+         "date": "2026-02-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-01620",
+         "date": "2026-03-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-01696",
+         "date": "2026-04-27",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-01771",
+         "date": "2026-05-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-01853",
+         "date": "2026-06-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-01932",
+         "date": "2026-07-27",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-02006",
+         "date": "2026-08-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-02075",
+         "date": "2026-09-28",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-02159",
+         "date": "2026-10-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        },
+        {
+         "id": "BK-02242",
+         "date": "2026-11-26",
+         "text": "Gutschrift Dauerauftrag von Privatkonto (Säule 3a)",
+         "amount_chf": 300.0
+        }
+       ],
+       "count": 11
+      },
+      "template": "pillar_3a",
+      "year": 2026,
+      "maximum_chf": 7258.0,
+      "paid_chf": 3300.0,
+      "standing_orders_chf": 300.0,
+      "balance_chf": 3300.0,
+      "planned": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "Building the safety net",
+   "tiles": [
+    {
+     "template": "monthly_spending",
+     "args": {
+      "months": 6,
+      "merchants": [
+       "Coop",
+       "Migros",
+       "Lidl"
+      ]
+     },
+     "title": "Groceries",
+     "payload": {
+      "figure_chf": 739.96,
+      "source": {
+       "label": "110 payments, May to October",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01723",
+         "date": "2026-05-05",
+         "text": "Kartenzahlung Debit Mastercard 05.05.2026 LIDL BERN WANKDORF",
+         "amount_chf": -81.65
+        },
+        {
+         "id": "BK-01726",
+         "date": "2026-05-06",
+         "text": "Kartenzahlung Debit Mastercard 06.05.2026 LIDL BERN WANKDORF",
+         "amount_chf": -20.25
+        },
+        {
+         "id": "BK-01728",
+         "date": "2026-05-08",
+         "text": "Kartenzahlung Debit Mastercard 08.05.2026 MIGROS TAKEAWAY BERN BAHNHOF",
+         "amount_chf": -19.77
+        },
+        {
+         "id": "BK-01731",
+         "date": "2026-05-11",
+         "text": "Kartenzahlung Debit Mastercard 11.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -55.8
+        },
+        {
+         "id": "BK-01736",
+         "date": "2026-05-14",
+         "text": "Kartenzahlung Debit Mastercard 14.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -36.05
+        },
+        {
+         "id": "BK-01737",
+         "date": "2026-05-14",
+         "text": "Kartenzahlung Debit Mastercard 14.05.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -28.85
+        },
+        {
+         "id": "BK-01743",
+         "date": "2026-05-16",
+         "text": "Kartenzahlung Debit Mastercard 16.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -65.56
+        },
+        {
+         "id": "BK-01750",
+         "date": "2026-05-20",
+         "text": "Kartenzahlung Debit Mastercard 20.05.2026 LIDL BERN WANKDORF",
+         "amount_chf": -12.55
+        },
+        {
+         "id": "BK-01751",
+         "date": "2026-05-20",
+         "text": "Kartenzahlung Debit Mastercard 20.05.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -33.2
+        },
+        {
+         "id": "BK-01754",
+         "date": "2026-05-21",
+         "text": "Kartenzahlung Debit Mastercard 21.05.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -60.5
+        },
+        {
+         "id": "BK-01758",
+         "date": "2026-05-22",
+         "text": "Kartenzahlung Debit Mastercard 22.05.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -60.8
+        },
+        {
+         "id": "BK-01762",
+         "date": "2026-05-23",
+         "text": "Kartenzahlung Debit Mastercard 23.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -72.9
+        },
+        {
+         "id": "BK-01766",
+         "date": "2026-05-25",
+         "text": "Kartenzahlung Debit Mastercard 25.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -53.9
+        },
+        {
+         "id": "BK-01768",
+         "date": "2026-05-25",
+         "text": "Kartenzahlung Debit Mastercard 25.05.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -8.65
+        },
+        {
+         "id": "BK-01777",
+         "date": "2026-05-27",
+         "text": "Kartenzahlung Debit Mastercard 27.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -42.65
+        },
+        {
+         "id": "BK-01778",
+         "date": "2026-05-27",
+         "text": "Kartenzahlung Debit Mastercard 27.05.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -41.83
+        },
+        {
+         "id": "BK-01788",
+         "date": "2026-06-01",
+         "text": "Kartenzahlung Debit Mastercard 01.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -41.8
+        },
+        {
+         "id": "BK-01789",
+         "date": "2026-06-01",
+         "text": "Kartenzahlung Debit Mastercard 01.06.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -24.95
+        },
+        {
+         "id": "BK-01793",
+         "date": "2026-06-03",
+         "text": "Kartenzahlung Debit Mastercard 03.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -33.04
+        },
+        {
+         "id": "BK-01802",
+         "date": "2026-06-06",
+         "text": "Kartenzahlung Debit Mastercard 06.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -63.19
+        },
+        {
+         "id": "BK-01803",
+         "date": "2026-06-06",
+         "text": "Kartenzahlung Debit Mastercard 06.06.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -22.65
+        },
+        {
+         "id": "BK-01806",
+         "date": "2026-06-08",
+         "text": "Kartenzahlung Debit Mastercard 08.06.2026 MIGROS TAKEAWAY BERN BAHNHOF",
+         "amount_chf": -14.29
+        },
+        {
+         "id": "BK-01808",
+         "date": "2026-06-09",
+         "text": "Kartenzahlung Debit Mastercard 09.06.2026 MIGROS TAKEAWAY BERN BAHNHOF",
+         "amount_chf": -15.8
+        },
+        {
+         "id": "BK-01809",
+         "date": "2026-06-10",
+         "text": "Kartenzahlung Debit Mastercard 10.06.2026 LIDL BERN WANKDORF",
+         "amount_chf": -54.3
+        },
+        {
+         "id": "BK-01816",
+         "date": "2026-06-12",
+         "text": "Kartenzahlung Debit Mastercard 12.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -38.32
+        },
+        {
+         "id": "BK-01817",
+         "date": "2026-06-12",
+         "text": "Kartenzahlung Debit Mastercard 12.06.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -38.2
+        },
+        {
+         "id": "BK-01818",
+         "date": "2026-06-13",
+         "text": "Kartenzahlung Debit Mastercard 13.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -76.04
+        },
+        {
+         "id": "BK-01829",
+         "date": "2026-06-17",
+         "text": "Kartenzahlung Debit Mastercard 17.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -67.3
+        },
+        {
+         "id": "BK-01830",
+         "date": "2026-06-17",
+         "text": "Kartenzahlung Debit Mastercard 17.06.2026 MIGROS TAKEAWAY BERN BAHNHOF",
+         "amount_chf": -11.0
+        },
+        {
+         "id": "BK-01833",
+         "date": "2026-06-18",
+         "text": "Kartenzahlung Debit Mastercard 18.06.2026 LIDL BERN WANKDORF",
+         "amount_chf": -14.15
+        },
+        {
+         "id": "BK-01844",
+         "date": "2026-06-23",
+         "text": "Kartenzahlung Debit Mastercard 23.06.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -29.55
+        },
+        {
+         "id": "BK-01845",
+         "date": "2026-06-24",
+         "text": "Kartenzahlung Debit Mastercard 24.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -56.09
+        },
+        {
+         "id": "BK-01857",
+         "date": "2026-06-26",
+         "text": "Kartenzahlung Debit Mastercard 26.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -70.0
+        },
+        {
+         "id": "BK-01861",
+         "date": "2026-06-27",
+         "text": "Kartenzahlung Debit Mastercard 27.06.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -44.6
+        },
+        {
+         "id": "BK-01867",
+         "date": "2026-06-29",
+         "text": "Kartenzahlung Debit Mastercard 29.06.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -22.8
+        },
+        {
+         "id": "BK-01872",
+         "date": "2026-07-01",
+         "text": "Kartenzahlung Debit Mastercard 01.07.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -62.9
+        },
+        {
+         "id": "BK-01873",
+         "date": "2026-07-01",
+         "text": "Kartenzahlung Debit Mastercard 01.07.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -31.05
+        },
+        {
+         "id": "BK-01876",
+         "date": "2026-07-02",
+         "text": "Kartenzahlung Debit Mastercard 02.07.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -48.2
+        },
+        {
+         "id": "BK-01880",
+         "date": "2026-07-06",
+         "text": "Kartenzahlung Debit Mastercard 06.07.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -26.76
+        },
+        {
+         "id": "BK-01882",
+         "date": "2026-07-07",
+         "text": "Kartenzahlung Debit Mastercard 07.07.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -45.55
+        }
+       ],
+       "count": 110
+      },
+      "template": "monthly_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "total_chf": 694.91,
+        "count": 16
+       },
+       {
+        "month": "2026-06",
+        "total_chf": 738.07,
+        "count": 19
+       },
+       {
+        "month": "2026-07",
+        "total_chf": 617.06,
+        "count": 14
+       },
+       {
+        "month": "2026-08",
+        "total_chf": 789.11,
+        "count": 17
+       },
+       {
+        "month": "2026-09",
+        "total_chf": 730.18,
+        "count": 20
+       },
+       {
+        "month": "2026-10",
+        "total_chf": 870.43,
+        "count": 24
+       }
+      ],
+      "highest": "2026-10"
+     }
+    },
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "Last six months",
+     "payload": {
+      "figure_chf": 250.82,
+      "source": {
+       "label": "444 bookings, May to October",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01710",
+         "date": "2026-05-01",
+         "text": "Kartenzahlung Debit Mastercard 01.05.2026 HOLY COW BERN",
+         "amount_chf": -20.2
+        },
+        {
+         "id": "BK-01711",
+         "date": "2026-05-01",
+         "text": "TWINT an Ben Hofer",
+         "amount_chf": -40.0
+        },
+        {
+         "id": "BK-01712",
+         "date": "2026-05-02",
+         "text": "Kartenzahlung Debit Mastercard 02.05.2026 DENNER BERN LAENGGASSE",
+         "amount_chf": -35.58
+        },
+        {
+         "id": "BK-01713",
+         "date": "2026-05-02",
+         "text": "Kartenzahlung Debit Mastercard 02.05.2026 UBER *EATS HELP.UBER.COM",
+         "amount_chf": -20.3
+        },
+        {
+         "id": "BK-01714",
+         "date": "2026-05-02",
+         "text": "TWINT an Noah Baumann «Bier»",
+         "amount_chf": -12.0
+        },
+        {
+         "id": "BK-01715",
+         "date": "2026-05-03",
+         "text": "Kartenzahlung Debit Mastercard 03.05.2026 KAPITEL BOLLWERK BERN",
+         "amount_chf": -70.85
+        },
+        {
+         "id": "BK-01716",
+         "date": "2026-05-03",
+         "text": "Kartenzahlung Debit Mastercard 03.05.2026 SPOTIFY P2B4C1 STOCKHOLM",
+         "amount_chf": -13.95
+        },
+        {
+         "id": "BK-01717",
+         "date": "2026-05-03",
+         "text": "Kartenzahlung Debit Mastercard 03.05.2026 VINTED.CH",
+         "amount_chf": -64.45
+        },
+        {
+         "id": "BK-01718",
+         "date": "2026-05-04",
+         "text": "Kartenzahlung Debit Mastercard 04.05.2026 BERNMOBIL LIBERO ABO",
+         "amount_chf": -86.0
+        },
+        {
+         "id": "BK-01719",
+         "date": "2026-05-04",
+         "text": "Kartenzahlung Debit Mastercard 04.05.2026 SUMUP *SOUS LE PONT",
+         "amount_chf": -74.8
+        },
+        {
+         "id": "BK-01720",
+         "date": "2026-05-04",
+         "text": "Kartenzahlung Debit Mastercard 04.05.2026 TIBITS BERN",
+         "amount_chf": -14.42
+        },
+        {
+         "id": "BK-01721",
+         "date": "2026-05-04",
+         "text": "Lastschrift (LSV) Activ Fitness AG, Abo Mai 2026",
+         "amount_chf": -79.0
+        },
+        {
+         "id": "BK-01722",
+         "date": "2026-05-05",
+         "text": "TWINT von Florian Hug",
+         "amount_chf": 12.0
+        },
+        {
+         "id": "BK-01723",
+         "date": "2026-05-05",
+         "text": "Kartenzahlung Debit Mastercard 05.05.2026 LIDL BERN WANKDORF",
+         "amount_chf": -81.65
+        },
+        {
+         "id": "BK-01724",
+         "date": "2026-05-05",
+         "text": "Lastschrift (LSV) Wingo (Swisscom Schweiz AG), Abo Mobile Mai 2026",
+         "amount_chf": -34.95
+        },
+        {
+         "id": "BK-01725",
+         "date": "2026-05-06",
+         "text": "TWINT von Ben Hofer",
+         "amount_chf": 20.0
+        },
+        {
+         "id": "BK-01726",
+         "date": "2026-05-06",
+         "text": "Kartenzahlung Debit Mastercard 06.05.2026 LIDL BERN WANKDORF",
+         "amount_chf": -20.25
+        },
+        {
+         "id": "BK-01727",
+         "date": "2026-05-08",
+         "text": "Kartenzahlung Debit Mastercard 08.05.2026 DENNER BERN LAENGGASSE",
+         "amount_chf": -15.42
+        },
+        {
+         "id": "BK-01728",
+         "date": "2026-05-08",
+         "text": "Kartenzahlung Debit Mastercard 08.05.2026 MIGROS TAKEAWAY BERN BAHNHOF",
+         "amount_chf": -19.77
+        },
+        {
+         "id": "BK-01729",
+         "date": "2026-05-08",
+         "text": "Kartenzahlung Debit Mastercard 08.05.2026 VINTED.CH",
+         "amount_chf": -98.28
+        },
+        {
+         "id": "BK-01730",
+         "date": "2026-05-08",
+         "text": "TWINT an Florian Hug «Kino»",
+         "amount_chf": -12.0
+        },
+        {
+         "id": "BK-01731",
+         "date": "2026-05-11",
+         "text": "Kartenzahlung Debit Mastercard 11.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -55.8
+        },
+        {
+         "id": "BK-01732",
+         "date": "2026-05-11",
+         "text": "Kartenzahlung Debit Mastercard 11.05.2026 OPENAI *CHATGPT SUBSCR, USD 20.00",
+         "amount_chf": -16.36
+        },
+        {
+         "id": "BK-01733",
+         "date": "2026-05-11",
+         "text": "Kartenzahlung Debit Mastercard 11.05.2026 ROESSLI REITSCHULE",
+         "amount_chf": -71.08
+        },
+        {
+         "id": "BK-01734",
+         "date": "2026-05-13",
+         "text": "Kartenzahlung Debit Mastercard 13.05.2026 TIBITS BERN",
+         "amount_chf": -19.55
+        },
+        {
+         "id": "BK-01735",
+         "date": "2026-05-13",
+         "text": "TWINT an Timo Zaugg «Tickets»",
+         "amount_chf": -18.0
+        },
+        {
+         "id": "BK-01736",
+         "date": "2026-05-14",
+         "text": "Kartenzahlung Debit Mastercard 14.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -36.05
+        },
+        {
+         "id": "BK-01737",
+         "date": "2026-05-14",
+         "text": "Kartenzahlung Debit Mastercard 14.05.2026 MIGROS BERN BREITENRAINPLATZ",
+         "amount_chf": -28.85
+        },
+        {
+         "id": "BK-01738",
+         "date": "2026-05-15",
+         "text": "Kartenzahlung Debit Mastercard 15.05.2026 DIGITEC.CH ZUERICH",
+         "amount_chf": -108.55
+        },
+        {
+         "id": "BK-01739",
+         "date": "2026-05-15",
+         "text": "Kartenzahlung Debit Mastercard 15.05.2026 SUMUP *BAR VERSUS BERN",
+         "amount_chf": -68.37
+        },
+        {
+         "id": "BK-01740",
+         "date": "2026-05-15",
+         "text": "Lastschrift (LSV) Klarna Bank AB, Interdiscount Finanzierung, Rate 5/6",
+         "amount_chf": -89.0
+        },
+        {
+         "id": "BK-01741",
+         "date": "2026-05-15",
+         "text": "TWINT an Mara Wyss «Geschenk»",
+         "amount_chf": -18.0
+        },
+        {
+         "id": "BK-01742",
+         "date": "2026-05-15",
+         "text": "eBill-Zahlung Sunrise GmbH, Internet Mai 2026",
+         "amount_chf": -49.9
+        },
+        {
+         "id": "BK-01743",
+         "date": "2026-05-16",
+         "text": "Kartenzahlung Debit Mastercard 16.05.2026 COOP-1142 BERN BREITENRAIN",
+         "amount_chf": -65.56
+        },
+        {
+         "id": "BK-01744",
+         "date": "2026-05-16",
+         "text": "Kartenzahlung Debit Mastercard 16.05.2026 DIGITEC.CH ZUERICH",
+         "amount_chf": -34.05
+        },
+        {
+         "id": "BK-01745",
+         "date": "2026-05-16",
+         "text": "Kartenzahlung Debit Mastercard 16.05.2026 SBB CFF FFS BERN",
+         "amount_chf": -12.4
+        },
+        {
+         "id": "BK-01746",
+         "date": "2026-05-17",
+         "text": "Kartenzahlung Debit Mastercard 17.05.2026 TOO GOOD TO GO",
+         "amount_chf": -25.65
+        },
+        {
+         "id": "BK-01747",
+         "date": "2026-05-18",
+         "text": "Kartenzahlung Debit Mastercard 18.05.2026 APPLE.COM/BILL CORK",
+         "amount_chf": -1.0
+        },
+        {
+         "id": "BK-01748",
+         "date": "2026-05-19",
+         "text": "Kartenzahlung Debit Mastercard 19.05.2026 ALDI SUISSE BERN",
+         "amount_chf": -62.9
+        },
+        {
+         "id": "BK-01749",
+         "date": "2026-05-19",
+         "text": "Kartenzahlung Debit Mastercard 19.05.2026 SBB MOBILE TICKET",
+         "amount_chf": -12.4
+        }
+       ],
+       "count": 444
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 5768.75,
+        "spending_chf": 5771.55,
+        "left_chf": -2.8
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 5773.75,
+        "spending_chf": 6116.82,
+        "left_chf": -343.07
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 5773.75,
+        "spending_chf": 4995.51,
+        "left_chf": 778.24
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 5763.75,
+        "spending_chf": 5735.49,
+        "left_chf": 28.26
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 5753.75,
+        "spending_chf": 4454.57,
+        "left_chf": 1299.18
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 5742.75,
+        "spending_chf": 5997.64,
+        "left_chf": -254.89
+       }
+      ]
+     }
+    },
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-PRIV",
+       "ACC-SAV",
+       "ACC-3A"
+      ]
+     },
+     "title": "Three accounts",
+     "payload": {
+      "figure_chf": 16738.58,
+      "source": {
+       "label": "3 accounts",
+       "kind": "accounts",
+       "rows": [
+        {
+         "id": "ACC-PRIV",
+         "date": null,
+         "text": "Privatkonto",
+         "amount_chf": 8519.38
+        },
+        {
+         "id": "ACC-SAV",
+         "date": null,
+         "text": "Sparkonto",
+         "amount_chf": 4919.2
+        },
+        {
+         "id": "ACC-3A",
+         "date": null,
+         "text": "Vorsorgekonto Säule 3a",
+         "amount_chf": 3300.0
+        }
+       ],
+       "count": 3
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-PRIV",
+        "name": "Privatkonto",
+        "balance_chf": 8519.38,
+        "purpose": "Lohnkonto, Alltag (bis 08/2025 Studierendenkonto)"
+       },
+       {
+        "account_id": "ACC-SAV",
+        "name": "Sparkonto",
+        "balance_chf": 4919.2,
+        "purpose": "Notgroschen und Ferien"
+       },
+       {
+        "account_id": "ACC-3A",
+        "name": "Vorsorgekonto Säule 3a",
+        "balance_chf": 3300.0,
+        "purpose": "Gebundene Vorsorge 3a, eröffnet 01/2026"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [5, 3]"
+  },
+  "hero_fits": {
+   "passed": false,
+   "detail": "hero bills_until_payday; strongest headline signals: S2 income_and_spending, S3 savings_goal, S5 pillar_3a"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero lists everything still due before her 24 December salary with the running balance after each payment, which answers exactly her stated worry that there is less left at the end of the month than she expected (and her core ask for payments due in the next 30 days)."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every tile draws on her real life — rent to Immobilien Aareblick, her provisional Bern tax rate, the KPT premium that jumped at 26, her emergency fund, the CHF 150 repayment to Andrea Widmer, the 3a opened in January 2026, and her own three accounts."
+  },
+  "titles": {
+   "passed": false,
+   "reason": "The third tile is titled «Tax due» but its payload is her emergency-fund savings goal (Sparkonto, Notgroschen CHF 10'000, 49.2%), so the title plainly does not match what the tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": false,
+   "reason": "The «Tax bill» tile merely repeats the hero's row for the very same payment (PAY-0131, CHF 1180, due 30.11., provisional), so two tiles show the same thing for no added insight."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "Board 1 keeps to one story — what is due until payday plus her standing set-asides (emergency fund, parents, 3a) — and board 2 stays on her savings theme of spending, monthly cash flow and where her money sits."
+  }
+ },
+ "acceptable": false
+}

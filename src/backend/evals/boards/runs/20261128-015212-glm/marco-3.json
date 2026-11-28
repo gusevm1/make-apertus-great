@@ -1,0 +1,1401 @@
+{
+ "customer": "marco",
+ "run": 3,
+ "request": null,
+ "seconds": 187.0,
+ "plan": {
+  "kind": "A family of four carrying a house: two incomes, three mortgage tranches with one running out, savings kept in pots for the house and the children, and little left over most months.",
+  "evidence": [
+   "S1: the 350'000.00 tranche runs out on 31.03.2027 and needs a decision",
+   "S3: the house reserve is at 97 % of its goal of at least 20'000",
+   "S6: on average -246.13 was left per month; 2026-06 and 2026-08 were negative",
+   "S2: pillar 3a is 58.00 short of the maximum for 2026"
+  ],
+  "question": "What do we do with the mortgage tranche that runs out in March?",
+  "boards": [
+   {
+    "name": "The house",
+    "tiles": [
+     {
+      "template": "mortgage",
+      "args": {},
+      "title": "The mortgage"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-HOUSE"
+      },
+      "title": "House reserve"
+     },
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "What's left each month"
+     },
+     {
+      "template": "due_soon",
+      "args": {
+       "days": 30
+      },
+      "title": "Due in the next 30 days"
+     },
+     {
+      "template": "pillar_3a",
+      "args": {},
+      "title": "Pillar 3a this year"
+     },
+     {
+      "template": "merchant_spending",
+      "args": {
+       "merchants": [
+        "Malerei Hürlimann AG",
+        "Gartenbau Grünau GmbH",
+        "Zürichsee Haustechnik AG",
+        "EKZ Elektrizitätswerke des Kantons Zürich"
+       ],
+       "period": "last_3_months"
+      },
+      "title": "Around the house"
+     },
+     {
+      "template": "merchant_spending",
+      "args": {
+       "merchants": [
+        "Migros",
+        "Coop",
+        "Denner",
+        "Lidl",
+        "Bäckerei Steiner"
+       ],
+       "period": "last_3_months"
+      },
+      "title": "Groceries for four"
+     }
+    ]
+   },
+   {
+    "name": "Noah and Mia",
+    "tiles": [
+     {
+      "template": "merchant_spending",
+      "args": {
+       "merchants": [
+        "Musikschule Wädenswil-Richterswil",
+        "Kieferorthopädie Zimmerberg",
+        "FC Wädenswil, Junioren"
+       ],
+       "period": "last_3_months"
+      },
+      "title": "Music, football, braces"
+     },
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-SAV"
+       ]
+      },
+      "title": "Family savings"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Schule Wädenswil",
+        "ZVV"
+       ]
+      },
+      "title": "School and buses"
+     }
+    ]
+   }
+  ],
+  "ideas": [
+   {
+    "title": "Car leasing",
+    "text": "Instalment plans running: Seeblick Auto-Leasing AG (29 of 48 paid, 9'291.00 left)."
+   },
+   {
+    "title": "Fixed costs",
+    "text": "The 3 largest monthly payments add up to 2'812.60 a month."
+   },
+   {
+    "title": "Simone's transfer",
+    "text": "Simone Baumann sends about 2'600.00 every month, around day 26."
+   }
+  ],
+  "dropped": [],
+  "model": "z-ai/glm-5.3",
+  "latency_ms": 185593,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "10 of 10 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "The house",
+   "tiles": [
+    {
+     "template": "mortgage",
+     "args": {},
+     "title": "The mortgage",
+     "payload": {
+      "figure_chf": 862500.0,
+      "source": {
+       "label": "3 tranches",
+       "kind": "loans",
+       "rows": [
+        {
+         "id": "LOAN-01",
+         "date": "2029-03-31",
+         "text": "Festhypothek 10 Jahre",
+         "amount_chf": 400000.0
+        },
+        {
+         "id": "LOAN-02",
+         "date": "2027-03-31",
+         "text": "Festhypothek 8 Jahre",
+         "amount_chf": 350000.0
+        },
+        {
+         "id": "LOAN-03",
+         "date": "2028-03-31",
+         "text": "SARON-Hypothek",
+         "amount_chf": 112500.0
+        }
+       ],
+       "count": 3
+      },
+      "template": "mortgage",
+      "annual_interest_chf": 8425.0,
+      "tranches": [
+       {
+        "loan_id": "LOAN-01",
+        "product": "Festhypothek 10 Jahre",
+        "balance_chf": 400000.0,
+        "interest_rate": 1.05,
+        "maturity_date": "2029-03-31",
+        "next_interest_date": "2026-12-31"
+       },
+       {
+        "loan_id": "LOAN-02",
+        "product": "Festhypothek 8 Jahre",
+        "balance_chf": 350000.0,
+        "interest_rate": 0.95,
+        "maturity_date": "2027-03-31",
+        "next_interest_date": "2026-12-31"
+       },
+       {
+        "loan_id": "LOAN-03",
+        "product": "SARON-Hypothek",
+        "balance_chf": 112500.0,
+        "interest_rate": 0.8,
+        "maturity_date": "2028-03-31",
+        "next_interest_date": "2026-12-31"
+       }
+      ],
+      "next_maturity": {
+       "loan_id": "LOAN-02",
+       "product": "Festhypothek 8 Jahre",
+       "balance_chf": 350000.0,
+       "interest_rate": 0.95,
+       "maturity_date": "2027-03-31",
+       "next_interest_date": "2026-12-31"
+      }
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-HOUSE"
+     },
+     "title": "House reserve",
+     "payload": {
+      "figure_chf": 19350.3,
+      "source": {
+       "label": "No bookings in November",
+       "kind": "bookings",
+       "rows": [],
+       "count": 0
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Haus",
+      "goal_text": "Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)",
+      "goal_chf": 20000.0,
+      "percent": 96.8,
+      "month_change_chf": 0.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "What's left each month",
+     "payload": {
+      "figure_chf": -246.13,
+      "source": {
+       "label": "290 bookings, May to October",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01665",
+         "date": "2026-05-01",
+         "text": "TWINT an Daniel Keller «Elternabend Apéro»",
+         "amount_chf": -30.0
+        },
+        {
+         "id": "BK-01666",
+         "date": "2026-05-02",
+         "text": "Kartenzahlung Debit Mastercard 02.05.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -50.7
+        },
+        {
+         "id": "BK-01667",
+         "date": "2026-05-04",
+         "text": "Kartenzahlung Debit Mastercard 04.05.2026 NETFLIX.COM",
+         "amount_chf": -23.9
+        },
+        {
+         "id": "BK-01668",
+         "date": "2026-05-04",
+         "text": "Kartenzahlung Debit Mastercard 04.05.2026 ZVV ZONENABO JUNIOR",
+         "amount_chf": -112.0
+        },
+        {
+         "id": "BK-01669",
+         "date": "2026-05-04",
+         "text": "Lastschrift (LSV) Seeblick Auto-Leasing AG, Leasingvertrag SAL-24-07731 Skoda Enyaq, Rate 23/48",
+         "amount_chf": -489.0
+        },
+        {
+         "id": "BK-01670",
+         "date": "2026-05-05",
+         "text": "Kartenzahlung Debit Mastercard 05.05.2026 LIDL RICHTERSWIL",
+         "amount_chf": -89.85
+        },
+        {
+         "id": "BK-01671",
+         "date": "2026-05-05",
+         "text": "Kartenzahlung Debit Mastercard 05.05.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -129.27
+        },
+        {
+         "id": "BK-01672",
+         "date": "2026-05-06",
+         "text": "Bargeldbezug Bancomat 06.05.2026 WAEDENSWIL",
+         "amount_chf": -200.0
+        },
+        {
+         "id": "BK-01673",
+         "date": "2026-05-07",
+         "text": "Kartenzahlung Debit Mastercard 07.05.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -8.15
+        },
+        {
+         "id": "BK-01674",
+         "date": "2026-05-07",
+         "text": "Kartenzahlung Debit Mastercard 07.05.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -123.3
+        },
+        {
+         "id": "BK-01675",
+         "date": "2026-05-07",
+         "text": "Kartenzahlung Debit Mastercard 07.05.2026 DENNER WAEDENSWIL",
+         "amount_chf": -33.55
+        },
+        {
+         "id": "BK-01676",
+         "date": "2026-05-07",
+         "text": "Kartenzahlung Debit Mastercard 07.05.2026 MCDONALDS AU",
+         "amount_chf": -92.17
+        },
+        {
+         "id": "BK-01677",
+         "date": "2026-05-07",
+         "text": "Kartenzahlung Debit Mastercard 07.05.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -147.86
+        },
+        {
+         "id": "BK-01678",
+         "date": "2026-05-09",
+         "text": "Kartenzahlung Debit Mastercard 09.05.2026 DENNER WAEDENSWIL",
+         "amount_chf": -40.75
+        },
+        {
+         "id": "BK-01679",
+         "date": "2026-05-09",
+         "text": "Kartenzahlung Debit Mastercard 09.05.2026 SPOTIFY FAMILY",
+         "amount_chf": -21.95
+        },
+        {
+         "id": "BK-01680",
+         "date": "2026-05-10",
+         "text": "Kartenzahlung Debit Mastercard 10.05.2026 ALPAMARE PFAEFFIKON",
+         "amount_chf": -59.0
+        },
+        {
+         "id": "BK-01681",
+         "date": "2026-05-11",
+         "text": "Kartenzahlung Debit Mastercard 11.05.2026 DENNER WAEDENSWIL",
+         "amount_chf": -68.88
+        },
+        {
+         "id": "BK-01682",
+         "date": "2026-05-11",
+         "text": "Kartenzahlung Debit Mastercard 11.05.2026 MIGROLINO WAEDENSWIL",
+         "amount_chf": -63.29
+        },
+        {
+         "id": "BK-01683",
+         "date": "2026-05-11",
+         "text": "Kartenzahlung Debit Mastercard 11.05.2026 TESLA SUPERCHARGER",
+         "amount_chf": -31.53
+        },
+        {
+         "id": "BK-01684",
+         "date": "2026-05-12",
+         "text": "TWINT von Daniel Keller",
+         "amount_chf": 30.0
+        },
+        {
+         "id": "BK-01685",
+         "date": "2026-05-12",
+         "text": "Zahlung QR-Rechnung Gartenbau Grünau GmbH, Gartenpflege Frühling 2026",
+         "amount_chf": -710.0
+        },
+        {
+         "id": "BK-01686",
+         "date": "2026-05-12",
+         "text": "Kartenzahlung Debit Mastercard 12.05.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -112.65
+        },
+        {
+         "id": "BK-01687",
+         "date": "2026-05-12",
+         "text": "eBill-Zahlung Swisscom (Schweiz) AG, blue Internet, TV, 3× Mobile Mai 2026",
+         "amount_chf": -164.0
+        },
+        {
+         "id": "BK-01688",
+         "date": "2026-05-13",
+         "text": "Kartenzahlung Debit Mastercard 13.05.2026 LIDL RICHTERSWIL",
+         "amount_chf": -111.85
+        },
+        {
+         "id": "BK-01689",
+         "date": "2026-05-14",
+         "text": "Kartenzahlung Debit Mastercard 14.05.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -36.52
+        },
+        {
+         "id": "BK-01690",
+         "date": "2026-05-14",
+         "text": "Kartenzahlung Debit Mastercard 14.05.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -108.25
+        },
+        {
+         "id": "BK-01691",
+         "date": "2026-05-15",
+         "text": "Kartenzahlung Debit Mastercard 15.05.2026 LIDL RICHTERSWIL",
+         "amount_chf": -59.95
+        },
+        {
+         "id": "BK-01692",
+         "date": "2026-05-17",
+         "text": "Kartenzahlung Debit Mastercard 17.05.2026 NZZ ABO DIGITAL",
+         "amount_chf": -39.0
+        },
+        {
+         "id": "BK-01693",
+         "date": "2026-05-18",
+         "text": "Kartenzahlung Debit Mastercard 18.05.2026 BRACK.CH",
+         "amount_chf": -57.41
+        },
+        {
+         "id": "BK-01694",
+         "date": "2026-05-19",
+         "text": "Kartenzahlung Debit Mastercard 19.05.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -35.6
+        },
+        {
+         "id": "BK-01695",
+         "date": "2026-05-20",
+         "text": "Bargeldbezug Bancomat 20.05.2026 WAEDENSWIL",
+         "amount_chf": -300.0
+        },
+        {
+         "id": "BK-01696",
+         "date": "2026-05-20",
+         "text": "Dauerauftrag Steueramt Wädenswil, Vorauszahlung Steuern 2026",
+         "amount_chf": -1450.0
+        },
+        {
+         "id": "BK-01697",
+         "date": "2026-05-20",
+         "text": "Kartenzahlung Debit Mastercard 20.05.2026 VOLG AU ZH",
+         "amount_chf": -34.06
+        },
+        {
+         "id": "BK-01698",
+         "date": "2026-05-21",
+         "text": "TWINT von Claudia Steiner",
+         "amount_chf": 20.0
+        },
+        {
+         "id": "BK-01699",
+         "date": "2026-05-22",
+         "text": "Gutschrift Lohn Mai 2026 inkl. Kinderzulagen, Zimmerberg Bauplanung AG",
+         "amount_chf": 8792.82
+        },
+        {
+         "id": "BK-01700",
+         "date": "2026-05-22",
+         "text": "eBill-Zahlung Helsana Versicherungen AG, Prämie Juni 2026, Familie Baumann (4 Personen)",
+         "amount_chf": -1198.6
+        },
+        {
+         "id": "BK-01701",
+         "date": "2026-05-23",
+         "text": "Kartenzahlung Debit Mastercard 23.05.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -181.64
+        },
+        {
+         "id": "BK-01702",
+         "date": "2026-05-25",
+         "text": "Kartenzahlung Debit Mastercard 25.05.2026 AMAVITA APOTHEKE WAEDENSWIL",
+         "amount_chf": -15.4
+        },
+        {
+         "id": "BK-01703",
+         "date": "2026-05-25",
+         "text": "Kartenzahlung Debit Mastercard 25.05.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -26.88
+        },
+        {
+         "id": "BK-01704",
+         "date": "2026-05-26",
+         "text": "Gutschrift Simone Baumann, Haushaltsbeitrag Mai",
+         "amount_chf": 2600.0
+        }
+       ],
+       "count": 290
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 11442.82,
+        "spending_chf": 6849.1,
+        "left_chf": 4593.72
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 11392.82,
+        "spending_chf": 17093.2,
+        "left_chf": -5700.38
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 11392.82,
+        "spending_chf": 9324.49,
+        "left_chf": 2068.33
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 11412.82,
+        "spending_chf": 18496.99,
+        "left_chf": -7084.17
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 11789.32,
+        "spending_chf": 10021.12,
+        "left_chf": 1768.2
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 11392.82,
+        "spending_chf": 8515.29,
+        "left_chf": 2877.53
+       }
+      ]
+     }
+    },
+    {
+     "template": "due_soon",
+     "args": {
+      "days": 30
+     },
+     "title": "Due in the next 30 days",
+     "payload": {
+      "figure_chf": 6566.0,
+      "source": {
+       "label": "All 9 payments",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "SO-HOUSE",
+         "date": "2026-11-27",
+         "text": "Sparkonto Haus: Rücklage Haus",
+         "amount_chf": -900.0
+        },
+        {
+         "id": "SO-SAV",
+         "date": "2026-11-27",
+         "text": "Sparkonto Familie: Sparen Familie",
+         "amount_chf": -1500.0
+        },
+        {
+         "id": "SO-3A",
+         "date": "2026-11-27",
+         "text": "Vorsorgekonto Säule 3a: Einzahlung Säule 3a",
+         "amount_chf": -600.0
+        },
+        {
+         "id": "PAY-0199",
+         "date": "2026-12-01",
+         "text": "Seeblick Auto-Leasing AG: Leasingvertrag SAL-24-07731 Skoda Enyaq, Rate 30/48",
+         "amount_chf": -489.0
+        },
+        {
+         "id": "PAY-0201",
+         "date": "2026-12-14",
+         "text": "Swisscom (Schweiz) AG: blue Internet, TV, 3× Mobile Dezember 2026",
+         "amount_chf": -164.0
+        },
+        {
+         "id": "PAY-0205",
+         "date": "2026-12-15",
+         "text": "Stadt Wädenswil, Werke und Gebühren: Wasser/Abwasser Verbrauch Q4 2026",
+         "amount_chf": -142.7
+        },
+        {
+         "id": "MANUAL-3A",
+         "date": "2026-12-18",
+         "text": "Vorsorgekonto Säule 3a: Restbetrag 3a 2026 (Max. CHF 7'258)",
+         "amount_chf": -58.0
+        },
+        {
+         "id": "SO-TAX",
+         "date": "2026-12-21",
+         "text": "Steueramt Wädenswil: Vorauszahlung Steuern 2026",
+         "amount_chf": -1450.0
+        },
+        {
+         "id": "PAY-0203",
+         "date": "2026-12-23",
+         "text": "Helsana Versicherungen AG: Prämie Januar 2027, Familie Baumann (4 Personen)",
+         "amount_chf": -1262.3
+        }
+       ],
+       "count": 9
+      },
+      "template": "due_soon",
+      "days": 30,
+      "rows": [
+       {
+        "id": "SO-HOUSE",
+        "due": "2026-11-27",
+        "payee": "Sparkonto Haus",
+        "detail": "Rücklage Haus",
+        "amount_chf": 900.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "SO-SAV",
+        "due": "2026-11-27",
+        "payee": "Sparkonto Familie",
+        "detail": "Sparen Familie",
+        "amount_chf": 1500.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "SO-TAX",
+        "due": "2026-12-21",
+        "payee": "Steueramt Wädenswil",
+        "detail": "advance payment",
+        "amount_chf": 1450.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0203",
+        "due": "2026-12-23",
+        "payee": "Helsana Versicherungen",
+        "detail": "premium for January",
+        "amount_chf": 1262.3,
+        "balance_after_chf": null,
+        "flag": null
+       }
+      ],
+      "count": 9
+     }
+    },
+    {
+     "template": "pillar_3a",
+     "args": {},
+     "title": "Pillar 3a this year",
+     "payload": {
+      "figure_chf": 58.0,
+      "source": {
+       "label": "1 planned transfer",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "MANUAL-3A",
+         "date": "2026-12-18",
+         "text": "Vorsorgekonto Säule 3a: Restbetrag 3a 2026 (Max. CHF 7'258)",
+         "amount_chf": -58.0
+        }
+       ],
+       "count": 1
+      },
+      "template": "pillar_3a",
+      "year": 2026,
+      "maximum_chf": 7258.0,
+      "paid_chf": 6000.0,
+      "standing_orders_chf": 1200.0,
+      "balance_chf": 70107.25,
+      "planned": [
+       {
+        "id": "MANUAL-3A",
+        "date": "2026-12-18",
+        "amount_chf": 58.0
+       }
+      ]
+     }
+    },
+    {
+     "template": "merchant_spending",
+     "args": {
+      "merchants": [
+       "Malerei Hürlimann AG",
+       "Gartenbau Grünau GmbH",
+       "Zürichsee Haustechnik AG",
+       "EKZ Elektrizitätswerke des Kantons Zürich"
+      ],
+      "period": "last_3_months"
+     },
+     "title": "Around the house",
+     "payload": {
+      "figure_chf": 12092.71,
+      "source": {
+       "label": "4 payments at 4 shops",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01881",
+         "date": "2026-08-31",
+         "text": "Zahlung QR-Rechnung Malerei Hürlimann AG, Fassadenrenovation, Schlussrechnung 2026-117",
+         "amount_chf": -10640.0
+        },
+        {
+         "id": "BK-01951",
+         "date": "2026-10-08",
+         "text": "Zahlung QR-Rechnung Zürichsee Haustechnik AG, Wartung Wärmepumpe 2026",
+         "amount_chf": -418.0
+        },
+        {
+         "id": "BK-01968",
+         "date": "2026-10-19",
+         "text": "eBill-Zahlung EKZ Elektrizitätswerke des Kantons Zürich, Strom Q3 2026 (inkl. Wärmepumpe)",
+         "amount_chf": -474.71
+        },
+        {
+         "id": "BK-01986",
+         "date": "2026-10-27",
+         "text": "Zahlung QR-Rechnung Gartenbau Grünau GmbH, Gartenpflege Herbst, Hecke 2026",
+         "amount_chf": -560.0
+        }
+       ],
+       "count": 4
+      },
+      "template": "merchant_spending",
+      "date_from": "2026-08-01",
+      "date_to": "2026-10-31",
+      "rows": [
+       {
+        "merchant": "Malerei Hürlimann AG",
+        "amount_chf": 10640.0,
+        "share": 1.0,
+        "count": 1
+       },
+       {
+        "merchant": "Gartenbau Grünau GmbH",
+        "amount_chf": 560.0,
+        "share": 0.053,
+        "count": 1
+       },
+       {
+        "merchant": "EKZ Elektrizitätswerke des Kantons Zürich",
+        "amount_chf": 474.71,
+        "share": 0.045,
+        "count": 1
+       },
+       {
+        "merchant": "Zürichsee Haustechnik AG",
+        "amount_chf": 418.0,
+        "share": 0.039,
+        "count": 1
+       }
+      ]
+     }
+    },
+    {
+     "template": "merchant_spending",
+     "args": {
+      "merchants": [
+       "Migros",
+       "Coop",
+       "Denner",
+       "Lidl",
+       "Bäckerei Steiner"
+      ],
+      "period": "last_3_months"
+     },
+     "title": "Groceries for four",
+     "payload": {
+      "figure_chf": 5066.05,
+      "source": {
+       "label": "Card payments at 5 shops",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01829",
+         "date": "2026-08-03",
+         "text": "Kartenzahlung Debit Mastercard 03.08.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -118.81
+        },
+        {
+         "id": "BK-01834",
+         "date": "2026-08-04",
+         "text": "Kartenzahlung Debit Mastercard 04.08.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -173.18
+        },
+        {
+         "id": "BK-01833",
+         "date": "2026-08-04",
+         "text": "Kartenzahlung Debit Mastercard 04.08.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -14.1
+        },
+        {
+         "id": "BK-01839",
+         "date": "2026-08-06",
+         "text": "Kartenzahlung Debit Mastercard 06.08.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -90.15
+        },
+        {
+         "id": "BK-01841",
+         "date": "2026-08-07",
+         "text": "Kartenzahlung Debit Mastercard 07.08.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -101.49
+        },
+        {
+         "id": "BK-01844",
+         "date": "2026-08-10",
+         "text": "Kartenzahlung Debit Mastercard 10.08.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -137.45
+        },
+        {
+         "id": "BK-01845",
+         "date": "2026-08-10",
+         "text": "Kartenzahlung Debit Mastercard 10.08.2026 DENNER WAEDENSWIL",
+         "amount_chf": -14.8
+        },
+        {
+         "id": "BK-01852",
+         "date": "2026-08-15",
+         "text": "Kartenzahlung Debit Mastercard 15.08.2026 LIDL RICHTERSWIL",
+         "amount_chf": -76.75
+        },
+        {
+         "id": "BK-01854",
+         "date": "2026-08-17",
+         "text": "Kartenzahlung Debit Mastercard 17.08.2026 DENNER WAEDENSWIL",
+         "amount_chf": -27.3
+        },
+        {
+         "id": "BK-01855",
+         "date": "2026-08-17",
+         "text": "Kartenzahlung Debit Mastercard 17.08.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -90.95
+        },
+        {
+         "id": "BK-01858",
+         "date": "2026-08-18",
+         "text": "Kartenzahlung Debit Mastercard 18.08.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -77.85
+        },
+        {
+         "id": "BK-01861",
+         "date": "2026-08-20",
+         "text": "Kartenzahlung Debit Mastercard 20.08.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -19.4
+        },
+        {
+         "id": "BK-01866",
+         "date": "2026-08-25",
+         "text": "Kartenzahlung Debit Mastercard 25.08.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -49.2
+        },
+        {
+         "id": "BK-01869",
+         "date": "2026-08-26",
+         "text": "Kartenzahlung Debit Mastercard 26.08.2026 DENNER WAEDENSWIL",
+         "amount_chf": -18.9
+        },
+        {
+         "id": "BK-01873",
+         "date": "2026-08-27",
+         "text": "Kartenzahlung Debit Mastercard 27.08.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -84.39
+        },
+        {
+         "id": "BK-01874",
+         "date": "2026-08-27",
+         "text": "Kartenzahlung Debit Mastercard 27.08.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -116.65
+        },
+        {
+         "id": "BK-01878",
+         "date": "2026-08-28",
+         "text": "Kartenzahlung Debit Mastercard 28.08.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -24.13
+        },
+        {
+         "id": "BK-01880",
+         "date": "2026-08-29",
+         "text": "Kartenzahlung Debit Mastercard 29.08.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -107.41
+        },
+        {
+         "id": "BK-01885",
+         "date": "2026-09-03",
+         "text": "Kartenzahlung Debit Mastercard 03.09.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -22.93
+        },
+        {
+         "id": "BK-01886",
+         "date": "2026-09-03",
+         "text": "Kartenzahlung Debit Mastercard 03.09.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -174.21
+        },
+        {
+         "id": "BK-01888",
+         "date": "2026-09-04",
+         "text": "Kartenzahlung Debit Mastercard 04.09.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -99.45
+        },
+        {
+         "id": "BK-01889",
+         "date": "2026-09-04",
+         "text": "Kartenzahlung Debit Mastercard 04.09.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -162.21
+        },
+        {
+         "id": "BK-01892",
+         "date": "2026-09-07",
+         "text": "Kartenzahlung Debit Mastercard 07.09.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -99.15
+        },
+        {
+         "id": "BK-01893",
+         "date": "2026-09-07",
+         "text": "Kartenzahlung Debit Mastercard 07.09.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -138.95
+        },
+        {
+         "id": "BK-01898",
+         "date": "2026-09-10",
+         "text": "Kartenzahlung Debit Mastercard 10.09.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -125.1
+        },
+        {
+         "id": "BK-01899",
+         "date": "2026-09-11",
+         "text": "Kartenzahlung Debit Mastercard 11.09.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -6.5
+        },
+        {
+         "id": "BK-01901",
+         "date": "2026-09-14",
+         "text": "Kartenzahlung Debit Mastercard 14.09.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -19.7
+        },
+        {
+         "id": "BK-01904",
+         "date": "2026-09-15",
+         "text": "Kartenzahlung Debit Mastercard 15.09.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -68.4
+        },
+        {
+         "id": "BK-01906",
+         "date": "2026-09-16",
+         "text": "Kartenzahlung Debit Mastercard 16.09.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -116.12
+        },
+        {
+         "id": "BK-01910",
+         "date": "2026-09-18",
+         "text": "Kartenzahlung Debit Mastercard 18.09.2026 LIDL RICHTERSWIL",
+         "amount_chf": -148.0
+        },
+        {
+         "id": "BK-01911",
+         "date": "2026-09-19",
+         "text": "Kartenzahlung Debit Mastercard 19.09.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -79.65
+        },
+        {
+         "id": "BK-01915",
+         "date": "2026-09-21",
+         "text": "Kartenzahlung Debit Mastercard 21.09.2026 COOP WAEDENSWIL OBERDORF",
+         "amount_chf": -44.4
+        },
+        {
+         "id": "BK-01916",
+         "date": "2026-09-22",
+         "text": "Kartenzahlung Debit Mastercard 22.09.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -92.84
+        },
+        {
+         "id": "BK-01918",
+         "date": "2026-09-23",
+         "text": "Kartenzahlung Debit Mastercard 23.09.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -83.95
+        },
+        {
+         "id": "BK-01921",
+         "date": "2026-09-25",
+         "text": "Kartenzahlung Debit Mastercard 25.09.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -25.15
+        },
+        {
+         "id": "BK-01922",
+         "date": "2026-09-25",
+         "text": "Kartenzahlung Debit Mastercard 25.09.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -94.2
+        },
+        {
+         "id": "BK-01923",
+         "date": "2026-09-26",
+         "text": "Kartenzahlung Debit Mastercard 26.09.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -131.52
+        },
+        {
+         "id": "BK-01930",
+         "date": "2026-09-28",
+         "text": "Kartenzahlung Debit Mastercard 28.09.2026 MIGROS WAEDENSWIL",
+         "amount_chf": -52.93
+        },
+        {
+         "id": "BK-01934",
+         "date": "2026-09-29",
+         "text": "Kartenzahlung Debit Mastercard 29.09.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -7.5
+        },
+        {
+         "id": "BK-01940",
+         "date": "2026-09-30",
+         "text": "Kartenzahlung Debit Mastercard 30.09.2026 BAECKEREI STEINER WAEDENSWIL",
+         "amount_chf": -24.75
+        }
+       ],
+       "count": 58
+      },
+      "template": "merchant_spending",
+      "date_from": "2026-08-01",
+      "date_to": "2026-10-31",
+      "rows": [
+       {
+        "merchant": "Migros",
+        "amount_chf": 2389.56,
+        "share": 1.0,
+        "count": 19
+       },
+       {
+        "merchant": "Coop",
+        "amount_chf": 1858.5,
+        "share": 0.778,
+        "count": 17
+       },
+       {
+        "merchant": "Lidl",
+        "amount_chf": 348.78,
+        "share": 0.146,
+        "count": 3
+       },
+       {
+        "merchant": "Denner",
+        "amount_chf": 246.13,
+        "share": 0.103,
+        "count": 7
+       },
+       {
+        "merchant": "Bäckerei Steiner",
+        "amount_chf": 223.08,
+        "share": 0.093,
+        "count": 12
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Noah and Mia",
+   "tiles": [
+    {
+     "template": "merchant_spending",
+     "args": {
+      "merchants": [
+       "Musikschule Wädenswil-Richterswil",
+       "Kieferorthopädie Zimmerberg",
+       "FC Wädenswil, Junioren"
+      ],
+      "period": "last_3_months"
+     },
+     "title": "Music, football, braces",
+     "payload": {
+      "figure_chf": 2180.0,
+      "source": {
+       "label": "4 payments at 3 shops",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01846",
+         "date": "2026-08-10",
+         "text": "Zahlung QR-Rechnung Musikschule Wädenswil-Richterswil, Musikschule Mia (Blockflöte/Klavier), Semester HS 2026",
+         "amount_chf": -640.0
+        },
+        {
+         "id": "BK-01847",
+         "date": "2026-08-10",
+         "text": "Zahlung QR-Rechnung Musikschule Wädenswil-Richterswil, Musikschule Noah (Gitarre), Semester HS 2026",
+         "amount_chf": -715.0
+        },
+        {
+         "id": "BK-01894",
+         "date": "2026-09-07",
+         "text": "Zahlung QR-Rechnung FC Wädenswil, Junioren, Mitgliederbeitrag Junioren Noah 2026/27",
+         "amount_chf": -280.0
+        },
+        {
+         "id": "BK-01957",
+         "date": "2026-10-12",
+         "text": "Zahlung QR-Rechnung Kieferorthopädie Zimmerberg, Kieferorthopädische Behandlung Noah",
+         "amount_chf": -545.0
+        }
+       ],
+       "count": 4
+      },
+      "template": "merchant_spending",
+      "date_from": "2026-08-01",
+      "date_to": "2026-10-31",
+      "rows": [
+       {
+        "merchant": "Musikschule Wädenswil-Richterswil",
+        "amount_chf": 1355.0,
+        "share": 1.0,
+        "count": 2
+       },
+       {
+        "merchant": "Kieferorthopädie Zimmerberg",
+        "amount_chf": 545.0,
+        "share": 0.402,
+        "count": 1
+       },
+       {
+        "merchant": "FC Wädenswil, Junioren",
+        "amount_chf": 280.0,
+        "share": 0.207,
+        "count": 1
+       }
+      ]
+     }
+    },
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-SAV"
+      ]
+     },
+     "title": "Family savings",
+     "payload": {
+      "figure_chf": 64134.6,
+      "source": {
+       "label": "1 savings account",
+       "kind": "accounts",
+       "rows": [
+        {
+         "id": "ACC-SAV",
+         "date": null,
+         "text": "Sparkonto Familie",
+         "amount_chf": 64134.6
+        }
+       ],
+       "count": 1
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-SAV",
+        "name": "Sparkonto Familie",
+        "balance_chf": 64134.6,
+        "purpose": "Ferien, Reserve, Ausbildung Kinder"
+       }
+      ]
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Schule Wädenswil",
+       "ZVV"
+      ]
+     },
+     "title": "School and buses",
+     "payload": {
+      "figure_chf": 432.0,
+      "source": {
+       "label": "2 upcoming payments",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "PAY-0207",
+         "date": "2027-01-08",
+         "text": "Schule Wädenswil: Skilager Schule 2027",
+         "amount_chf": -320.0
+        },
+        {
+         "id": "BK-01993",
+         "date": "2026-11-02",
+         "text": "ZVV",
+         "amount_chf": -112.0
+        }
+       ],
+       "count": 2
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Schule Wädenswil",
+        "amount_chf": 320.0,
+        "next_due": "2027-01-08"
+       },
+       {
+        "payee": "ZVV",
+        "amount_chf": 112.0,
+        "next_due": "2026-12-02"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "mortgage_maturity",
+   "text": "The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "strength": 95,
+   "template": "mortgage",
+   "args": {}
+  },
+  {
+   "id": "S2",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'000.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto Haus holds 19'350.30, 97 % of its goal \"Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-HOUSE"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "instalments",
+   "text": "Instalment plans running: Seeblick Auto-Leasing AG (29 of 48 paid, 9'291.00 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Seeblick Auto-Leasing AG"
+    ]
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "9 payments of together 6'566.00 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "cashflow",
+   "text": "On average -246.13 was left per month over the last 6 months; in 2 months more went out than came in (2026-06, 2026-08).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 11'914.96 is left on Privatkonto after 8 payments, 441.29 a day. A month's spending is about 12'344.47.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S8",
+   "kind": "spending",
+   "text": "Spending averaged 11'716.70 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 6'423.30 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "fixed_costs",
+   "text": "The 3 largest monthly payments add up to 2'812.60 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Steueramt Wädenswil",
+     "Helsana Versicherungen AG",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-HOUSE",
+     "ACC-SAV"
+    ]
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "income_regular",
+   "text": "Simone Baumann sends about 2'600.00 every month, around day 26.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Simone Baumann"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [7, 3]"
+  },
+  "hero_fits": {
+   "passed": true,
+   "detail": "hero mortgage; strongest headline signals: S1 mortgage, S2 pillar_3a, S3 savings_goal"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero shows Marco's three mortgage tranches with the maturing 8-year tranche and its 31 March 2027 maturity front and centre, which is exactly the fixed-or-SARON renewal decision that dominates his persona."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every tile draws on Marco's real data — his tranches, his house savings reserve, his 3a, his children's music school and football club — and none is generic filler or belongs to another customer type."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Titles are short, human, and match their tiles, using the customer's own framing ('The mortgage', 'House reserve', 'Groceries for four', 'Music, football, braces')."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "No tile is empty or pointless (the CHF 58 3a figure is the genuine remaining amount to reach the legal maximum, with a planned top-up), and the three merchant-spending tiles cover disjoint merchant sets, so nothing is duplicated."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The main board tells one story — what the house costs and how the household budget carries it — and the second board is a single-theme board about the children."
+  }
+ },
+ "acceptable": true
+}

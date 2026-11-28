@@ -1,0 +1,7 @@
+{
+ "customer": "marco",
+ "run": 1,
+ "request": null,
+ "error": "Model returned invalid PlanAnswer twice, last: Invalid JSON: EOF while parsing a value at line 1 column 0",
+ "acceptable": false
+}

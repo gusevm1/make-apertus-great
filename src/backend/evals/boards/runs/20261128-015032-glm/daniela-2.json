@@ -1,0 +1,1084 @@
+{
+ "customer": "daniela",
+ "run": 2,
+ "request": null,
+ "seconds": 1.7,
+ "plan": {
+  "kind": "A single mother on a part-time salary whose month is decided by timing: the pay lands late in the month, the child support is late again, and four of the last six months ended negative.",
+  "evidence": [
+   "S1: 124.96 left the day before the next salary",
+   "S2: the 1'050.00 from Patrick Rüegg have not arrived this month",
+   "S7: on average -370.77 a month over the last six months",
+   "S4: the emergency fund holds 284.25 of its 3'000 goal"
+  ],
+  "question": "Will my money last until payday?",
+  "boards": [
+   {
+    "name": "Until payday",
+    "tiles": [
+     {
+      "template": "payday_balance",
+      "args": {
+       "account_id": "ACC-PRIV",
+       "expected_from": "Patrick Rüegg"
+      },
+      "title": "Left the day before your salary"
+     },
+     {
+      "template": "expected_income",
+      "args": {
+       "counterparty": "Patrick Rüegg"
+      },
+      "title": "Child support for Lina"
+     },
+     {
+      "template": "bills_until_payday",
+      "args": {
+       "account_id": "ACC-PRIV"
+      },
+      "title": "Bills until payday"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0244"
+      },
+      "title": "Dentist bill"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Emergency fund"
+     },
+     {
+      "template": "merchant_spending",
+      "args": {
+       "merchants": [
+        "Lidl",
+        "Aldi",
+        "Migros",
+        "Denner"
+       ],
+       "period": "this_month"
+      },
+      "title": "Groceries in November"
+     }
+    ]
+   },
+   {
+    "name": "Lina",
+    "tiles": [
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-KID"
+       ]
+      },
+      "title": "Lina's savings"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Stadt Winterthur, Betreuung Schule"
+       ]
+      },
+      "title": "After-school care"
+     },
+     {
+      "template": "merchant_spending",
+      "args": {
+       "merchants": [
+        "Schwimmschule Delfin Winterthur",
+        "Kinderturnen TV Töss"
+       ],
+       "period": "last_3_months"
+      },
+      "title": "Lina's activities"
+     }
+    ]
+   }
+  ],
+  "ideas": [
+   {
+    "title": "Months in the red",
+    "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10)."
+   },
+   {
+    "title": "Fixed costs",
+    "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more."
+   },
+   {
+    "title": "Instalment plan",
+    "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left)."
+   }
+  ],
+  "dropped": [],
+  "model": "z-ai/glm-5.3",
+  "latency_ms": 62,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "9 of 9 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Until payday",
+   "tiles": [
+    {
+     "template": "payday_balance",
+     "args": {
+      "account_id": "ACC-PRIV",
+      "expected_from": "Patrick Rüegg"
+     },
+     "title": "Left the day before your salary",
+     "payload": {
+      "figure_chf": 124.96,
+      "source": {
+       "label": "Privatkonto and 8 upcoming payments",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "SO-RENT",
+         "date": "2026-11-27",
+         "text": "Wohnbaugenossenschaft Talgut: Miete Dezember 2026",
+         "amount_chf": -1640.0
+        },
+        {
+         "id": "PAY-0244",
+         "date": "2026-11-30",
+         "text": "Zahnarztpraxis Neuwiesen: Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+         "amount_chf": -440.0
+        },
+        {
+         "id": "PAY-0245",
+         "date": "2026-12-07",
+         "text": "Ratenwerk Finanz AG: Ratenvertrag RW-2025-48817, Rate 21/24",
+         "amount_chf": -77.8
+        },
+        {
+         "id": "PAY-0247",
+         "date": "2026-12-07",
+         "text": "Lebara Schweiz: Abo Mobile Dezember 2026",
+         "amount_chf": -19.9
+        },
+        {
+         "id": "PAY-0249",
+         "date": "2026-12-10",
+         "text": "Stadt Winterthur, Betreuung Schule: Hort und Mittagstisch Dezember 2026",
+         "amount_chf": -348.0
+        },
+        {
+         "id": "PAY-0251",
+         "date": "2026-12-15",
+         "text": "Sunrise GmbH: Internet Dezember 2026",
+         "amount_chf": -39.9
+        },
+        {
+         "id": "SO-STEUER",
+         "date": "2026-12-21",
+         "text": "Steueramt Winterthur: Steuern Vorauszahlung Dezember 2026",
+         "amount_chf": -95.0
+        },
+        {
+         "id": "PAY-0253",
+         "date": "2026-12-23",
+         "text": "Assura-Basis SA: Prämie Januar 2027 (Daniela + Lina), abzgl. Prämienverbilligung",
+         "amount_chf": -289.6
+        }
+       ],
+       "count": 8
+      },
+      "template": "payday_balance",
+      "account_name": "Privatkonto",
+      "payday": "2026-12-24",
+      "day_before": "2026-12-23",
+      "days": 27,
+      "per_day_chf": 4.63,
+      "today": "2026-11-27",
+      "today_balance_chf": 3075.16,
+      "points": [
+       {
+        "date": "2026-11-27",
+        "balance_chf": 3075.16
+       },
+       {
+        "date": "2026-11-27",
+        "balance_chf": 1435.16
+       },
+       {
+        "date": "2026-11-30",
+        "balance_chf": 995.16
+       },
+       {
+        "date": "2026-12-07",
+        "balance_chf": 917.36
+       },
+       {
+        "date": "2026-12-07",
+        "balance_chf": 897.46
+       },
+       {
+        "date": "2026-12-10",
+        "balance_chf": 549.46
+       },
+       {
+        "date": "2026-12-15",
+        "balance_chf": 509.56
+       },
+       {
+        "date": "2026-12-21",
+        "balance_chf": 414.56
+       },
+       {
+        "date": "2026-12-23",
+        "balance_chf": 124.96
+       }
+      ],
+      "upcoming_count": 8,
+      "alternative": {
+       "counterparty": "Patrick Rüegg",
+       "amount_chf": 1050.0,
+       "left_chf": 1174.96,
+       "per_day_chf": 43.52
+      }
+     }
+    },
+    {
+     "template": "expected_income",
+     "args": {
+      "counterparty": "Patrick Rüegg"
+     },
+     "title": "Child support for Lina",
+     "payload": {
+      "figure_chf": 1050.0,
+      "source": {
+       "label": "2 bookings from Patrick Rüegg",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01663",
+         "date": "2026-09-01",
+         "text": "Gutschrift Patrick Rüegg, Unterhalt Lina September",
+         "amount_chf": 1050.0
+        },
+        {
+         "id": "BK-01780",
+         "date": "2026-10-22",
+         "text": "Gutschrift Patrick Rüegg, Unterhalt Lina Oktober",
+         "amount_chf": 1050.0
+        }
+       ],
+       "count": 2
+      },
+      "template": "expected_income",
+      "counterparty": "Patrick Rüegg",
+      "usual_day": 4,
+      "status": "not_arrived",
+      "months": [
+       {
+        "month": "2026-09",
+        "arrived_on": "2026-09-01",
+        "amount_chf": 1050.0,
+        "state": "on_time"
+       },
+       {
+        "month": "2026-10",
+        "arrived_on": "2026-10-22",
+        "amount_chf": 1050.0,
+        "state": "late"
+       },
+       {
+        "month": "2026-11",
+        "arrived_on": null,
+        "amount_chf": null,
+        "state": "open"
+       }
+      ]
+     }
+    },
+    {
+     "template": "bills_until_payday",
+     "args": {
+      "account_id": "ACC-PRIV"
+     },
+     "title": "Bills until payday",
+     "payload": {
+      "figure_chf": 2950.2,
+      "source": {
+       "label": "8 upcoming payments",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "SO-RENT",
+         "date": "2026-11-27",
+         "text": "Wohnbaugenossenschaft Talgut: Miete Dezember 2026",
+         "amount_chf": -1640.0
+        },
+        {
+         "id": "PAY-0244",
+         "date": "2026-11-30",
+         "text": "Zahnarztpraxis Neuwiesen: Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+         "amount_chf": -440.0
+        },
+        {
+         "id": "PAY-0245",
+         "date": "2026-12-07",
+         "text": "Ratenwerk Finanz AG: Ratenvertrag RW-2025-48817, Rate 21/24",
+         "amount_chf": -77.8
+        },
+        {
+         "id": "PAY-0247",
+         "date": "2026-12-07",
+         "text": "Lebara Schweiz: Abo Mobile Dezember 2026",
+         "amount_chf": -19.9
+        },
+        {
+         "id": "PAY-0249",
+         "date": "2026-12-10",
+         "text": "Stadt Winterthur, Betreuung Schule: Hort und Mittagstisch Dezember 2026",
+         "amount_chf": -348.0
+        },
+        {
+         "id": "PAY-0251",
+         "date": "2026-12-15",
+         "text": "Sunrise GmbH: Internet Dezember 2026",
+         "amount_chf": -39.9
+        },
+        {
+         "id": "SO-STEUER",
+         "date": "2026-12-21",
+         "text": "Steueramt Winterthur: Steuern Vorauszahlung Dezember 2026",
+         "amount_chf": -95.0
+        },
+        {
+         "id": "PAY-0253",
+         "date": "2026-12-23",
+         "text": "Assura-Basis SA: Prämie Januar 2027 (Daniela + Lina), abzgl. Prämienverbilligung",
+         "amount_chf": -289.6
+        }
+       ],
+       "count": 8
+      },
+      "template": "bills_until_payday",
+      "payday": "2026-12-24",
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Wohnbaugenossenschaft Talgut",
+        "detail": "rent for December",
+        "amount_chf": 1640.0,
+        "balance_after_chf": 1435.16,
+        "flag": null
+       },
+       {
+        "id": "PAY-0244",
+        "due": "2026-11-30",
+        "payee": "Zahnarztpraxis Neuwiesen",
+        "detail": null,
+        "amount_chf": 440.0,
+        "balance_after_chf": 995.16,
+        "flag": "reminder"
+       },
+       {
+        "id": "PAY-0245",
+        "due": "2026-12-07",
+        "payee": "Ratenwerk Finanz",
+        "detail": "instalment 21 of 24",
+        "amount_chf": 77.8,
+        "balance_after_chf": 917.36,
+        "flag": null
+       },
+       {
+        "id": "PAY-0247",
+        "due": "2026-12-07",
+        "payee": "Lebara Schweiz",
+        "detail": "mobile",
+        "amount_chf": 19.9,
+        "balance_after_chf": 897.46,
+        "flag": null
+       },
+       {
+        "id": "PAY-0249",
+        "due": "2026-12-10",
+        "payee": "Stadt Winterthur",
+        "detail": "Hort und Mittagstisch",
+        "amount_chf": 348.0,
+        "balance_after_chf": 549.46,
+        "flag": null
+       },
+       {
+        "id": "PAY-0251",
+        "due": "2026-12-15",
+        "payee": "Sunrise",
+        "detail": "internet",
+        "amount_chf": 39.9,
+        "balance_after_chf": 509.56,
+        "flag": null
+       },
+       {
+        "id": "SO-STEUER",
+        "due": "2026-12-21",
+        "payee": "Steueramt Winterthur",
+        "detail": "advance payment",
+        "amount_chf": 95.0,
+        "balance_after_chf": 414.56,
+        "flag": null
+       },
+       {
+        "id": "PAY-0253",
+        "due": "2026-12-23",
+        "payee": "Assura-Basis",
+        "detail": "premium for January",
+        "amount_chf": 289.6,
+        "balance_after_chf": 124.96,
+        "flag": null
+       }
+      ]
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0244"
+     },
+     "title": "Dentist bill",
+     "payload": {
+      "figure_chf": 440.0,
+      "source": {
+       "label": "Zahnarztpraxis Neuwiesen, due 30.11.",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "PAY-0244",
+         "date": "2026-11-30",
+         "text": "Zahnarztpraxis Neuwiesen: Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+         "amount_chf": -440.0
+        }
+       ],
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Zahnarztpraxis Neuwiesen",
+      "due": "2026-11-30",
+      "description": "Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+      "flag": "reminder"
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Emergency fund",
+     "payload": {
+      "figure_chf": 284.25,
+      "source": {
+       "label": "2 transfers",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01829",
+         "date": "2026-11-20",
+         "text": "Übertrag auf Privatkonto",
+         "amount_chf": -200.0
+        },
+        {
+         "id": "BK-01839",
+         "date": "2026-11-24",
+         "text": "Übertrag auf Privatkonto",
+         "amount_chf": -400.0
+        }
+       ],
+       "count": 2
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Notgroschen",
+      "goal_text": "Notgroschen CHF 3'000",
+      "goal_chf": 3000.0,
+      "percent": 9.5,
+      "month_change_chf": -600.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "merchant_spending",
+     "args": {
+      "merchants": [
+       "Lidl",
+       "Aldi",
+       "Migros",
+       "Denner"
+      ],
+      "period": "this_month"
+     },
+     "title": "Groceries in November",
+     "payload": {
+      "figure_chf": 1092.35,
+      "source": {
+       "label": "Card payments at 4 shops",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01796",
+         "date": "2026-11-02",
+         "text": "Kartenzahlung Debit Mastercard 02.11.2026 DENNER WINTERTHUR ZUERCHERSTR",
+         "amount_chf": -16.54
+        },
+        {
+         "id": "BK-01797",
+         "date": "2026-11-02",
+         "text": "Kartenzahlung Debit Mastercard 02.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -30.2
+        },
+        {
+         "id": "BK-01801",
+         "date": "2026-11-04",
+         "text": "Kartenzahlung Debit Mastercard 04.11.2026 MIGROS WINTERTHUR TOESS",
+         "amount_chf": -8.7
+        },
+        {
+         "id": "BK-01802",
+         "date": "2026-11-05",
+         "text": "Kartenzahlung Debit Mastercard 05.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -71.11
+        },
+        {
+         "id": "BK-01805",
+         "date": "2026-11-06",
+         "text": "Kartenzahlung Debit Mastercard 06.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -58.11
+        },
+        {
+         "id": "BK-01807",
+         "date": "2026-11-07",
+         "text": "Kartenzahlung Debit Mastercard 07.11.2026 DENNER WINTERTHUR ZUERCHERSTR",
+         "amount_chf": -32.4
+        },
+        {
+         "id": "BK-01808",
+         "date": "2026-11-07",
+         "text": "Kartenzahlung Debit Mastercard 07.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -70.45
+        },
+        {
+         "id": "BK-01809",
+         "date": "2026-11-09",
+         "text": "Kartenzahlung Debit Mastercard 09.11.2026 DENNER WINTERTHUR ZUERCHERSTR",
+         "amount_chf": -15.5
+        },
+        {
+         "id": "BK-01810",
+         "date": "2026-11-09",
+         "text": "Kartenzahlung Debit Mastercard 09.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -42.85
+        },
+        {
+         "id": "BK-01811",
+         "date": "2026-11-09",
+         "text": "Kartenzahlung Debit Mastercard 09.11.2026 MIGROS WINTERTHUR TOESS",
+         "amount_chf": -23.22
+        },
+        {
+         "id": "BK-01813",
+         "date": "2026-11-10",
+         "text": "Kartenzahlung Debit Mastercard 10.11.2026 MIGROS WINTERTHUR TOESS",
+         "amount_chf": -28.8
+        },
+        {
+         "id": "BK-01816",
+         "date": "2026-11-11",
+         "text": "Kartenzahlung Debit Mastercard 11.11.2026 DENNER WINTERTHUR ZUERCHERSTR",
+         "amount_chf": -10.75
+        },
+        {
+         "id": "BK-01817",
+         "date": "2026-11-11",
+         "text": "Kartenzahlung Debit Mastercard 11.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -49.85
+        },
+        {
+         "id": "BK-01818",
+         "date": "2026-11-12",
+         "text": "Kartenzahlung Debit Mastercard 12.11.2026 ALDI SUISSE WINTERTHUR",
+         "amount_chf": -25.48
+        },
+        {
+         "id": "BK-01819",
+         "date": "2026-11-13",
+         "text": "Kartenzahlung Debit Mastercard 13.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -15.7
+        },
+        {
+         "id": "BK-01820",
+         "date": "2026-11-14",
+         "text": "Kartenzahlung Debit Mastercard 14.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -18.04
+        },
+        {
+         "id": "BK-01821",
+         "date": "2026-11-16",
+         "text": "Kartenzahlung Debit Mastercard 16.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -20.55
+        },
+        {
+         "id": "BK-01823",
+         "date": "2026-11-17",
+         "text": "Kartenzahlung Debit Mastercard 17.11.2026 DENNER WINTERTHUR ZUERCHERSTR",
+         "amount_chf": -16.0
+        },
+        {
+         "id": "BK-01824",
+         "date": "2026-11-17",
+         "text": "Kartenzahlung Debit Mastercard 17.11.2026 MIGROS WINTERTHUR TOESS",
+         "amount_chf": -49.75
+        },
+        {
+         "id": "BK-01826",
+         "date": "2026-11-18",
+         "text": "Kartenzahlung Debit Mastercard 18.11.2026 MIGROS WINTERTHUR TOESS",
+         "amount_chf": -28.46
+        },
+        {
+         "id": "BK-01828",
+         "date": "2026-11-19",
+         "text": "Kartenzahlung Debit Mastercard 19.11.2026 ALDI SUISSE WINTERTHUR",
+         "amount_chf": -52.8
+        },
+        {
+         "id": "BK-01833",
+         "date": "2026-11-20",
+         "text": "Kartenzahlung Debit Mastercard 20.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -30.61
+        },
+        {
+         "id": "BK-01834",
+         "date": "2026-11-20",
+         "text": "Kartenzahlung Debit Mastercard 20.11.2026 MIGROS WINTERTHUR TOESS",
+         "amount_chf": -46.58
+        },
+        {
+         "id": "BK-01832",
+         "date": "2026-11-20",
+         "text": "Kartenzahlung Debit Mastercard 20.11.2026 ALDI SUISSE WINTERTHUR",
+         "amount_chf": -52.25
+        },
+        {
+         "id": "BK-01836",
+         "date": "2026-11-21",
+         "text": "Kartenzahlung Debit Mastercard 21.11.2026 DENNER WINTERTHUR ZUERCHERSTR",
+         "amount_chf": -20.05
+        },
+        {
+         "id": "BK-01835",
+         "date": "2026-11-21",
+         "text": "Kartenzahlung Debit Mastercard 21.11.2026 ALDI SUISSE WINTERTHUR",
+         "amount_chf": -62.19
+        },
+        {
+         "id": "BK-01838",
+         "date": "2026-11-23",
+         "text": "Kartenzahlung Debit Mastercard 23.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -18.17
+        },
+        {
+         "id": "BK-01843",
+         "date": "2026-11-24",
+         "text": "Kartenzahlung Debit Mastercard 24.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -31.6
+        },
+        {
+         "id": "BK-01844",
+         "date": "2026-11-24",
+         "text": "Kartenzahlung Debit Mastercard 24.11.2026 MIGROS WINTERTHUR TOESS",
+         "amount_chf": -34.18
+        },
+        {
+         "id": "BK-01842",
+         "date": "2026-11-24",
+         "text": "Kartenzahlung Debit Mastercard 24.11.2026 ALDI SUISSE WINTERTHUR",
+         "amount_chf": -35.3
+        },
+        {
+         "id": "BK-01847",
+         "date": "2026-11-26",
+         "text": "Kartenzahlung Debit Mastercard 26.11.2026 DENNER WINTERTHUR ZUERCHERSTR",
+         "amount_chf": -27.65
+        },
+        {
+         "id": "BK-01848",
+         "date": "2026-11-26",
+         "text": "Kartenzahlung Debit Mastercard 26.11.2026 LIDL WINTERTHUR TOESS",
+         "amount_chf": -48.51
+        }
+       ],
+       "count": 32
+      },
+      "template": "merchant_spending",
+      "date_from": "2026-11-01",
+      "date_to": "2026-11-27",
+      "rows": [
+       {
+        "merchant": "Lidl",
+        "amount_chf": 505.75,
+        "share": 1.0,
+        "count": 13
+       },
+       {
+        "merchant": "Aldi",
+        "amount_chf": 228.02,
+        "share": 0.451,
+        "count": 5
+       },
+       {
+        "merchant": "Migros",
+        "amount_chf": 219.69,
+        "share": 0.434,
+        "count": 7
+       },
+       {
+        "merchant": "Denner",
+        "amount_chf": 138.89,
+        "share": 0.275,
+        "count": 7
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Lina",
+   "tiles": [
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-KID"
+      ]
+     },
+     "title": "Lina's savings",
+     "payload": {
+      "figure_chf": 3470.5,
+      "source": {
+       "label": "1 savings account",
+       "kind": "accounts",
+       "rows": [
+        {
+         "id": "ACC-KID",
+         "date": null,
+         "text": "Jugendsparkonto Lina",
+         "amount_chf": 3470.5
+        }
+       ],
+       "count": 1
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-KID",
+        "name": "Jugendsparkonto Lina",
+        "balance_chf": 3470.5,
+        "purpose": "Geschenke der Grosseltern für Lina (nicht antasten)"
+       }
+      ]
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Stadt Winterthur, Betreuung Schule"
+      ]
+     },
+     "title": "After-school care",
+     "payload": {
+      "figure_chf": 348.0,
+      "source": {
+       "label": "1 payment in December",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "PAY-0249",
+         "date": "2026-12-10",
+         "text": "Stadt Winterthur, Betreuung Schule: Hort und Mittagstisch Dezember 2026",
+         "amount_chf": -348.0
+        }
+       ],
+       "count": 1
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Stadt Winterthur, Betreuung Schule",
+        "amount_chf": 348.0,
+        "next_due": "2026-12-10"
+       }
+      ]
+     }
+    },
+    {
+     "template": "merchant_spending",
+     "args": {
+      "merchants": [
+       "Schwimmschule Delfin Winterthur",
+       "Kinderturnen TV Töss"
+      ],
+      "period": "last_3_months"
+     },
+     "title": "Lina's activities",
+     "payload": {
+      "figure_chf": 300.0,
+      "source": {
+       "label": "2 payments at 2 shops",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01653",
+         "date": "2026-08-24",
+         "text": "Zahlung QR-Rechnung Kinderturnen TV Töss, Jahresbeitrag Kinderturnen 2026/27",
+         "amount_chf": -120.0
+        },
+        {
+         "id": "BK-01668",
+         "date": "2026-09-01",
+         "text": "Zahlung QR-Rechnung Schwimmschule Delfin Winterthur, Schwimmkurs Lina Herbst 2026",
+         "amount_chf": -180.0
+        }
+       ],
+       "count": 2
+      },
+      "template": "merchant_spending",
+      "date_from": "2026-08-01",
+      "date_to": "2026-10-31",
+      "rows": [
+       {
+        "merchant": "Schwimmschule Delfin Winterthur",
+        "amount_chf": 180.0,
+        "share": 1.0,
+        "count": 1
+       },
+       {
+        "merchant": "Kinderturnen TV Töss",
+        "amount_chf": 120.0,
+        "share": 0.667,
+        "count": 1
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [6, 3]"
+  },
+  "hero_fits": {
+   "passed": true,
+   "detail": "hero payday_balance; strongest headline signals: S1 payday_balance, S2 expected_income, S4 savings_goal"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero is exactly what the brief fixes for Daniela — CHF 124.96 left on 23 December, the day before her salary, after all scheduled bills (with the CHF 1'174.96 alternative if the child support arrives) — which answers «Will my money last until payday?» directly."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every tile draws on her real life — the missing child support from Patrick Rüegg, rent to her housing cooperative, the dentist's second reminder with its fee, instalment 21 of 24 for the washing machine, the emergency fund far below its CHF 3'000 goal, her discount-grocery shops, and Lina's untouchable savings and real activities — with no generic filler."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Titles are short, read like a person wrote them, use her own terms (payday, salary, child support, emergency fund, groceries), and each matches exactly what its tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "No tile is empty or pointless — the small figures (CHF 124.96 left, CHF 4.63 per day, an emergency fund at 9.5 %) are precisely the point — and the dentist's second appearance as its own tile adds the reminder context rather than repeating the bills list in different words."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The main board tells one story she would follow — what's left, what's coming, the late child support, the reminder, the drained buffer, with groceries as her only lever — and the second board stays on a single theme, Lina (her protected savings, her care, her activities)."
+  }
+ },
+ "acceptable": true
+}

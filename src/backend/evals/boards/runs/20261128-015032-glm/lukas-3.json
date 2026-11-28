@@ -1,0 +1,1028 @@
+{
+ "customer": "lukas",
+ "run": 3,
+ "request": null,
+ "seconds": 2.0,
+ "plan": {
+  "kind": "A well-off planner building wealth: the depot is worth more than all accounts together, savings sit in pots by purpose, and pillar 3a is nearly at the maximum.",
+  "evidence": [
+   "S1: the depot is worth more than the accounts",
+   "S7: savings pots for taxes, annual costs and the long term",
+   "S3: pillar 3a is 58.00 short of the maximum",
+   "S8: the Japan 2027 goal is already at 313 %"
+  ],
+  "question": "What do I own, and where does my money go?",
+  "boards": [
+   {
+    "name": "Overview",
+    "tiles": [
+     {
+      "template": "net_worth",
+      "args": {
+       "include_pension": false
+      },
+      "title": "What you own"
+     },
+     {
+      "template": "monthly_spending",
+      "args": {
+       "months": 6,
+       "merchants": null
+      },
+      "title": "Where the money goes"
+     },
+     {
+      "template": "due_soon",
+      "args": {
+       "days": 30
+      },
+      "title": "Due in the next 30 days"
+     },
+     {
+      "template": "securities",
+      "args": {},
+      "title": "Securities"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Netflix",
+        "Spotify",
+        "Dropbox",
+        "Apple iCloud+",
+        "Tages-Anzeiger Digital"
+       ]
+      },
+      "title": "Subscriptions"
+     },
+     {
+      "template": "pillar_3a",
+      "args": {},
+      "title": "Pillar 3a this year"
+     },
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-TAX",
+        "ACC-RES",
+        "ACC-LT"
+       ]
+      },
+      "title": "Savings pots"
+     }
+    ]
+   }
+  ],
+  "ideas": [
+   {
+    "title": "Japan 2027",
+    "text": "Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\"."
+   },
+   {
+    "title": "Credit card",
+    "text": "The Visa Gold bill for 2026-11 is 3'301.74 (provisional), collected on 21.12.2026, 38 purchases."
+   },
+   {
+    "title": "What's left each month",
+    "text": "On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09)."
+   }
+  ],
+  "dropped": [],
+  "model": "z-ai/glm-5.3",
+  "latency_ms": 2,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "7 of 7 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Overview",
+   "tiles": [
+    {
+     "template": "net_worth",
+     "args": {
+      "include_pension": false
+     },
+     "title": "What you own",
+     "payload": {
+      "figure_chf": 131212.64,
+      "source": {
+       "label": "4 accounts and 1 depot, without pillar 3a",
+       "kind": "accounts",
+       "rows": [
+        {
+         "id": "ACC-PRIV",
+         "date": null,
+         "text": "Privatkonto",
+         "amount_chf": 9716.33
+        },
+        {
+         "id": "ACC-TAX",
+         "date": null,
+         "text": "Sparkonto Steuern",
+         "amount_chf": 4638.04
+        },
+        {
+         "id": "ACC-RES",
+         "date": null,
+         "text": "Sparkonto Rücklagen",
+         "amount_chf": 6779.02
+        },
+        {
+         "id": "ACC-LT",
+         "date": null,
+         "text": "Sparkonto Langfristig",
+         "amount_chf": 37566.29
+        },
+        {
+         "id": "DEPOT-01",
+         "date": null,
+         "text": "Depot 0418-2210.01",
+         "amount_chf": 72512.96
+        }
+       ],
+       "count": 5
+      },
+      "template": "net_worth",
+      "parts": [
+       {
+        "group": "accounts",
+        "value_chf": 58699.68,
+        "count": 4
+       },
+       {
+        "group": "securities",
+        "value_chf": 72512.96,
+        "count": 1
+       }
+      ],
+      "includes_pension": false
+     }
+    },
+    {
+     "template": "monthly_spending",
+     "args": {
+      "months": 6,
+      "merchants": null
+     },
+     "title": "Where the money goes",
+     "payload": {
+      "figure_chf": 11561.65,
+      "source": {
+       "label": "531 payments, May to October",
+       "kind": "bookings",
+       "rows": [
+        {
+         "id": "BK-01911",
+         "date": "2026-05-01",
+         "text": "Kartenzahlung Debit Mastercard 01.05.2026 MIGROS MM ZUERICH HB",
+         "amount_chf": -24.7
+        },
+        {
+         "id": "BK-01912",
+         "date": "2026-05-01",
+         "text": "TWINT an Sophie Meyer «Taxi»",
+         "amount_chf": -60.0
+        },
+        {
+         "id": "CTX-01184",
+         "date": "2026-05-01",
+         "text": "TAMEDIA ABO TAGES-ANZEIGER",
+         "amount_chf": -24.0
+        },
+        {
+         "id": "BK-01913",
+         "date": "2026-05-02",
+         "text": "Kartenzahlung Debit Mastercard 02.05.2026 BAECKEREI KLEINER ZUERICH",
+         "amount_chf": -9.65
+        },
+        {
+         "id": "BK-01914",
+         "date": "2026-05-02",
+         "text": "Kartenzahlung Debit Mastercard 02.05.2026 DENNER ZUERICH IDAPLATZ",
+         "amount_chf": -19.91
+        },
+        {
+         "id": "CTX-01185",
+         "date": "2026-05-02",
+         "text": "AIRBNB * HMQ8ZK2 DUBLIN",
+         "amount_chf": -1326.78
+        },
+        {
+         "id": "CTX-01186",
+         "date": "2026-05-02",
+         "text": "NETFLIX.COM LOS GATOS",
+         "amount_chf": -18.9
+        },
+        {
+         "id": "CTX-01187",
+         "date": "2026-05-02",
+         "text": "ZALANDO.CH BERLIN",
+         "amount_chf": -142.07
+        },
+        {
+         "id": "BK-01915",
+         "date": "2026-05-03",
+         "text": "Kartenzahlung Debit Mastercard 03.05.2026 MIGROS MM ZUERICH HB",
+         "amount_chf": -22.3
+        },
+        {
+         "id": "BK-01916",
+         "date": "2026-05-03",
+         "text": "TWINT an Julia Moser «Kino»",
+         "amount_chf": -40.0
+        },
+        {
+         "id": "CTX-01188",
+         "date": "2026-05-03",
+         "text": "HOLY COW ZUERICH",
+         "amount_chf": -46.8
+        },
+        {
+         "id": "CTX-01189",
+         "date": "2026-05-03",
+         "text": "UBER *TRIP HELP.UBER.COM",
+         "amount_chf": -29.42
+        },
+        {
+         "id": "BK-01918",
+         "date": "2026-05-04",
+         "text": "Lastschrift (LSV) Fitnesspark Zürich Stadelhofen, Mitgliedschaft Mai 2026",
+         "amount_chf": -109.0
+        },
+        {
+         "id": "BK-01919",
+         "date": "2026-05-04",
+         "text": "Lastschrift (LSV) Salt Mobile SA, Abo Mobile Mai 2026",
+         "amount_chf": -39.95
+        },
+        {
+         "id": "CTX-01190",
+         "date": "2026-05-04",
+         "text": "MIGROS TAKEAWAY OERLIKON",
+         "amount_chf": -15.35
+        },
+        {
+         "id": "CTX-01191",
+         "date": "2026-05-04",
+         "text": "SBB MOBILE TICKET",
+         "amount_chf": -7.0
+        },
+        {
+         "id": "CTX-01192",
+         "date": "2026-05-05",
+         "text": "MIGROS TAKEAWAY OERLIKON",
+         "amount_chf": -24.4
+        },
+        {
+         "id": "BK-01921",
+         "date": "2026-05-06",
+         "text": "Bargeldbezug Bancomat 06.05.2026 ZUERICH HB",
+         "amount_chf": -200.0
+        },
+        {
+         "id": "CTX-01193",
+         "date": "2026-05-06",
+         "text": "GLOBUS ZUERICH",
+         "amount_chf": -155.0
+        },
+        {
+         "id": "BK-01922",
+         "date": "2026-05-07",
+         "text": "Kartenzahlung Debit Mastercard 07.05.2026 BAECKEREI KLEINER ZUERICH",
+         "amount_chf": -16.13
+        },
+        {
+         "id": "BK-01923",
+         "date": "2026-05-08",
+         "text": "Kartenzahlung Debit Mastercard 08.05.2026 DENNER ZUERICH IDAPLATZ",
+         "amount_chf": -9.35
+        },
+        {
+         "id": "BK-01924",
+         "date": "2026-05-08",
+         "text": "Kartenzahlung Debit Mastercard 08.05.2026 LIDL SCHWEIZ ZUERICH",
+         "amount_chf": -22.89
+        },
+        {
+         "id": "BK-01925",
+         "date": "2026-05-08",
+         "text": "Zahlung Anna Müller & Marco Rossi, Hochzeitsgeschenk – alles Liebe!",
+         "amount_chf": -300.0
+        },
+        {
+         "id": "BK-01926",
+         "date": "2026-05-09",
+         "text": "Kartenzahlung Debit Mastercard 09.05.2026 COOP-2214 ZUERICH BIRMENSDORFERSTR",
+         "amount_chf": -22.05
+        },
+        {
+         "id": "BK-01927",
+         "date": "2026-05-09",
+         "text": "Kartenzahlung Debit Mastercard 09.05.2026 MIGROS M ZUERICH WIEDIKON",
+         "amount_chf": -80.05
+        },
+        {
+         "id": "CTX-01194",
+         "date": "2026-05-09",
+         "text": "SPOTIFY P2B4C1 STOCKHOLM",
+         "amount_chf": -13.95
+        },
+        {
+         "id": "CTX-01195",
+         "date": "2026-05-09",
+         "text": "SUMUP *BAR 3000",
+         "amount_chf": -117.16
+        },
+        {
+         "id": "CTX-01196",
+         "date": "2026-05-10",
+         "text": "AVIA TANKSTELLE WOLLISHOFEN",
+         "amount_chf": -76.65
+        },
+        {
+         "id": "CTX-01197",
+         "date": "2026-05-10",
+         "text": "INTERDISCOUNT.CH",
+         "amount_chf": -78.06
+        },
+        {
+         "id": "CTX-01198",
+         "date": "2026-05-11",
+         "text": "SBB CFF FFS ZUERICH HB",
+         "amount_chf": -8.8
+        },
+        {
+         "id": "BK-01929",
+         "date": "2026-05-12",
+         "text": "Kartenzahlung Debit Mastercard 12.05.2026 K KIOSK ZUERICH HB",
+         "amount_chf": -5.6
+        },
+        {
+         "id": "BK-01930",
+         "date": "2026-05-12",
+         "text": "eBill-Zahlung Swisscom (Schweiz) AG, Rechnung inOne home Mai 2026",
+         "amount_chf": -94.0
+        },
+        {
+         "id": "CTX-01199",
+         "date": "2026-05-12",
+         "text": "MICROSPOT.CH",
+         "amount_chf": -157.05
+        },
+        {
+         "id": "BK-01931",
+         "date": "2026-05-13",
+         "text": "Auslandzahlung Masseria Ulivo S.r.l., Anzahlung Buchung 18.07.–01.08.2026",
+         "amount_chf": -377.96
+        },
+        {
+         "id": "CTX-01200",
+         "date": "2026-05-13",
+         "text": "MIGROS TAKEAWAY OERLIKON",
+         "amount_chf": -13.71
+        },
+        {
+         "id": "CTX-01201",
+         "date": "2026-05-13",
+         "text": "ZVV TICKET APP",
+         "amount_chf": -68.0
+        },
+        {
+         "id": "BK-01932",
+         "date": "2026-05-14",
+         "text": "Kartenzahlung Debit Mastercard 14.05.2026 BAECKEREI KLEINER ZUERICH",
+         "amount_chf": -17.79
+        },
+        {
+         "id": "CTX-01202",
+         "date": "2026-05-14",
+         "text": "DROPBOX*QX81 DUBLIN",
+         "amount_chf": -9.83
+        },
+        {
+         "id": "CTX-01203",
+         "date": "2026-05-16",
+         "text": "MICROSPOT.CH",
+         "amount_chf": -146.75
+        },
+        {
+         "id": "CTX-01204",
+         "date": "2026-05-16",
+         "text": "ROSSO PIZZERIA ZUERICH",
+         "amount_chf": -145.43
+        }
+       ],
+       "count": 531
+      },
+      "template": "monthly_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "total_chf": 15645.56,
+        "count": 81
+       },
+       {
+        "month": "2026-06",
+        "total_chf": 9191.31,
+        "count": 77
+       },
+       {
+        "month": "2026-07",
+        "total_chf": 9630.03,
+        "count": 102
+       },
+       {
+        "month": "2026-08",
+        "total_chf": 7030.63,
+        "count": 84
+       },
+       {
+        "month": "2026-09",
+        "total_chf": 17273.6,
+        "count": 94
+       },
+       {
+        "month": "2026-10",
+        "total_chf": 10598.77,
+        "count": 93
+       }
+      ],
+      "highest": "2026-09"
+     }
+    },
+    {
+     "template": "due_soon",
+     "args": {
+      "days": 30
+     },
+     "title": "Due in the next 30 days",
+     "payload": {
+      "figure_chf": 8302.59,
+      "source": {
+       "label": "All 10 payments",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "SO-RENT",
+         "date": "2026-11-27",
+         "text": "Wohnbau Sihlfeld AG Liegenschaftsverwaltung: Miete Dezember 2026",
+         "amount_chf": -2800.0
+        },
+        {
+         "id": "PAY-0230",
+         "date": "2026-12-01",
+         "text": "Fitnesspark Zürich Stadelhofen: Mitgliedschaft Dezember 2026",
+         "amount_chf": -119.0
+        },
+        {
+         "id": "PAY-0228",
+         "date": "2026-12-03",
+         "text": "Salt Mobile SA: Abo Mobile Dezember 2026",
+         "amount_chf": -39.95
+        },
+        {
+         "id": "SO-ETF",
+         "date": "2026-12-07",
+         "text": "Depot 0418-2210.01: ETF-Sparplan",
+         "amount_chf": -600.0
+        },
+        {
+         "id": "PAY-0233",
+         "date": "2026-12-10",
+         "text": "Ferienwohnungen Engadin AG: Anzahlung Ferienwohnung 02.–09.01.2027",
+         "amount_chf": -600.0
+        },
+        {
+         "id": "PAY-0226",
+         "date": "2026-12-14",
+         "text": "Swisscom (Schweiz) AG: Rechnung inOne home Dezember 2026",
+         "amount_chf": -94.0
+        },
+        {
+         "id": "PAY-0234",
+         "date": "2026-12-15",
+         "text": "Glückskette: Spende Weihnachten 2026",
+         "amount_chf": -200.0
+        },
+        {
+         "id": "MANUAL-3A",
+         "date": "2026-12-18",
+         "text": "Vorsorgekonto Säule 3a: Restbetrag 3a 2026 (Max. CHF 7'258)",
+         "amount_chf": -58.0
+        },
+        {
+         "id": "STMT-2026-11",
+         "date": "2026-12-21",
+         "text": "Visa Gold Abrechnung November 2026: Betrag vorläufig (Abrechnung per 30.11.2026, weitere Umsätze möglich)",
+         "amount_chf": -3301.74
+        },
+        {
+         "id": "PAY-0225",
+         "date": "2026-12-23",
+         "text": "Mythen Krankenversicherung AG: Prämie Januar 2027",
+         "amount_chf": -489.9
+        }
+       ],
+       "count": 10
+      },
+      "template": "due_soon",
+      "days": 30,
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Wohnbau Sihlfeld",
+        "detail": "rent for December",
+        "amount_chf": 2800.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "SO-ETF",
+        "due": "2026-12-07",
+        "payee": "Depot 0418-2210.01",
+        "detail": "savings plan",
+        "amount_chf": 600.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0233",
+        "due": "2026-12-10",
+        "payee": "Ferienwohnungen Engadin",
+        "detail": "deposit",
+        "amount_chf": 600.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "STMT-2026-11",
+        "due": "2026-12-21",
+        "payee": "Visa Gold",
+        "detail": "November",
+        "amount_chf": 3301.74,
+        "balance_after_chf": null,
+        "flag": "provisional"
+       }
+      ],
+      "count": 10
+     }
+    },
+    {
+     "template": "securities",
+     "args": {},
+     "title": "Securities",
+     "payload": {
+      "figure_chf": 72512.96,
+      "source": {
+       "label": "4 ETFs, CHF 30'800.00 paid in",
+       "kind": "positions",
+       "rows": [
+        {
+         "id": "IE00B4L5Y983",
+         "date": "2026-11-26",
+         "text": "iShares Core MSCI World UCITS ETF (Acc)",
+         "amount_chf": 30828.36
+        },
+        {
+         "id": "CH0237935652",
+         "date": "2026-11-26",
+         "text": "iShares Core SPI ETF (CH)",
+         "amount_chf": 22805.2
+        },
+        {
+         "id": "IE00BKM4GZ66",
+         "date": "2026-11-26",
+         "text": "iShares Core MSCI EM IMI UCITS ETF (Acc)",
+         "amount_chf": 13919.04
+        },
+        {
+         "id": "CH0016999846",
+         "date": "2026-11-26",
+         "text": "iShares Swiss Domestic Government Bond 3-7 ETF (CH)",
+         "amount_chf": 4960.36
+        }
+       ],
+       "count": 4
+      },
+      "template": "securities",
+      "invested_chf": 30800.0,
+      "allocation": [
+       {
+        "label": "Shares",
+        "value_chf": 67552.6,
+        "weight_pct": 93.16
+       },
+       {
+        "label": "Bonds",
+        "value_chf": 4960.36,
+        "weight_pct": 6.84
+       }
+      ],
+      "positions": 4
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Netflix",
+       "Spotify",
+       "Dropbox",
+       "Apple iCloud+",
+       "Tages-Anzeiger Digital"
+      ]
+     },
+     "title": "Subscriptions",
+     "payload": {
+      "figure_chf": 72.78,
+      "source": {
+       "label": "5 payments in December",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "CTX-01441",
+         "date": "2026-11-02",
+         "text": "Netflix",
+         "amount_chf": -21.9
+        },
+        {
+         "id": "CTX-01455",
+         "date": "2026-11-09",
+         "text": "Spotify",
+         "amount_chf": -13.95
+        },
+        {
+         "id": "CTX-01460",
+         "date": "2026-11-14",
+         "text": "Dropbox",
+         "amount_chf": -9.93
+        },
+        {
+         "id": "CTX-01463",
+         "date": "2026-11-17",
+         "text": "Apple iCloud+",
+         "amount_chf": -3.0
+        },
+        {
+         "id": "CTX-01440",
+         "date": "2026-11-01",
+         "text": "Tages-Anzeiger Digital",
+         "amount_chf": -24.0
+        }
+       ],
+       "count": 5
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Netflix",
+        "amount_chf": 21.9,
+        "next_due": "2026-12-02"
+       },
+       {
+        "payee": "Spotify",
+        "amount_chf": 13.95,
+        "next_due": "2026-12-09"
+       },
+       {
+        "payee": "Dropbox",
+        "amount_chf": 9.93,
+        "next_due": "2026-12-14"
+       },
+       {
+        "payee": "Apple iCloud+",
+        "amount_chf": 3.0,
+        "next_due": "2026-12-17"
+       },
+       {
+        "payee": "Tages-Anzeiger Digital",
+        "amount_chf": 24.0,
+        "next_due": "2026-12-01"
+       }
+      ]
+     }
+    },
+    {
+     "template": "pillar_3a",
+     "args": {},
+     "title": "Pillar 3a this year",
+     "payload": {
+      "figure_chf": 58.0,
+      "source": {
+       "label": "1 planned transfer",
+       "kind": "payments",
+       "rows": [
+        {
+         "id": "MANUAL-3A",
+         "date": "2026-12-18",
+         "text": "Vorsorgekonto Säule 3a: Restbetrag 3a 2026 (Max. CHF 7'258)",
+         "amount_chf": -58.0
+        }
+       ],
+       "count": 1
+      },
+      "template": "pillar_3a",
+      "year": 2026,
+      "maximum_chf": 7258.0,
+      "paid_chf": 6600.0,
+      "standing_orders_chf": 600.0,
+      "balance_chf": 55899.65,
+      "planned": [
+       {
+        "id": "MANUAL-3A",
+        "date": "2026-12-18",
+        "amount_chf": 58.0
+       }
+      ]
+     }
+    },
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-TAX",
+       "ACC-RES",
+       "ACC-LT"
+      ]
+     },
+     "title": "Savings pots",
+     "payload": {
+      "figure_chf": 48983.35,
+      "source": {
+       "label": "3 savings accounts",
+       "kind": "accounts",
+       "rows": [
+        {
+         "id": "ACC-TAX",
+         "date": null,
+         "text": "Sparkonto Steuern",
+         "amount_chf": 4638.04
+        },
+        {
+         "id": "ACC-RES",
+         "date": null,
+         "text": "Sparkonto Rücklagen",
+         "amount_chf": 6779.02
+        },
+        {
+         "id": "ACC-LT",
+         "date": null,
+         "text": "Sparkonto Langfristig",
+         "amount_chf": 37566.29
+        }
+       ],
+       "count": 3
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-TAX",
+        "name": "Sparkonto Steuern",
+        "balance_chf": 4638.04,
+        "purpose": "Rücklage für Steuerrechnungen"
+       },
+       {
+        "account_id": "ACC-RES",
+        "name": "Sparkonto Rücklagen",
+        "balance_chf": 6779.02,
+        "purpose": "Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)"
+       },
+       {
+        "account_id": "ACC-LT",
+        "name": "Sparkonto Langfristig",
+        "balance_chf": 37566.29,
+        "purpose": "Langfristiger Vermögensaufbau"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "depot_large",
+   "text": "Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "strength": 80,
+   "template": "net_worth",
+   "args": {
+    "include_pension": false
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "card_bill",
+   "text": "The Visa Gold bill for 2026-11 is 3'301.74 (provisional), collected on 21.12.2026, 38 purchases.",
+   "strength": 50,
+   "template": "card_bill",
+   "args": {
+    "card_id": "CARD-VISA"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'600.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S4",
+   "kind": "securities",
+   "text": "The depot is worth 72'512.96, 30'800.00 were paid in.",
+   "strength": 40,
+   "template": "securities",
+   "args": {}
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "10 payments of together 8'302.59 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Fitnesspark Zürich Stadelhofen from 109.00 to 119.00 on 01.06.2026; Swisscom (Schweiz) AG from 89.00 to 94.00 on 12.05.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "savings_pots",
+   "text": "3 savings accounts with their own purpose: Sparkonto Steuern (Rücklage für Steuerrechnungen); Sparkonto Rücklagen (Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)); Sparkonto Langfristig (Langfristiger Vermögensaufbau).",
+   "strength": 30,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-TAX",
+     "ACC-RES",
+     "ACC-LT"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "goal_reached",
+   "text": "Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\".",
+   "strength": 25,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-LT"
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "cashflow",
+   "text": "On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 1'413.74 is left on Privatkonto after 10 payments, 52.36 a day. A month's spending is about 11'634.33.",
+   "strength": 20,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": null
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 11'561.65 a month over the last 6 months, highest in 2026-09.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "bills_before_payday",
+   "text": "10 payments of together 8'302.59 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S13",
+   "kind": "fixed_costs",
+   "text": "The 5 largest monthly payments add up to 3'520.35 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+     "Mythen Krankenversicherung AG",
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG",
+     "Salt Mobile SA"
+    ]
+   }
+  },
+  {
+   "id": "S14",
+   "kind": "income_regular",
+   "text": "Sara Keller sends about 2'200.00 every month, around day 27.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Sara Keller"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [7]"
+  },
+  "hero_fits": {
+   "passed": true,
+   "detail": "hero net_worth; strongest headline signals: S1 net_worth, S3 pillar_3a, S5 due_soon"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero is net worth ('What you own'), exactly the hero the brief fixes for Lukas, with 'Where the money goes' beside it, matching his question of where his money goes and whether he is on track."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every tile maps to Lukas's real setup — net worth, spending, upcoming bills, his ETF portfolio, his five actual subscriptions, his pillar 3a maximum, and his three named savings pots — with no generic filler."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Titles are short, human, use his terms ('Savings pots', 'Pillar 3a this year'), and each matches what the tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "No tile is empty or zero (the 3a tile's CHF 58 is the planned top-up that completes his annual maximum), and no two tiles repeat the same information."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board reads as one story — what he owns, where it goes, and what is coming due — which is exactly the overview this planner asked for."
+  }
+ },
+ "acceptable": true
+}
