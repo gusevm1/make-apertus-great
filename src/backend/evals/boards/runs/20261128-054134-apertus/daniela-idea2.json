@@ -1,0 +1,364 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "Fixed costs. Your 6 largest monthly payments come to CHF 2'432.40.",
+ "name": "daniela-idea2",
+ "seconds": 3.6,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Wohnbaugenossenschaft Talgut, Stadt Winterthur, Betreuung Schule, Assura-Basis SA, Steueramt Winterthur, Ratenwerk Finanz AG, Sunrise GmbH, Stadtwerk Winterthur, Wohnbaugenossenschaft Talgut, Stadt Winterthur, Betreuung Schule, Assura-Basis SA, Steueramt Winterthur, Ratenwerk Finanz AG, Sunrise GmbH, Stadtwerk Winterthur"
+  ],
+  "question": "Fixed costs. Your 6 largest monthly payments come to CHF 2'432.40.",
+  "boards": [
+   {
+    "name": "Fixed costs",
+    "tiles": [
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Wohnbaugenossenschaft Talgut",
+        "Stadt Winterthur, Betreuung Schule",
+        "Assura-Basis SA",
+        "Steueramt Winterthur",
+        "Sunrise GmbH",
+        "Lebara Schweiz"
+       ]
+      },
+      "title": "Fixed costs"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Fixed costs",
+    "reason": "This board starts with the finding behind the idea; ask the chat to add more."
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 3501,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "1 of 1 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Fixed costs",
+   "tiles": [
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Wohnbaugenossenschaft Talgut",
+       "Stadt Winterthur, Betreuung Schule",
+       "Assura-Basis SA",
+       "Steueramt Winterthur",
+       "Sunrise GmbH",
+       "Lebara Schweiz"
+      ]
+     },
+     "title": "Fixed costs",
+     "payload": {
+      "figure_chf": 2432.4,
+      "source": {
+       "label": "6 upcoming payments",
+       "kind": "payments",
+       "count": 6
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Wohnbaugenossenschaft Talgut",
+        "amount_chf": 1640.0,
+        "next_due": "2026-11-27"
+       },
+       {
+        "payee": "Stadt Winterthur, Betreuung Schule",
+        "amount_chf": 348.0,
+        "next_due": "2026-12-10"
+       },
+       {
+        "payee": "Assura-Basis SA",
+        "amount_chf": 289.6,
+        "next_due": "2026-12-23"
+       },
+       {
+        "payee": "Steueramt Winterthur",
+        "amount_chf": 95.0,
+        "next_due": "2026-12-21"
+       },
+       {
+        "payee": "Sunrise GmbH",
+        "amount_chf": 39.9,
+        "next_due": "2026-12-15"
+       },
+       {
+        "payee": "Lebara Schweiz",
+        "amount_chf": 19.9,
+        "next_due": "2026-12-07"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The first tile shows exactly what the request names: her six largest regular payments (rent, childcare, health insurance, taxes, Sunrise, Lebara) summing to CHF 2'432.40."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every payee is real in Daniela's life — housing-cooperative rent, school childcare, Assura insurance, city taxes — and the tile is precisely about the requested fixed costs."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The title 'Fixed costs' is short, uses the customer's own term from the request, and matches what the tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The single tile carries six non-zero, meaningful rows and nothing is duplicated."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board is about the request and nothing else, and the quiet line under it explains that the chat can add more."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows exactly what the request names: her six largest regular payments (rent, childcare, health insurance, taxes, Sunrise, Lebara) summing to CHF 2'432.40."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every payee is real in Daniela's life — housing-cooperative rent, school childcare, Assura insurance, city taxes — and the tile is precisely about the requested fixed costs."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The title 'Fixed costs' is short, uses the customer's own term from the request, and matches what the tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile carries six non-zero, meaningful rows and nothing is duplicated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board is about the request and nothing else, and the quiet line under it explains that the chat can add more."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows exactly what the request names: her 6 largest monthly payments with their total of CHF 2'432.40, so it answers the request most directly."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every payee is a real fixed cost in Daniela's life — housing-cooperative rent, Lina's school care in Winterthur, Assura health insurance, city taxes, Sunrise and Lebara — and the tile is squarely about the requested fixed costs."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "\"Fixed costs\" is short, uses the customer's own term from the request, and matches the list of regular payments the tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile carries six real payments and their total, so nothing is empty, zero or duplicated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board is one tile about the requested fixed costs and nothing else, and the quiet line under it explains that the chat can add more."
+   }
+  }
+ ],
+ "acceptable": true
+}

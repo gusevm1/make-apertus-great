@@ -299,3 +299,34 @@ the wrong signal ("Tax due" on the emergency fund).
 - Jana 1 and 2: the judge failed the lowercase title "bills". Titles now start with a
   capital (after this run). Marco 2: the board drifted off the mortgage story (pillar 3a and
   the car instalments).
+
+## Night 3 (06:05 to 06:50)
+
+### One verdict per entry for requests: tried, reverted
+- The schema held one `{why, about_request}` per candidate entry (26 to 30 labelled accounts,
+  payees, booking payees, bills and findings). With long labels as keys the call took over
+  28 s and every plan fell back (`runs/20261128-050541-apertus/`, 3 of 8, all "server").
+  With short keys ("E7 PAYEE Ferienwohnungen Engadin AG") and a 45 s budget it took 27 to 45 s,
+  half the plans still fell back, and Apertus still said yes to the Engadin flat for Japan
+  (`runs/20261128-051136-apertus/`, 4 of 8). That is slower and no better than the entries
+  method (5 and 3 of 8 before), so I took the round-3 code back from HEAD.
+
+### Idea sentences and the mortgage blueprint (kept)
+- Idea texts are one short server-written line per kind, amounts with "CHF": "The next
+  instalment to Ratenwerk Finanz AG is due on 07.12., CHF 77.80.", "You pay back CHF 150.00 a
+  month to Andrea Widmer.", "Sara Keller sends about CHF 2'200.00 a month." Ideas rank
+  concrete kinds first (instalments, private loan, goals, bills, card, incomes, 3a, depot),
+  whole-month findings only to fill. A request that holds an idea's sentence (old or new)
+  opens on that idea's finding.
+- When the hero is the mortgage, the main board orders the house reserve, the savings pots and
+  the bills due before the rest, with pillar 3a and the car instalments last.
+- First boards: 12 of 12 (`runs/20261128-051707-apertus/`).
+- Requested boards on this code: 5 of 8 (`runs/20261128-052354-apertus/`) and 3 of 8
+  (`runs/20261128-052907-apertus/`).
+- Idea round trips: 6 of 12 (`runs/20261128-052904-apertus/`); the second run is below.
+- Second run on that code: 5 of 12 (`runs/20261128-053727-apertus/`). Nearly every failure was a second tile the selection call added off the idea
+  (the dentist bill on "Fixed costs", the Japan goal on Sara's transfer).
+- Change: an idea's board is the idea's finding alone, with the quiet line "This board starts
+  with the finding behind the idea; ask the chat to add more." Result 11 of 12
+  (`runs/20261128-054134-apertus/`). The one failure (Jana, "Fixed costs") carried the loan
+  note from the dropped selection. The note is now left out, after the run and not measured.

@@ -1,0 +1,358 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "Bills due soon. 8 payments of together 2'950.20 are due in the next 30 days.",
+ "name": "daniela-idea3",
+ "seconds": 4.3,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Wohnbaugenossenschaft Talgut, Zahnarztpraxis Neuwiesen, Ratenwerk Finanz AG, Lebara Schweiz, Stadt Winterthur, Betreuung Schule, Sunrise GmbH, Steueramt Winterthur, Assura-Basis SA, Bills due soon, 2'950.20, next 30 days, Wohnbaugenossenschaft Talgut, Zahnarztpraxis Neuwiesen, Ratenwerk Finanz AG, Lebara Schweiz, Stadt Winterthur, Betreuung Schule, Sunrise GmbH, Steueramt Winterthur, Assura-Basis SA"
+  ],
+  "question": "Bills due soon. 8 payments of together 2'950.20 are due in the next 30 days.",
+  "boards": [
+   {
+    "name": "Open bills",
+    "tiles": [
+     {
+      "template": "due_soon",
+      "args": {
+       "days": 30
+      },
+      "title": "Bills due soon"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Bills due soon",
+    "reason": "This board starts with the finding behind the idea; ask the chat to add more."
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 4222,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "1 of 1 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Open bills",
+   "tiles": [
+    {
+     "template": "due_soon",
+     "args": {
+      "days": 30
+     },
+     "title": "Bills due soon",
+     "payload": {
+      "figure_chf": 2950.2,
+      "source": {
+       "label": "All 8 payments",
+       "kind": "payments",
+       "count": 8
+      },
+      "template": "due_soon",
+      "days": 30,
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Wohnbaugenossenschaft Talgut",
+        "detail": "rent for December",
+        "amount_chf": 1640.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0244",
+        "due": "2026-11-30",
+        "payee": "Zahnarztpraxis Neuwiesen",
+        "detail": null,
+        "amount_chf": 440.0,
+        "balance_after_chf": null,
+        "flag": "reminder"
+       },
+       {
+        "id": "PAY-0249",
+        "due": "2026-12-10",
+        "payee": "Stadt Winterthur",
+        "detail": "Hort und Mittagstisch",
+        "amount_chf": 348.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0253",
+        "due": "2026-12-23",
+        "payee": "Assura-Basis",
+        "detail": "premium for January",
+        "amount_chf": 289.6,
+        "balance_after_chf": null,
+        "flag": null
+       }
+      ],
+      "count": 8
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The first tile is the due-soon list for the next 30 days showing exactly the 8 payments and CHF 2'950.20 the request names, which is the most direct answer possible."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "The tile lists her real upcoming bills — the cooperative's December rent, the reminded dentist bill, Hort and Mittagstisch childcare and the Assura premium — all genuine parts of this customer's situation and of the request."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "\"Bills due soon\" is short, reads like a person wrote it, and matches exactly what the tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The single tile holds eight real payments totalling CHF 2'950.20 with concrete rows, and with no second tile nothing is repeated."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board is exactly the requested list of bills due in the next 30 days and nothing else, and the line under the board explains its small size rather than padding it with off-topic tiles."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile is the due-soon list for the next 30 days showing exactly the 8 payments and CHF 2'950.20 the request names, which is the most direct answer possible."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The tile lists her real upcoming bills — the cooperative's December rent, the reminded dentist bill, Hort and Mittagstisch childcare and the Assura premium — all genuine parts of this customer's situation and of the request."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "\"Bills due soon\" is short, reads like a person wrote it, and matches exactly what the tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile holds eight real payments totalling CHF 2'950.20 with concrete rows, and with no second tile nothing is repeated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board is exactly the requested list of bills due in the next 30 days and nothing else, and the line under the board explains its small size rather than padding it with off-topic tiles."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile is exactly the requested list: 8 payments totalling CHF 2'950.20 due within the next 30 days, so it answers the request most directly."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every row is Daniela's real situation — rent to her housing cooperative, the reminded dentist bill, Lina's Hort und Mittagstisch childcare, and her Assura premium — so the tile is about her, not generic filler."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "'Bills due soon' is short, plain, uses her own words, and matches exactly what the tile shows; the board name 'Open bills' works as a tab label."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Duplicate check satisfied: only one tile exists, showing eight real upcoming payments totalling CHF 2'950.20, with nothing empty or repeated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board contains nothing but the requested list of upcoming bills, one clear story with no off-topic tile added to fill space, and the quiet line under the board invites asking for more."
+   }
+  }
+ ],
+ "acceptable": true
+}

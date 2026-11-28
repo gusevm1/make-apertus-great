@@ -1,0 +1,337 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": "Where the money goes. Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+ "name": "jana-idea3",
+ "seconds": 3.6,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Immobilien Aareblick AG, Steuerverwaltung des Kantons Bern, Andrea Widmer, KPT Krankenkasse AG, Activ Fitness AG, Wingo (Swisscom Schweiz AG), Sunrise GmbH, Energie Wasser Bern, Miete, Steuern, Rückzahlung Darlehen, Prämie, Abo, Internet, Strom"
+  ],
+  "question": "Where the money goes. Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+  "boards": [
+   {
+    "name": "New board",
+    "tiles": [
+     {
+      "template": "monthly_spending",
+      "args": {
+       "months": 6,
+       "merchants": null
+      },
+      "title": "Where the money goes"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "What is left of the loan",
+    "reason": "The bank does not know how much of the loan is left; tell me the amount and I add it."
+   },
+   {
+    "title": "Where the money goes",
+    "reason": "This board starts with the finding behind the idea; ask the chat to add more."
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 3546,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "1 of 1 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "New board",
+   "tiles": [
+    {
+     "template": "monthly_spending",
+     "args": {
+      "months": 6,
+      "merchants": null
+     },
+     "title": "Where the money goes",
+     "payload": {
+      "figure_chf": 5511.93,
+      "source": {
+       "label": "422 payments, May to October",
+       "kind": "bookings",
+       "count": 422
+      },
+      "template": "monthly_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "total_chf": 5771.55,
+        "count": 68
+       },
+       {
+        "month": "2026-06",
+        "total_chf": 6116.82,
+        "count": 74
+       },
+       {
+        "month": "2026-07",
+        "total_chf": 4995.51,
+        "count": 72
+       },
+       {
+        "month": "2026-08",
+        "total_chf": 5735.49,
+        "count": 64
+       },
+       {
+        "month": "2026-09",
+        "total_chf": 4454.57,
+        "count": 62
+       },
+       {
+        "month": "2026-10",
+        "total_chf": 5997.64,
+        "count": 82
+       }
+      ],
+      "highest": "2026-06"
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero shows exactly the finding the request names — spending averaging 5'511.93 a month over the last six months, highest in 2026-06 — so it answers the request most directly."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "The single tile is Jana's real account spending over the last six months, which is precisely what this request is about."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "\"Where the money goes\" is short, uses the customer's own words from the request, and matches the monthly spending the tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The one tile carries real, non-zero monthly figures and nothing else on the board repeats it."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The quiet line about the parents' loan is unrelated to a spending request, so the page mixes a second topic into the board's story and a demo audience would wonder what the loan has to do with it."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows exactly the finding the request names — spending averaging 5'511.93 a month over the last six months, highest in 2026-06 — so it answers the request most directly."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The single tile is Jana's real account spending over the last six months, which is precisely what this request is about."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "\"Where the money goes\" is short, uses the customer's own words from the request, and matches the monthly spending the tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The one tile carries real, non-zero monthly figures and nothing else on the board repeats it."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The quiet line about the parents' loan is unrelated to a spending request, so the page mixes a second topic into the board's story and a demo audience would wonder what the loan has to do with it."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows exactly what the request asked for: her monthly spending over the last 6 months averaging 5'511.93 with June 2026 as the highest, matching the request's own finding."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The only tile is built from Jana's real account payments over the last six months, which is precisely what her request is about."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "\"Where the money goes\" is short, uses the customer's own words from the request, and matches the monthly spending the tile actually shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile carries six months of real, varying spending figures, so nothing is empty, zero or duplicated."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The quiet line about how much of her parents' loan is left has nothing to do with the spending request, so the page is not about the request and nothing else; it reads as an off-topic non sequitur."
+   }
+  }
+ ],
+ "acceptable": false
+}

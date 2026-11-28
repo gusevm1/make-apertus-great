@@ -1,0 +1,442 @@
+{
+ "customer": "lukas",
+ "run": 1,
+ "request": "In and out. On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+ "name": "lukas-idea3",
+ "seconds": 13.8,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Ferienwohnungen Engadin AG, Swisscom (Schweiz) AG, Glückskette, Mythen Krankenversicherung AG, Die Mobiliar Versicherungsgesellschaft AG, EKZ Elektrizitätswerke des Kantons Zürich, Steueramt der Stadt Zürich, Ferienwohnungen Engadin AG, Swisscom, Glückskette, Mythen Krankenversicherung AG, Die Mobiliar Versicherungsgesellschaft AG, EKZ, Steueramt der Stadt Zürich"
+  ],
+  "question": "In and out. On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+  "boards": [
+   {
+    "name": "Japanreise 2027",
+    "tiles": [
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "In and out"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Ferienwohnungen Engadin AG",
+        "Swisscom (Schweiz) AG",
+        "Glückskette",
+        "Mythen Krankenversicherung AG",
+        "Die Mobiliar Versicherungsgesellschaft AG",
+        "EKZ Elektrizitätswerke des Kantons Zürich",
+        "Steueramt der Stadt Zürich"
+       ]
+      },
+      "title": "Japanreise 2027"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Bill, due 10.12.",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 13702,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "3 of 3 resolved; dropped: Bill, due 10.12."
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Bill, due 10.12."
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Japanreise 2027",
+   "tiles": [
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "In and out",
+     "payload": {
+      "figure_chf": -199.61,
+      "source": {
+       "label": "561 bookings, May to October",
+       "kind": "bookings",
+       "count": 561
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 11860.34,
+        "spending_chf": 15645.56,
+        "left_chf": -3785.22
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 11047.89,
+        "spending_chf": 9191.31,
+        "left_chf": 1856.58
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 11140.55,
+        "spending_chf": 9630.03,
+        "left_chf": 1510.52
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 11639.25,
+        "spending_chf": 7030.63,
+        "left_chf": 4608.62
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 11216.07,
+        "spending_chf": 17273.6,
+        "left_chf": -6057.53
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 11268.16,
+        "spending_chf": 10598.77,
+        "left_chf": 669.39
+       }
+      ]
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Ferienwohnungen Engadin AG",
+       "Swisscom (Schweiz) AG",
+       "Glückskette",
+       "Mythen Krankenversicherung AG",
+       "Die Mobiliar Versicherungsgesellschaft AG",
+       "EKZ Elektrizitätswerke des Kantons Zürich",
+       "Steueramt der Stadt Zürich"
+      ]
+     },
+     "title": "Japanreise 2027",
+     "payload": {
+      "figure_chf": 3956.95,
+      "source": {
+       "label": "7 upcoming payments",
+       "kind": "payments",
+       "count": 7
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Ferienwohnungen Engadin AG",
+        "amount_chf": 600.0,
+        "next_due": "2026-12-10"
+       },
+       {
+        "payee": "Swisscom (Schweiz) AG",
+        "amount_chf": 94.0,
+        "next_due": "2026-12-14"
+       },
+       {
+        "payee": "Glückskette",
+        "amount_chf": 200.0,
+        "next_due": "2026-12-15"
+       },
+       {
+        "payee": "Mythen Krankenversicherung AG",
+        "amount_chf": 489.9,
+        "next_due": "2026-12-23"
+       },
+       {
+        "payee": "Die Mobiliar Versicherungsgesellschaft AG",
+        "amount_chf": 424.8,
+        "next_due": "2027-01-12"
+       },
+       {
+        "payee": "EKZ Elektrizitätswerke des Kantons Zürich",
+        "amount_chf": 168.25,
+        "next_due": "2027-01-15"
+       },
+       {
+        "payee": "Steueramt der Stadt Zürich",
+        "amount_chf": 1980.0,
+        "next_due": "2027-01-20"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "depot_large",
+   "text": "Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "strength": 80,
+   "template": "net_worth",
+   "args": {
+    "include_pension": false
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "card_bill",
+   "text": "The Visa Gold bill for 2026-11 is 3'301.74 (provisional), collected on 21.12.2026, 38 purchases.",
+   "strength": 50,
+   "template": "card_bill",
+   "args": {
+    "card_id": "CARD-VISA"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'600.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S4",
+   "kind": "securities",
+   "text": "The depot is worth 72'512.96, 30'800.00 were paid in.",
+   "strength": 40,
+   "template": "securities",
+   "args": {}
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "10 payments of together 8'302.59 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Fitnesspark Zürich Stadelhofen from 109.00 to 119.00 on 01.06.2026; Swisscom (Schweiz) AG from 89.00 to 94.00 on 12.05.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "savings_pots",
+   "text": "3 savings accounts with their own purpose: Sparkonto Steuern (Rücklage für Steuerrechnungen); Sparkonto Rücklagen (Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)); Sparkonto Langfristig (Langfristiger Vermögensaufbau).",
+   "strength": 30,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-TAX",
+     "ACC-RES",
+     "ACC-LT"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "goal_reached",
+   "text": "Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\".",
+   "strength": 25,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-LT"
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "cashflow",
+   "text": "On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 1'413.74 is left on Privatkonto after 10 payments, 52.36 a day. A month's spending is about 11'634.33.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 11'561.65 a month over the last 6 months, highest in 2026-09.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "bills_before_payday",
+   "text": "10 payments of together 8'302.59 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S13",
+   "kind": "fixed_costs",
+   "text": "The 5 largest monthly payments add up to 3'520.35 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+     "Mythen Krankenversicherung AG",
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG",
+     "Salt Mobile SA"
+    ]
+   }
+  },
+  {
+   "id": "S14",
+   "kind": "income_regular",
+   "text": "Sara Keller sends about 2'200.00 every month, around day 27.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Sara Keller"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [2]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The first tile shows income and spending over the last 6 months with the -199.61 average left per month, exactly what the request asks."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The second tile lists upcoming regular payments, which is not about the request (in and out over the last 6 months) and so does not belong on this requested board."
+  },
+  "titles": {
+   "passed": false,
+   "reason": "The second tile's title 'Japanreise 2027' does not match what the tile shows (a list of upcoming bills), and the board name mislabels the request as a Japan-trip board."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "Both tiles carry real, non-zero figures and show different things."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board mixes the requested in-and-out analysis with an unrelated upcoming-payments list under a misleading 'Japanreise 2027' name, so it does not tell one story about the request."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows income and spending over the last 6 months with the -199.61 average left per month, exactly what the request asks."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The second tile lists upcoming regular payments, which is not about the request (in and out over the last 6 months) and so does not belong on this requested board."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "The second tile's title 'Japanreise 2027' does not match what the tile shows (a list of upcoming bills), and the board name mislabels the request as a Japan-trip board."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Both tiles carry real, non-zero figures and show different things."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board mixes the requested in-and-out analysis with an unrelated upcoming-payments list under a misleading 'Japanreise 2027' name, so it does not tell one story about the request."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows income against spending for each of the last six months with the -199.61 monthly average and the two negative months (2026-05, 2026-09), which is exactly what the request describes."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The second tile lists Lukas's upcoming household bills (Swisscom, health insurance, taxes), real data but a strong signal that is not about the requested in-and-out of the last six months, and no tile relates to the Japan trip the board claims."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "The first title 'In and out' fits its tile, but 'Japanreise 2027' on a list of upcoming regular bills does not match what that tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Both tiles carry real, non-zero figures and the two show different things (past monthly income versus spending, upcoming payments), so nothing is empty or duplicated."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board mixes the requested six-month in-and-out story with an unrelated upcoming-bills tile under a 'Japanreise 2027' name that fits neither, so it tells no single story."
+   }
+  }
+ ],
+ "acceptable": false
+}
