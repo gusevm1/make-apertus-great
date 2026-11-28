@@ -1,9 +1,9 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, create_model, field_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model, field_validator
 
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import Kind
@@ -286,20 +286,22 @@ class BatchCategories(BaseModel):
 
 def batch_categories_schema(categories: list[str]) -> type[BatchCategories]:
     """`BatchCategories` whose category enums hold these categories, the customer's own too."""
+    enum: list[JsonValue] = list(categories)
     row = create_model(
         "RowCategory",
         __base__=RowCategory,
-        category=(str, Field(json_schema_extra={"enum": categories})),
+        category=(str, Field(json_schema_extra={"enum": enum})),
         alternative=(
             str | None,
             Field(
                 default=None,
                 description=PROMPTS["categorise_alternative_field"],
-                json_schema_extra={"enum": categories},
+                json_schema_extra={"enum": enum},
             ),
         ),
     )
-    return create_model("BatchCategories", __base__=BatchCategories, rows=(list[row], ...))
+    fields: dict[str, Any] = {"rows": (list[row], ...)}
+    return create_model("BatchCategories", __base__=BatchCategories, **fields)
 
 
 class CategorySeverity(BaseModel):
@@ -316,14 +318,14 @@ class CategorySeverities(BaseModel):
 
 def category_severities_schema(categories: list[str]) -> type[CategorySeverities]:
     """`CategorySeverities` whose category enum holds these categories, the customer's own too."""
+    enum: list[JsonValue] = list(categories)
     item = create_model(
         "CategorySeverity",
         __base__=CategorySeverity,
-        category=(str, Field(json_schema_extra={"enum": categories})),
+        category=(str, Field(json_schema_extra={"enum": enum})),
     )
-    return create_model(
-        "CategorySeverities", __base__=CategorySeverities, categories=(list[item], ...)
-    )
+    fields: dict[str, Any] = {"categories": (list[item], ...)}
+    return create_model("CategorySeverities", __base__=CategorySeverities, **fields)
 
 
 class PersonalTag(BaseModel):
