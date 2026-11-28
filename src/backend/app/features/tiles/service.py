@@ -28,3 +28,7 @@ class TileService:
     ) -> AnyPayload:
         """Compute a tile from the banking API as it is now; TileError when it has nothing to show."""
         raise NotImplementedError
+
+    def default_title(self, payload: AnyPayload) -> str:
+        """The title a tile gets when nobody wrote one, such as "Left on 23.12."."""
+        raise NotImplementedError
