@@ -19,6 +19,19 @@ def test_an_amount_left_open_fails_the_check() -> None:
     assert check.detail == "an amount left open (CHF ?)"
 
 
+def test_a_currency_the_corrector_left_without_its_amount_fails_the_check() -> None:
+    check = CHECKS.check_complete(answer="After these bills, CHF will remain until the salary.")
+
+    assert check is not None
+    assert check.detail == "an amount left open (CHF ?)"
+
+
+def test_a_currency_named_as_the_unit_passes() -> None:
+    answer = "All amounts are in CHF per month. Of CHF 124.96, CHF 4.63 a day is left."
+
+    assert CHECKS.check_complete(answer=answer) is None
+
+
 def test_a_sentence_of_the_instructions_fails_the_check() -> None:
     leaked = next(iter(_prompt_sentences()))
 
