@@ -381,7 +381,7 @@ function FirstBoards({
         <h1>Building your first boards</h1>
         <p>
           From your own accounts and bookings, about what matters to you. This
-          takes up to two minutes, once.
+          takes a moment, once.
         </p>
         <p className="line">{BUILDING_LINES[lineIndex]}…</p>
       </div>
