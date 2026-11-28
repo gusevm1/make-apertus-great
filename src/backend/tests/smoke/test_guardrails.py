@@ -30,7 +30,7 @@ async def ask(client: httpx2.AsyncClient, session: AsyncSession, content: str) -
 @pytest.mark.parametrize(
     ("category", "content", "pointer"),
     [
-        ("product_choice", "Should I take SARON?", ADVISOR_EN),
+        ("product_choice", "Should I take SARON for my mortgage?", ADVISOR_EN),
         ("forecast", "Wie entwickeln sich die Zinsen?", ADVISOR_DE),
         ("tax_advice", "How can I pay less tax?", ADVISOR_EN),
         ("new_credit", "Kann ich einen Kredit haben?", PROMPTS["counselling_de"]),

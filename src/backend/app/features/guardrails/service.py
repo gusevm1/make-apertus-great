@@ -67,7 +67,7 @@ class GuardrailService:
         check = result.content
         detected = question_language(message={"role": "user", "content": text})
         # The model reads Swiss topics as German, so the message's own words decide when they can.
-        language = check.language if detected is None else REFUSAL_LANGUAGES[detected]
+        language = check.language if detected is None else REFUSAL_LANGUAGES.get(detected, "en")
         return Guardrail(
             category=check.category,
             decline=self._decline(category=check.category, language=language),
