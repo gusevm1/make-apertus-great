@@ -175,7 +175,7 @@ function TrustRoom({
     try {
       await api("/api/categorisations", token, json({}));
     } catch {
-      // Not urgent: the Categorization tab starts it again when it opens.
+      // Not urgent: the Categorization view starts it again when it opens.
     }
   }
 
@@ -564,7 +564,9 @@ function TrustRoom({
           customerSince={customerSince}
           onOpenCategorization={() => {
             closeProfile();
-            showView("categories");
+            // The side panel has no room for it: Categorization opens on /trustroom.
+            if (isChatOnly) openTrustRoom();
+            else showView("categories");
           }}
         />
       </div>

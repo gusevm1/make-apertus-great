@@ -37,7 +37,7 @@ function isGoing(run: CategorisationRun | null): boolean {
   return run !== null && (run.status === "queued" || run.status === "running");
 }
 
-/** The Categorization tab: settle what Apertus was unsure of, and see what each category holds. */
+/** The Categorization view: settle what Apertus was unsure of, and see what each category holds. */
 export function CategorizationView({
   token,
   onBack,
@@ -265,7 +265,7 @@ export function CategorizationView({
   return (
     <div className="cat-view">
       <button type="button" className="cat-back" onClick={onBack}>
-        ← Personalized Board
+        <span aria-hidden="true">←</span> Personalized Board
       </button>
       <header className="cat-head">
         <div>
