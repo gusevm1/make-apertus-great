@@ -93,3 +93,16 @@ test("keeps single line breaks inside a paragraph", () => {
     '<div class="markdown"><p>line one<br/>line two</p></div>',
   );
 });
+
+test("draws plain text through `plain`, inside bold and lists, but not code", () => {
+  const output = renderToStaticMarkup(
+    <Markdown
+      text={"Spent **CHF 486.50**.\n\n* Kronenhalle 142.00\n\n`486.50`"}
+      plain={(text) => text.replaceAll(/\d+\.\d\d/g, "[$&]")}
+    />,
+  );
+
+  expect(output).toContain("<strong>CHF [486.50]</strong>");
+  expect(output).toContain("<li>Kronenhalle [142.00]</li>");
+  expect(output).toContain("<code>486.50</code>");
+});

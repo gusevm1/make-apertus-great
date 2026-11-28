@@ -24,6 +24,7 @@ from app.features.documents.schemas import Document
 from app.features.documents.service import DocumentService
 from app.features.figure_checks.service import FigureCheckService
 from app.features.figure_corrections.service import FigureCorrectionService
+from app.features.figure_sources.service import FigureSourceService
 from app.features.guardrails.schemas import Guardrail
 from app.features.guardrails.service import GuardrailService
 from app.features.tool_calls.service import (
@@ -62,6 +63,7 @@ class ConversationService:
         documents: DocumentService,
         figure_checks: FigureCheckService,
         figure_corrections: FigureCorrectionService,
+        figure_sources: FigureSourceService,
         guardrails: GuardrailService,
     ) -> None:
         self.conversations = conversations
@@ -70,6 +72,7 @@ class ConversationService:
         self.documents = documents
         self.figure_checks = figure_checks
         self.figure_corrections = figure_corrections
+        self.figure_sources = figure_sources
         self.guardrails = guardrails
 
     async def create_conversation(
@@ -152,6 +155,12 @@ class ConversationService:
                 content, provenance = _guarded(
                     content=checked, provenance=checked_provenance, guardrail=guardrail
                 )
+                provenance = await self._with_figure_sources(
+                    conversation_id=conversation_id,
+                    content=content,
+                    provenance=provenance,
+                    documents=documents,
+                )
         except Exception:
             await self.messages.delete(entity_id=history[-1].id)
             raise
@@ -220,6 +229,12 @@ class ConversationService:
                     checked += pointers
                     content, provenance = _guarded(
                         content=checked, provenance=checked_provenance, guardrail=guardrail
+                    )
+                    provenance = await self._with_figure_sources(
+                        conversation_id=conversation_id,
+                        content=content,
+                        provenance=provenance,
+                        documents=documents,
                     )
                 pointer = _pointer_text(guardrail=guardrail)
                 if pointer != "":
@@ -331,6 +346,19 @@ class ConversationService:
             ),
             can_replace=True,
         )
+
+    async def _with_figure_sources(
+        self,
+        conversation_id: UUID,
+        content: str,
+        provenance: Provenance,
+        documents: list[Document],
+    ) -> Provenance:
+        calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
+        figures = await self.figure_sources.figure_sources(
+            answer=content, calls=calls, documents=documents
+        )
+        return provenance.model_copy(update={"figures": figures})
 
     async def _tool_pointers(self, conversation_id: UUID, message_id: UUID, content: str) -> str:
         calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
