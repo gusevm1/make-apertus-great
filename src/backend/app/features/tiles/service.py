@@ -256,6 +256,7 @@ class TileService:
                 with_income = left + income.amount
                 alternative = PaydayAlternative(
                     counterparty=args.expected_from,
+                    label=args.expected_label,
                     amount_chf=income.amount,
                     left_chf=with_income,
                     per_day_chf=_per_day(amount=with_income, days=days),

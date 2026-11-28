@@ -247,14 +247,14 @@ function PaydayBalance({
     `CHF ${money(payload.per_day_chf)} a day for ${payload.days} days` +
     (alternative === null
       ? "."
-      : `, or CHF ${money(alternative.per_day_chf)} if that payment arrives.`);
+      : `, or CHF ${money(alternative.per_day_chf)} with ${incomeName(alternative)}.`);
   return (
     <>
       <div className="herorow">
         <Figure amount={payload.figure_chf} isHero={isHero} isSmall={isSmall} />
         {alternative !== null && (
           <div className="alt num">
-            If the payment from {alternative.counterparty} arrives
+            If {incomeName(alternative)} arrives
             <b>CHF {money(alternative.left_chf)}</b>
           </div>
         )}
@@ -876,4 +876,8 @@ function CardBill({
       <SourceLink source={payload.source} onSource={onSource} />
     </>
   );
+}
+
+function incomeName(alternative: { counterparty: string; label?: string | null }) {
+  return alternative.label ?? `the payment from ${alternative.counterparty}`;
 }
