@@ -1,0 +1,209 @@
+[
+  {
+    "name": "groceries",
+    "customer": "daniela",
+    "message": "Remove the monthly cash flow tile and add what I spend on groceries.",
+    "selected": null,
+    "seconds": 16.9,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "remove_tile",
+        "arguments": {
+          "tile": "T3"
+        },
+        "summary": "Removed \"Monthly cash flow\"",
+        "plan": "Remove the monthly cash flow tile and add a tile showing my grocery spending for this month.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Groceries in November",
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Lidl",
+            "Aldi",
+            "Migros",
+            "Coop",
+            "Denner",
+            "Volg",
+            "Spar",
+            "Landi"
+          ]
+        },
+        "summary": "Added \"Groceries in November\"",
+        "plan": "Remove the monthly cash flow tile and add a tile showing my grocery spending for this month.",
+        "error": null
+      }
+    ],
+    "answer": "You spent CHF 1'092.35 on groceries in November, with most of the spending at Lidl (CHF 505.75), followed by Aldi (CHF 228.02), Migros (CHF 219.69) and Denner (CHF 138.89).",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "5 of 5 found"
+      },
+      {
+        "name": "figures_in_context",
+        "passed": true,
+        "detail": "5 of 5 fit"
+      }
+    ]
+  },
+  {
+    "name": "named_shops",
+    "customer": "daniela",
+    "message": "Show me what I spend at Migros and Denner this month.",
+    "selected": null,
+    "seconds": 10.2,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Groceries and shopping at Migros & Denner this month",
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Denner"
+          ]
+        },
+        "summary": "Added \"Shops in November\"",
+        "plan": "Add a tile showing spending at Migros and Denner this month.",
+        "error": null
+      }
+    ],
+    "answer": "Answer: You spent CHF 358.58 at Migros and Denner this month. Most of it went to Migros with CHF 219.69, and CHF 138.89 was spent at Denner.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      },
+      {
+        "name": "figures_in_context",
+        "passed": true,
+        "detail": "1 of 1 fit"
+      }
+    ]
+  },
+  {
+    "name": "subscriptions",
+    "customer": "daniela",
+    "message": "Add my subscriptions.",
+    "selected": null,
+    "seconds": 11.3,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Subscriptions",
+          "payees": [
+            "Sunrise GmbH",
+            "Assura-Basis SA",
+            "Lebara Schweiz"
+          ],
+          "template": "regular_payments"
+        },
+        "summary": "Added \"Subscriptions\"",
+        "plan": "Add a tile showing my regular subscription payments to the open board.",
+        "error": null
+      }
+    ],
+    "answer": "Done, the chart now shows your two upcoming subscription payments. Next Tuesday, 07.12., CHF 19.90 will be charged to Lebara Schweiz. On Friday, 15.12., CHF 39.90 will be charged to Sunrise GmbH.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "2 of 2 found"
+      }
+    ]
+  },
+  {
+    "name": "subscriptions_lukas",
+    "customer": "lukas",
+    "message": "Add my subscriptions.",
+    "selected": null,
+    "seconds": 12.3,
+    "passed": false,
+    "path": "model",
+    "problems": [
+      "Salt not among the shops ['Fitnesspark Zürich Stadelhofen', 'Swisscom (Schweiz) AG']",
+      "no summary with 'Subscriptions': Added \"Regular payments\"",
+      "252.95 missing"
+    ],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "payees": [
+            "Fitnesspark Zürich Stadelhofen",
+            "Swisscom (Schweiz) AG"
+          ],
+          "template": "regular_payments"
+        },
+        "summary": "Added \"Regular payments\"",
+        "plan": "Add a tile showing my regular subscription payments using the regular_payments template with the payees from the signals.",
+        "error": null
+      }
+    ],
+    "answer": "One round of these regular payments totals CHF 213.00: CHF 119.00 for the Fitnesspark Zürich Stadelhofen due on 01.12. and CHF 94.00 for Swisscom (Schweiz) AG due on 14.12.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  }
+]

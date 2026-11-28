@@ -57,7 +57,8 @@ guide: |
   - "Add what I spend on groceries.": add_tile {{"template": "merchant_spending", "period":
     "this_month", "merchants": [...], "title": "Groceries in <month>"}}, with every grocery
     shop of my this_month payees below, all of them, written as the list writes them.
-  - "Add my subscriptions.": add_tile {{"template": "regular_payments", "payees": [...]}} with
+  - "Add my subscriptions.": add_tile {{"template": "regular_payments", "title":
+    "Subscriptions", "payees": [...]}} with
     only those payees of the signals that are a subscription: a phone or internet provider,
     streaming, software, a gym or another membership, written as the signals write them. Never a
     name the signals do not write, and never rent, taxes, health insurance, childcare,

@@ -25,6 +25,7 @@ from app.features.boards.schemas import (
     Tile,
 )
 from app.features.boards.service import BoardService
+from app.features.boards.subscriptions import subscription_payees
 from app.features.tiles.meanings import meaning
 from app.features.board_plans.schemas import Signal
 from app.features.tiles.schemas import (
@@ -35,6 +36,11 @@ from app.features.tiles.schemas import (
 )
 
 MERCHANT_TEMPLATES = {"merchant_spending", "monthly_spending"}
+SUBSCRIPTION_WORDS = re.compile(r"subscription|\babo|membership|mitglied", re.I)
+SUBSCRIPTIONS_TITLE = "Subscriptions"
+# As far ahead as the regular_payments tile looks for a payee.
+SUBSCRIPTION_LOOKAHEAD_DAYS = 62
+SHOP_TITLE_MAX = 28
 MERCHANTS_MAX = 6
 # Question words and the templates of the tiles that answer such a question, first match wins.
 ANSWERING_TILES: list[tuple[re.Pattern[str], tuple[str, ...]]] = [
@@ -250,6 +256,28 @@ async def get_turn(
         else:
             raise BadRequestError(PROMPTS["add_tile_needs"])
         tile_args = _known_merchants(template=template, args=tile_args, facts=customer.text)
+        title = _shop_title(template=template, title=args.title)
+        if template == "regular_payments":
+            upcoming = await service.tile_service.banking.get(
+                path="/upcoming-payments",
+                token=token,
+                params={
+                    "from": today.isoformat(),
+                    "to": (today + timedelta(days=SUBSCRIPTION_LOOKAHEAD_DAYS)).isoformat(),
+                },
+            )
+            found = subscription_payees(payments=upcoming["items"])
+            listed = [str(name).casefold() for name in tile_args.get("payees") or []]
+            # Untitled, a list of subscriptions only is the customer's subscriptions too.
+            only_subscriptions = bool(listed) and all(
+                any(name in payee.casefold() or payee.casefold() in name for payee in found)
+                for name in listed
+            )
+            about_subscriptions = SUBSCRIPTION_WORDS.search(args.title or "") is not None
+            if found and (about_subscriptions or (args.title is None and only_subscriptions)):
+                # Every subscription the bank's texts show, whatever the model listed.
+                tile_args = {"payees": found}
+                title = SUBSCRIPTIONS_TITLE
         same = await service.find_same_tile(board_id=board.id, template=template, args=tile_args)
         if same is not None:
             payload = await service.resolve_tile(tile=same, token=token, today=today)
@@ -268,7 +296,7 @@ async def get_turn(
                 board_id=board.id,
                 template=template,
                 args=tile_args,
-                title=args.title,
+                title=title,
                 position=None,
                 token=token,
                 today=today,
@@ -533,6 +561,13 @@ def _known_merchants(template: str, args: dict[str, Any], facts: str) -> dict[st
     known = payee_names(facts=facts, period=period)
     kept = [name for name in merchants if str(name).casefold() in known]
     return args if not kept else {**args, "merchants": kept[:MERCHANTS_MAX]}
+
+
+def _shop_title(template: str, title: str | None) -> str | None:
+    """A shop tile's title of at most SHOP_TITLE_MAX characters; a longer one gets the default."""
+    if template not in MERCHANT_TEMPLATES or title is None or len(title) <= SHOP_TITLE_MAX:
+        return title
+    return None
 
 
 def _suggested_note(payload: AnyPayload, notes: list[str]) -> str | None:
