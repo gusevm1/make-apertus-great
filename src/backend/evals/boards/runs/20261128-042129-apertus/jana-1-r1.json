@@ -1,0 +1,304 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": "How do I get my emergency fund to 10'000?",
+ "name": null,
+ "seconds": 28.6,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: emergency, fund, Notgroschen"
+  ],
+  "question": "How do I get my emergency fund to 10'000?",
+  "boards": [
+   {
+    "name": "Sparkonto",
+    "tiles": [
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Sparkonto"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Sparkonto",
+    "reason": "repeats another tile"
+   }
+  ],
+  "model": "server",
+  "latency_ms": 0,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "1 of 2 resolved; dropped: Sparkonto"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": false,
+    "detail": "The model did not answer in time; this board holds what your request names word for word."
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Sparkonto",
+   "tiles": [
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Sparkonto",
+     "payload": {
+      "figure_chf": 4919.2,
+      "source": {
+       "label": "1 transfer",
+       "kind": "bookings",
+       "count": 1
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto",
+      "goal_text": "Notgroschen CHF 10'000",
+      "goal_chf": 10000.0,
+      "percent": 49.2,
+      "month_change_chf": 250.0,
+      "month": "2026-11"
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero shows her Sparkonto at CHF 4'919.20, 49.2% of the requested CHF 10'000 emergency-fund goal, with her real +CHF 250 monthly pace — the most direct answer the data holds to how she gets there."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "The tile is about her actual savings account (the persona's emergency fund) with her genuine monthly standing-order rate of CHF 250, so it is exactly this customer's situation and the request."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "'Sparkonto' is short, uses her own name for the account, and matches what the tile shows — that account's balance against the CHF 10'000 goal."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The single tile shows real, non-zero figures (balance, percent, monthly change) and there is no second tile to repeat or dilute it."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The one-tile board is entirely about the requested 10'000 emergency-fund goal and nothing else, telling a single followable story of where she stands and her monthly progress."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows her Sparkonto at CHF 4'919.20, 49.2% of the requested CHF 10'000 emergency-fund goal, with her real +CHF 250 monthly pace — the most direct answer the data holds to how she gets there."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The tile is about her actual savings account (the persona's emergency fund) with her genuine monthly standing-order rate of CHF 250, so it is exactly this customer's situation and the request."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "'Sparkonto' is short, uses her own name for the account, and matches what the tile shows — that account's balance against the CHF 10'000 goal."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile shows real, non-zero figures (balance, percent, monthly change) and there is no second tile to repeat or dilute it."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The one-tile board is entirely about the requested 10'000 emergency-fund goal and nothing else, telling a single followable story of where she stands and her monthly progress."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows her actual emergency fund (Sparkonto, CHF 4'919.20) against the requested CHF 10'000 goal at 49.2% with her real +CHF 250 monthly pace, which is the most direct answer the data holds to 'How do I get my emergency fund to 10'000?'."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The tile is about this customer's real situation and request: her own savings account, the 10'000 emergency-fund goal she asked about, and her actual monthly standing order of CHF 250."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "'Sparkonto' is short, uses the customer's own name for the account, and matches what the tile shows (that account's balance and progress toward the goal)."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile carries real, non-zero figures (balance, percent, monthly change) and there is nothing empty, pointless, or duplicated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one clear story about exactly the request — where her emergency fund stands against 10'000 and the pace she is adding — with nothing off-topic."
+   }
+  }
+ ],
+ "acceptable": true
+}

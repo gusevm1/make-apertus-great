@@ -1,0 +1,469 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": "When have I repaid my parents?",
+ "name": null,
+ "seconds": 9.2,
+ "plan": {
+  "kind": "",
+  "evidence": [],
+  "question": "When have I repaid my parents?",
+  "boards": [
+   {
+    "name": "Open bills",
+    "tiles": [
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Sparkonto"
+     },
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-PRIV",
+        "ACC-3A"
+       ]
+      },
+      "title": "Your accounts"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Andrea Widmer"
+       ]
+      },
+      "title": "Regular payments"
+     },
+     {
+      "template": "due_soon",
+      "args": {
+       "days": 30
+      },
+      "title": "Due in 30 days"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0131"
+      },
+      "title": "Bill, due 30.11."
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Upcoming bills and subscriptions",
+    "reason": "board is full"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 8633,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "6 of 6 resolved; dropped: Upcoming bills and subscriptions"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Repaid private loan to Andrea Widmer; 6 upcoming payments totaling CHF 3'155.45; Tax bill due 30.11.2026: CHF 1'180.00"
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Open bills",
+   "tiles": [
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Sparkonto",
+     "payload": {
+      "figure_chf": 4919.2,
+      "source": {
+       "label": "1 transfer",
+       "kind": "bookings",
+       "count": 1
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto",
+      "goal_text": "Notgroschen CHF 10'000",
+      "goal_chf": 10000.0,
+      "percent": 49.2,
+      "month_change_chf": 250.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-PRIV",
+       "ACC-3A"
+      ]
+     },
+     "title": "Your accounts",
+     "payload": {
+      "figure_chf": 11819.38,
+      "source": {
+       "label": "2 accounts",
+       "kind": "accounts",
+       "count": 2
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-PRIV",
+        "name": "Privatkonto",
+        "balance_chf": 8519.38,
+        "purpose": "Lohnkonto, Alltag (bis 08/2025 Studierendenkonto)"
+       },
+       {
+        "account_id": "ACC-3A",
+        "name": "Vorsorgekonto Säule 3a",
+        "balance_chf": 3300.0,
+        "purpose": "Gebundene Vorsorge 3a, eröffnet 01/2026"
+       }
+      ]
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Andrea Widmer"
+      ]
+     },
+     "title": "Regular payments",
+     "payload": {
+      "figure_chf": 150.0,
+      "source": {
+       "label": "1 payment in December",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Andrea Widmer",
+        "amount_chf": 150.0,
+        "next_due": "2026-12-28"
+       }
+      ]
+     }
+    },
+    {
+     "template": "due_soon",
+     "args": {
+      "days": 30
+     },
+     "title": "Due in 30 days",
+     "payload": {
+      "figure_chf": 3155.45,
+      "source": {
+       "label": "All 6 payments",
+       "kind": "payments",
+       "count": 6
+      },
+      "template": "due_soon",
+      "days": 30,
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Immobilien Aareblick",
+        "detail": "rent for December",
+        "amount_chf": 1390.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0131",
+        "due": "2026-11-30",
+        "payee": "Steuerverwaltung des Kantons Bern",
+        "detail": "Steuern Rate",
+        "amount_chf": 1180.0,
+        "balance_after_chf": null,
+        "flag": "provisional"
+       },
+       {
+        "id": "PAY-0133",
+        "due": "2026-12-01",
+        "payee": "Activ Fitness",
+        "detail": "Abo",
+        "amount_chf": 79.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0132",
+        "due": "2026-12-23",
+        "payee": "KPT Krankenkasse",
+        "detail": "premium for January",
+        "amount_chf": 421.6,
+        "balance_after_chf": null,
+        "flag": null
+       }
+      ],
+      "count": 6
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0131"
+     },
+     "title": "Bill, due 30.11.",
+     "payload": {
+      "figure_chf": 1180.0,
+      "source": {
+       "label": "Steuerverwaltung des Kantons Bern, due 30.11.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Steuerverwaltung des Kantons Bern",
+      "due": "2026-11-30",
+      "description": "Steuern 2026, 3. Rate (provisorisch)",
+      "flag": "provisional"
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [5]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The hero is a savings-goal tile for her emergency fund, which says nothing about when she will have repaid her parents; the closest signal the data holds (the CHF 150 standing payment to Andrea Widmer) sits third, and no quiet line explains that the bank cannot know the loan's remaining amount."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "Only the Andrea Widmer payment tile is about the request; the savings goal, account balances, due-in-30-days list and the tax bill are real facts about Jana but off-request filler that the rubric says does not belong on a requested board."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The titles are short, read naturally, and each matches what its tile actually shows (Sparkonto, Your accounts, Regular payments, Due in 30 days, Bill due 30.11.)."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "No tile is empty, zero or pointless, and the single tax bill standing beside the due-soon list is the explicitly allowed bill-beside-its-list detail pattern rather than a repeat."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board tells a generic open-bills and savings story rather than being about the one theme the customer asked for, repaying her parents, which appears only in a single buried tile."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero is a savings-goal tile for her emergency fund, which says nothing about when she will have repaid her parents; the closest signal the data holds (the CHF 150 standing payment to Andrea Widmer) sits third, and no quiet line explains that the bank cannot know the loan's remaining amount."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Only the Andrea Widmer payment tile is about the request; the savings goal, account balances, due-in-30-days list and the tax bill are real facts about Jana but off-request filler that the rubric says does not belong on a requested board."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The titles are short, read naturally, and each matches what its tile actually shows (Sparkonto, Your accounts, Regular payments, Due in 30 days, Bill due 30.11.)."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "No tile is empty, zero or pointless, and the single tax bill standing beside the due-soon list is the explicitly allowed bill-beside-its-list detail pattern rather than a repeat."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board tells a generic open-bills and savings story rather than being about the one theme the customer asked for, repaying her parents, which appears only in a single buried tile."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero shows her savings goal, which has nothing to do with repaying her parents; the only tile that speaks to the request (the CHF 150 monthly payment to Andrea Widmer) is buried third."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Only the 'Regular payments' tile to Andrea Widmer is about the request; the savings goal, account balances, 30-day dues and the tax bill are real data for Jana but off the request and would not belong."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Each title is short, reads like a person wrote it, and matches what its tile actually shows (the savings account, her accounts, the recurring payment, the due list, the bill)."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "No tile is empty or zero, and the single bill standing beside the due-list that contains it is the permitted list-plus-detail pattern rather than a repeat."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board as a whole is about open bills, savings and account balances, not about the one theme the customer asked for: when she will have repaid her parents."
+   }
+  }
+ ],
+ "acceptable": false
+}

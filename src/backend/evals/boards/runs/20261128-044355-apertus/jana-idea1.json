@@ -1,0 +1,471 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": "Pillar 3a savings. Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+ "name": "jana-idea1",
+ "seconds": 28.2,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Pillar, savings, Paid, into, pillar, 2026, maximum, after, standing, orders, missing"
+  ],
+  "question": "Pillar 3a savings. Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+  "boards": [
+   {
+    "name": "Regular payments",
+    "tiles": [
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Andrea Widmer"
+       ]
+      },
+      "title": "Regular payments"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0131"
+      },
+      "title": "Bill, due 30.11."
+     },
+     {
+      "template": "pillar_3a",
+      "args": {},
+      "title": "Pillar 3a, 2026"
+     },
+     {
+      "template": "monthly_spending",
+      "args": {
+       "months": 12,
+       "merchants": [
+        "KPT Krankenkasse AG",
+        "Coop",
+        "Migros",
+        "Lidl",
+        "Apple Store",
+        "Digitec"
+       ]
+      },
+      "title": "Each month"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Bill, due 30.11.",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Bill, due 14.12.",
+    "reason": "board is full"
+   },
+   {
+    "title": "Regular payments",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "server",
+  "latency_ms": 0,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "6 of 7 resolved; dropped: Bill, due 30.11.; Bill, due 14.12.; Regular payments"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Bill, due 30.11."
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": false,
+    "detail": "The model did not answer in time; this board holds what your request names word for word."
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Regular payments",
+   "tiles": [
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Andrea Widmer"
+      ]
+     },
+     "title": "Regular payments",
+     "payload": {
+      "figure_chf": 150.0,
+      "source": {
+       "label": "1 payment in December",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Andrea Widmer",
+        "amount_chf": 150.0,
+        "next_due": "2026-12-28"
+       }
+      ]
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0131"
+     },
+     "title": "Bill, due 30.11.",
+     "payload": {
+      "figure_chf": 1180.0,
+      "source": {
+       "label": "Steuerverwaltung des Kantons Bern, due 30.11.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Steuerverwaltung des Kantons Bern",
+      "due": "2026-11-30",
+      "description": "Steuern 2026, 3. Rate (provisorisch)",
+      "flag": "provisional"
+     }
+    },
+    {
+     "template": "pillar_3a",
+     "args": {},
+     "title": "Pillar 3a, 2026",
+     "payload": {
+      "figure_chf": 3658.0,
+      "source": {
+       "label": "11 payments in 2026",
+       "kind": "bookings",
+       "count": 11
+      },
+      "template": "pillar_3a",
+      "year": 2026,
+      "maximum_chf": 7258.0,
+      "paid_chf": 3300.0,
+      "standing_orders_chf": 300.0,
+      "balance_chf": 3300.0,
+      "planned": []
+     }
+    },
+    {
+     "template": "monthly_spending",
+     "args": {
+      "months": 12,
+      "merchants": [
+       "KPT Krankenkasse AG",
+       "Coop",
+       "Migros",
+       "Lidl",
+       "Apple Store",
+       "Digitec"
+      ]
+     },
+     "title": "Each month",
+     "payload": {
+      "figure_chf": 1402.27,
+      "source": {
+       "label": "245 payments, November 2025 to October 2026",
+       "kind": "bookings",
+       "count": 245
+      },
+      "template": "monthly_spending",
+      "months": [
+       {
+        "month": "2025-11",
+        "total_chf": 1848.52,
+        "count": 27
+       },
+       {
+        "month": "2025-12",
+        "total_chf": 1373.28,
+        "count": 21
+       },
+       {
+        "month": "2026-01",
+        "total_chf": 847.0,
+        "count": 17
+       },
+       {
+        "month": "2026-02",
+        "total_chf": 1414.33,
+        "count": 21
+       },
+       {
+        "month": "2026-03",
+        "total_chf": 1270.8,
+        "count": 20
+       },
+       {
+        "month": "2026-04",
+        "total_chf": 3012.4,
+        "count": 20
+       },
+       {
+        "month": "2026-05",
+        "total_chf": 1236.91,
+        "count": 19
+       },
+       {
+        "month": "2026-06",
+        "total_chf": 1137.47,
+        "count": 20
+       },
+       {
+        "month": "2026-07",
+        "total_chf": 1016.46,
+        "count": 15
+       },
+       {
+        "month": "2026-08",
+        "total_chf": 1270.64,
+        "count": 19
+       },
+       {
+        "month": "2026-09",
+        "total_chf": 1129.58,
+        "count": 21
+       },
+       {
+        "month": "2026-10",
+        "total_chf": 1269.83,
+        "count": 25
+       }
+      ],
+      "highest": "2026-04"
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [4]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The request asks about pillar 3a savings, but the hero tile shows a 150 CHF regular payment to Andrea Widmer while the pillar 3a figures the request names sit in the third tile."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "Only the pillar 3a tile is about the request; the parent-loan payment, the Bern tax bill and everyday merchant spending are real in Jana's life but do not belong on a board made for this request."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The titles are short, read like a person wrote them and match their tiles ('Pillar 3a, 2026' for the 3a tile, 'Bill, due 30.11.' for the tax bill), with 'Each month' only vaguely labelling the spending series."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "Every tile carries a real non-zero figure and no two tiles show the same content in different words."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "A requested board must be about the request and nothing else, but this one mixes a parent repayment, a tax bill, pillar 3a and general spending under a 'Regular payments' label."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The request asks about pillar 3a savings, but the hero tile shows a 150 CHF regular payment to Andrea Widmer while the pillar 3a figures the request names sit in the third tile."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Only the pillar 3a tile is about the request; the parent-loan payment, the Bern tax bill and everyday merchant spending are real in Jana's life but do not belong on a board made for this request."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The titles are short, read like a person wrote them and match their tiles ('Pillar 3a, 2026' for the 3a tile, 'Bill, due 30.11.' for the tax bill), with 'Each month' only vaguely labelling the spending series."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Every tile carries a real non-zero figure and no two tiles show the same content in different words."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "A requested board must be about the request and nothing else, but this one mixes a parent repayment, a tax bill, pillar 3a and general spending under a 'Regular payments' label."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero shows the 150 CHF December standing order to Andrea Widmer, which has nothing to do with the requested pillar 3a contribution and gap, while the tile that actually answers the request (3'300 of 7'258, 3'658 missing) sits third."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Only 'Pillar 3a, 2026' is about the request; the parents' repayment, the provisional tax bill and the shopping spending chart are real parts of Jana's life but strong signals not about the 3a request, which the rubric says do not belong."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "'Each month' never says what the 1'402.27 figure is (spending at which merchants?), and 'Regular payments' merely echoes the board name instead of naming the monthly payment to her parents, so the titles read as placeholders rather than a person's words."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Every tile carries a real, non-zero figure from her accounts and no two tiles show the same information in different words."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "A board made for a request must be about the request and nothing else, but this one mixes a family repayment, a tax bill and merchant spending around a single pillar 3a tile, so it tells no coherent 3a story."
+   }
+  }
+ ],
+ "acceptable": false
+}

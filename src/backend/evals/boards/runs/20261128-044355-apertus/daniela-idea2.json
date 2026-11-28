@@ -1,0 +1,324 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "Instalments. Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+ "name": "daniela-idea2",
+ "seconds": 28.1,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Instalments, Instalment, plans, running, Ratenwerk, Finanz, paid, left"
+  ],
+  "question": "Instalments. Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+  "boards": [
+   {
+    "name": "Regular payments",
+    "tiles": [
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Ratenwerk Finanz AG"
+       ]
+      },
+      "title": "Regular payments"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [],
+  "model": "server",
+  "latency_ms": 0,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "1 of 1 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": false,
+    "detail": "The model did not answer in time; this board holds what your request names word for word."
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Regular payments",
+   "tiles": [
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Ratenwerk Finanz AG"
+      ]
+     },
+     "title": "Regular payments",
+     "payload": {
+      "figure_chf": 77.8,
+      "source": {
+       "label": "1 payment in December",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Ratenwerk Finanz AG",
+        "amount_chf": 77.8,
+        "next_due": "2026-12-07"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": false,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero shows exactly the instalment plan running that the request names — Ratenwerk Finanz AG, CHF 77.80 per instalment, next due 7 December 2026 — which is the most direct answer her payment data holds to a request about running instalment plans."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "The single tile is her real situation, the washing-machine plan bought in 24 instalments from Ratenwerk Finanz AG that the persona and the request both describe, and nothing on the board is generic filler or off the request."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The title 'Regular payments' is short, reads like a person wrote it, contains no filler words, and matches what the tile shows — her recurring payment to Ratenwerk."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The one tile shows a real upcoming payment with a genuine amount and due date, and with only one tile nothing is empty, zero or duplicated."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board is entirely about the instalments request and nothing else, telling the single story of her running Ratenwerk plan."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows exactly the instalment plan running that the request names — Ratenwerk Finanz AG, CHF 77.80 per instalment, next due 7 December 2026 — which is the most direct answer her payment data holds to a request about running instalment plans."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The single tile is her real situation, the washing-machine plan bought in 24 instalments from Ratenwerk Finanz AG that the persona and the request both describe, and nothing on the board is generic filler or off the request."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The title 'Regular payments' is short, reads like a person wrote it, contains no filler words, and matches what the tile shows — her recurring payment to Ratenwerk."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The one tile shows a real upcoming payment with a genuine amount and due date, and with only one tile nothing is empty, zero or duplicated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board is entirely about the instalments request and nothing else, telling the single story of her running Ratenwerk plan."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero shows only the next CHF 77.80 payment to Ratenwerk, not the running plan status the request asks for (20 of 24 paid, CHF 311.20 left), which the request itself and her instalment contract do hold."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "The single tile shows Daniela's real Ratenwerk Finanz instalment payment, which is exactly what the request is about."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "\"Regular payments\" is the template's generic label rather than the customer's word \"Instalments\", and the plural does not match a tile showing one payee's single upcoming payment."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The one tile shows a real, non-zero upcoming payment and nothing on the board is empty, zero or duplicated."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board stays entirely on the request's theme, showing only the Ratenwerk instalment and nothing off-topic."
+   }
+  }
+ ],
+ "acceptable": false
+}

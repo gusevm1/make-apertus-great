@@ -30,6 +30,8 @@ from app.features.board_plans.service import (
     SIDE_MAX,
     SIDE_MIN,
     FILLER,
+    LOAN_UNKNOWN,
+    NOTHING_FOUND,
     TITLE_SHORT,
     BoardPlanService,
     name_fits,
@@ -100,6 +102,12 @@ def _judge_view(boards: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _notes(plan: PlannedBoards) -> str:
+    """The quiet lines the page shows under a board, such as what the bank does not know."""
+    said = [d.reason for d in plan.dropped if d.reason in {LOAN_UNKNOWN, NOTHING_FOUND}]
+    return "" if not said else "\nThe page also says under the board: " + " ".join(said)
+
+
 def _hero_fits(plan: PlannedBoards, signals: list[Signal]) -> tuple[bool, str]:
     heroes = [s for s in signals if s.template in HERO_TEMPLATES][:HERO_TOP]
     keys = {tile_key(s.template, s.args or {}) for s in heroes if s.template is not None}
@@ -114,7 +122,9 @@ def _hero_fits(plan: PlannedBoards, signals: list[Signal]) -> tuple[bool, str]:
 def _tile_count(plan: PlannedBoards, request: str | None) -> tuple[bool, str]:
     sizes = [len(board.tiles) for board in plan.boards]
     if request is not None:
-        ok = len(sizes) == 1 and REQUEST_MIN <= sizes[0] <= REQUEST_MAX
+        # A small requested board is fine when the plan says why nothing else is shown.
+        small = len(sizes) == 1 and 0 <= sizes[0] < REQUEST_MIN and bool(plan.dropped)
+        ok = small or (len(sizes) == 1 and REQUEST_MIN <= sizes[0] <= REQUEST_MAX)
     else:
         ok = bool(sizes) and MAIN_MIN <= sizes[0] <= MAIN_MAX
         ok = ok and all(SIDE_MIN <= size <= SIDE_MAX for size in sizes[1:])
@@ -153,13 +163,19 @@ async def run_one(
     semaphore: asyncio.Semaphore,
     settings: Settings,
     tag: str,
+    name: str | None = None,
 ) -> dict[str, Any]:
     async with semaphore:
         run_label.set(f"{tag}{customer}-{number}-{request or 'first'}")
         token = await login(settings=settings, customer=customer)
         today = await service.ledger.get_today()
         started = time.perf_counter()
-        record: dict[str, Any] = {"customer": customer, "run": number, "request": request}
+        record: dict[str, Any] = {
+            "customer": customer,
+            "run": number,
+            "request": request,
+            "name": name,
+        }
         try:
             plan = await service.plan_boards(token=token, today=today, request=request)
         except AppError as exc:
@@ -206,7 +222,7 @@ async def run_one(
                 judge_prompt(
                     rubric=(HERE / "rubric.md").read_text(encoding="utf-8"),
                     persona=persona,
-                    boards=_judge_view(boards=boards),
+                    boards=_judge_view(boards=boards) + _notes(plan=plan),
                     request=request,
                 ),
                 schema=Verdict,
@@ -246,12 +262,50 @@ async def run_one(
 
 
 def _name(record: dict[str, Any]) -> str:
+    if record.get("name") is not None:
+        return record["name"]
     stem = f"{record['customer']}-{record['run']}"
     request = record["request"]
     if request is None:
         return stem
     asked = REQUESTS.get(record["customer"], [])
     return f"{stem}-r{asked.index(request) + 1}" if request in asked else f"{stem}-request"
+
+
+async def idea_round_trip(
+    service: BoardPlanService,
+    tiles: TileService,
+    judge: ApertusClient,
+    customer: str,
+    out: Path,
+    semaphore: asyncio.Semaphore,
+    settings: Settings,
+    tag: str,
+) -> list[dict[str, Any]]:
+    """The first plan's ideas, each sent back as a request and judged as a requested board."""
+    async with semaphore:
+        token = await login(settings=settings, customer=customer)
+        today = await service.ledger.get_today()
+        plan = await service.plan_boards(token=token, today=today)
+    records = []
+    for index, idea in enumerate(plan.ideas, start=1):
+        record = await run_one(
+            service=service,
+            tiles=tiles,
+            judge=judge,
+            customer=customer,
+            number=1,
+            request=f"{idea.title}. {idea.text}",
+            out=out,
+            semaphore=semaphore,
+            settings=settings,
+            tag=tag,
+            name=f"{customer}-idea{index}",
+        )
+        records.append(record)
+    if len(plan.ideas) < 3:
+        print(f"{customer}: only {len(plan.ideas)} ideas", flush=True)
+    return records
 
 
 def _differs(records: list[dict[str, Any]]) -> None:
@@ -334,6 +388,8 @@ async def main() -> None:
     parser.add_argument("--request", default=None)
     # Each customer's two requests of REQUESTS instead of the first boards.
     parser.add_argument("--requests", action="store_true")
+    # Plan the first boards, then send each of its three ideas back as a request.
+    parser.add_argument("--ideas", action="store_true")
     # A new tag sends every prompt again, as new cold samples.
     parser.add_argument("--tag", default="")
     args = parser.parse_args()
@@ -348,6 +404,38 @@ async def main() -> None:
     out.mkdir(parents=True)
     semaphore = asyncio.Semaphore(PARALLEL[args.model])
     jobs = []
+    if args.ideas:
+        for customer in args.customers.split(","):
+            ledger = LedgerService(banking=banking)
+            recurring = RecurringPaymentService(ledger=ledger)
+            tiles = TileService(banking=banking, ledger=ledger, recurring=recurring)
+            service = BoardPlanService(
+                apertus=planner,
+                tiles=tiles,
+                ledger=ledger,
+                recurring=recurring,
+                figure_checks=FigureCheckService(),
+            )
+            jobs.append(
+                idea_round_trip(
+                    service=service,
+                    tiles=tiles,
+                    judge=judge,
+                    customer=customer,
+                    out=out,
+                    semaphore=semaphore,
+                    settings=settings,
+                    tag=args.tag,
+                )
+            )
+        records = [r for found in await asyncio.gather(*jobs) for r in found]
+        spend = transport.spend.line()
+        (out / "index.md").write_text(_index(records=records, model=args.model, spend=spend))
+        print(f"{sum(r['acceptable'] for r in records)} of {len(records)} acceptable; {spend}")
+        print(f"written to {out.relative_to(ROOT)}")
+        await http.aclose()
+        await banking.close()
+        return
     for customer in args.customers.split(","):
         asked = REQUESTS[customer] if args.requests else [args.request]
         for number, request in [(n, r) for n in range(1, args.runs + 1) for r in asked]:

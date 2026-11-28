@@ -1,0 +1,386 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "Savings pots. 2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+ "name": "daniela-idea3",
+ "seconds": 11.4,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Zahnarztpraxis Neuwiesen, Stadt Winterthur, Betreuung Schule, Notgroschen, Lina, Zahnarztpraxis Neuwiesen, Betreuung Schule"
+  ],
+  "question": "Savings pots. 2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+  "boards": [
+   {
+    "name": "Savings pots",
+    "tiles": [
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Sparkonto Notgroschen"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0244"
+      },
+      "title": "Bill, due 30.11."
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0249"
+      },
+      "title": "Bill, due 10.12."
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Sparkonto Notgroschen",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Bill, due 30.11.",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Savings pots",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 11289,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "4 of 6 resolved; dropped: Sparkonto Notgroschen; Bill, due 30.11.; Savings pots"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Bill, due 30.11.; Bill, due 10.12."
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Savings pots",
+   "tiles": [
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Sparkonto Notgroschen",
+     "payload": {
+      "figure_chf": 284.25,
+      "source": {
+       "label": "2 transfers",
+       "kind": "bookings",
+       "count": 2
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Notgroschen",
+      "goal_text": "Notgroschen CHF 3'000",
+      "goal_chf": 3000.0,
+      "percent": 9.5,
+      "month_change_chf": -600.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0244"
+     },
+     "title": "Bill, due 30.11.",
+     "payload": {
+      "figure_chf": 440.0,
+      "source": {
+       "label": "Zahnarztpraxis Neuwiesen, due 30.11.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Zahnarztpraxis Neuwiesen",
+      "due": "2026-11-30",
+      "description": "Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+      "flag": "reminder"
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0249"
+     },
+     "title": "Bill, due 10.12.",
+     "payload": {
+      "figure_chf": 348.0,
+      "source": {
+       "label": "Stadt Winterthur, due 10.12.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Stadt Winterthur",
+      "due": "2026-12-10",
+      "description": "Hort und Mittagstisch Dezember 2026",
+      "flag": null
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [3]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The first tile shows the Sparkonto Notgroschen with its CHF 3'000 goal and current 284.25, which is the most direct answer to a request about her savings pots and their purpose."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The two bill tiles (dentist reminder and Winterthur childcare) are real in Daniela's life but not about the savings-pots request, and the Jugendsparkonto Lina that the request explicitly names is missing entirely even though the bank holds it."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Titles are short and match their tiles, with the hero using the customer's own account name 'Sparkonto Notgroschen'."
+  },
+  "not_empty_or_repeated": {
+   "passed": false,
+   "reason": "No tile is empty or zero and the two bills are different payments, but on a board about two savings pots the two bill tiles carry nothing about the request, making them pointless here."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board tells no single story about the savings pots: it is one savings goal followed by two unrelated bills, and the second pot (Lina's account) the request asks for never appears."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows the Sparkonto Notgroschen with its CHF 3'000 goal and current 284.25, which is the most direct answer to a request about her savings pots and their purpose."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The two bill tiles (dentist reminder and Winterthur childcare) are real in Daniela's life but not about the savings-pots request, and the Jugendsparkonto Lina that the request explicitly names is missing entirely even though the bank holds it."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short and match their tiles, with the hero using the customer's own account name 'Sparkonto Notgroschen'."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "No tile is empty or zero and the two bills are different payments, but on a board about two savings pots the two bill tiles carry nothing about the request, making them pointless here."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board tells no single story about the savings pots: it is one savings goal followed by two unrelated bills, and the second pot (Lina's account) the request asks for never appears."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows the requested Sparkonto Notgroschen with its CHF 3'000 reserve purpose, current balance of CHF 284.25 and this month's CHF 600 drain, which is the most direct single-tile answer to the savings-pots request."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The dentist reminder and the Hort bill are real in Daniela's life but not about the savings-pots request, and the requested Jugendsparkonto Lina with its do-not-touch purpose never appears, so only the hero tile is about the request."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "'Bill, due 30.11.' and 'Bill, due 10.12.' are interchangeable generic labels that name no payee and use none of Daniela's terms (Zahnarzt, Mahnung, Hort), so they do not read like a person wrote them."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All three tiles carry real, distinct figures (CHF 284.25 on the pot, the CHF 440 dentist reminder, the CHF 348 childcare bill) and nothing is empty, zero or a duplicate."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board is one savings pot plus two unrelated bills rather than one story about her two savings pots, omitting the Lina account the request explicitly names, so it is not about the request alone."
+   }
+  }
+ ],
+ "acceptable": false
+}

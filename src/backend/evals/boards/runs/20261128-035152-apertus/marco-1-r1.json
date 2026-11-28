@@ -1,0 +1,485 @@
+{
+ "customer": "marco",
+ "run": 1,
+ "request": "What does the house cost us?",
+ "name": null,
+ "seconds": 6.7,
+ "plan": {
+  "kind": "",
+  "evidence": [],
+  "question": "What does the house cost us?",
+  "boards": [
+   {
+    "name": "The house",
+    "tiles": [
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-HOUSE"
+      },
+      "title": "The house"
+     },
+     {
+      "template": "mortgage",
+      "args": {},
+      "title": "Mortgage"
+     },
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "Income and spending"
+     },
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Sparkonto Haus",
+        "ti&m Demo Bank AG",
+        "EKZ Elektrizitätswerke des Kantons Zürich",
+        "Stadt Wädenswil, Werke und Gebühren",
+        "Die Mobiliar Versicherungsgesellschaft AG"
+       ]
+      },
+      "title": "Regular payments"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "House reserve nearly met",
+    "reason": "repeats another tile"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 6504,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "4 of 5 resolved; dropped: House reserve nearly met"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Mortgage tranche matures in March 2027; Monthly cash flow slightly negative; House-related bills and reserves"
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "The house",
+   "tiles": [
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-HOUSE"
+     },
+     "title": "The house",
+     "payload": {
+      "figure_chf": 19350.3,
+      "source": {
+       "label": "No bookings in November",
+       "kind": "bookings",
+       "count": 0
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Haus",
+      "goal_text": "Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)",
+      "goal_chf": 20000.0,
+      "percent": 96.8,
+      "month_change_chf": 0.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "mortgage",
+     "args": {},
+     "title": "Mortgage",
+     "payload": {
+      "figure_chf": 862500.0,
+      "source": {
+       "label": "3 tranches",
+       "kind": "loans",
+       "count": 3
+      },
+      "template": "mortgage",
+      "annual_interest_chf": 8425.0,
+      "tranches": [
+       {
+        "loan_id": "LOAN-01",
+        "product": "Festhypothek 10 Jahre",
+        "balance_chf": 400000.0,
+        "interest_rate": 1.05,
+        "maturity_date": "2029-03-31",
+        "next_interest_date": "2026-12-31"
+       },
+       {
+        "loan_id": "LOAN-02",
+        "product": "Festhypothek 8 Jahre",
+        "balance_chf": 350000.0,
+        "interest_rate": 0.95,
+        "maturity_date": "2027-03-31",
+        "next_interest_date": "2026-12-31"
+       },
+       {
+        "loan_id": "LOAN-03",
+        "product": "SARON-Hypothek",
+        "balance_chf": 112500.0,
+        "interest_rate": 0.8,
+        "maturity_date": "2028-03-31",
+        "next_interest_date": "2026-12-31"
+       }
+      ],
+      "next_maturity": {
+       "loan_id": "LOAN-02",
+       "product": "Festhypothek 8 Jahre",
+       "balance_chf": 350000.0,
+       "interest_rate": 0.95,
+       "maturity_date": "2027-03-31",
+       "next_interest_date": "2026-12-31"
+      }
+     }
+    },
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "Income and spending",
+     "payload": {
+      "figure_chf": -246.13,
+      "source": {
+       "label": "290 bookings, May to October",
+       "kind": "bookings",
+       "count": 290
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 11442.82,
+        "spending_chf": 6849.1,
+        "left_chf": 4593.72
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 11392.82,
+        "spending_chf": 17093.2,
+        "left_chf": -5700.38
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 11392.82,
+        "spending_chf": 9324.49,
+        "left_chf": 2068.33
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 11412.82,
+        "spending_chf": 18496.99,
+        "left_chf": -7084.17
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 11789.32,
+        "spending_chf": 10021.12,
+        "left_chf": 1768.2
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 11392.82,
+        "spending_chf": 8515.29,
+        "left_chf": 2877.53
+       }
+      ]
+     }
+    },
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Sparkonto Haus",
+       "ti&m Demo Bank AG",
+       "EKZ Elektrizitätswerke des Kantons Zürich",
+       "Stadt Wädenswil, Werke und Gebühren",
+       "Die Mobiliar Versicherungsgesellschaft AG"
+      ]
+     },
+     "title": "Regular payments",
+     "payload": {
+      "figure_chf": 3502.3,
+      "source": {
+       "label": "5 upcoming payments",
+       "kind": "payments",
+       "count": 5
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Sparkonto Haus",
+        "amount_chf": 900.0,
+        "next_due": "2026-11-27"
+       },
+       {
+        "payee": "ti&m Demo Bank AG",
+        "amount_chf": 1050.0,
+        "next_due": "2026-12-31"
+       },
+       {
+        "payee": "EKZ Elektrizitätswerke des Kantons Zürich",
+        "amount_chf": 778.2,
+        "next_due": "2027-01-18"
+       },
+       {
+        "payee": "Stadt Wädenswil, Werke und Gebühren",
+        "amount_chf": 142.7,
+        "next_due": "2026-12-15"
+       },
+       {
+        "payee": "Die Mobiliar Versicherungsgesellschaft AG",
+        "amount_chf": 631.4,
+        "next_due": "2027-01-15"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "mortgage_maturity",
+   "text": "The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "strength": 95,
+   "template": "mortgage",
+   "args": {}
+  },
+  {
+   "id": "S2",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'000.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto Haus holds 19'350.30, 97 % of its goal \"Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-HOUSE"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "instalments",
+   "text": "Instalment plans running: Seeblick Auto-Leasing AG (29 of 48 paid, 9'291.00 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Seeblick Auto-Leasing AG"
+    ]
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "9 payments of together 6'566.00 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "cashflow",
+   "text": "On average -246.13 was left per month over the last 6 months; in 2 months more went out than came in (2026-06, 2026-08).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 11'914.96 is left on Privatkonto after 8 payments, 441.29 a day. A month's spending is about 12'344.47.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S8",
+   "kind": "spending",
+   "text": "Spending averaged 11'716.70 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 6'423.30 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "fixed_costs",
+   "text": "The 3 largest monthly payments add up to 2'812.60 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Steueramt Wädenswil",
+     "Helsana Versicherungen AG",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-HOUSE",
+     "ACC-SAV"
+    ]
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "income_regular",
+   "text": "Simone Baumann sends about 2'600.00 every month, around day 26.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Simone Baumann"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [4]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The hero shows the house savings account's balance against its CHF 20'000 reserve goal, which answers whether the repair reserve is enough, not what the house costs — the mortgage tile with its interest, or a summed annual cost of interest, amortisation and maintenance, is what the request asks for and the data holds."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The six-month income-and-spending tile shows the family's entire budget including groceries and everyday spending rather than the cost of the house, so a strong signal that is not about the request sits on the board."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The titles are short, plain and match what each tile shows (\"Mortgage\", \"Income and spending\", \"Regular payments\"), with \"The house\" acceptably naming the hero's topic."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "Every tile carries real non-zero figures (reserve at 96.8%, three tranches, six months of bookings, five upcoming payments) and no two tiles show the same content in different words."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board mixes the house story (reserve, mortgage, house-related payments) with the family's overall budget, so it is not about the request and nothing else."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero shows the house savings account's balance against its CHF 20'000 reserve goal, which answers whether the repair reserve is enough, not what the house costs — the mortgage tile with its interest, or a summed annual cost of interest, amortisation and maintenance, is what the request asks for and the data holds."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The six-month income-and-spending tile shows the family's entire budget including groceries and everyday spending rather than the cost of the house, so a strong signal that is not about the request sits on the board."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The titles are short, plain and match what each tile shows (\"Mortgage\", \"Income and spending\", \"Regular payments\"), with \"The house\" acceptably naming the hero's topic."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Every tile carries real non-zero figures (reserve at 96.8%, three tranches, six months of bookings, five upcoming payments) and no two tiles show the same content in different words."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board mixes the house story (reserve, mortgage, house-related payments) with the family's overall budget, so it is not about the request and nothing else."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero shows the house savings reserve at 96.8% of its goal, which does not answer the request 'What does the house cost us?' — no cost, interest, amortisation or maintenance figure appears in the first tile."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The income_and_spending tile is a generic six-month budget view of all income and spending rather than being about the house costs the request asks for."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short, plain and match what each tile shows, using the customer's own terms like 'The house' and 'Mortgage'."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Every tile carries real, non-zero figures and no two tiles show the same thing in different words."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board never answers the request — there is no annual house cost figure combining interest, amortisation and maintenance — and the generic income-and-spending tile breaks the focus on the request."
+   }
+  }
+ ],
+ "acceptable": false
+}

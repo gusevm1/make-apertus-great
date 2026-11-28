@@ -1,0 +1,392 @@
+{
+ "customer": "lukas",
+ "run": 1,
+ "request": "Monthly cash flow. On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+ "name": "lukas-idea3",
+ "seconds": 4.7,
+ "plan": {
+  "kind": "",
+  "evidence": [
+   "Looked for: Wohnbau Sihlfeld AG Liegenschaftsverwaltung, Fitnesspark Zürich Stadelhofen, Salt Mobile SA, Ferienwohnungen Engadin AG, Swisscom (Schweiz) AG, Glückskette, Mythen Krankenversicherung AG, Die Mobiliar Versicherungsgesellschaft AG, Miete, Wohnbau Sihlfeld AG Liegenschaftsverwaltung, Fitnesspark Zürich Stadelhofen, Salt Mobile SA, Ferienwohnungen Engadin AG, Swisscom, Glückskette, Prämie, Die Mobiliar Versicherungsgesellschaft AG"
+  ],
+  "question": "Monthly cash flow. On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+  "boards": [
+   {
+    "name": "Monthly cash flow",
+    "tiles": [
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+        "Fitnesspark Zürich Stadelhofen",
+        "Salt Mobile SA",
+        "Ferienwohnungen Engadin AG",
+        "Swisscom (Schweiz) AG",
+        "Glückskette",
+        "Mythen Krankenversicherung AG",
+        "Die Mobiliar Versicherungsgesellschaft AG"
+       ]
+      },
+      "title": "Monthly cash flow"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Bill, due 10.12.",
+    "reason": "shows the same payments as another tile on the board"
+   },
+   {
+    "title": "Bill, due 14.12.",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 4605,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "3 of 3 resolved; dropped: Bill, due 10.12.; Bill, due 14.12."
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Bill, due 10.12.; Bill, due 14.12."
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "planned_by_model",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Monthly cash flow",
+   "tiles": [
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+       "Fitnesspark Zürich Stadelhofen",
+       "Salt Mobile SA",
+       "Ferienwohnungen Engadin AG",
+       "Swisscom (Schweiz) AG",
+       "Glückskette",
+       "Mythen Krankenversicherung AG",
+       "Die Mobiliar Versicherungsgesellschaft AG"
+      ]
+     },
+     "title": "Monthly cash flow",
+     "payload": {
+      "figure_chf": 4767.65,
+      "source": {
+       "label": "8 upcoming payments",
+       "kind": "payments",
+       "count": 8
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+        "amount_chf": 2800.0,
+        "next_due": "2026-11-27"
+       },
+       {
+        "payee": "Fitnesspark Zürich Stadelhofen",
+        "amount_chf": 119.0,
+        "next_due": "2026-12-01"
+       },
+       {
+        "payee": "Salt Mobile SA",
+        "amount_chf": 39.95,
+        "next_due": "2026-12-03"
+       },
+       {
+        "payee": "Ferienwohnungen Engadin AG",
+        "amount_chf": 600.0,
+        "next_due": "2026-12-10"
+       },
+       {
+        "payee": "Swisscom (Schweiz) AG",
+        "amount_chf": 94.0,
+        "next_due": "2026-12-14"
+       },
+       {
+        "payee": "Glückskette",
+        "amount_chf": 200.0,
+        "next_due": "2026-12-15"
+       },
+       {
+        "payee": "Mythen Krankenversicherung AG",
+        "amount_chf": 489.9,
+        "next_due": "2026-12-23"
+       },
+       {
+        "payee": "Die Mobiliar Versicherungsgesellschaft AG",
+        "amount_chf": 424.8,
+        "next_due": "2027-01-12"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "depot_large",
+   "text": "Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "strength": 80,
+   "template": "net_worth",
+   "args": {
+    "include_pension": false
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "card_bill",
+   "text": "The Visa Gold bill for 2026-11 is 3'301.74 (provisional), collected on 21.12.2026, 38 purchases.",
+   "strength": 50,
+   "template": "card_bill",
+   "args": {
+    "card_id": "CARD-VISA"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'600.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S4",
+   "kind": "securities",
+   "text": "The depot is worth 72'512.96, 30'800.00 were paid in.",
+   "strength": 40,
+   "template": "securities",
+   "args": {}
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "10 payments of together 8'302.59 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Fitnesspark Zürich Stadelhofen from 109.00 to 119.00 on 01.06.2026; Swisscom (Schweiz) AG from 89.00 to 94.00 on 12.05.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "savings_pots",
+   "text": "3 savings accounts with their own purpose: Sparkonto Steuern (Rücklage für Steuerrechnungen); Sparkonto Rücklagen (Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)); Sparkonto Langfristig (Langfristiger Vermögensaufbau).",
+   "strength": 30,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-TAX",
+     "ACC-RES",
+     "ACC-LT"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "goal_reached",
+   "text": "Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\".",
+   "strength": 25,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-LT"
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "cashflow",
+   "text": "On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 1'413.74 is left on Privatkonto after 10 payments, 52.36 a day. A month's spending is about 11'634.33.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 11'561.65 a month over the last 6 months, highest in 2026-09.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "bills_before_payday",
+   "text": "10 payments of together 8'302.59 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S13",
+   "kind": "fixed_costs",
+   "text": "The 5 largest monthly payments add up to 3'520.35 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+     "Mythen Krankenversicherung AG",
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG",
+     "Salt Mobile SA"
+    ]
+   }
+  },
+  {
+   "id": "S14",
+   "kind": "income_regular",
+   "text": "Sara Keller sends about 2'200.00 every month, around day 27.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Sara Keller"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The request asks for the last six months' cash flow (average -199.61 left per month, two months where more went out than came in), but the hero tile lists upcoming payments due in the next weeks, which does not answer that question."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The tile does show Lukas's real payees, but upcoming regular payments are a strong signal about future obligations rather than the requested six-month cash flow analysis, so they do not belong on this board."
+  },
+  "titles": {
+   "passed": false,
+   "reason": "The title 'Monthly cash flow' does not match what the tile shows, since the payload is a list of upcoming regular payments and not any cash-flow figure for the last six months."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The single tile lists real upcoming payments with real amounts and dates, so nothing on the board is empty, zero, or a duplicate of another tile."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "A board named for monthly cash flow whose only content is upcoming payments tells a different story from the one requested, and nothing on it addresses the average monthly remainder or the two negative months."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The request asks for the last six months' cash flow (average -199.61 left per month, two months where more went out than came in), but the hero tile lists upcoming payments due in the next weeks, which does not answer that question."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The tile does show Lukas's real payees, but upcoming regular payments are a strong signal about future obligations rather than the requested six-month cash flow analysis, so they do not belong on this board."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "The title 'Monthly cash flow' does not match what the tile shows, since the payload is a list of upcoming regular payments and not any cash-flow figure for the last six months."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile lists real upcoming payments with real amounts and dates, so nothing on the board is empty, zero, or a duplicate of another tile."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "A board named for monthly cash flow whose only content is upcoming payments tells a different story from the one requested, and nothing on it addresses the average monthly remainder or the two negative months."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The request asks for monthly cash flow over the last 6 months (average -199.61 left per month, negative months 2026-05 and 2026-09), but the hero tile instead lists eight upcoming payments due in the next 60 days, so it does not answer the request."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The payees are Lukas's real rent, gym, telecom and insurance bills, but on a requested board every tile must be about the request, and this upcoming-payments list is a strong signal that is not about the requested historical monthly in/out balance."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "The title 'Monthly cash flow' does not match what the tile shows, which is a list of upcoming payments totalling 4767.65 CHF due over the next 60 days rather than a monthly income-versus-spending figure."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile holds eight real upcoming payments with payees, amounts and due dates, and with only one tile there is nothing empty, zero or duplicated."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board tells a story about upcoming bills rather than the requested monthly cash flow, and since the data holds 36 months of transactions and salary from which the monthly in/out balance could be shown, this one off-topic tile fails the request."
+   }
+  }
+ ],
+ "acceptable": false
+}
