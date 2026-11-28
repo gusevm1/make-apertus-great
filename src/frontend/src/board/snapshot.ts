@@ -23,7 +23,7 @@ export async function snapshotOf(
   const copy = tile.cloneNode(true) as HTMLElement;
   copy.classList.remove(...BOARD_ONLY_CLASSES);
   copy.removeAttribute("draggable");
-  for (const part of copy.querySelectorAll(".bar, .pinned")) part.remove();
+  copy.querySelectorAll(".bar, .pinned").forEach((part) => part.remove());
 
   const probe = document.createElement("div");
   probe.style.cssText = `position:absolute;visibility:hidden;width:${columns * COLUMN_PX + (columns - 1) * GAP_PX}px`;
@@ -41,9 +41,9 @@ export async function snapshotOf(
 }
 
 async function pageCss(): Promise<string> {
-  const rules = [...document.styleSheets].flatMap((sheet) => [
-    ...sheet.cssRules,
-  ]);
+  const rules = Array.from(document.styleSheets).flatMap((sheet) =>
+    Array.from(sheet.cssRules),
+  );
   const parts = await Promise.all(
     rules.map((rule) =>
       rule instanceof CSSFontFaceRule ? fontFace(rule) : rule.cssText,
