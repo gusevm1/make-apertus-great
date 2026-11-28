@@ -8,6 +8,7 @@ import anyio
 
 from app.core.errors import BadRequestError, NotFoundError
 from app.core.provenance import Check, Provenance
+from app.core.tools import TurnScope
 from app.core.streaming import CheckingEvent, DoneEvent, StreamEvent, TokenEvent, ToolResultEvent
 from app.features.conversations.prompts import chat_prompt
 from app.features.conversations.repository import ConversationRepository, MessageRepository
@@ -109,6 +110,7 @@ class ConversationService:
         conversation_id: UUID,
         data: RequestMessageCreate,
         owner_id: UUID,
+        scope: TurnScope | None = None,
     ) -> Message:
         """Store the user's message and return the stored reply, which may have used tools."""
         history, documents = await self._add_user_message(
@@ -119,11 +121,14 @@ class ConversationService:
             if guardrail.decline is not None:
                 content, provenance = guardrail.decline, guardrail.provenance
             else:
-                messages = chat_prompt(history=history, page=data.page, documents=documents)
+                messages = chat_prompt(
+                    history=history, page=data.page, documents=documents, board=_board(scope=scope)
+                )
                 answer, answer_provenance = await self.tool_calls.create_answer(
                     conversation_id=conversation_id,
                     message_id=history[-1].id,
                     messages=messages,
+                    scope=scope,
                 )
                 checked, checked_provenance = await self._check_figures(
                     conversation_id=conversation_id,
@@ -131,6 +136,7 @@ class ConversationService:
                     provenance=answer_provenance,
                     history=history,
                     documents=documents,
+                    board=_board(scope=scope),
                 )
                 checked += await self._tool_pointers(
                     conversation_id=conversation_id, message_id=history[-1].id, content=checked
@@ -150,6 +156,7 @@ class ConversationService:
         conversation_id: UUID,
         data: RequestMessageCreate,
         owner_id: UUID,
+        scope: TurnScope | None = None,
     ) -> AsyncIterator[StreamEvent[Message]]:
         """Like `create_message`, but yields the turn's events, then the stored reply."""
         history, documents = await self._add_user_message(
@@ -165,7 +172,13 @@ class ConversationService:
                 events = self.tool_calls.stream_answer(
                     conversation_id=conversation_id,
                     message_id=history[-1].id,
-                    messages=chat_prompt(history=history, page=data.page, documents=documents),
+                    messages=chat_prompt(
+                        history=history,
+                        page=data.page,
+                        documents=documents,
+                        board=_board(scope=scope),
+                    ),
+                    scope=scope,
                 )
                 # An answer built on tool results shows only once its figures are checked.
                 is_held = False
@@ -185,6 +198,7 @@ class ConversationService:
                         provenance=answer_provenance,
                         history=history,
                         documents=documents,
+                        board=_board(scope=scope),
                     )
                     # Under the checked answer, so a correction cannot rewrite the server's line.
                     pointers = await self._tool_pointers(
@@ -259,6 +273,7 @@ class ConversationService:
         provenance: Provenance,
         history: list[Message],
         documents: list[Document],
+        board: str,
     ) -> tuple[str, Provenance]:
         # Earlier turns count too, so a follow-up may repeat a figure it was shown before.
         calls = await self.tool_calls.list_tool_calls(conversation_id=conversation_id)
@@ -266,6 +281,8 @@ class ConversationService:
         results = [result for _, result in outputs]
         texts = [document.markdown for document in documents]
         texts += [message.content for message in history if message.role == "user"]
+        # The open board's figures, which the customer sees and the answer may repeat.
+        texts += [board] if board != "" else []
         # The newest tool results last, so they are the last a cut for the correction drops.
         sources = [*texts, *[json.dumps(result, ensure_ascii=False) for result in results]]
         # Only an answer built on this turn's tool results is held, so only it can be corrected.
@@ -320,6 +337,10 @@ class ConversationService:
             content=content,
             provenance=provenance.model_dump(),
         )
+
+
+def _board(scope: TurnScope | None) -> str:
+    return "" if scope is None else scope.context
 
 
 def _pointer_text(guardrail: Guardrail) -> str:

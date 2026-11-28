@@ -45,8 +45,30 @@ def decision_prompt(
     return prompt
 
 
+def scoped_decision_prompt(
+    messages: list[LLMMessage],
+    rounds: list[ToolRound],
+    tools: list[Tool[Any]],
+    today: date,
+    guide: str,
+) -> list[LLMMessage]:
+    """The decision over a small tool set, whose job `guide` describes."""
+    tool_lines = "\n".join(_tool_line(tool=tool) for tool in tools)
+    system: LLMMessage = {
+        "role": "system",
+        "content": PROMPTS["scoped_decision_system"].format(
+            today=_today(today=today), guide=guide, tools=tool_lines
+        ),
+    }
+    prompt = [system, *(message for message in messages if message["role"] != "system")]
+    for decision, calls in rounds:
+        prompt.append({"role": "assistant", "content": decision.model_dump_json()})
+        prompt.append({"role": "user", "content": _decision_feedback(calls=calls)})
+    return prompt
+
+
 def answer_prompt(
-    messages: list[LLMMessage], calls: list[ToolCall], tools: list[Tool[Any]]
+    messages: list[LLMMessage], calls: list[ToolCall], tools: list[Tool[Any]], scoped: bool = False
 ) -> list[LLMMessage]:
     # Named outright, because German results or an image otherwise pull the answer elsewhere.
     language = question_language(message=messages[-1])
@@ -55,6 +77,9 @@ def answer_prompt(
         if language is None
         else PROMPTS["answer_language"].format(language=language)
     )
+    if not calls and scoped:
+        content = PROMPTS["answer_scoped_direct"].format(language=language_line)
+        return [*messages, {"role": "user", "content": content}]
     if not calls:
         abilities = PROMPTS["answer_abilities"].format(
             titles="; ".join(tool.title for tool in tools)
@@ -63,8 +88,13 @@ def answer_prompt(
         return [*messages, {"role": "user", "content": content}]
     results = "".join(_tool_result(call=call) for call in calls)
     content = PROMPTS["answer_results"].format(results=results, language=language_line)
-    if any(call.tool_name == "build_widget" and call.error is None for call in calls):
-        content += PROMPTS["answer_widget"]
+    changes = [
+        call.result["summary"]
+        for call in calls
+        if call.error is None and call.result is not None and "summary" in call.result
+    ]
+    if changes:
+        content += PROMPTS["answer_changes"].format(changes="; ".join(changes))
     return [*messages, {"role": "user", "content": content}]
 
 

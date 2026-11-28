@@ -68,9 +68,9 @@ async def test_answer_prompt_adds_results_and_cuts_long_ones(session: AsyncSessi
     assert "result cut off here" in content
 
 
-@pytest.mark.parametrize(("error", "says_canvas"), [(None, True), ("No figures.", False)])
-async def test_answer_prompt_says_where_a_built_widget_is(
-    session: AsyncSession, error: str | None, says_canvas: bool
+@pytest.mark.parametrize(("error", "names_change"), [(None, True), ("No such tile.", False)])
+async def test_answer_prompt_names_only_board_changes_that_happened(
+    session: AsyncSession, error: str | None, names_change: bool
 ) -> None:
     conversation = await make_conversation(session=session)
     message = await make_message(session=session, conversation_id=conversation.id)
@@ -78,15 +78,15 @@ async def test_answer_prompt_says_where_a_built_widget_is(
         session=session,
         conversation_id=conversation.id,
         message_id=message.id,
-        tool_name="build_widget",
-        result=None if error is not None else {"widget_id": "W-1"},
+        tool_name="add_tile",
+        result=None if error is not None else {"summary": 'Added "Bills until payday"'},
         error=error,
     )
 
     content = answer_prompt(messages=CHAT, calls=[call], tools=[LOOKUP])[2]["content"]
 
     assert isinstance(content, str)
-    assert ("drawn on the canvas" in content) is says_canvas
+    assert ('on my board now: Added "Bills until payday"' in content) is names_change
 
 
 async def test_answer_prompt_cuts_long_errors(session: AsyncSession) -> None:

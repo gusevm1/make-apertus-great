@@ -85,3 +85,22 @@ def decision_schema(tools: list[Tool[Any]]) -> type[ToolDecision]:
         )
 
     return NamedToolDecision
+
+
+class ScopedToolDecision(ToolDecision):
+    look_up: bool = Field(default=False, description=PROMPTS["decision_look_up"])
+
+
+def scoped_decision_schema(tools: list[Tool[Any]]) -> type[ScopedToolDecision]:
+    """`ScopedToolDecision` whose JSON schema names only these tools."""
+    names: list[JsonValue] = [*(tool.name for tool in tools), ""]
+
+    class NamedToolRequest(ToolRequest):
+        tool: str = Field(description=PROMPTS["request_tool"], json_schema_extra={"enum": names})
+
+    class NamedScopedDecision(ScopedToolDecision):
+        calls: list[NamedToolRequest] = Field(  # pyright: ignore[reportIncompatibleVariableOverride]
+            default_factory=list, description=PROMPTS["decision_calls"]
+        )
+
+    return NamedScopedDecision

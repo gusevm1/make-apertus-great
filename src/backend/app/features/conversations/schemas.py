@@ -72,6 +72,9 @@ class RequestMessageCreate(BaseModel):
     quotes: list[Quote] = Field(default=[], max_length=QUOTES_PER_MESSAGE_MAX)
     document_ids: list[UUID] = Field(default=[], max_length=DOCUMENTS_PER_MESSAGE_MAX)
     page: PageContext | None = None
+    # The customer's board open beside the chat, and the tile they asked about.
+    board_id: UUID | None = None
+    tile_id: UUID | None = None
 
 
 class ResponseMessage(BaseModel):

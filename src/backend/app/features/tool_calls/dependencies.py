@@ -28,8 +28,6 @@ from app.features.transaction_tags import tools as transaction_tag_tools
 from app.features.transaction_tags.dependencies import SpendingServiceDep
 from app.features.web_search import tools as web_search_tools
 from app.features.web_search.service import WebSearchService
-from app.features.widgets import tools as widget_tools
-from app.features.widgets.dependencies import WidgetServiceDep
 
 # One for the whole app: the stream that waits and the request that answers share it.
 CONFIRMATIONS = Confirmations()
@@ -53,7 +51,6 @@ def get_tools(
     documents: DocumentServiceDep,
     ledger: LedgerServiceDep,
     payments: PaymentServiceDep,
-    widgets: WidgetServiceDep,
     spending: SpendingServiceDep,
     figure_checks: FigureCheckServiceDep,
     today: Annotated[date, Depends(get_today)],
@@ -65,7 +62,6 @@ def get_tools(
         *context_entry_tools.get_tools(service=context_entries, owner_id=user.id),
         *document_tools.get_tools(service=documents, owner_id=user.id),
         *ledger_tools.get_tools(service=ledger, token=user.token, today=today),
-        *widget_tools.get_tools(service=widgets, owner_id=user.id),
         # Changes to the bank: each one waits for the customer's yes in the page.
         *payment_tools.get_tools(service=payments, token=user.token),
         *transaction_tag_tools.get_tools(
