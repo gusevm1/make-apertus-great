@@ -46,6 +46,8 @@ export function CategorizationView({ token }: { token: string }) {
   const [view, setView] = useState<"decide" | "overview">("decide");
   const [layout, setLayout] = useState<Layout>(storedLayout);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Counts failed looks at the run, so a failed one schedules the next.
+  const [pollFailures, setPollFailures] = useState(0);
   // Decided in this visit: hidden at once, before the reload shows them settled.
   const [decided, setDecided] = useState<Set<string>>(new Set());
 
@@ -97,14 +99,15 @@ export function CategorizationView({ token }: { token: string }) {
         await reload();
         setRun(newest);
       } catch {
-        // The next look at the tab asks again; the decisions shown stay usable.
+        // Asks again after the same wait; the decisions shown stay usable.
+        if (isCurrent) setPollFailures((count) => count + 1);
       }
     }, RUN_POLL_MS);
     return () => {
       isCurrent = false;
       window.clearTimeout(timer);
     };
-  }, [runId, runGoing, run, token]);
+  }, [runId, runGoing, run, pollFailures, token]);
 
   function chooseLayout(next: Layout) {
     setLayout(next);
@@ -151,16 +154,22 @@ export function CategorizationView({ token }: { token: string }) {
     setBusyId(decision.id);
     setError(null);
     try {
-      const category = await createCategory(token, name, description);
-      await decide(token, decision, category.name);
-      await reload();
-      await startAgain(
-        `Apertus is sorting your other bookings again, now with “${category.name}”.`,
-      );
+      await createCategory(token, name, description);
     } catch (failure) {
       setError(`“${name}” was not added. ${requestErrorOf(failure).message}`);
-    } finally {
       setBusyId(null);
+      return;
+    }
+    // The category exists from here on; what fails later is said as such.
+    await choose(decision, name);
+    try {
+      await startAgain(
+        `Apertus is sorting your other bookings again, now with “${name}”.`,
+      );
+    } catch (failure) {
+      setError(
+        `“${name}” was added, but Apertus did not start sorting again. ${requestErrorOf(failure).message}`,
+      );
     }
   }
 
@@ -174,17 +183,24 @@ export function CategorizationView({ token }: { token: string }) {
     try {
       if (kind === "category") await createCategory(token, name, description);
       else await createTag(token, name, description);
+    } catch (failure) {
+      setError(`“${name}” was not added. ${requestErrorOf(failure).message}`);
+      setBusyId(null);
+      return false;
+    }
+    try {
       await reload();
       await startAgain(
         `Apertus is sorting your bookings again, now with “${name}”.`,
       );
-      return true;
     } catch (failure) {
-      setError(`“${name}” was not added. ${requestErrorOf(failure).message}`);
-      return false;
+      setError(
+        `“${name}” was added, but Apertus did not start sorting again. ${requestErrorOf(failure).message}`,
+      );
     } finally {
       setBusyId(null);
     }
+    return true;
   }
 
   async function changeNecessity(category: string, severity: string) {

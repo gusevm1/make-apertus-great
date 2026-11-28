@@ -7,7 +7,12 @@ function necessityOf(loaded: Loaded, category: string): string {
     (item) => item.scope === "category" && item.key === category,
   );
   if (setting !== undefined) return setting.severity;
-  const row = loaded.rows.find((item) => item.category === category);
+  const row = loaded.rows.find(
+    (item) =>
+      item.category === category &&
+      (item.severity_source === "category" ||
+        item.severity_source === "default"),
+  );
   return row?.severity ?? "moderate";
 }
 
@@ -125,8 +130,8 @@ export function Overview({
       <section aria-labelledby="cat-necessity">
         <h2 id="cat-necessity">Necessity</h2>
         <p className="hint">
-          How much you can do without each kind of spending, over the whole
-          history. Saving suggestions start at the bottom.
+          How much you can do without each kind of spending. Saving suggestions
+          start at the bottom.
         </p>
         <ul className="cat-levels">
           {NECESSITIES.map((level) => {
@@ -134,12 +139,10 @@ export function Overview({
               (category) =>
                 category.necessity === level.key && category.count > 0,
             );
-            const total = members.reduce((sum, item) => sum + item.total, 0);
             return (
               <li key={level.key}>
                 <div className="cat-level-head">
                   <b>{level.label}</b>
-                  <span className="num">{chf.format(total)}</span>
                 </div>
                 <p className="hint">
                   {members.length === 0

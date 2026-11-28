@@ -157,7 +157,7 @@ class TransactionTagService:
             ]
             # A row judged again replaces its earlier answer; a new one never replaces a tag.
             tagged_by_model += await (
-                self.tags.upsert_categories(values=values)
+                self.tags.replace_model_categories(values=values)
                 if scope == "unconfirmed"
                 else self.tags.create_many(values=values)
             )

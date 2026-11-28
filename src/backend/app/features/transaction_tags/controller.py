@@ -14,6 +14,7 @@ from app.features.transaction_tags.dependencies import (
     TransactionTagServiceDep,
 )
 from app.features.transaction_tags.schemas import (
+    CATEGORY_NAME_MAX_LENGTH,
     AssignedRow,
     CategorisationRun,
     CategoryCorrectionResult,
@@ -90,7 +91,7 @@ async def list_transaction_tags(
     user: CurrentUserDep,
     service: SeverityServiceDep,
     sort: str | None = None,
-    category: str | None = None,
+    category: Annotated[str | None, Query(max_length=CATEGORY_NAME_MAX_LENGTH)] = None,
     certainty: CertaintyFilter | None = None,
 ) -> list[ResponseTransactionTag]:
     """List your categorised rows with their severity, filtered by category or certainty."""

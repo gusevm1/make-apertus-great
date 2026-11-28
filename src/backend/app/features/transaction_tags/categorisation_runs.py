@@ -84,7 +84,7 @@ class CategorisationRunService:
                 )
             )
             _active[owner_id] = _ActiveRun(run_id=run.id, task=task)
-            task.add_done_callback(lambda _: _forget(owner_id=owner_id, run_id=run.id))
+            task.add_done_callback(lambda done: _forget(owner_id=owner_id, task=done))
             return run, True
 
     async def get_run(self, categorisation_id: UUID, owner_id: UUID) -> CategorisationRun:
@@ -94,9 +94,10 @@ class CategorisationRunService:
         return run
 
 
-def _forget(owner_id: UUID, run_id: UUID) -> None:
+def _forget(owner_id: UUID, task: asyncio.Task[None]) -> None:
     current = _active.get(owner_id)
-    if current is not None and current.run_id == run_id:
+    # By task, not run: the task's follow-up runs come under new ids.
+    if current is not None and current.task is task:
         del _active[owner_id]
 
 

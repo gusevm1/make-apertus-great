@@ -76,6 +76,26 @@ class TransactionTagRepository(BaseRepository[TransactionTagORM, TransactionTag]
         await self.session.commit()
         return changed
 
+    async def replace_model_categories(self, values: list[dict[str, object]]) -> int:
+        """Store Apertus's new answers, but never over a row the customer decided meanwhile."""
+        if not values:
+            return 0
+        stmt = insert(TransactionTagORM).values(values)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["owner_id", "row_source", "row_id"],
+            set_={
+                "category": stmt.excluded.category,
+                "category_model": stmt.excluded.category_model,
+                "category_certainty": stmt.excluded.category_certainty,
+                "category_alternative": stmt.excluded.category_alternative,
+                "updated_at": func.now(),
+            },
+            where=TransactionTagORM.category_set_by == "model",
+        ).returning(TransactionTagORM.id)
+        changed = len((await self.session.scalars(stmt)).all())
+        await self.session.commit()
+        return changed
+
     async def create_many(self, values: list[dict[str, object]]) -> int:
         """Store tags, keeping rows that are tagged already; returns how many are new."""
         if not values:

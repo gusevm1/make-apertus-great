@@ -47,8 +47,8 @@ function Summary({ decision }: { decision: Decision }) {
       </div>
       <p className="hint">
         {decision.scope === "payee"
-          ? `${count} ${count === 1 ? "booking" : "bookings"} · ${chf.format(decision.totalChf)} · decides future bookings of this payee too`
-          : `One booking · ${chf.format(decision.totalChf)} · this payee's bookings differ, so each is decided alone`}
+          ? `${count} ${count === 1 ? "booking" : "bookings"} · decides future bookings of this payee too`
+          : "One booking · this payee's bookings differ, so each is decided alone"}
       </p>
       <ul className="cat-samples">
         {decision.rows.slice(0, SAMPLE_ROWS).map((row) => (

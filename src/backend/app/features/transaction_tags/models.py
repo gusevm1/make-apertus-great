@@ -33,11 +33,18 @@ class CustomCategoryORM(Base):
     """A spending category the customer added to the built-in ones."""
 
     __tablename__ = "custom_categories"
-    __table_args__ = (UniqueConstraint("owner_id", "name"),)
 
     owner_id: Mapped[UUID]
     name: Mapped[str]
     description: Mapped[str] = mapped_column(server_default="")
+
+
+Index(
+    "uq_custom_categories_owner_lower_name",
+    CustomCategoryORM.owner_id,
+    func.lower(CustomCategoryORM.name),
+    unique=True,
+)
 
 
 class CategoryCorrectionORM(Base):

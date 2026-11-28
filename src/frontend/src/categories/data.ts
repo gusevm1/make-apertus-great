@@ -11,6 +11,7 @@ export interface TaggedRow {
   category_certainty: Certainty | null;
   category_alternative: string | null;
   severity: string;
+  severity_source: "booking" | "payee" | "category" | "default";
   date: string;
   text: string;
   payee: string;
@@ -69,7 +70,6 @@ export interface Decision {
   key: string;
   payee: string;
   rows: TaggedRow[];
-  totalChf: number;
   certainty: Certainty | null;
   /** Apertus's category first, then its second choice when it has one. */
   options: string[];
@@ -157,7 +157,6 @@ function decisionOf(
     key,
     payee: rows[0].payee,
     rows,
-    totalChf: rows.reduce((sum, row) => sum + Number(row.amount_chf), 0),
     certainty: rows.reduce<Certainty | null>(
       (worst, row) =>
         rankOf(row.category_certainty) < rankOf(worst)
@@ -197,7 +196,7 @@ export function decisionsOf(rows: TaggedRow[]): Decision[] {
   return decisions.sort(
     (first, second) =>
       rankOf(first.certainty) - rankOf(second.certainty) ||
-      second.totalChf - first.totalChf,
+      second.rows.length - first.rows.length,
   );
 }
 

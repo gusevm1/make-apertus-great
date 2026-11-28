@@ -14,6 +14,7 @@ function row(fields: Partial<TaggedRow>): TaggedRow {
     category_certainty: "low",
     category_alternative: null,
     severity: "critical",
+    severity_source: "category",
     date: "2026-11-01",
     text: "Einkauf",
     payee: "migros",

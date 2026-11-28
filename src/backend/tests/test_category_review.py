@@ -5,9 +5,12 @@ from uuid import UUID
 
 import httpx2
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import owner_id
 from app.features.transaction_tags.categorisation_runs import wait_for_runs
 from app.features.transaction_tags.personal_tag_service import PersonalTagService
+from app.features.transaction_tags.repository import TransactionTagRepository
 from app.features.transaction_tags.schemas import Categorisation, CategorisationScope
 from app.features.transaction_tags.service import TransactionTagService
 from app.features.transaction_tags.severity_service import SeverityService
@@ -21,6 +24,7 @@ from tests.test_transaction_tags import (
     _tags,
 )
 
+LUKAS = owner_id(customer_id="CUST-001")
 ANSWERS = {
     "Einkauf": ("groceries", "high", "shopping"),
     "Gartenmoebel": ("shopping", "low", "shopping"),
@@ -209,3 +213,36 @@ async def test_asking_to_judge_again_during_a_run_judges_again_after_it(
     runs = (await lukas.get("/api/categorisations")).json()
     assert [run["status"] for run in runs] == ["done", "done"]
     assert runs[1]["id"] == first.json()["id"]
+
+
+async def test_judging_again_never_overwrites_a_decision_made_during_the_run(
+    lukas: httpx2.AsyncClient, session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    await _categorise_only(api=lukas, monkeypatch=monkeypatch)
+    await lukas.post(
+        "/api/category-corrections",
+        json={"scope": "payee", "key": "Migros", "category": "shopping"},
+    )
+    model_row = {
+        "owner_id": LUKAS,
+        "category": "health",
+        "category_set_by": "model",
+        "category_model": "fake-smart",
+        "category_confirmed": False,
+        "category_certainty": "low",
+        "category_alternative": None,
+    }
+
+    # The run started before the decision and writes its answers after it.
+    changed = await TransactionTagRepository(session=session).replace_model_categories(
+        values=[
+            {**model_row, "row_source": "booking", "row_id": "BK-1"},
+            {**model_row, "row_source": "booking", "row_id": "BK-3"},
+        ]
+    )
+
+    tags = await _tags(api=lukas)
+    assert changed == 1
+    assert tags["BK-1"]["category"] == "shopping"
+    assert tags["BK-1"]["category_set_by"] == "customer"
+    assert tags["BK-3"]["category"] == "health"
