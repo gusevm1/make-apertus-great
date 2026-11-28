@@ -104,7 +104,7 @@ class SumByMonthArgs(Filters):
     def _by_month_is_what_this_tool_does(cls, data: Any) -> Any:
         # The model often adds group_by "month"; any other grouping is still an error to correct.
         grouping = data.get("group_by") if isinstance(data, dict) else None
-        if isinstance(grouping, str) and grouping in MONTH_GROUPINGS:
+        if isinstance(grouping, str) and grouping.strip().lower() in MONTH_GROUPINGS:
             return {key: value for key, value in data.items() if key != "group_by"}
         return data
 

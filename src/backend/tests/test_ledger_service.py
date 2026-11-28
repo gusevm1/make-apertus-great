@@ -1132,9 +1132,10 @@ async def test_a_settled_bill_without_purchases_counts_as_spending_once(
 
 
 def test_sum_by_month_takes_group_by_month_and_refuses_any_other_grouping() -> None:
-    args = SumByMonthArgs.model_validate({"group_by": "month", "date_from": "2026-10-01"})
+    for month in ("month", " Monthly"):
+        args = SumByMonthArgs.model_validate({"group_by": month, "date_from": "2026-10-01"})
 
-    assert args == SumByMonthArgs(date_from=date(2026, 10, 1))
+        assert args == SumByMonthArgs(date_from=date(2026, 10, 1))
     for wrong in (
         {"group_by": "year"},
         {"group_by": ["month"]},
