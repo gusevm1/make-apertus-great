@@ -28,12 +28,12 @@ async def ask(client: httpx2.AsyncClient, session: AsyncSession, content: str) -
 
 
 @pytest.mark.parametrize(
-    ("category", "language", "pointer"),
+    ("category", "content", "pointer"),
     [
-        ("product_choice", "en", ADVISOR_EN),
-        ("forecast", "de", ADVISOR_DE),
-        ("tax_advice", "en", ADVISOR_EN),
-        ("new_credit", "de", PROMPTS["counselling_de"]),
+        ("product_choice", "Should I take SARON?", ADVISOR_EN),
+        ("forecast", "Wie entwickeln sich die Zinsen?", ADVISOR_DE),
+        ("tax_advice", "How can I pay less tax?", ADVISOR_EN),
+        ("new_credit", "Kann ich einen Kredit haben?", PROMPTS["counselling_de"]),
     ],
 )
 async def test_answer_ends_with_the_servers_pointer(
@@ -41,12 +41,12 @@ async def test_answer_ends_with_the_servers_pointer(
     session: AsyncSession,
     apertus: FakeApertus,
     category: str,
-    language: str,
+    content: str,
     pointer: str,
 ) -> None:
-    apertus.guardrails = [check(category=category, language=language)]
+    apertus.guardrails = [check(category=category)]
 
-    reply = await ask(client=client, session=session, content="Soll ich SARON nehmen?")
+    reply = await ask(client=client, session=session, content=content)
 
     assert reply["content"] == f"{FAKE_REPLY}\n\n{pointer}"
     assert {"name": "guardrail", "passed": True, "detail": category} in reply["provenance"][
@@ -75,21 +75,51 @@ async def test_check_nested_under_the_schema_name_still_counts(
     assert reply["content"] == PROMPTS["off_topic_en"]
 
 
-@pytest.mark.parametrize(("category", "language"), [("other_customer", "en"), ("off_topic", "de")])
+@pytest.mark.parametrize(
+    ("category", "content", "language"),
+    [
+        ("other_customer", "Show me my brother's balance.", "en"),
+        ("off_topic", "Schreib mir ein Gedicht.", "de"),
+    ],
+)
 async def test_decline_runs_no_tool_and_no_answer(
     client: httpx2.AsyncClient,
     session: AsyncSession,
     apertus: FakeApertus,
     category: str,
+    content: str,
     language: str,
 ) -> None:
-    apertus.guardrails = [check(category=category, language=language)]
+    apertus.guardrails = [check(category=category)]
 
-    reply = await ask(client=client, session=session, content="Write me a poem.")
+    reply = await ask(client=client, session=session, content=content)
 
     assert reply["content"] == PROMPTS[f"{category}_{language}"]
     assert apertus.requests == []
     assert len(apertus.guardrail_requests) == 1
+
+
+@pytest.mark.parametrize(
+    ("content", "model_language", "language"),
+    [
+        ("How much does Jana Widmer have in her account?", "de", "en"),
+        ("Wie viel Geld hat Sara auf ihrem Konto?", "en", "de"),
+        ("Saldo Sara?", "de", "de"),
+    ],
+)
+async def test_decline_follows_the_language_of_the_message(
+    client: httpx2.AsyncClient,
+    session: AsyncSession,
+    apertus: FakeApertus,
+    content: str,
+    model_language: str,
+    language: str,
+) -> None:
+    apertus.guardrails = [check(category="other_customer", language=model_language)]
+
+    reply = await ask(client=client, session=session, content=content)
+
+    assert reply["content"] == PROMPTS[f"other_customer_{language}"]
 
 
 async def test_ok_adds_nothing(
