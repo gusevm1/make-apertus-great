@@ -57,6 +57,7 @@ export function ChatTitle({
       setIsFailed(false);
     } catch {
       setIsFailed(true);
+      setDraft(rename.title);
     }
   }
 
@@ -100,6 +101,7 @@ export function ChatTitle({
           onFocus={(event) => event.currentTarget.select()}
           onChange={(event) => {
             setIsRefused(false);
+            setIsFailed(false);
             setDraft(event.target.value);
           }}
           onKeyDown={handleKey}

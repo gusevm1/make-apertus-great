@@ -105,6 +105,9 @@ function ChatInner({
   const boardId = board?.id ?? null;
   const [chosenId, setChosenId] = useState(initialConversationId);
   const [conversations, setConversations] = useState<ConversationRef[]>([]);
+  // The list as it is now, for a naming that runs after a streamed answer.
+  const latestConversations = useRef(conversations);
+  latestConversations.current = conversations;
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState<Loaded>({
@@ -272,7 +275,10 @@ function ChatInner({
 
   // A chat without a title is named after its first question.
   async function nameAfter(id: string, content: string) {
-    if (conversations.find((other) => other.id === id)?.title !== null) return;
+    const current = latestConversations.current.find(
+      (other) => other.id === id,
+    );
+    if (current?.title !== null) return;
     try {
       await rename({ id, title: content.slice(0, TITLE_LENGTH) });
     } catch {
