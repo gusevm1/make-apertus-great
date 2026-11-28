@@ -21,6 +21,7 @@ class Conversation(BaseModel):
     id: UUID
     owner_id: UUID
     title: str | None
+    board_id: UUID | None
     created_at: datetime
 
 
@@ -35,6 +36,7 @@ class RequestConversationUpdate(BaseModel):
 class ResponseConversation(BaseModel):
     id: UUID
     title: str | None
+    board_id: UUID | None
     created_at: datetime
 
 

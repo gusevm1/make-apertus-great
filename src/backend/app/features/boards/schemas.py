@@ -22,7 +22,6 @@ class Board(BaseModel):
     owner_id: UUID
     name: str
     position: int
-    conversation_id: UUID | None
     plan_id: UUID | None
     created_at: datetime
 
@@ -98,7 +97,6 @@ class ResponseBoardSummary(BaseModel):
     id: UUID
     name: str
     position: int
-    conversation_id: UUID | None
     plan_id: UUID | None
     tile_count: int
 
@@ -122,7 +120,6 @@ class ResponseBoard(BaseModel):
     id: UUID
     name: str
     position: int
-    conversation_id: UUID | None
     plan_id: UUID | None
     tiles: list[ResponseTile]
     dropped: list[ResponseDroppedTile]

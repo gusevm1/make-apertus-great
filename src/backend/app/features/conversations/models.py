@@ -13,6 +13,10 @@ class ConversationORM(Base):
 
     owner_id: Mapped[UUID] = mapped_column(index=True)
     title: Mapped[str | None]
+    # The board this chat is about; None for a chat beside no board.
+    board_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("boards.id", ondelete="CASCADE"), index=True
+    )
 
 
 class MessageORM(Base):

@@ -26,6 +26,7 @@ from app.features.boards.schemas import (
     ResponseTile,
     Tile,
 )
+from app.features.conversations.schemas import ResponseConversation
 from app.features.tiles.schemas import AnyPayload
 
 router = APIRouter(prefix="/boards", tags=["boards"], dependencies=[Depends(require_user)])
@@ -39,7 +40,6 @@ def _summary_response(board: Board, tile_count: int) -> ResponseBoardSummary:
         id=board.id,
         name=board.name,
         position=board.position,
-        conversation_id=board.conversation_id,
         plan_id=board.plan_id,
         tile_count=tile_count,
     )
@@ -87,7 +87,6 @@ def _board_response(
         id=board.id,
         name=board.name,
         position=board.position,
-        conversation_id=board.conversation_id,
         plan_id=board.plan_id,
         tiles=[_tile_response(tile=tile, payload=payload) for tile, payload in resolved],
         dropped=[
@@ -144,8 +143,17 @@ async def update_board(
 
 @router.delete("/{board_id}", status_code=204)
 async def delete_board(board: OwnedBoardDep, service: BoardServiceDep) -> None:
-    """Delete a board with its tiles and its conversation."""
+    """Delete a board with its tiles and its conversations."""
     await service.delete_board(board=board)
+
+
+@router.post("/{board_id}/conversations", response_model=ResponseConversation, status_code=201)
+async def create_board_conversation(
+    board: OwnedBoardDep, service: BoardServiceDep
+) -> ResponseConversation:
+    """Start a new chat beside the board."""
+    conversation = await service.create_conversation(board=board)
+    return ResponseConversation.model_validate(conversation, from_attributes=True)
 
 
 @router.post("/{board_id}/tiles", response_model=ResponseTile, status_code=201)

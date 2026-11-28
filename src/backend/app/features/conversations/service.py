@@ -73,10 +73,10 @@ class ConversationService:
         self.guardrails = guardrails
 
     async def create_conversation(
-        self, data: RequestConversationCreate, owner_id: UUID
+        self, data: RequestConversationCreate, owner_id: UUID, board_id: UUID | None = None
     ) -> Conversation:
-        """Create an empty conversation owned by the user."""
-        return await self.conversations.create(data=data, owner_id=owner_id)
+        """Create an empty conversation owned by the user, beside a board when one is given."""
+        return await self.conversations.create(data=data, owner_id=owner_id, board_id=board_id)
 
     async def list_conversations(
         self, owner_id: UUID, sort: str | None = None

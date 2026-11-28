@@ -19,7 +19,7 @@ from app.features.boards.schemas import (
     RequestBoardCreate,
     Tile,
 )
-from app.features.conversations.schemas import RequestConversationCreate
+from app.features.conversations.schemas import Conversation, RequestConversationCreate
 from app.features.conversations.service import ConversationService
 from app.features.tiles.schemas import AnyPayload
 from app.features.tiles.service import TileError, TileService
@@ -215,16 +215,19 @@ class BoardService:
         return board
 
     async def _new_board(self, owner_id: UUID, name: str, plan_id: UUID | None = None) -> Board:
-        conversation = await self.conversations.create_conversation(
-            data=RequestConversationCreate(title=name), owner_id=owner_id
-        )
         position = await self.boards.count_owned(owner_id=owner_id)
-        return await self.boards.create(
-            owner_id=owner_id,
-            name=name,
-            position=position,
-            conversation_id=conversation.id,
-            plan_id=plan_id,
+        board = await self.boards.create(
+            owner_id=owner_id, name=name, position=position, plan_id=plan_id
+        )
+        await self.create_conversation(board=board)
+        return board
+
+    async def create_conversation(self, board: Board) -> Conversation:
+        """Start a chat beside the board; the page names it after its first question."""
+        return await self.conversations.create_conversation(
+            data=RequestConversationCreate(),
+            owner_id=board.owner_id,
+            board_id=board.id,
         )
 
     async def rename_board(self, board_id: UUID, name: str) -> Board:
@@ -241,15 +244,13 @@ class BoardService:
         await self.boards.set_positions(ordered_ids=ids)
 
     async def delete_board(self, board: Board) -> None:
-        """Delete the board, its tiles and its conversation."""
+        """Delete the board, its tiles and its conversations."""
         await self.boards.delete(entity_id=board.id)
         await self.boards.set_positions(
             ordered_ids=[
                 item.id for item in await self.boards.list(sort="position", owner_id=board.owner_id)
             ]
         )
-        if board.conversation_id is not None:
-            await self.conversations.delete_conversation(conversation_id=board.conversation_id)
 
     async def add_tile(
         self,
