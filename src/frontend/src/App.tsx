@@ -57,6 +57,8 @@ function TrustRoom({
   const [share, setShare] = useState(SPLIT);
   const [lastSplit, setLastSplit] = useState(SPLIT);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  // Counts the openings, so the drawer loads what the chat changed while it was closed.
+  const [profileOpenings, setProfileOpenings] = useState(0);
   // The side panel over an e-banking page is for asking; boards live on /trustroom.
   const isChatOnly =
     context.mode === "panel" && context.page.id !== "dashboard";
@@ -196,6 +198,11 @@ function TrustRoom({
     if (share === 1) setShare(lastSplit);
   }
 
+  function openProfile() {
+    setProfileOpenings((count) => count + 1);
+    setIsProfileOpen(true);
+  }
+
   function closeProfile() {
     setIsProfileOpen(false);
     profileButton.current?.focus();
@@ -292,7 +299,7 @@ function TrustRoom({
           <NeedsAttention
             token={token}
             customerId={customer?.customer_id ?? "anonymous"}
-            onOpenSettings={() => setIsProfileOpen(true)}
+            onOpenSettings={openProfile}
           />
           {openBoardSummary === null ? (
             <NewBoard
@@ -446,9 +453,7 @@ function TrustRoom({
                 ? `Close the profile of ${name}`
                 : `Open the profile of ${name}`
             }
-            onClick={() =>
-              isProfileOpen ? closeProfile() : setIsProfileOpen(true)
-            }
+            onClick={() => (isProfileOpen ? closeProfile() : openProfile())}
           >
             <span className="avatar">{initials}</span>
             <span>
@@ -497,6 +502,7 @@ function TrustRoom({
           <SmallIcon name="close" />
         </button>
         <ProfilePanel
+          key={profileOpenings}
           name={name}
           initials={initials}
           customerSince={customerSince}
