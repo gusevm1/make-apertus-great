@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     llm_api_key: SecretStr
     llm_name: str
     llm_name_fast: str | None = None  # None: the fast model is `llm_name` too
+    llm_name_thinking: str | None = None  # None: tool decisions get no thought-out plan
     apertus_timeout_seconds: float = 60
     apertus_max_retries: int = 2
     apertus_json_schema_supported: bool = False
