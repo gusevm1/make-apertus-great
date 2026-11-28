@@ -3,11 +3,22 @@ from calendar import monthrange
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from functools import cache
+from pathlib import Path
 from typing import Any
+
+import yaml
 
 from app.core.provenance import Check
 
 NOT_FOUND_LISTED = 10
+# The prompt files that instruct the model; a sentence of theirs never belongs in an answer.
+INSTRUCTION_PROMPTS = ("tool_calls", "boards", "conversations")
+# Shorter sentences are common enough to appear in an answer by chance.
+PROMPT_SENTENCE_MIN_CHARS = 80
+_OPEN_AMOUNT = re.compile(r"(?:CHF|Fr\.)\s*\?")
+_SENTENCE_END = re.compile(r"(?<=[.!?:])\s+|\n+")
+_SPACES = re.compile(r"\s+")
 # A bare whole number below this is a count or a list number ("3 months", "1."), not a figure.
 COUNTS_BELOW = 10
 # A bare whole number in this range is a year.
@@ -128,6 +139,18 @@ class FigureCheckService:
         if missing:
             detail += "; not found: " + ", ".join(missing[:NOT_FOUND_LISTED])
         return Check(name="figures_found", passed=not missing, detail=detail)
+
+    def check_complete(self, answer: str) -> Check | None:
+        """Whether the answer leaves an amount open or copies a sentence of our prompts."""
+        reasons = []
+        if _OPEN_AMOUNT.search(answer) is not None:
+            reasons.append("an amount left open (CHF ?)")
+        flat = _flat(text=answer)
+        if any(sentence in flat for sentence in _prompt_sentences()):
+            reasons.append("a sentence of the instructions")
+        if not reasons:
+            return None
+        return Check(name="answer_complete", passed=False, detail="; ".join(reasons))
 
     def missing_figures(self, answer: str, sources: list[str]) -> list[str]:
         """The figures of the answer that no source holds, as the answer writes them."""
@@ -434,3 +457,32 @@ def _within(period: Period | None, month: Month) -> bool:
         return False
     first, last = period
     return first is not None and last is not None and month[0] <= first and last <= month[1]
+
+
+def _flat(text: str) -> str:
+    return _SPACES.sub(" ", text).strip().casefold()
+
+
+@cache
+def _prompt_sentences() -> frozenset[str]:
+    features = Path(__file__).parents[1]
+    sentences = set()
+    for feature in INSTRUCTION_PROMPTS:
+        prompts = yaml.safe_load((features / feature / "prompts.yaml").read_text(encoding="utf-8"))
+        for value in _strings(value=prompts):
+            for sentence in _SENTENCE_END.split(value):
+                flat = _flat(text=sentence)
+                # A sentence with a placeholder is filled in before it is sent, never verbatim.
+                if len(flat) >= PROMPT_SENTENCE_MIN_CHARS and "{" not in flat:
+                    sentences.add(flat)
+    return frozenset(sentences)
+
+
+def _strings(value: Any) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [text for item in value.values() for text in _strings(value=item)]
+    if isinstance(value, list):
+        return [text for item in value for text in _strings(value=item)]
+    return []

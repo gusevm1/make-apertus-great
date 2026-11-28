@@ -20,3 +20,4 @@ quote_comment: |
   My comment on it: {comment}
 guardrail_board: "(Typed beside my board in the e-banking, where I build boards and tiles about my money and my family's.) {text}"
 earlier_answer: "(An earlier answer of yours, left out: it may be out of date. My board below holds the figures as they are now.)"
+answer_incomplete: "I could not work out every figure of this answer. Please ask me again."

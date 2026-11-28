@@ -11,6 +11,10 @@ PROMPTS = load_prompts(prompts_py=__file__)
 DOCUMENT_MAX_CHARS = 20_000
 
 
+def incomplete_answer() -> str:
+    return PROMPTS["answer_incomplete"]
+
+
 def chat_prompt(
     history: list[Message],
     page: PageContext | None = None,

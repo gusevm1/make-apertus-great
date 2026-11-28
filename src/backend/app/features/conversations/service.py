@@ -10,7 +10,7 @@ from app.core.errors import BadRequestError, NotFoundError
 from app.core.provenance import Check, Provenance
 from app.core.streaming import CheckingEvent, DoneEvent, StreamEvent, TokenEvent, ToolResultEvent
 from app.core.tools import TurnScope
-from app.features.conversations.prompts import chat_prompt, guardrail_text
+from app.features.conversations.prompts import chat_prompt, guardrail_text, incomplete_answer
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import (
     Conversation,
@@ -302,7 +302,11 @@ class ConversationService:
         checks = self._checks(content=content, sources=sources, outputs=outputs, texts=texts)
         figures = next((check for check in checks if check.name == "figures_found"), None)
         if not can_correct or figures is None or figures.passed:
-            return content, provenance.model_copy(update={"checks": [*provenance.checks, *checks]})
+            return _complete(
+                content=content,
+                provenance=provenance.model_copy(update={"checks": [*provenance.checks, *checks]}),
+                can_replace=can_correct,
+            )
         corrected = await self.figure_corrections.correct_figures(
             answer=content,
             missing=self.figure_checks.missing_figures(answer=content, sources=sources),
@@ -317,11 +321,15 @@ class ConversationService:
                 )
             )
         checks = self._checks(content=content, sources=sources, outputs=outputs, texts=texts)
-        return content, provenance.model_copy(
-            update={
-                "latency_ms": provenance.latency_ms + corrected.latency_ms,
-                "checks": [*provenance.checks, draft, *checks],
-            }
+        return _complete(
+            content=content,
+            provenance=provenance.model_copy(
+                update={
+                    "latency_ms": provenance.latency_ms + corrected.latency_ms,
+                    "checks": [*provenance.checks, draft, *checks],
+                }
+            ),
+            can_replace=True,
         )
 
     async def _tool_pointers(self, conversation_id: UUID, message_id: UUID, content: str) -> str:
@@ -343,6 +351,7 @@ class ConversationService:
             self.figure_checks.check_context(
                 answer=content, calls=outputs, today=self.tool_calls.today
             ),
+            self.figure_checks.check_complete(answer=content),
         ]
         return [check for check in checks if check is not None]
 
@@ -355,6 +364,14 @@ class ConversationService:
             content=content,
             provenance=provenance.model_dump(),
         )
+
+
+def _complete(content: str, provenance: Provenance, can_replace: bool) -> tuple[str, Provenance]:
+    # An open amount or a leaked instruction never reaches the customer of a held answer.
+    failed = any(check.name == "answer_complete" for check in provenance.checks)
+    if not failed or not can_replace:
+        return content, provenance
+    return incomplete_answer(), provenance
 
 
 def _board(scope: TurnScope | None) -> str:
