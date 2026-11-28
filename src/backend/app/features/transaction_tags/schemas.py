@@ -1,9 +1,18 @@
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal, get_args
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    computed_field,
+    create_model,
+    field_validator,
+)
 
 from app.core.prompts import load_prompts
 from app.features.ledger.schemas import Kind
@@ -38,6 +47,15 @@ SeverityScope = Literal["category", "payee", "booking"]
 SeveritySource = Literal["booking", "payee", "category", "default"]
 SeveritySetBy = Literal["model", "customer"]
 RunStatus = Literal["queued", "running", "done", "failed"]
+RunStep = Literal["categories", "necessity", "personal_tags"]
+# Where each step starts and ends on the run's 0 to 100 scale.
+STEP_SPANS: dict[str, tuple[int, int]] = {
+    "categories": (0, 85),
+    "necessity": (85, 90),
+    "personal_tags": (90, 100),
+}
+# Called with (rows done, rows in the step) as a step goes on.
+Progress = Callable[[int, int], Awaitable[None]]
 PersonalTagSetBy = Literal["model", "customer"]
 CategorisationScope = Literal["untagged", "unconfirmed"]
 MAX_INFERRED_TAGS = 10
@@ -128,6 +146,9 @@ class CategorisationRun(BaseModel):
     id: UUID
     owner_id: UUID
     status: RunStatus
+    step: RunStep
+    step_done: int
+    step_total: int
     tagged_by_rule: int
     tagged_by_correction: int
     tagged_by_model: int
@@ -136,6 +157,16 @@ class CategorisationRun(BaseModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+
+    @computed_field
+    @property
+    def progress(self) -> int:
+        """How far the run is, 0 to 100."""
+        if self.status == "done":
+            return 100
+        start, end = STEP_SPANS[self.step]
+        share = 0 if self.step_total == 0 else min(self.step_done / self.step_total, 1)
+        return int(start + (end - start) * share)
 
 
 class RatedTransactionTag(TransactionTag):
@@ -255,6 +286,10 @@ class RequestCategorisationCreate(BaseModel):
 class ResponseCategorisationRun(BaseModel):
     id: UUID
     status: RunStatus
+    step: RunStep
+    step_done: int
+    step_total: int
+    progress: int
     tagged_by_rule: int
     tagged_by_correction: int
     tagged_by_model: int

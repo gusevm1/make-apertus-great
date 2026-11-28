@@ -18,7 +18,12 @@ from app.features.transaction_tags.repository import (
     SeveritySettingRepository,
     TransactionTagRepository,
 )
-from app.features.transaction_tags.schemas import CategorisationRun, CategorisationScope
+from app.features.transaction_tags.schemas import (
+    CategorisationRun,
+    CategorisationScope,
+    Progress,
+    RunStep,
+)
 from app.features.transaction_tags.service import TransactionTagService
 from app.features.transaction_tags.severity_service import SeverityService
 
@@ -129,6 +134,18 @@ async def _work(
             _active[owner_id].run_id = run_id
 
 
+def _reporter(run_id: UUID, step: RunStep) -> Progress:
+    """Stores how far a step is, in its own short session, so polling sees it at once."""
+
+    async def report(done: int, total: int) -> None:
+        async with session_factory() as session:
+            await CategorisationRunRepository(session=session).mark_progress(
+                run_id=run_id, step=step, done=done, total=total
+            )
+
+    return report
+
+
 async def _work_once(
     run_id: UUID,
     owner_id: UUID,
@@ -149,7 +166,13 @@ async def _work_once(
                 custom=CustomCategoryRepository(session=session),
                 ledger=ledger,
                 apertus=apertus,
-            ).create_categorisation(owner_id=owner_id, token=token, scope=scope)
+            ).create_categorisation(
+                owner_id=owner_id,
+                token=token,
+                scope=scope,
+                progress=_reporter(run_id=run_id, step="categories"),
+            )
+            await _reporter(run_id=run_id, step="necessity")(0, 1)
             await SeverityService(
                 tags=tags,
                 severities=SeveritySettingRepository(session=session),
@@ -168,7 +191,11 @@ async def _work_once(
                 evaluations=evaluations,
                 ledger=ledger,
                 apertus=apertus,
-            ).create_inference(owner_id=owner_id, token=token)
+            ).create_inference(
+                owner_id=owner_id,
+                token=token,
+                progress=_reporter(run_id=run_id, step="personal_tags"),
+            )
         status, counts = "done", categorisation.model_dump()
     except Exception:
         logger.exception("Categorisation run %s failed", run_id)

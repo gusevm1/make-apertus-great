@@ -52,7 +52,23 @@ export interface PersonalTag {
 export interface CategorisationRun {
   id: string;
   status: "queued" | "running" | "done" | "failed";
+  step: "categories" | "necessity" | "personal_tags";
+  step_done: number;
+  step_total: number;
+  /** How far the run is, 0 to 100, computed by the server. */
+  progress: number;
   skipped: number;
+}
+
+const count = new Intl.NumberFormat("de-CH");
+
+/** What the run is doing now, in words. */
+export function stepText(run: CategorisationRun): string {
+  if (run.status === "queued") return "Waiting to start";
+  if (run.step === "necessity") return "Rating how much you need each category";
+  if (run.step === "personal_tags") return "Finding your personal tags";
+  if (run.step_total === 0) return "Reading your bookings";
+  return `Sorting your bookings: ${count.format(run.step_done)} of ${count.format(run.step_total)}`;
 }
 
 export interface Loaded {

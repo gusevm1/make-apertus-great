@@ -356,6 +356,15 @@ class CategorisationRunRepository(BaseRepository[CategorisationRunORM, Categoris
         await self.session.execute(stmt)
         await self.session.commit()
 
+    async def mark_progress(self, run_id: UUID, step: str, done: int, total: int) -> None:
+        stmt = (
+            update(CategorisationRunORM)
+            .where(CategorisationRunORM.id == run_id)
+            .values(step=step, step_done=done, step_total=total)
+        )
+        await self.session.execute(stmt)
+        await self.session.commit()
+
     async def mark_finished(
         self, run_id: UUID, status: str, counts: dict[str, int] | None = None
     ) -> None:
