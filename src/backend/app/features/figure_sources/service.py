@@ -28,7 +28,9 @@ class FigureSourceService:
         """For each figure of the answer, the tool result, page or document that holds it."""
         sources: dict[str, FigureSource] = {}
         for figure in self.figure_checks.figures(answer=answer):
-            if figure.text in sources:
+            # Only amounts and shares: an age or a phone number is no figure to trace.
+            is_traced = figure.is_amount or figure.is_percent or figure.decimals > 0
+            if not is_traced or figure.text in sources:
                 continue
             source = await self._source(figure=figure, calls=calls, documents=documents)
             if source is not None:
@@ -96,6 +98,16 @@ class FigureSourceService:
                 count=1,
             )
         ids, group = _booking_ids(result=result, path=path)
+        if not ids:
+            # Without booking ids the result's own sentence and count say what the figure is.
+            meaning = result.get("meaning")
+            count = next((part["count"] for part in reversed(path) if "count" in part), 0)
+            return FigureSource(
+                text=figure.text,
+                label=meaning if isinstance(meaning, str) else call.title,
+                tool_call_id=str(call.id),
+                count=count if isinstance(count, int) else 0,
+            )
         rows = await self._rows(ids=ids[:ROWS_MAX], result=result)
         return FigureSource(
             text=figure.text,

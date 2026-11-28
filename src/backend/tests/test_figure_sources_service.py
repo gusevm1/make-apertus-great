@@ -119,12 +119,40 @@ async def test_a_price_from_the_web_names_its_page() -> None:
     assert source.rows == []
 
 
-async def test_a_figure_in_no_source_gets_none_and_the_newest_call_wins() -> None:
+async def test_only_amounts_in_a_source_are_traced_and_the_newest_call_wins() -> None:
     older = call(tool_name="sum_by_month", title="Older", result={"total_chf": "50.00"})
-    newer = call(tool_name="sum_by_month", title="Newer", result={"total_chf": "50.00"})
+    newer = call(
+        tool_name="sum_by_month",
+        title="Newer",
+        result={"total_chf": "50.00", "note": "Für 30-Jährige, Beratung +41 44 555 01 23"},
+    )
 
     sources = await service().figure_sources(
-        answer="Es waren CHF 50.00, nicht CHF 77.00.", calls=[older, newer], documents=[]
+        answer="Es waren CHF 50.00, nicht CHF 77.00. Für 30-Jährige: +41 44 555 01 23.",
+        calls=[older, newer],
+        documents=[],
     )
 
     assert [(source.text, source.label) for source in sources] == [("50.00", "Newer")]
+
+
+async def test_a_tile_figure_without_booking_ids_says_its_meaning_and_count() -> None:
+    tile = call(
+        tool_name="add_tile",
+        title="Add a tile",
+        result={
+            "figures": {
+                "rows": [{"merchant": "Migros", "amount_chf": 698.29, "count": 15}],
+                "figure_chf": 698.29,
+            },
+            "meaning": "From 01.11. to 27.11., CHF 698.29 went to Migros.",
+        },
+    )
+
+    [source] = await service().figure_sources(
+        answer="Bei Migros waren es CHF 698.29.", calls=[tile], documents=[]
+    )
+
+    assert source.label == "From 01.11. to 27.11., CHF 698.29 went to Migros."
+    assert source.count == 15
+    assert source.rows == []
