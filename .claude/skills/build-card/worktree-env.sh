@@ -41,9 +41,10 @@ for name in "$database" "$test_database"; do
 done
 
 {
-  grep -vE '^(BANKING_API_URL|APP_PORT|DATABASE_URL|TEST_DATABASE_URL)=' "$main/.env"
+  grep -vE '^(BANKING_API_URL|APP_PORT|APP_ORIGIN|DATABASE_URL|TEST_DATABASE_URL)=' "$main/.env"
   echo "BANKING_API_URL=http://localhost:$api_port/api"
   echo "APP_PORT=$app_port"
+  echo "APP_ORIGIN=http://localhost:$app_port"
   echo "DATABASE_URL=$postgres/$database"
   echo "TEST_DATABASE_URL=$postgres/$test_database"
 } >"$root/.env"
