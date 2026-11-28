@@ -295,14 +295,21 @@ a:hover {
     min-height: 100dvh;
   }
 
+  /* One row: the e-banking's panel already shows our name above. */
   .top {
-    grid-template-columns: 1fr;
-    padding: 12px 16px;
-    justify-items: start;
+    grid-template-columns: 1fr auto;
+    padding: 8px 12px;
+    min-height: 52px;
+    gap: 8px;
+  }
+
+  .brand,
+  .me > span:not(.avatar) {
+    display: none;
   }
 
   .me {
-    justify-self: start;
+    padding: 4px;
   }
 
   .private {
