@@ -55,3 +55,14 @@ class Tool[ArgsT: BaseModel]:
     def __post_init__(self) -> None:
         if (self.handler is None) == (self.turn_handler is None):
             raise ValueError(f"Tool {self.name} needs exactly one of handler and turn_handler")
+
+
+@dataclass(frozen=True)
+class TurnScope:
+    """A small tool set the turn's first decision tries before the full one, such as the board's."""
+
+    # What the customer sees beside the chat, put in front of their message; already escaped.
+    context: str
+    # The scoped decision's job, put into its system prompt.
+    guide: str
+    tools: list[Tool[Any]]

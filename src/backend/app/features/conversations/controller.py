@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse
 
 from app.core.auth import CurrentUserDep, require_user
 from app.core.streaming import sse_response
+from app.features.boards.dependencies import BoardTurnsDep
 from app.features.conversations.dependencies import ConversationServiceDep, OwnedConversationDep
 from app.features.conversations.schemas import (
     Conversation,
@@ -97,16 +98,18 @@ async def create_message(
     conversation: OwnedConversationDep,
     user: CurrentUserDep,
     service: ConversationServiceDep,
+    board_turn: BoardTurnsDep,
     stream: bool = False,
 ) -> ResponseMessage | StreamingResponse:
     """Send a message and get the reply, which may use tools; `?stream=true` streams it as SSE."""
+    scope = await board_turn(body.board_id, body.tile_id)
     if stream:
         events = service.stream_message(
-            conversation_id=conversation.id, data=body, owner_id=user.id
+            conversation_id=conversation.id, data=body, owner_id=user.id, scope=scope
         )
         return sse_response(events=events, to_response=_message_response)
     message = await service.create_message(
-        conversation_id=conversation.id, data=body, owner_id=user.id
+        conversation_id=conversation.id, data=body, owner_id=user.id, scope=scope
     )
     return _message_response(message=message)
 

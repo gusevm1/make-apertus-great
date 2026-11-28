@@ -1,6 +1,6 @@
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import date
 from typing import Any
 from uuid import UUID, uuid4
@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 from pydantic import ValidationError
 from pydantic_core import ErrorDetails
 
-from app.clients.apertus import ApertusClient, Model
+from app.clients.apertus import ApertusClient, LLMResult, Model
 from app.clients.apertus import Message as LLMMessage
 from app.core.errors import AppError, BadRequestError, NotFoundError, UpstreamError
 from app.core.provenance import Check, Provenance, Source
@@ -20,24 +20,32 @@ from app.core.streaming import (
     ToolCallEvent,
     ToolResultEvent,
 )
-from app.core.tools import SheetLine, Tool, Turn, TurnResult
+from app.core.tools import SheetLine, Tool, Turn, TurnResult, TurnScope
 from app.features.tool_calls.confirmations import Confirmations
 from app.features.tool_calls.prompts import (
     ToolRound,
     answer_prompt,
     dated_prompt,
     decision_prompt,
+    scoped_decision_prompt,
 )
 from app.features.tool_calls.repository import ToolCallRepository
 from app.features.tool_calls.schemas import (
     RequestToolCallConfirmationCreate,
     ToolCall,
+    ToolDecision,
     ToolRequest,
     decision_schema,
+    scoped_decision_schema,
 )
 
 MAX_TOOL_CALLS = 8
 MAX_TOOL_ROUNDS = 4
+# A board change rarely needs a second round, unless the first call was wrong.
+MAX_SCOPED_ROUNDS = 2
+SCOPED_PURPOSE = "scoped_decision"
+# Tools of the full set that a scoped decision may call too.
+SCOPE_SHARED = ("propose_context_entry",)
 DECISION_MODEL = Model.SMART
 DECISION_PURPOSE = "tool_decision"
 ANSWER_MODEL = Model.SMART
@@ -76,7 +84,11 @@ class ToolCallService:
         self.today = today
 
     async def create_answer(
-        self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage]
+        self,
+        conversation_id: UUID,
+        message_id: UUID,
+        messages: list[LLMMessage],
+        scope: TurnScope | None = None,
     ) -> tuple[str, Provenance]:
         """Answer the messages, calling tools first when the model asks for them."""
         started = time.perf_counter()
@@ -86,6 +98,7 @@ class ToolCallService:
             message_id=message_id,
             messages=messages,
             can_ask=False,
+            scope=scope,
         )
         calls = [step async for step in steps if isinstance(step, ToolCall)]
         # Streamed, so the timeout counts the wait per chunk, not the whole answer.
@@ -94,6 +107,7 @@ class ToolCallService:
                 messages=dated_prompt(messages=messages, today=self.today),
                 calls=calls,
                 tools=list(self.tools.values()),
+                scoped=scope is not None,
             ),
             model=ANSWER_MODEL,
             purpose=ANSWER_PURPOSE,
@@ -106,7 +120,11 @@ class ToolCallService:
         return SwissSpelling().feed(text=stream.result.content), provenance
 
     async def stream_answer(
-        self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage]
+        self,
+        conversation_id: UUID,
+        message_id: UUID,
+        messages: list[LLMMessage],
+        scope: TurnScope | None = None,
     ) -> AsyncIterator[StreamEvent[tuple[str, Provenance]]]:
         """Like `create_answer`, but yields each tool call, the answer's tokens, then the answer."""
         started = time.perf_counter()
@@ -116,6 +134,7 @@ class ToolCallService:
             message_id=message_id,
             messages=messages,
             can_ask=True,
+            scope=scope,
         ):
             if not isinstance(step, ToolCall):
                 yield step
@@ -129,6 +148,7 @@ class ToolCallService:
                 messages=dated_prompt(messages=messages, today=self.today),
                 calls=calls,
                 tools=list(self.tools.values()),
+                scoped=scope is not None,
             ),
             model=ANSWER_MODEL,
             purpose=ANSWER_PURPOSE,
@@ -167,28 +187,103 @@ class ToolCallService:
         )
 
     async def _call_tools(
-        self, conversation_id: UUID, message_id: UUID, messages: list[LLMMessage], can_ask: bool
+        self,
+        conversation_id: UUID,
+        message_id: UUID,
+        messages: list[LLMMessage],
+        can_ask: bool,
+        scope: TurnScope | None,
     ) -> AsyncIterator[PlanningEvent | ToolCallEvent | ToolCall]:
         """Run the requested calls round by round; yields each round, each call's start and end."""
         calls: list[ToolCall] = []
         rounds: list[ToolRound] = []
         # After a no, the turn does not ask for the same tool again.
         refused: set[str] = set()
-        for round_number in range(MAX_TOOL_ROUNDS):
-            yield PlanningEvent(round=round_number)
-            result = await self.apertus.structured(
-                messages=decision_prompt(
-                    messages=messages,
+        full = list(self.tools.values())
+        first_round = 0
+        if scope is not None:
+            # A small decision first: most messages beside a board change it or ask about it.
+            scoped = [*scope.tools, *(self.tools[name] for name in SCOPE_SHARED if name in self.tools)]
+            self.tools.update({tool.name: tool for tool in scope.tools})
+            schema = scoped_decision_schema(tools=scoped)
+            look_up = False
+            try:
+                async for step in self._rounds(
+                    first_round=0,
+                    conversation_id=conversation_id,
+                    message_id=message_id,
+                    can_ask=can_ask,
+                    calls=calls,
                     rounds=rounds,
-                    tools=list(self.tools.values()),
-                    today=self.today,
+                    refused=refused,
+                    max_rounds=MAX_SCOPED_ROUNDS,
+                    decide=lambda: self.apertus.structured(
+                        messages=scoped_decision_prompt(
+                            messages=messages,
+                            rounds=rounds,
+                            tools=scoped,
+                            today=self.today,
+                            guide=scope.guide,
+                        ),
+                        schema=schema,
+                        model=DECISION_MODEL,
+                        purpose=SCOPED_PURPOSE,
+                    ),
+                ):
+                    if isinstance(step, ToolDecision):
+                        look_up = look_up or getattr(step, "look_up", False)
+                        continue
+                    if isinstance(step, PlanningEvent):
+                        first_round = step.round + 1
+                    yield step
+            except UpstreamError:
+                # Such as invalid JSON twice: the full decision still answers the message.
+                logger.exception("Scoped decision for message %s failed", message_id)
+                look_up = True
+            if not look_up:
+                return
+            # The full decision reads the question as before; the board only distracted it.
+            messages = _without(messages=messages, text=scope.context)
+        async for step in self._rounds(
+            first_round=first_round,
+            conversation_id=conversation_id,
+            message_id=message_id,
+            can_ask=can_ask,
+            calls=calls,
+            rounds=rounds,
+            refused=refused,
+            max_rounds=MAX_TOOL_ROUNDS,
+            decide=lambda: self.apertus.structured(
+                messages=decision_prompt(
+                    messages=messages, rounds=rounds, tools=full, today=self.today
                 ),
                 schema=self.decision_schema,
                 model=DECISION_MODEL,
                 purpose=DECISION_PURPOSE,
-            )
+            ),
+        ):
+            if not isinstance(step, ToolDecision):
+                yield step
+
+    async def _rounds(
+        self,
+        conversation_id: UUID,
+        message_id: UUID,
+        can_ask: bool,
+        calls: list[ToolCall],
+        rounds: list[ToolRound],
+        refused: set[str],
+        first_round: int,
+        max_rounds: int,
+        decide: Callable[[], Awaitable[LLMResult[ToolDecision]]],
+    ) -> AsyncIterator[PlanningEvent | ToolCallEvent | ToolCall | ToolDecision]:
+        """One decision per round; yields it, then each call's start and end."""
+        for round_number in range(first_round, first_round + max_rounds):
+            yield PlanningEvent(round=round_number)
+            result = await decide()
             decision = result.content
             decision.plan = SwissSpelling().feed(text=decision.plan)
+            yield decision
             round_calls: list[ToolCall] = []
             # ponytail: one call after the other, asyncio.gather once a tool is slow
             # A tool that builds on the turn's results runs after the calls that fetch them.
@@ -277,10 +372,12 @@ class ToolCallService:
                 calls.append(call)
                 round_calls.append(call)
                 yield call
-            # A round without a new call means the model has what it needs, or is stuck.
-            if not round_calls or len(calls) == MAX_TOOL_CALLS:
+            if round_calls:
+                rounds.append((decision, round_calls))
+            # A round without a new call means the model has what it needs, or is stuck; a
+            # scoped decision that asks for a look-up hands over to the full set.
+            if not round_calls or len(calls) == MAX_TOOL_CALLS or getattr(decision, "look_up", False):
                 break
-            rounds.append((decision, round_calls))
 
     def find_pointers(self, calls: list[ToolCall], answer: str) -> str:
         """The lines the called tools add under this answer, each once."""
@@ -374,6 +471,14 @@ class ToolCallService:
             sources=list(pages.values()),
             checks=[check] if calls else [],
         )
+
+
+def _without(messages: list[LLMMessage], text: str) -> list[LLMMessage]:
+    *earlier, last = messages
+    content = last["content"]
+    if not isinstance(content, str):
+        return messages
+    return [*earlier, {**last, "content": content.replace(text, "")}]
 
 
 def _problems(exc: ValidationError) -> str:
