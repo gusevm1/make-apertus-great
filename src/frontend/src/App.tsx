@@ -60,6 +60,26 @@ function TrustRoom({ context }: { context: HostContext }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [dockError, setDockError] = useState<string | null>(null);
   const hasStarted = useRef(false);
+  const [customerSince, setCustomerSince] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCurrent = true;
+    async function load() {
+      try {
+        const data = await api<{ customer_since: string | null }>(
+          "/api/customer",
+          token,
+        );
+        if (isCurrent) setCustomerSince(data.customer_since);
+      } catch {
+        // The profile shows no year then; nothing else depends on it.
+      }
+    }
+    void load();
+    return () => {
+      isCurrent = false;
+    };
+  }, [token]);
 
   const customer = context.customer;
   const name =
@@ -251,7 +271,7 @@ function TrustRoom({ context }: { context: HostContext }) {
               openBoard(boardId);
             }}
           />
-          <ProfilePanel name={name} initials={initials} customerSince={null} />
+          <ProfilePanel name={name} initials={initials} customerSince={customerSince} />
         </div>
       ) : (
         <div className="main">
