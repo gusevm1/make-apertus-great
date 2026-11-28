@@ -1,0 +1,768 @@
+[
+  {
+    "name": "payday",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 8.6,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add two tiles that answer the question: payday_balance with the two cases and bills_until_payday showing the upcoming payments before the salary.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Add two tiles that answer the question: payday_balance with the two cases and bills_until_payday showing the upcoming payments before the salary.",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "fact",
+          "text": "The child support often comes late: on 22.10. last month. Always show both cases."
+        },
+        "summary": null,
+        "plan": "Propose the suggested profile note about the late child support.",
+        "error": null
+      }
+    ],
+    "answer": "Yes, but only just. Eight bills fall due before your next salary of 24.12., and after they are paid only CHF 124.96 are left on 23.12., giving CHF 4.63 a day for 27 days. The child support of CHF 1'050.00 has not arrived this month; if it does, you would have CHF 1'174.96 left on that same day before payday.\n\nBoth are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "3 of 3"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "5 of 5 found"
+      }
+    ]
+  },
+  {
+    "name": "payday_again",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 9.2,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Answer the question by adding the two ready signals that show the payday balance and the bills until payday.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Answer the question by adding the two ready signals that show the payday balance and the bills until payday.",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "fact",
+          "text": "The child support often comes late: on 22.10. last month. Always show both cases."
+        },
+        "summary": null,
+        "plan": "Propose the suggested profile note about the late child support.",
+        "error": "This proposal waits for the customer already. Do not propose it again."
+      }
+    ],
+    "answer": "Yes, but only just. After eight payments of 2'950.20 fall due before the next salary on 24.12., CHF 124.96 would remain on 23.12., which is CHF 4.63 per day for 27 days.  \n\nThe child support of CHF 1'050.00 has not arrived this month; if it does, you would have CHF 1'174.96 left on 23.12.\n\nBoth are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "2 of 3"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "6 of 6 found"
+      }
+    ]
+  },
+  {
+    "name": "payday_after_edit",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 8.6,
+    "passed": false,
+    "path": "model",
+    "problems": [
+      "1'174.96 missing"
+    ],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add two tiles that answer the question: payday_balance and bills_until_payday.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Add two tiles that answer the question: payday_balance and bills_until_payday.",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "fact",
+          "text": "The child support often comes late: on 22.10. last month. Always show both cases."
+        },
+        "summary": null,
+        "plan": "Propose the suggested profile note as a fact.",
+        "error": null
+      }
+    ],
+    "answer": "Yes, but only just. Eight bills totalling CHF 2'950.20 fall due before your next salary on 24.12., leaving CHF 124.96 on 23.12. Without receiving the pending CHF 1'050.00 child support, you are left with just CHF 124.96 on the day before payday, enough for about CHF 4.63 per day for the next 27 days.\n\nBoth are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "3 of 3"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "6 of 6 found"
+      }
+    ]
+  },
+  {
+    "name": "payday_other_words",
+    "customer": "daniela",
+    "message": "Will I make it to my next salary?",
+    "selected": null,
+    "seconds": 9.7,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Answer the question by adding the two ready signals that show the payday balance and the bills until payday.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Answer the question by adding the two ready signals that show the payday balance and the bills until payday.",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "fact",
+          "text": "The child support often comes late: on 22.10. last month. Always show both cases."
+        },
+        "summary": null,
+        "plan": "Propose the suggested profile note about the late child support.",
+        "error": "This proposal waits for the customer already. Do not propose it again."
+      }
+    ],
+    "answer": "Yes, but only just. Eight bills fall due before your next salary on 24.12.; after paying those CHF 2'950.20 you will be left with CHF 124.96 on 23.12., only about CHF 4.63 per day for the remaining 27 days.  \n\nIf the CHF 1'050.00 child support from Patrick Rüegg arrives however, you would have CHF 1'174.96 left on 23.12., giving roughly CHF 43.52 a day for the same period.\n\nBoth are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "2 of 3"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "7 of 7 found"
+      }
+    ]
+  },
+  {
+    "name": "payday_note_saved",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 9.2,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add two tiles that answer the question: payday_balance with the two cases and bills_until_payday showing the upcoming payments before the salary.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Add two tiles that answer the question: payday_balance with the two cases and bills_until_payday showing the upcoming payments before the salary.",
+        "error": null
+      }
+    ],
+    "answer": "Yes, but only just. Eight bills totalling CHF 2'950.20 fall due before your next salary on 24.12.; after the last payment on 23.12. you will have CHF 124.96 on your Privatkonto, which is CHF 4.63 a day for 27 days.\n\nIf the CHF 1'050.00 child support from Patrick Rüegg should arrive this month, you would have CHF 1'174.96 left on 23.12.\n\nBoth are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "6 of 6 found"
+      }
+    ]
+  },
+  {
+    "name": "remove",
+    "customer": "daniela",
+    "message": "Remove the groceries tile.",
+    "selected": null,
+    "seconds": 2.6,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "remove_tile",
+        "arguments": {
+          "tile": "T5"
+        },
+        "summary": "Removed \"Groceries\"",
+        "plan": "Remove the tile named 'Groceries' from the open board.",
+        "error": null
+      }
+    ],
+    "answer": "Done.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      }
+    ]
+  },
+  {
+    "name": "rename",
+    "customer": "daniela",
+    "message": "Rename the emergency fund to Rainy day money.",
+    "selected": null,
+    "seconds": 3.2,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "rename_tile",
+        "arguments": {
+          "tile": "T3",
+          "title": "Rainy day money"
+        },
+        "summary": "Renamed \"Emergency fund\" to \"Rainy day money\"",
+        "plan": "Rename the tile titled 'Emergency fund' to 'Rainy day money'.",
+        "error": null
+      }
+    ],
+    "answer": "Done.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      }
+    ]
+  },
+  {
+    "name": "move",
+    "customer": "daniela",
+    "message": "Move the dentist bill to the top.",
+    "selected": null,
+    "seconds": 2.5,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "move_tile",
+        "arguments": {
+          "to": "top",
+          "tile": "T6"
+        },
+        "summary": "Moved \"Dentist bill for Lina\" to the top",
+        "plan": "Move the dentist bill tile to the top of the board.",
+        "error": null
+      }
+    ],
+    "answer": "Done.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      }
+    ]
+  },
+  {
+    "name": "migros_coop",
+    "customer": "daniela",
+    "message": "Show me what I spend at Migros and Coop each month.",
+    "selected": null,
+    "seconds": 5.9,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "months": 6,
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Coop"
+          ]
+        },
+        "summary": null,
+        "plan": "Add a tile showing monthly spending at Migros and Coop over the last few months.",
+        "error": "merchant_spending has no argument months. Send it again without it. The arguments of merchant_spending are: merchants, period."
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Coop"
+          ]
+        },
+        "summary": "Added \"Shops in November\"",
+        "plan": "Add a tile showing monthly spending at Migros and Coop over the last few months.",
+        "error": null
+      }
+    ],
+    "answer": "Done, the chart now shows merchants' spending for the month of November.\n\nFrom 01.11. to 27.11., you spent CHF 232.34 at these shops: Migros CHF 219.69 and Coop CHF 12.65.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "1 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  },
+  {
+    "name": "twelve_months",
+    "customer": "daniela",
+    "message": "Make the spending chart show 12 months.",
+    "selected": null,
+    "seconds": 4.3,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "change_tile",
+        "arguments": {
+          "tile": "T4",
+          "months": 12
+        },
+        "summary": "Changed \"Where the money goes\"",
+        "plan": "Change tile T4 to show spending over 12 months.",
+        "error": null
+      }
+    ],
+    "answer": "Done.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      }
+    ]
+  },
+  {
+    "name": "subscriptions",
+    "customer": "daniela",
+    "message": "Add my subscriptions.",
+    "selected": null,
+    "seconds": 5.9,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "payees": [
+            "Sunrise GmbH",
+            "Lebara Schweiz"
+          ],
+          "template": "regular_payments"
+        },
+        "summary": "Added \"Regular payments\"",
+        "plan": "Add a tile showing my regular subscription payments to the open board.",
+        "error": null
+      }
+    ],
+    "answer": "Regular payments have been added to your board.\n\nAn upcoming pair of payments total CHF 59.80: Sunrise GmbH CHF 39.90 is due on 15.12. and Lebara Schweiz CHF 19.90 is due on 07.12.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  },
+  {
+    "name": "tile_meaning",
+    "customer": "daniela",
+    "message": "What is this tile telling me?",
+    "selected": "payday_balance",
+    "seconds": 5.0,
+    "passed": true,
+    "path": "none",
+    "problems": [],
+    "calls": [],
+    "answer": "Yes, but only just. Eight bills fall due before your next salary on 23.12., and after them CHF 124.96 remain.\n\nWith the child support from Patrick Rüegg of CHF 1'050.00 arriving, you would have CHF 1'174.96 left that day.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  },
+  {
+    "name": "bills_wait",
+    "customer": "daniela",
+    "message": "Which of these can wait?",
+    "selected": "bills_until_payday",
+    "seconds": 0.0,
+    "passed": false,
+    "path": "none",
+    "problems": [
+      "turn failed: ReadTimeout('')"
+    ],
+    "calls": [],
+    "answer": "",
+    "checks": []
+  },
+  {
+    "name": "lina_board",
+    "customer": "daniela",
+    "message": "Start a board about Lina.",
+    "selected": null,
+    "seconds": 11.1,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "create_board",
+        "arguments": {
+          "about": "Lina"
+        },
+        "summary": "New board \"Lina\"",
+        "plan": "Create a new board about Lina as requested.",
+        "error": null
+      }
+    ],
+    "answer": "I made a board for it.\n\nYour new \"Lina\" board starts with two bills already listed: CHF 440.00 to Zahnarztpraxis Neuwiesen due in three days, and CHF 348.00 to Stadt Winterthur due in thirteen days.\n\nTell me the total of Lina's savings and the amount expected from her next income, and I will add an overview of how these bills compare to what will be available afterwards.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "2 of 2 found"
+      }
+    ]
+  },
+  {
+    "name": "health_board",
+    "customer": "daniela",
+    "message": "How much did I pay for health insurance this year?",
+    "selected": null,
+    "seconds": 14.9,
+    "passed": true,
+    "path": "none",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "text": "health insurance"
+        },
+        "summary": null,
+        "plan": "Need to find all payments related to health insurance by searching movements with the payee name or text containing 'health insurance' and then summing them up.",
+        "error": "No movement in the whole ledger contains \"health insurance\". Movements carry no category: call sum_by_counterparty for the period without text to see who the customer pays, then search for those names. For health insurance, search the insurers' names, such as Krankenversicherung, Krankenkasse, Assura, CSS, Helsana, Sanitas, Swica or Visana, as a list, with the period asked about, such as {\"text\": [\"Krankenversicherung\", \"Assura\", \"CSS\"], \"date_from\": \"<first day>\", \"date_to\": \"<last day>\"}: its money_out_chf is then the sum."
+      },
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "text": [
+            "Krankenversicherung",
+            "Assura",
+            "CSS",
+            "Helsana",
+            "Sanitas",
+            "Swica",
+            "Visana"
+          ],
+          "date_to": "2026-11-27",
+          "date_from": "2026-01-01"
+        },
+        "summary": null,
+        "plan": "Search for health insurance payments by looking for insurer names such as Krankenversicherung, Assura, CSS, Helsana, Sanitas, Swica, Visana in the movement text over the current year.",
+        "error": null
+      }
+    ],
+    "answer": "You paid CHF 2'985.40 in health insurance this year through eleven equal monthly payments to Assura‑Basis SA, each of CHF 271.40, for December 2026 through November 2026.\n\nWith these outlays only shown, we cannot state whether this amount is sufficient for any additional coverage or claim you may have, as no other relevant figures are available.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "1 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "2 of 2 found"
+      }
+    ]
+  },
+  {
+    "name": "japan",
+    "customer": "lukas",
+    "message": "We want to go to Japan in 2027. Keep an eye on that for me.",
+    "selected": null,
+    "seconds": 12.6,
+    "passed": false,
+    "path": "model",
+    "problems": [
+      "speaks of meanings or tiles"
+    ],
+    "calls": [
+      {
+        "tool": "create_board",
+        "arguments": {
+          "about": "Our trip to Japan in 2027"
+        },
+        "summary": "New board \"Japanreise 2027\"",
+        "plan": "Create a new board for the Japan trip and propose a context entry about the goal.",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "goal",
+          "text": "You are planning a trip to Japan in 2027."
+        },
+        "summary": null,
+        "plan": "Create a new board for the Japan trip and propose a context entry about the goal.",
+        "error": null
+      }
+    ],
+    "answer": "I made a board for our Japan trip in 2027.\n\nIt starts with two tiles: your long-term savings account holds CHF 37'566.29, which is already above its goal of CHF 12'000.00, and a planned regular payment of CHF 600.00 is set aside for the trip.\n\nTell me what the complete cost of the trip is to see if these regular payments will be enough.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  },
+  {
+    "name": "health_chat",
+    "customer": "daniela",
+    "message": "How much did I pay for health insurance this year?",
+    "selected": null,
+    "seconds": 12.2,
+    "passed": true,
+    "path": "none",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "text": "health insurance"
+        },
+        "summary": null,
+        "plan": "Need to find all payments related to health insurance by searching movements with the payee name or text containing 'health insurance' and then summing them up.",
+        "error": "No movement in the whole ledger contains \"health insurance\". Movements carry no category: call sum_by_counterparty for the period without text to see who the customer pays, then search for those names. For health insurance, search the insurers' names, such as Krankenversicherung, Krankenkasse, Assura, CSS, Helsana, Sanitas, Swica or Visana, as a list, with the period asked about, such as {\"text\": [\"Krankenversicherung\", \"Assura\", \"CSS\"], \"date_from\": \"<first day>\", \"date_to\": \"<last day>\"}: its money_out_chf is then the sum."
+      },
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "text": [
+            "Krankenversicherung",
+            "Assura",
+            "CSS",
+            "Helsana",
+            "Sanitas",
+            "Swica",
+            "Visana"
+          ],
+          "date_to": "2026-11-27",
+          "date_from": "2026-01-01"
+        },
+        "summary": null,
+        "plan": "Search for health insurance payments by looking for insurer names such as Krankenversicherung, Assura, CSS, Helsana, Sanitas, Swica, Visana in the movement text over the current year.",
+        "error": null
+      }
+    ],
+    "answer": "Up to today (27.11.2026), you have paid CHF 2'985.40 for health insurance this year. This total is based on 11 e-bill payments made to your health insurer, Assura-Basis SA, between 01.01.2026 and 27.11.2026, each of them amounting to CHF 271.40 and labeled in the statements as monthly health insurance premiums for Daniela + Lina, reduced by premium subsidies.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "1 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  }
+]

@@ -71,6 +71,9 @@ guide: |
   Notes the bank suggests for this customer's profile:
   {notes}
 
+  Notes the customer saved already, which you never propose again, also not in other words:
+  {saved}
+
   The templates, for a tile no signal has ready (what it shows, what it does NOT show, its
   arguments). Use only ids and names exactly as the customer's data writes them:
   {catalogue}
@@ -139,6 +142,6 @@ late_income_note: "{income} often comes late: on {day} {when}. Always show both 
 suggested_note: "Propose this note with propose_context_entry now, word for word, as a fact: {note}"
 both_cases_added: Both cases are on your board now.
 both_cases_there: Both are on your board already.
-new_board: "The new board about {about} starts with these tiles, the first one first: {tiles} {missing}"
+new_board: "The new board about {about} starts with, first: {tiles} {missing}"
 new_board_tile: '"{title}": {meaning}'
 new_board_empty: "none yet."

@@ -66,3 +66,6 @@ class TurnScope:
     # The scoped decision's job, put into its system prompt.
     guide: str
     tools: list[Tool[Any]]
+    # The calls, as (tool, arguments), the server makes for a question when the decision made
+    # none and needs no look-up, so the tiles that answer it reach the answer.
+    fallback: Callable[[str], list[tuple[str, dict[str, Any]]]] | None = None

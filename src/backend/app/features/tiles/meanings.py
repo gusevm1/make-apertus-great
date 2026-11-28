@@ -234,12 +234,16 @@ def _expected_income(payload: ExpectedIncomePayload) -> str:
 
 
 def _savings_goal(payload: SavingsGoalPayload) -> str:
-    text = (
-        f"{payload.account_name} holds {_chf(amount=payload.figure_chf)}, which is "
-        f"{payload.percent:.1f} % of the goal of {_chf(amount=payload.goal_chf)}"
-    )
     if payload.percent >= 100:
-        text += ", so the goal is reached"
+        text = (
+            f"{payload.account_name} holds {_chf(amount=payload.figure_chf)}, already above its "
+            f"goal of {_chf(amount=payload.goal_chf)}"
+        )
+    else:
+        text = (
+            f"{payload.account_name} holds {_chf(amount=payload.figure_chf)}, which is "
+            f"{payload.percent:.1f} % of the goal of {_chf(amount=payload.goal_chf)}"
+        )
     month = _month(month=payload.month)
     change = payload.month_change_chf
     if change < 0:

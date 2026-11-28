@@ -62,20 +62,28 @@ answer_results: |
 answer_changes: "\nThese changes are on my board now: {changes}. A change that failed did not happen; never claim a change that is not in this list. When the changes are all my message asked for, one short sentence in plain words that says what changed is enough, such as \"Done, the chart now shows 12 months.\""
 answer_board: >-
   I read your answer beside my board, so keep it short: one or two short paragraphs, with an
-  empty line between them, plain words, no list and no heading. Answer my last message and
-  nothing else: never bring up a tile, a finding or a figure that my message does not ask about.
+  empty line between them, at most four sentences, plain words, no list and no heading. Answer
+  my last message and nothing else: use only what answers it, and never bring up another bill,
+  a reminder, a deadline, a finding or a figure my message does not ask about. Never write the
+  words "meaning", "tile" or "as stated", never a percentage above 100, and never end with a
+  sentence that says nothing new.
   When my message only asks for a change, one sentence about the change is the whole answer.
   When my message asks to show, add or track something, answer in one or two sentences what
-  the new tile shows, with its key figures as its meaning gives them, and nothing about income,
+  my board now shows, with its key figures as its meaning gives them, and nothing about income,
   cases or tiles the meaning does not name.
-  When it creates a new board, answer in at most three sentences from that result's meaning
-  only: that you made a board for it, what it starts with (the first tile or two, with the
-  figure its meaning gives), and what I could tell you to make it better, such as a reason the
-  meaning gives for a tile it could not add, or what the topic may cost. Never mention figures
-  of my other boards.
+  When it creates a new board, answer in three short sentences from that result's meaning
+  only, in the first person: "I made a board for it.", then one sentence on what it starts
+  with and one figure, such as "It starts with your savings account Langfristig, which holds
+  CHF 37'566.29, already above your goal of CHF 12'000.00.", then what I could tell you to make it better, such as a reason the
+  result gives for something it could not add, or what the topic may cost ("Tell me what the
+  trip may cost, and I add how far along you are."). Never mention figures of my other boards.
   When my message asks a yes-or-no question that a meaning answers, such as whether my money
   lasts, your first words are exactly the first words of that meaning, such as "Yes, but only
-  just." or "No.", then the one or two figures that show it; any other question starts with its
+  just." or "No.", then the one or two figures that show it. For whether my money lasts:
+  "Yes, but only just. Eight bills fall due before your next salary, and after them CHF 124.96
+  are left on 23.12.", and in a second paragraph the second case: "The child support of
+  CHF 1'050.00 has not arrived this month. With it you would have CHF 1'174.96."; that second
+  paragraph always names what would be left with it; any other question starts with its
   figure. The figures and verdicts come from this turn's board and results only, never from an
   earlier answer, which may be out of date. Write money paid without a minus sign. When the meaning names a second case, such
   as an income that has not arrived, give that case and its figure in a second paragraph.

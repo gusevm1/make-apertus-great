@@ -1,0 +1,133 @@
+[
+  {
+    "name": "payday_after_edit",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 8.5,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add the two signal tiles that answer 'Does my money last until payday?'",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S2"
+        },
+        "summary": "Added \"From Patrick\"",
+        "plan": "Add the two signal tiles that answer 'Does my money last until payday?'",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "fact",
+          "text": "The child support often comes late: on 22.10. last month. Always show both cases."
+        },
+        "summary": null,
+        "plan": "Propose the context note about the late child support.",
+        "error": null
+      }
+    ],
+    "answer": "Yes, but only just. Eight bills fall due before your next salary, and after them CHF 124.96 are left on 23.12., which is CHF 4.63 a day.\n\nThe child support of CHF 1'050.00 has not arrived this month; if it does arrive, you would have CHF 1'174.96 left on 23.12.\n\nBoth are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "3 of 3"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "4 of 4 found"
+      }
+    ]
+  },
+  {
+    "name": "bills_wait",
+    "customer": "daniela",
+    "message": "Which of these can wait?",
+    "selected": "bills_until_payday",
+    "seconds": 5.9,
+    "passed": true,
+    "path": "none",
+    "problems": [],
+    "calls": [],
+    "answer": "The payment to Zahnarztpraxis Neuwiesen cannot wait because it is a reminder due in three days and only a payee can agree to a later date. The last bills due before your salary fall on 21.12. (Steueramt Winterthur) and 23.12. (Assura-Basis). \n\nOnly a payee can agree to a change of date; the remainder after all payments is CHF 124.96 on 23.12.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "1 of 1 found"
+      }
+    ]
+  },
+  {
+    "name": "japan",
+    "customer": "lukas",
+    "message": "We want to go to Japan in 2027. Keep an eye on that for me.",
+    "selected": null,
+    "seconds": 12.5,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "create_board",
+        "arguments": {
+          "about": "Our trip to Japan in 2027"
+        },
+        "summary": "New board \"Japanreise 2027\"",
+        "plan": "Create a new board for the Japan trip and propose a context entry about the goal.",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "goal",
+          "text": "You are planning a trip to Japan in 2027."
+        },
+        "summary": null,
+        "plan": "Create a new board for the Japan trip and propose a context entry about the goal.",
+        "error": null
+      }
+    ],
+    "answer": "I made a board for your Japan 2027 plans. It starts with your savings account Langfristig, which holds CHF 37'566.29, already above its goal of CHF 12'000.00. A regular contribution of CHF 600.00 is already set to fund the trip on 10.12. Tell me the estimated total cost of the Japan trip in 2027, and I will track how far you are towards it using this board.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  }
+]

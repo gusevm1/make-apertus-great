@@ -31,6 +31,7 @@ from app.features.tool_calls.service import (
     ToolCallService,
     board_style,
     swiss_text,
+    without_empty_end,
 )
 
 HISTORY_LIMIT = 20
@@ -190,7 +191,8 @@ class ConversationService:
                     scope=scope,
                 )
                 # An answer built on tool results shows only once its figures are checked.
-                is_held = False
+                # Beside a board every answer is held: the stored text is cleaned up as a whole.
+                is_held = scope is not None
                 async for event in events:
                     is_held = is_held or isinstance(event, ToolResultEvent)
                     if isinstance(event, TokenEvent) and is_held:
@@ -295,7 +297,8 @@ class ConversationService:
         # The newest tool results last, so they are the last a cut for the correction drops.
         sources = [*texts, *[json.dumps(result, ensure_ascii=False) for result in results]]
         # Only an answer built on this turn's tool results is held, so only it can be corrected.
-        can_correct = any(call.message_id == history[-1].id for call in calls)
+        # Beside a board the answer is held too, also without a tool call.
+        can_correct = board != "" or any(call.message_id == history[-1].id for call in calls)
         checks = self._checks(content=content, sources=sources, outputs=outputs, texts=texts)
         figures = next((check for check in checks if check.name == "figures_found"), None)
         if not can_correct or figures is None or figures.passed:
@@ -308,8 +311,10 @@ class ConversationService:
         draft = figures.model_copy(update={"name": DRAFT_CHECK})
         content = swiss_text(text=corrected.content)
         if board != "":
-            content = Paragraphs(is_on=True).feed(
-                text=board_style(text=content, year=self.tool_calls.today.year)
+            content = without_empty_end(
+                text=Paragraphs(is_on=True).feed(
+                    text=board_style(text=content, year=self.tool_calls.today.year)
+                )
             )
         checks = self._checks(content=content, sources=sources, outputs=outputs, texts=texts)
         return content, provenance.model_copy(

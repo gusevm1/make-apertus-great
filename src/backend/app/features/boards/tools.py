@@ -27,6 +27,13 @@ from app.features.tiles.schemas import (
     Template,
 )
 
+# Question words and the templates of the tiles that answer such a question, first match wins.
+ANSWERING_TILES: list[tuple[re.Pattern[str], tuple[str, ...]]] = [
+    (
+        re.compile(r"payday|salary|last until|until (?:the )?(?:end|next)|zahltag|lohn|reicht", re.I),
+        ("payday_balance", "bills_until_payday"),
+    ),
+]
 # The answer about a new board names its first tiles only.
 NEW_BOARD_TILES_TOLD = 2
 TILE_INDEX = re.compile(r"T(\d+)", re.IGNORECASE)
@@ -113,6 +120,8 @@ class BoardChange(BaseModel):
     meaning: str | None = None
     # A note for the customer's profile that this tile brings up, for propose_context_entry.
     suggested_note: str | None = None
+    # The note itself, which the server proposes when the decision does not.
+    suggested_note_text: str | None = None
     figures: dict[str, Any] | None = None
     tiles: list[BoardTileFigures] | None = None
 
@@ -124,6 +133,7 @@ async def get_turn(
     owner_id: UUID,
     token: str,
     today: date,
+    active_notes: list[str],
 ) -> TurnScope:
     """The open board for the chat: what its prompt shows and the tools that change it."""
     (resolved, dropped), customer = await asyncio.gather(
@@ -156,9 +166,14 @@ async def get_turn(
         )
         if same is not None:
             on_board[signal.id] = label(tile_id=same.id)
-    notes = await _late_income_notes(
-        service=service, signals=customer.signals, payloads=payloads, token=token, today=today
-    )
+    saved = {note.casefold().strip() for note in active_notes}
+    notes = [
+        note
+        for note in await _late_income_notes(
+            service=service, signals=customer.signals, payloads=payloads, token=token, today=today
+        )
+        if note.casefold().strip() not in saved
+    ]
     selected = next((tile for tile in ordered if tile.id == tile_id), None)
     selected_payload = None if selected is None else payloads[selected.id]
     context = board_context(
@@ -233,6 +248,9 @@ async def get_turn(
                 finding=finding,
                 meaning=meaning(payload=payload, today=today),
                 suggested_note=_suggested_note(payload=payload, notes=notes),
+            suggested_note_text=None
+            if _suggested_note(payload=payload, notes=notes) is None
+            else notes[0],
                 figures=figures(payload=payload),
             )
         tile, payload = await service.add_tile(
@@ -249,6 +267,9 @@ async def get_turn(
             finding=finding,
             meaning=meaning(payload=payload, today=today),
             suggested_note=_suggested_note(payload=payload, notes=notes),
+            suggested_note_text=None
+            if _suggested_note(payload=payload, notes=notes) is None
+            else notes[0],
             figures=figures(payload=payload),
         )
 
@@ -392,10 +413,30 @@ async def get_turn(
             handler=create_board,
         ),
     ]
+    def fallback(question: str) -> list[tuple[str, dict[str, Any]]]:
+        """For a question its ready tiles answer: add them, so their meanings reach the answer."""
+        if selected is not None:
+            return []
+        for words, templates in ANSWERING_TILES:
+            if words.search(question) is None:
+                continue
+            requests: list[tuple[str, dict[str, Any]]] = []
+            for template in templates:
+                signal = next((item for item in customer.signals if item.template == template), None)
+                if signal is not None:
+                    requests.append(("add_tile", {"signal": signal.id}))
+            if requests and notes and "payday_balance" in templates:
+                requests.append(("propose_context_entry", {"kind": "fact", "text": notes[0]}))
+            return requests
+        return []
+
     return TurnScope(
         context=context,
-        guide=board_guide(signals=customer.signals, labels=on_board, notes=notes),
+        guide=board_guide(
+            signals=customer.signals, labels=on_board, notes=notes, saved=active_notes
+        ),
         tools=tools,
+        fallback=fallback,
     )
 
 
