@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx2
 import pytest
+from pydantic import ValidationError
 
 from app.clients.banking import BankingClient
 from app.core.config import get_settings
@@ -19,6 +20,7 @@ from app.features.ledger.schemas import (
     SearchMovementsArgs,
     SumByCounterpartyArgs,
     SumByGroupArgs,
+    SumByMonthArgs,
     TaxYearArgs,
 )
 from app.features.ledger.service import LedgerService
@@ -1127,3 +1129,20 @@ async def test_a_settled_bill_without_purchases_counts_as_spending_once(
         args=SearchMovementsArgs(date_from=date(2023, 12, 1), date_to=date(2023, 12, 31)),
     )
     assert (december.row_ids, december.money_out_chf) == (["BK-9"], Decimal("-2264.35"))
+
+
+def test_sum_by_month_takes_group_by_month_and_refuses_any_other_grouping() -> None:
+    args = SumByMonthArgs.model_validate({"group_by": "month", "date_from": "2026-10-01"})
+
+    assert args == SumByMonthArgs(date_from=date(2026, 10, 1))
+    for wrong in (
+        {"group_by": "year"},
+        {"group_by": ["month"]},
+        {"group_by": "month", "period": "6 months"},
+    ):
+        with pytest.raises(ValidationError):
+            SumByMonthArgs.model_validate(wrong)
+
+
+def test_sum_by_month_shows_the_model_the_schema_it_had() -> None:
+    assert SumByMonthArgs.model_json_schema() == Filters.model_json_schema()

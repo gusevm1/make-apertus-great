@@ -92,6 +92,23 @@ class Filters(Selection):
         return self
 
 
+MONTH_GROUPINGS = {"month", "months", "monthly"}
+
+
+class SumByMonthArgs(Filters):
+    # The same title, so the schema the model reads in the prompt is the one of Filters.
+    model_config = ConfigDict(extra="forbid", title="Filters")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _by_month_is_what_this_tool_does(cls, data: Any) -> Any:
+        # The model often adds group_by "month"; any other grouping is still an error to correct.
+        grouping = data.get("group_by") if isinstance(data, dict) else None
+        if isinstance(grouping, str) and grouping in MONTH_GROUPINGS:
+            return {key: value for key, value in data.items() if key != "group_by"}
+        return data
+
+
 class SearchMovementsArgs(Filters):
     sort: Literal["newest", "oldest", "largest"] = Field(
         default="newest", description=PROMPTS["sort"]
