@@ -7,7 +7,12 @@ from app.features.boards.schemas import Tile
 from app.features.boards.service import BoardService
 from app.features.ledger.service import LedgerService
 from app.features.payments.service import PaymentService
-from app.features.tile_publications.mapping import tile_marker, widget_of
+from app.features.tile_publications.mapping import (
+    first_free_position,
+    tile_marker,
+    widget_of,
+    widget_width,
+)
 from app.features.tile_publications.schemas import TilePublication
 
 
@@ -37,8 +42,14 @@ class TilePublicationService:
             None,
         )
         if widget_id is None:
+            position = first_free_position(
+                widgets=dashboard["widgets"], width=widget_width(widget=widget)
+            )
             created = await self.payments.write(
-                method="POST", path=path, token=token, body={"type": "custom", **widget}
+                method="POST",
+                path=path,
+                token=token,
+                body={"type": "custom", **widget, "position": position},
             )
             widget_id = created.root["id"]
         else:

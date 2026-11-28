@@ -28,6 +28,9 @@ from app.features.tiles.schemas import (
 )
 
 TABLE_ROWS_MAX = 8
+GRID_COLUMNS = 3
+# From three columns on, a one-wide card cuts the amount column off.
+WIDE_TABLE_COLUMNS = 3
 MONTHS = "January February March April May June July August September October November December"
 MONTH_NAMES = MONTHS.split()
 
@@ -58,6 +61,28 @@ def widget_of(payload: AnyPayload, title: str, tile_id: UUID, today: date) -> di
             )
             spec["footnote"] = f"{spec['footnote']} {note}" if "footnote" in spec else note
     return {"title": title, "custom": custom}
+
+
+def widget_width(widget: dict[str, Any]) -> int:
+    """The grid columns the widget needs so that every amount shows in full."""
+    spec = widget["custom"]["spec"]
+    return 2 if spec["type"] == "table" and len(spec["columns"]) >= WIDE_TABLE_COLUMNS else 1
+
+
+def first_free_position(widgets: list[dict[str, Any]], width: int) -> dict[str, int]:
+    """The first one-row slot of `width` columns, row by row, that no widget covers."""
+    taken = {
+        (box["col"] + col, box["row"] + row)
+        for box in (widget["position"] for widget in widgets)
+        for col in range(box.get("width", 1))
+        for row in range(box.get("height", 1))
+    }
+    row = 0
+    while True:
+        for col in range(GRID_COLUMNS - width + 1):
+            if all((col + step, row) not in taken for step in range(width)):
+                return {"col": col, "row": row, "width": width, "height": 1}
+        row += 1
 
 
 def _spec(payload: AnyPayload) -> dict[str, Any]:

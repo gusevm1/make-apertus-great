@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
-from app.features.tile_publications.mapping import widget_of
+from app.features.tile_publications.mapping import first_free_position, widget_of, widget_width
 from app.features.tiles.schemas import (
     BillRow,
     BillsUntilPaydayPayload,
@@ -97,3 +97,47 @@ def test_a_plain_kpi_links_only_its_booking_ids() -> None:
     assert custom["spec"]["footnote"] == (
         "Without pillar 3a. The link opens only 2 of the 3 payments behind this tile."
     )
+
+
+def box(col: int, row: int, width: int = 1) -> dict[str, dict[str, int]]:
+    return {"position": {"col": col, "row": row, "width": width, "height": 1}}
+
+
+def test_a_bills_table_is_two_wide_and_a_kpi_one() -> None:
+    bills = BillsUntilPaydayPayload(
+        figure_chf=Decimal("100.10"),
+        source=NO_SOURCE,
+        payday=date(2026, 12, 24),
+        rows=[bill(number=1)],
+    )
+    kpi = NetWorthPayload(
+        figure_chf=Decimal("1000"), source=NO_SOURCE, parts=[], includes_pension=False
+    )
+
+    assert (
+        widget_width(widget=widget_of(payload=bills, title="B", tile_id=uuid4(), today=TODAY)) == 2
+    )
+    assert widget_width(widget=widget_of(payload=kpi, title="K", tile_id=uuid4(), today=TODAY)) == 1
+
+
+def test_a_widget_takes_the_first_free_slot_row_by_row() -> None:
+    dashboard = [box(0, 0), box(1, 0), box(2, 0), box(0, 1), box(1, 1, width=2), box(0, 2)]
+
+    assert first_free_position(widgets=dashboard, width=1) == {
+        "col": 1,
+        "row": 2,
+        "width": 1,
+        "height": 1,
+    }
+    assert first_free_position(widgets=dashboard, width=2) == {
+        "col": 1,
+        "row": 2,
+        "width": 2,
+        "height": 1,
+    }
+    assert first_free_position(widgets=[*dashboard, box(2, 2)], width=2) == {
+        "col": 0,
+        "row": 3,
+        "width": 2,
+        "height": 1,
+    }
