@@ -145,6 +145,57 @@
   font-size: 12.5px;
   color: var(--muted);
 }
+.tr-chat .chatname span[role="alert"] {
+  color: var(--bad);
+}
+.tr-chat .chatname button {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 -4px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.tr-chat .chatname button svg {
+  flex: none;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.tr-chat .chatname button:hover svg,
+.tr-chat .chatname button:focus-visible svg {
+  opacity: 1;
+}
+@media (hover: none) {
+  .tr-chat .chatname button svg {
+    opacity: 1;
+  }
+}
+.tr-chat .chatname input {
+  min-width: 0;
+  margin: 0 -4px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--canvas);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+}
+.tr-chat .chatname input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+.tr-chat .chatname input[aria-invalid="true"] {
+  outline-color: var(--bad);
+}
 .tr-chat .chatbody {
   position: relative;
   flex: 1;
