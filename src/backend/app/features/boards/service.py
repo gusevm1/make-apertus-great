@@ -1,11 +1,13 @@
 import asyncio
 import logging
 from collections import defaultdict
+from collections.abc import AsyncIterator, Callable
 from datetime import date
 from uuid import UUID
 
 from app.core.errors import AppError, BadRequestError, ConflictError, NotFoundError, UpstreamError
-from app.features.board_plans.schemas import PlannedBoard, PlannedBoards
+from app.core.streaming import DoneEvent, StepEvent, StreamEvent
+from app.features.board_plans.schemas import PlannedBoard, PlannedBoards, TraceStep
 from app.features.board_plans.service import BoardPlanService
 from app.features.boards.repository import BoardPlanRepository, BoardRepository, TileRepository
 from app.features.boards.schemas import (
@@ -90,7 +92,11 @@ class BoardService:
         return tile
 
     async def create_first_boards(
-        self, owner_id: UUID, token: str, today: date
+        self,
+        owner_id: UUID,
+        token: str,
+        today: date,
+        on_step: Callable[[TraceStep], None] | None = None,
     ) -> tuple[BoardPlan, list[BoardSummary]]:
         """Plan and store the customer's first boards; with boards already, return the newest plan."""
         async with PLAN_LOCKS[owner_id]:
@@ -101,11 +107,38 @@ class BoardService:
                     raise ConflictError("You have boards already")
                 return plans[0], summaries
             await self.boards.close_read()
-            planned = await self._plan(token=token, today=today, request=None, existing=None)
+            planned = await self._plan(
+                token=token, today=today, request=None, existing=None, on_step=on_step
+            )
             plan = await self._store_plan(owner_id=owner_id, planned=planned, request=None)
             for board in planned.boards:
-                await self._create_planned_board(owner_id=owner_id, planned=board)
+                await self._create_planned_board(
+                    owner_id=owner_id, planned=board, plan_id=plan.id
+                )
             return plan, await self.list_boards(owner_id=owner_id)
+
+    async def stream_first_boards(
+        self, owner_id: UUID, token: str, today: date
+    ) -> AsyncIterator[StreamEvent[tuple[BoardPlan, list[BoardSummary]]]]:
+        """`create_first_boards`, with each step of the plan as it starts and as it ends."""
+        steps: asyncio.Queue[TraceStep | None] = asyncio.Queue()
+
+        async def build() -> tuple[BoardPlan, list[BoardSummary]]:
+            try:
+                return await self.create_first_boards(
+                    owner_id=owner_id, token=token, today=today, on_step=steps.put_nowait
+                )
+            finally:
+                steps.put_nowait(None)
+
+        task = asyncio.create_task(build())
+        try:
+            while (step := await steps.get()) is not None:
+                yield StepEvent(step=step.model_dump(mode="json"))
+            yield DoneEvent(result=await task)
+        finally:
+            # A customer who leaves mid-build gets their boards on the next visit.
+            task.cancel()
 
     async def create_board(
         self, owner_id: UUID, data: RequestBoardCreate, token: str, today: date
@@ -125,17 +158,24 @@ class BoardService:
         first = None if planned is None or not planned.boards else planned.boards[0]
         if planned is None or first is None or not first.tiles:
             return await self._new_board(owner_id=owner_id, name=self._board_name(data=data))
-        await self._store_plan(owner_id=owner_id, planned=planned, request=about)
+        plan = await self._store_plan(owner_id=owner_id, planned=planned, request=about)
         name = data.name.strip() if data.name is not None and data.name.strip() != "" else None
-        return await self._create_planned_board(owner_id=owner_id, planned=first, name=name)
+        return await self._create_planned_board(
+            owner_id=owner_id, planned=first, plan_id=plan.id, name=name
+        )
 
     async def _plan(
-        self, token: str, today: date, request: str | None, existing: list[str] | None
+        self,
+        token: str,
+        today: date,
+        request: str | None,
+        existing: list[str] | None,
+        on_step: Callable[[TraceStep], None] | None = None,
     ) -> PlannedBoards:
         try:
             async with asyncio.timeout(PLAN_DEADLINE_SECONDS):
                 return await self.planner.plan_boards(
-                    token=token, today=today, request=request, existing=existing
+                    token=token, today=today, request=request, existing=existing, on_step=on_step
                 )
         except TimeoutError as error:
             raise UpstreamError("Apertus took too long to plan the board") from error
@@ -154,14 +194,15 @@ class BoardService:
             model=planned.model,
             latency_ms=planned.latency_ms,
             checks=[check.model_dump(mode="json") for check in planned.checks],
+            trace=[step.model_dump(mode="json") for step in planned.trace],
         )
 
     async def _create_planned_board(
-        self, owner_id: UUID, planned: PlannedBoard, name: str | None = None
+        self, owner_id: UUID, planned: PlannedBoard, plan_id: UUID, name: str | None = None
     ) -> Board:
         """Store a board the planner validated; its tiles were resolved there already."""
         board = await self._new_board(
-            owner_id=owner_id, name=planned.name if name is None else name
+            owner_id=owner_id, name=planned.name if name is None else name, plan_id=plan_id
         )
         for position, tile in enumerate(planned.tiles):
             await self.tiles.create(
@@ -173,13 +214,17 @@ class BoardService:
             )
         return board
 
-    async def _new_board(self, owner_id: UUID, name: str) -> Board:
+    async def _new_board(self, owner_id: UUID, name: str, plan_id: UUID | None = None) -> Board:
         conversation = await self.conversations.create_conversation(
             data=RequestConversationCreate(title=name), owner_id=owner_id
         )
         position = await self.boards.count_owned(owner_id=owner_id)
         return await self.boards.create(
-            owner_id=owner_id, name=name, position=position, conversation_id=conversation.id
+            owner_id=owner_id,
+            name=name,
+            position=position,
+            conversation_id=conversation.id,
+            plan_id=plan_id,
         )
 
     async def rename_board(self, board_id: UUID, name: str) -> Board:

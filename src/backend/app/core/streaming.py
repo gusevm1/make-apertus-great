@@ -56,13 +56,25 @@ class ToolResultEvent:
     error: str | None
 
 
+# One step of building a board, sent when it starts and again when it ends.
+@dataclass(frozen=True)
+class StepEvent:
+    step: dict[str, Any]
+
+
 @dataclass(frozen=True)
 class DoneEvent[T]:
     result: T
 
 
 type StreamEvent[T] = (
-    TokenEvent | PlanningEvent | CheckingEvent | ToolCallEvent | ToolResultEvent | DoneEvent[T]
+    TokenEvent
+    | PlanningEvent
+    | CheckingEvent
+    | ToolCallEvent
+    | ToolResultEvent
+    | StepEvent
+    | DoneEvent[T]
 )
 
 
@@ -83,7 +95,7 @@ def _error(body: ErrorResponse) -> str:
 def sse_response[T](
     events: AsyncIterator[StreamEvent[T]], to_response: Callable[[T], BaseModel]
 ) -> StreamingResponse:
-    """Turn a service's events into SSE: planning, tools, checking, token… then done or error."""
+    """Turn a service's events into SSE: planning, tools, steps, checking, token… then done."""
 
     async def body() -> AsyncIterator[str]:
         try:
@@ -98,6 +110,8 @@ def sse_response[T](
                     yield _event(event="tool_call", data=event)
                 elif isinstance(event, ToolResultEvent):
                     yield _event(event="tool_result", data=event)
+                elif isinstance(event, StepEvent):
+                    yield _format(event="step", payload=json.dumps(event.step))
                 else:
                     yield _format(event="done", payload=to_response(event.result).model_dump_json())
         except AppError as exc:

@@ -1,8 +1,10 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 
 from app.core.auth import CurrentUserDep, require_user
+from app.core.streaming import sse_response
 from app.features.boards.dependencies import (
     BoardServiceDep,
     BoardTileDep,
@@ -12,6 +14,7 @@ from app.features.boards.dependencies import (
 from app.features.boards.schemas import (
     Board,
     BoardPlan,
+    BoardSummary,
     RequestBoardCreate,
     RequestBoardUpdate,
     RequestTileCreate,
@@ -37,6 +40,7 @@ def _summary_response(board: Board, tile_count: int) -> ResponseBoardSummary:
         name=board.name,
         position=board.position,
         conversation_id=board.conversation_id,
+        plan_id=board.plan_id,
         tile_count=tile_count,
     )
 
@@ -56,6 +60,18 @@ def _plan_response(plan: BoardPlan) -> ResponseBoardPlan:
     return ResponseBoardPlan.model_validate(plan, from_attributes=True)
 
 
+def _built_response(built: tuple[BoardPlan, list[BoardSummary]]) -> ResponseBoardPlan:
+    plan, summaries = built
+    return _plan_response(plan=plan).model_copy(
+        update={
+            "boards": [
+                _summary_response(board=summary.board, tile_count=summary.tile_count)
+                for summary in summaries
+            ]
+        }
+    )
+
+
 async def _board_summary(
     board_id: UUID, user: CurrentUserDep, service: BoardServiceDep
 ) -> ResponseBoardSummary:
@@ -72,6 +88,7 @@ def _board_response(
         name=board.name,
         position=board.position,
         conversation_id=board.conversation_id,
+        plan_id=board.plan_id,
         tiles=[_tile_response(tile=tile, payload=payload) for tile, payload in resolved],
         dropped=[
             ResponseDroppedTile(tile_id=tile.id, title=tile.title, reason=reason)
@@ -178,20 +195,14 @@ async def delete_tile(tile: BoardTileDep, service: BoardServiceDep) -> None:
 
 @plans_router.post("", response_model=ResponseBoardPlan, status_code=201)
 async def create_board_plan(
-    user: CurrentUserDep, service: BoardServiceDep, today: TodayDep
-) -> ResponseBoardPlan:
-    """Build your first boards from your own data; once you have boards, return their plan."""
-    plan, summaries = await service.create_first_boards(
-        owner_id=user.id, token=user.token, today=today
-    )
-    return _plan_response(plan=plan).model_copy(
-        update={
-            "boards": [
-                _summary_response(board=summary.board, tile_count=summary.tile_count)
-                for summary in summaries
-            ]
-        }
-    )
+    user: CurrentUserDep, service: BoardServiceDep, today: TodayDep, stream: bool = False
+) -> ResponseBoardPlan | StreamingResponse:
+    """Build your first boards from your own data; `?stream=true` sends each step as it runs."""
+    if stream:
+        events = service.stream_first_boards(owner_id=user.id, token=user.token, today=today)
+        return sse_response(events=events, to_response=_built_response)
+    built = await service.create_first_boards(owner_id=user.id, token=user.token, today=today)
+    return _built_response(built=built)
 
 
 @plans_router.get("", response_model=list[ResponseBoardPlan])
