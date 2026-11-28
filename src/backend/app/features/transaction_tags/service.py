@@ -1,4 +1,5 @@
 import asyncio
+import re
 from datetime import date
 from decimal import Decimal
 from uuid import UUID
@@ -36,6 +37,8 @@ from app.features.transaction_tags.schemas import (
 from app.features.transaction_tags.severity import booking_key, normalise_payee, payee_key
 
 BATCH_SIZE = 25
+# Dates, amounts, years and reference numbers: what differs between copies of one booking.
+DIGITS = re.compile(r"[\d.,:/'+-]+")
 MAX_PARALLEL_BATCHES = 16
 # A batch answer is about 1200 tokens: 30 s on a quiet gateway, over 100 s on a busy one.
 # Cut off sooner, it is sent again and the run never moves.
@@ -143,21 +146,32 @@ class TransactionTagService:
             await progress(done, total)
 
         semaphore = asyncio.Semaphore(MAX_PARALLEL_BATCHES)
+        # Apertus judges one booking per group; its copies take the same answer.
+        groups = _same_bookings(rows=by_model)
         batches = [
-            by_model[start : start + BATCH_SIZE] for start in range(0, len(by_model), BATCH_SIZE)
+            groups[start : start + BATCH_SIZE] for start in range(0, len(groups), BATCH_SIZE)
         ]
 
         async def categorise(
-            batch: list[LedgerRow],
+            batch: list[list[LedgerRow]],
         ) -> tuple[int, list[tuple[LedgerRow, RowCategory, str]] | None]:
+            # The newest copy speaks for the group: rows come oldest first.
+            copies = {(group[-1].source, group[-1].id): group for group in batch}
             answered = await self._categorise_batch(
-                rows=batch,
+                rows=[group[-1] for group in batch],
                 examples=examples,
                 custom=custom,
                 categories=categories,
                 semaphore=semaphore,
             )
-            return len(batch), answered
+            size = sum(len(group) for group in batch)
+            if answered is None:
+                return size, None
+            return size, [
+                (row, answer, model)
+                for newest, answer, model in answered
+                for row in copies[(newest.source, newest.id)]
+            ]
 
         calls = [asyncio.create_task(categorise(batch=batch)) for batch in batches]
         tagged_by_model = 0
@@ -325,6 +339,15 @@ def _model_values(
         "category_certainty": answer.certainty,
         "category_alternative": answer.alternative,
     }
+
+
+def _same_bookings(rows: list[LedgerRow]) -> list[list[LedgerRow]]:
+    """Rows grouped by payee and their text without digits, so a booking's copies go together."""
+    groups: dict[tuple[str, str], list[LedgerRow]] = {}
+    for row in rows:
+        text = " ".join(DIGITS.sub(" ", row.text.casefold()).split())
+        groups.setdefault((payee_key(row=row), text), []).append(row)
+    return list(groups.values())
 
 
 def _examples(
