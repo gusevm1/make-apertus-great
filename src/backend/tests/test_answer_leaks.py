@@ -27,7 +27,7 @@ def test_a_currency_the_corrector_left_without_its_amount_fails_the_check() -> N
 
 
 def test_a_currency_named_as_the_unit_passes() -> None:
-    answer = "All amounts are in CHF per month. Of CHF 124.96, CHF 4.63 a day is left."
+    answer = "All amounts are in CHF per month. The CHF amount is CHF 124.96, CHF 4.63 a day."
 
     assert CHECKS.check_complete(answer=answer) is None
 

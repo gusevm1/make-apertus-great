@@ -17,7 +17,11 @@ INSTRUCTION_PROMPTS = ("tool_calls", "boards", "conversations")
 # Shorter sentences are common enough to appear in an answer by chance.
 PROMPT_SENTENCE_MIN_CHARS = 80
 # "CHF ?", or "CHF will remain" where the corrector dropped the number; "in CHF per" is a unit.
-_OPEN_AMOUNT = re.compile(r"(?:CHF|Fr\.)\s*\?|(?<!\bin )(?<!\bof )\b(?:CHF|Fr\.) +(?=[a-zäöü])")
+_OPEN_AMOUNT = re.compile(
+    r"(?:CHF|Fr\.)\s*\?"
+    r"|(?<!\bin )(?<!\bof )\b(?:CHF|Fr\.) +(?=[a-zäöü])"
+    r"(?!amounts?\b|values?\b|figures?\b|balances?\b)"
+)
 _SENTENCE_END = re.compile(r"(?<=[.!?:])\s+|\n+")
 _SPACES = re.compile(r"\s+")
 # A bare whole number below this is a count or a list number ("3 months", "1."), not a figure.
