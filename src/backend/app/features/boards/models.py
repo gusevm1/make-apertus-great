@@ -37,9 +37,7 @@ class BoardPlanORM(Base):
     evidence: Mapped[list[str]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
     question: Mapped[str]
     ideas: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
-    dropped: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSONB, server_default=text("'[]'::jsonb")
-    )
+    dropped: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))
     model: Mapped[str | None]
     latency_ms: Mapped[int]
     checks: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"))

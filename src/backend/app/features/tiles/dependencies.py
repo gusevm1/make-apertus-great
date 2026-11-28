@@ -8,9 +8,7 @@ from app.features.tiles.service import TileService
 
 
 def get_tile_service(ledger: LedgerServiceDep) -> TileService:
-    return TileService(
-        ledger=ledger, recurring=RecurringPaymentService(ledger=ledger)
-    )
+    return TileService(ledger=ledger, recurring=RecurringPaymentService(ledger=ledger))
 
 
 TileServiceDep = Annotated[TileService, Depends(get_tile_service)]

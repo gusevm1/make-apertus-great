@@ -29,7 +29,9 @@ def chat_prompt(
     turns: list[LLMMessage] = [
         {
             "role": m.role,
-            "content": PROMPTS["earlier_answer"] if board != "" and m.role == "assistant" else m.content,
+            "content": PROMPTS["earlier_answer"]
+            if board != "" and m.role == "assistant"
+            else m.content,
         }
         for m in earlier
     ]
@@ -79,5 +81,5 @@ def _quote(quote: Quote) -> str:
 
 
 def guardrail_text(text: str, scope: TurnScope | None) -> str:
-    """The message as the guardrail sorts it: beside a board, a request about a board is on topic."""
+    """The message as the guardrail sorts it: beside a board, a request about one is on topic."""
     return text if scope is None else PROMPTS["guardrail_board"].format(text=text)

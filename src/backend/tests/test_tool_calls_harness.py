@@ -23,11 +23,11 @@ from app.features.tool_calls.schemas import (
 from app.features.tool_calls.service import (
     TOOL_FAILED,
     BoardStyle,
-    board_style,
     Paragraphs,
     SwissFigures,
     SwissSpelling,
     ToolCallService,
+    board_style,
     swiss_figures,
     swiss_text,
     without_empty_end,
@@ -458,7 +458,10 @@ def test_an_answer_beside_a_board_does_not_end_on_an_empty_sentence(text: str, k
             'You find it in the "Groceries in November" tile on your board.',
             'You find it in "Groceries in November" on your board.',
         ),
-        ('Your new "Subscriptions" tile shows two payments.', 'Your new "Subscriptions" shows two payments.'),
+        (
+            'Your new "Subscriptions" tile shows two payments.',
+            'Your new "Subscriptions" shows two payments.',
+        ),
     ],
 )
 def test_beside_a_board_the_safe_cases_of_tile_are_rewritten(text: str, styled: str) -> None:

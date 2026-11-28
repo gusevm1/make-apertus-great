@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.errors import BadRequestError
 from app.core.tools import Tool, TurnScope
+from app.features.board_plans.schemas import Signal
 from app.features.boards.prompts import (
     PROMPTS,
     board_context,
@@ -27,7 +28,6 @@ from app.features.boards.schemas import (
 from app.features.boards.service import BoardService
 from app.features.boards.subscriptions import subscription_payees
 from app.features.tiles.meanings import meaning
-from app.features.board_plans.schemas import Signal
 from app.features.tiles.schemas import (
     AnyPayload,
     ExpectedIncomePayload,
@@ -45,7 +45,9 @@ MERCHANTS_MAX = 6
 # Question words and the templates of the tiles that answer such a question, first match wins.
 ANSWERING_TILES: list[tuple[re.Pattern[str], tuple[str, ...]]] = [
     (
-        re.compile(r"payday|salary|last until|until (?:the )?(?:end|next)|zahltag|lohn|reicht", re.I),
+        re.compile(
+            r"payday|salary|last until|until (?:the )?(?:end|next)|zahltag|lohn|reicht", re.I
+        ),
         ("payday_balance", "bills_until_payday"),
     ),
 ]
@@ -70,7 +72,7 @@ class Args(BaseModel):
 
 
 class AddTileArgs(BaseModel):
-    # The template's own arguments sit beside these: nested one level deeper, Apertus dropped braces.
+    # The template's own arguments sit beside these: nested a level deeper, Apertus dropped braces.
     model_config = ConfigDict(extra="allow")
 
     signal: str | None = Field(default=None, description=PROMPTS["add_tile_signal"])
@@ -157,7 +159,9 @@ async def get_turn(
     )
     payloads: dict[UUID, AnyPayload | None] = {tile.id: payload for tile, payload in resolved}
     payloads.update({tile.id: None for tile, _ in dropped})
-    ordered = sorted([*(tile for tile, _ in resolved), *(tile for tile, _ in dropped)], key=_position)
+    ordered = sorted(
+        [*(tile for tile, _ in resolved), *(tile for tile, _ in dropped)], key=_position
+    )
     # Indexes as the prompt shows them; a tile added in this turn gets the next one.
     indexes: list[UUID] = [tile.id for tile in ordered]
     signals = {signal.id: signal for signal in customer.signals}
@@ -194,7 +198,12 @@ async def get_turn(
     context = board_context(
         name=board.name,
         tiles=[
-            (label(tile_id=tile.id), tile, payloads[tile.id], _meaning(payload=payloads[tile.id], today=today))
+            (
+                label(tile_id=tile.id),
+                tile,
+                payloads[tile.id],
+                _meaning(payload=payloads[tile.id], today=today),
+            )
             for tile in ordered
         ],
         selected=None
@@ -237,9 +246,7 @@ async def get_turn(
         if args.signal is not None:
             signal = signals.get(args.signal.strip().upper())
             if signal is None or signal.template is None:
-                ready = ", ".join(
-                    item.id for item in customer.signals if item.template is not None
-                )
+                ready = ", ".join(item.id for item in customer.signals if item.template is not None)
                 raise BadRequestError(
                     PROMPTS["unknown_signal"].format(ref=args.signal, signals=ready or "none")
                 )
@@ -286,9 +293,9 @@ async def get_turn(
                 finding=finding,
                 meaning=meaning(payload=payload, today=today),
                 suggested_note=_suggested_note(payload=payload, notes=notes),
-            suggested_note_text=None
-            if _suggested_note(payload=payload, notes=notes) is None
-            else notes[0],
+                suggested_note_text=None
+                if _suggested_note(payload=payload, notes=notes) is None
+                else notes[0],
                 figures=figures(payload=payload),
             )
         try:
@@ -366,9 +373,7 @@ async def get_turn(
             "bottom": len(tiles) - 1,
         }[args.to]
         await service.move_tile(tile=tile, position=target)
-        return BoardChange(
-            summary=MOVES[args.to].format(title=tile.title)
-        )
+        return BoardChange(summary=MOVES[args.to].format(title=tile.title))
 
     async def remove_tile(args: RemoveTileArgs) -> BoardChange:
         tile = await find(ref=args.tile)
@@ -385,7 +390,9 @@ async def get_turn(
         )
         filled, dropped = await service.get_board_resolved(board=created, token=token, today=today)
         starts = " ".join(
-            PROMPTS["new_board_tile"].format(title=tile.title, meaning=meaning(payload=payload, today=today))
+            PROMPTS["new_board_tile"].format(
+                title=tile.title, meaning=meaning(payload=payload, today=today)
+            )
             for tile, payload in filled[:NEW_BOARD_TILES_TOLD]
         )
         plans = await service.list_board_plans(owner_id=owner_id)
@@ -396,9 +403,9 @@ async def get_turn(
         return BoardChange(
             summary=f'New board "{created.name}"',
             board_id=created.id,
-            meaning=PROMPTS["new_board"].format(
-                about=args.about, tiles=starts or PROMPTS["new_board_empty"], missing=missing
-            ).strip(),
+            meaning=PROMPTS["new_board"]
+            .format(about=args.about, tiles=starts or PROMPTS["new_board_empty"], missing=missing)
+            .strip(),
             tiles=[
                 BoardTileFigures(title=tile.title, figure_chf=float(payload.figure_chf))
                 for tile, payload in filled[:NEW_BOARD_TILES_TOLD]
@@ -464,6 +471,7 @@ async def get_turn(
             handler=create_board,
         ),
     ]
+
     def fallback(question: str) -> list[tuple[str, dict[str, Any]]]:
         """For a question its ready tiles answer: add them, so their meanings reach the answer."""
         if selected is not None:
@@ -473,7 +481,9 @@ async def get_turn(
                 continue
             requests: list[tuple[str, dict[str, Any]]] = []
             for template in templates:
-                signal = next((item for item in customer.signals if item.template == template), None)
+                signal = next(
+                    (item for item in customer.signals if item.template == template), None
+                )
                 if signal is not None:
                     requests.append(("add_tile", {"signal": signal.id}))
             if requests and notes and "payday_balance" in templates:
@@ -557,7 +567,9 @@ def _known_merchants(template: str, args: dict[str, Any], facts: str) -> dict[st
     # would need the message itself
     if template not in MERCHANT_TEMPLATES or not isinstance(merchants, list) or len(merchants) <= 2:
         return args
-    period = args.get("period", "this_month") if template == "merchant_spending" else "last_3_months"
+    period = (
+        args.get("period", "this_month") if template == "merchant_spending" else "last_3_months"
+    )
     known = payee_names(facts=facts, period=period)
     kept = [name for name in merchants if str(name).casefold() in known]
     return args if not kept else {**args, "merchants": kept[:MERCHANTS_MAX]}

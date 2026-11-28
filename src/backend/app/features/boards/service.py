@@ -11,8 +11,8 @@ from app.features.board_plans.schemas import PlannedBoard, PlannedBoards, TraceS
 from app.features.board_plans.service import BoardPlanService
 from app.features.boards.repository import BoardPlanRepository, BoardRepository, TileRepository
 from app.features.boards.schemas import (
-    DEFAULT_BOARD_NAME,
     ABOUT_NAME_WORDS,
+    DEFAULT_BOARD_NAME,
     Board,
     BoardPlan,
     BoardSummary,
@@ -39,7 +39,7 @@ def _present(args: dict) -> dict:
 
 
 def _overlaps(first: dict, second: dict) -> bool:
-    # One with an optional argument more, such as a payday tile with the late income, shows the same.
+    # One with an optional argument more, as a payday tile with the late income, shows the same.
     small, large = sorted((first, second), key=len)
     return all(large.get(key) == value for key, value in small.items())
 
@@ -98,7 +98,7 @@ class BoardService:
         today: date,
         on_step: Callable[[TraceStep], None] | None = None,
     ) -> tuple[BoardPlan, list[BoardSummary]]:
-        """Plan and store the customer's first boards; with boards already, return the newest plan."""
+        """Plan and store the customer's first boards; with boards already, the newest plan."""
         async with PLAN_LOCKS[owner_id]:
             summaries = await self.list_boards(owner_id=owner_id)
             if summaries:
@@ -112,9 +112,7 @@ class BoardService:
             )
             plan = await self._store_plan(owner_id=owner_id, planned=planned, request=None)
             for board in planned.boards:
-                await self._create_planned_board(
-                    owner_id=owner_id, planned=board, plan_id=plan.id
-                )
+                await self._create_planned_board(owner_id=owner_id, planned=board, plan_id=plan.id)
             return plan, await self.list_boards(owner_id=owner_id)
 
     async def stream_first_boards(
@@ -262,7 +260,7 @@ class BoardService:
         token: str,
         today: date,
     ) -> tuple[Tile, AnyPayload]:
-        """Check the arguments, resolve once, then store the tile; nothing is stored on a TileError."""
+        """Check the arguments, resolve once, then store the tile; a TileError stores nothing."""
         try:
             validated = self.tile_service.validate_args(template=template, args=args)
             payload = await self.tile_service.resolve(
@@ -297,7 +295,8 @@ class BoardService:
             (
                 tile
                 for tile in tiles
-                if tile.template == template and _overlaps(first=_present(args=tile.args), second=wanted)
+                if tile.template == template
+                and _overlaps(first=_present(args=tile.args), second=wanted)
             ),
             None,
         )
@@ -333,7 +332,7 @@ class BoardService:
     async def get_board_resolved(
         self, board: Board, token: str, today: date
     ) -> tuple[list[tuple[Tile, AnyPayload]], list[tuple[Tile, str]]]:
-        """Resolve every tile in parallel; a tile that cannot be drawn is returned as dropped with a reason."""
+        """Resolve every tile in parallel; one that cannot be drawn comes back dropped, with why."""
         tiles = await self.tiles.list(sort="position", board_id=board.id)
         results = await asyncio.gather(
             *(

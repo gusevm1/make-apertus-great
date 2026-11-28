@@ -252,7 +252,7 @@ def facts_text(raw: Raw) -> str:
         label = "salary" if income.salary else "transfer"
         lines.append(
             f"- {income.counterparty} ({label}) into {income.account_id}, around day "
-            f"{income.usual_day}, {chf(income.amount)}, {state}, booked as \"{income.text}\""
+            f'{income.usual_day}, {chf(income.amount)}, {state}, booked as "{income.text}"'
         )
     lines.append("Months (came in / went out, CHF):")
     for month in months(raw=raw):
@@ -436,7 +436,9 @@ def signals(raw: Raw, resolved: dict[str, AnyPayload]) -> list[Signal]:
     """The findings, strongest first, each with its tile when that tile resolved."""
     found: list[Signal] = []
 
-    def add(kind: str, text: str, strength: int, template: str | None, args: dict[str, Any]):
+    def add(
+        kind: str, text: str, strength: int, template: str | None, args: dict[str, Any]
+    ) -> None:
         payload_ok = template is None or tile_key(template, args) in resolved
         found.append(
             Signal(
@@ -712,7 +714,9 @@ def signals(raw: Raw, resolved: dict[str, AnyPayload]) -> list[Signal]:
         # Months in the red weigh only when the savings beside them are thin.
         thin = savings_total < spending * THIN_SAVINGS_MONTHS
         pressing = len(negative) >= NEGATIVE_MONTHS_MIN and thin
-        text = f"On average CHF {chf(cashflow.figure_chf)} was left per month over the last 6 months"
+        text = (
+            f"On average CHF {chf(cashflow.figure_chf)} was left per month over the last 6 months"
+        )
         if len(negative) >= NEGATIVE_MONTHS_MIN:
             text += (
                 f"; in {len(negative)} months more went out than came in ({', '.join(negative)})"

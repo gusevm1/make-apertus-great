@@ -63,8 +63,8 @@ class TileRepository(BaseRepository[BoardTileORM, Tile]):
         return self._to_schema(row=row) if row is not None else None
 
     async def count_in_board(self, board_id: UUID) -> int:
-        stmt = select(func.count()).select_from(BoardTileORM).where(
-            BoardTileORM.board_id == board_id
+        stmt = (
+            select(func.count()).select_from(BoardTileORM).where(BoardTileORM.board_id == board_id)
         )
         return await self.session.scalar(stmt) or 0
 

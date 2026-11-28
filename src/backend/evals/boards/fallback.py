@@ -51,7 +51,7 @@ async def main() -> None:
             and len(board.tiles) >= 5
             and len(plan.ideas) == 3
         )
-        print(
+        print(  # noqa: T201
             f"{customer} first: {'ok' if ok else 'FAIL'}, {board.name}: "
             + ", ".join(f"{t.title} ({t.template})" for t in board.tiles)
             + f"; ideas: {', '.join(i.title for i in plan.ideas)}"
@@ -64,7 +64,7 @@ async def main() -> None:
             tiles = asked.boards[0].tiles
             # A board, or an empty one that says why: never an error.
             ok = check.detail == NOT_PICKED and (bool(tiles) or bool(asked.dropped))
-            print(
+            print(  # noqa: T201
                 f"  {request}: {'ok' if ok else 'FAIL'}, {asked.boards[0].name}: "
                 + (", ".join(f"{t.title} ({t.template})" for t in tiles) or "empty")
                 + ("" if tiles else f" ({asked.dropped[-1].reason})")
@@ -72,7 +72,7 @@ async def main() -> None:
             if not ok:
                 failures.append(f"{customer}: {request}")
     await banking.close()
-    print("all fell back cleanly" if not failures else f"FAILED: {failures}")
+    print("all fell back cleanly" if not failures else f"FAILED: {failures}")  # noqa: T201
     sys.exit(1 if failures else 0)
 
 

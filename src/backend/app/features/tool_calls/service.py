@@ -31,7 +31,6 @@ from app.features.tool_calls.prompts import (
     scoped_decision_prompt,
 )
 from app.features.tool_calls.repository import ToolCallRepository
-from app.features.tool_calls.totals import total_sentence
 from app.features.tool_calls.schemas import (
     RequestToolCallConfirmationCreate,
     ToolCall,
@@ -40,6 +39,7 @@ from app.features.tool_calls.schemas import (
     decision_schema,
     scoped_decision_schema,
 )
+from app.features.tool_calls.totals import total_sentence
 
 MAX_TOOL_CALLS = 8
 MAX_TOOL_ROUNDS = 4
@@ -110,9 +110,7 @@ _MONTH_NUMBERS = {
     )
     for number, name in enumerate(names.split(), start=1)
 }
-_DAY_MONTH_YEAR = re.compile(
-    rf"\b(\d{{1,2}})\.?\s+({'|'.join(_MONTH_NUMBERS)})(?:\s+(\d{{4}}))?\b"
-)
+_DAY_MONTH_YEAR = re.compile(rf"\b(\d{{1,2}})\.?\s+({'|'.join(_MONTH_NUMBERS)})(?:\s+(\d{{4}}))?\b")
 # A tile's index in the board block, such as T2 in: T2 "Bills due before the salary".
 TILE_INDEX = re.compile(r"\bT\d+ (?=\")")
 _CURRENCY_SPACE = re.compile(r"CHF[\u00a0\u202f\u2009]")
@@ -214,7 +212,9 @@ class ToolCallService:
             )
         if _is_silent_edit(calls=calls):
             yield TokenEvent(text=EDIT_DONE)
-            provenance = self._provenance(model=_decision_model(calls=calls), started=started, calls=calls)
+            provenance = self._provenance(
+                model=_decision_model(calls=calls), started=started, calls=calls
+            )
             yield DoneEvent(result=(EDIT_DONE, provenance))
             return
         stream = self.apertus.stream_chat(
@@ -294,7 +294,10 @@ class ToolCallService:
         first_round = 0
         if scope is not None:
             # A small decision first: most messages beside a board change it or ask about it.
-            scoped = [*scope.tools, *(self.tools[name] for name in SCOPE_SHARED if name in self.tools)]
+            scoped = [
+                *scope.tools,
+                *(self.tools[name] for name in SCOPE_SHARED if name in self.tools),
+            ]
             self.tools.update({tool.name: tool for tool in scope.tools})
             schema = scoped_decision_schema(tools=scoped)
             look_up = False
@@ -347,7 +350,11 @@ class ToolCallService:
                     ],
                 )
                 fallback = LLMResult(
-                    content=decision, model=FALLBACK_MODEL, latency_ms=0, tokens_in=None, tokens_out=None
+                    content=decision,
+                    model=FALLBACK_MODEL,
+                    latency_ms=0,
+                    tokens_in=None,
+                    tokens_out=None,
                 )
                 async for step in self._rounds(
                     first_round=first_round,
@@ -497,7 +504,11 @@ class ToolCallService:
                 rounds.append((decision, round_calls))
             # A round without a new call means the model has what it needs, or is stuck; a
             # scoped decision that asks for a look-up hands over to the full set.
-            if not round_calls or len(calls) == MAX_TOOL_CALLS or getattr(decision, "look_up", False):
+            if (
+                not round_calls
+                or len(calls) == MAX_TOOL_CALLS
+                or getattr(decision, "look_up", False)
+            ):
                 break
 
     def find_pointers(self, calls: list[ToolCall], answer: str) -> str:
@@ -636,7 +647,7 @@ def _decision_model(calls: list[ToolCall]) -> str:
 def _answer_messages(
     messages: list[LLMMessage], scope: TurnScope | None, calls: list[ToolCall]
 ) -> list[LLMMessage]:
-    # With tool results, the board would pull its other tiles into the answer; they carry the meanings.
+    # With tool results the board would pull its other tiles into the answer; they carry meanings.
     if scope is None:
         return messages
     if not calls:

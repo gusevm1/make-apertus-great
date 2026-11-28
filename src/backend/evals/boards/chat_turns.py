@@ -353,7 +353,7 @@ async def fixed_board(
             json={"template": template, "args": args, "title": title},
         )
         if tile.status_code != 201:
-            print(f"  {customer}: {template} cannot be drawn: {tile.text[:160]}")
+            print(f"  {customer}: {template} cannot be drawn: {tile.text[:160]}")  # noqa: T201
     return (await client.get(f"/api/boards/{board['id']}")).raise_for_status().json()
 
 
@@ -442,8 +442,9 @@ def problems_of(
     # The server's closing line is no sentence of the model's.
     for line in SERVER_LINES:
         text = text.replace(f"\n\n{line}", "")
-    if turn.board and BANNED.search(text):
-        problems.append(f"banned word: {BANNED.search(text)[0]!r}")
+    banned = BANNED.search(text)
+    if turn.board and banned is not None:
+        problems.append(f"banned word: {banned[0]!r}")
     if turn.starts_with is not None and not text.startswith(turn.starts_with):
         problems.append(f"does not start with {turn.starts_with!r}")
     for wanted in turn.contains:
@@ -491,7 +492,11 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
     async with httpx.AsyncClient(
         base_url=base_url, headers=headers, timeout=TIMEOUT_SECONDS
     ) as client:
-        board = await fixed_board(client=client, customer=turn.customer, tiles=turn.tiles) if turn.board else None
+        board = (
+            await fixed_board(client=client, customer=turn.customer, tiles=turn.tiles)
+            if turn.board
+            else None
+        )
         conversation = (
             (await client.post("/api/conversations", json={"title": "eval"}))
             .raise_for_status()
@@ -634,13 +639,13 @@ async def main() -> int:
         result = await run_turn(base_url=options.base_url, turn=turn, token=tokens[turn.customer])
         mark = "pass" if result["passed"] else "FAIL"
         problems = "; ".join(result["problems"])
-        print(f"{mark} {turn.name:18} {result['seconds']:6.1f} s  {result['path']:6}  {problems}")
+        print(f"{mark} {turn.name:18} {result['seconds']:6.1f} s  {result['path']:6}  {problems}")  # noqa: T201
         results.append(result)
     folder = RUNS_PATH / datetime.now().strftime("%Y%m%d-%H%M%S")
     folder.mkdir(parents=True)
     (folder / "turns.json").write_text(json.dumps(results, ensure_ascii=False, indent=2))
     (folder / "turns.md").write_text(markdown(results=results))
-    print(f"{sum(r['passed'] for r in results)} of {len(results)} passed, see {folder}")
+    print(f"{sum(r['passed'] for r in results)} of {len(results)} passed, see {folder}")  # noqa: T201
     return 0 if all(result["passed"] for result in results) else 1
 
 

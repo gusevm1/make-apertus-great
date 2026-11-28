@@ -101,13 +101,17 @@ def _enum(values: list[str]) -> Any:
     return Literal[tuple(values)]  # type: ignore[valid-type]
 
 
+def _enum_list(values: list[str]) -> Any:
+    return list[_enum(values)]  # type: ignore[valid-type]
+
+
 def profile_schema(labels: list[str], heroes: list[str], late_income: bool) -> type[BaseModel]:
     """kind, evidence, question, hero and its title; evidence and hero only from these labels."""
     return create_model(
         "CustomerProfile",
         hero=(_enum(heroes), ...),
         kind=(str, ...),
-        evidence=(list[_enum(labels)], Field(min_length=1, max_length=4)),
+        evidence=(_enum_list(labels), Field(min_length=1, max_length=4)),
         question=(str, ...),
         hero_title=(str, ...),
         # Asked for only when the hero can be a payday with money that has not arrived.
@@ -123,17 +127,17 @@ def board_schema(
     verdict = create_model("SignalUse", use=(_enum(places), ...), title=(str, ...))
     own_fields: dict[str, Any] = {
         "template": (_enum(list(OWN_TEMPLATES)), ...),
-        "names": (list[_enum(names)], Field(min_length=1, max_length=8)),
+        "names": (_enum_list(names), Field(min_length=1, max_length=8)),
         "period": (Period | None, None),
         "title": (str, ...),
     }
     if second:
         own_fields["board"] = (Literal["main", "second"], "main")
     own = create_model("OwnTile", **own_fields)
-    uses = create_model(
-        "SignalUses",
-        **{f"s{index}": (verdict, Field(alias=label)) for index, label in enumerate(labels)},
-    )
+    use_fields: dict[str, Any] = {
+        f"s{index}": (verdict, Field(alias=label)) for index, label in enumerate(labels)
+    }
+    uses = create_model("SignalUses", **use_fields)
     fields: dict[str, Any] = {}
     if first is not None:
         fields["first"] = (_enum([*first, OWN_TILE]), ...)
@@ -175,7 +179,7 @@ def request_schema(entries: list[str]) -> type[RequestKeywords]:
     return create_model(
         "RequestSelection",
         __base__=RequestKeywords,
-        entries=(list[_enum(entries)], Field(default_factory=list, max_length=8)),
+        entries=(_enum_list(entries), Field(default_factory=list, max_length=8)),
     )
 
 

@@ -76,7 +76,9 @@ def _tile(label: str, tile: Tile, payload: AnyPayload | None, meaning: str) -> s
     if payload is None:
         return PROMPTS["context_dropped"].format(label=label, title=title, template=tile.template)
     if meaning == "":
-        return PROMPTS["context_tile_named"].format(label=label, title=title, template=tile.template)
+        return PROMPTS["context_tile_named"].format(
+            label=label, title=title, template=tile.template
+        )
     return PROMPTS["context_tile"].format(
         label=label,
         title=title,

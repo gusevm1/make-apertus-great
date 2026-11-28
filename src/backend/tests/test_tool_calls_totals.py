@@ -23,7 +23,11 @@ def test_a_search_without_a_period_says_so() -> None:
 
 def test_upcoming_payments_and_spending_get_their_sums() -> None:
     upcoming = {"total_chf": 5308.5, "items": [{}, {}]}
-    spending = {"spent_chf": "289.6", "count": 1, "groups": [{"group": "health", "spent_chf": "289.6"}]}
+    spending = {
+        "spent_chf": "289.6",
+        "count": 1,
+        "groups": [{"group": "health", "spent_chf": "289.6"}],
+    }
 
     assert total_sentence(result=upcoming, arguments={"date_to": "2026-12-23"}) == (
         "CHF 5'308.50 are due in 2 payments until 23.12.2026."

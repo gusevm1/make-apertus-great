@@ -8,8 +8,8 @@ import anyio
 
 from app.core.errors import BadRequestError, NotFoundError
 from app.core.provenance import Check, Provenance
-from app.core.tools import TurnScope
 from app.core.streaming import CheckingEvent, DoneEvent, StreamEvent, TokenEvent, ToolResultEvent
+from app.core.tools import TurnScope
 from app.features.conversations.prompts import chat_prompt, guardrail_text
 from app.features.conversations.repository import ConversationRepository, MessageRepository
 from app.features.conversations.schemas import (

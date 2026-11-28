@@ -173,7 +173,9 @@ def _payday(payload: PaydayBalancePayload) -> str:
             f"for {days} days."
         )
     elif per_day < COMFORTABLY_PER_DAY:
-        text = f"Yes. The money lasts: {after}. That is {_chf(amount=per_day)} a day for {days} days."
+        text = (
+            f"Yes. The money lasts: {after}. That is {_chf(amount=per_day)} a day for {days} days."
+        )
     else:
         text = (
             f"Yes, comfortably. The money lasts: {after}. That is {_chf(amount=per_day)} a day for "

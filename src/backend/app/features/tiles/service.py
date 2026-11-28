@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from collections.abc import Awaitable, Callable
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 from urllib.parse import quote
 
 from pydantic import ValidationError
@@ -162,14 +162,12 @@ class Income(NamedTuple):
     usual_day: int
     amount: Decimal
     months: list[IncomeMonth]
-    status: str
+    status: Literal["arrived", "not_arrived"]
     rows: list[LedgerRow]
 
 
 class TileService:
-    def __init__(
-        self, ledger: LedgerService, recurring: RecurringPaymentService
-    ) -> None:
+    def __init__(self, ledger: LedgerService, recurring: RecurringPaymentService) -> None:
         self.ledger = ledger
         self.recurring = recurring
         # A board resolves its tiles at once; they share one read of the ledger.
@@ -188,7 +186,7 @@ class TileService:
     async def resolve(
         self, template: str, args: dict[str, Any], token: str, today: date
     ) -> AnyPayload:
-        """Compute a tile from the banking API as it is now; TileError when it has nothing to show."""
+        """Compute a tile from the banking API as it is now; TileError when it shows nothing."""
         validated = self.validate_args(template=template, args=args)
         resolver: Callable[..., Awaitable[AnyPayload]] = getattr(self, f"_{template}")
         return await resolver(args=validated, token=token, today=today)
@@ -506,7 +504,10 @@ class TileService:
         groups = {group["group"]: group for group in overview["groups"]}
         parts: list[WorthPart] = []
         items: list[dict[str, Any]] = []
-        wanted = [("accounts", "accounts"), ("investments", "securities")]
+        wanted: list[tuple[str, Literal["accounts", "securities", "pension"]]] = [
+            ("accounts", "accounts"),
+            ("investments", "securities"),
+        ]
         if args.include_pension:
             wanted.append(("pension", "pension"))
         for name, part in wanted:
@@ -625,7 +626,8 @@ class TileService:
         return SecuritiesPayload(
             figure_chf=_chf(amount=portfolio["total_value_chf"]),
             source=Source(
-                label=f"{_count(count=len(items), noun=noun)}, CHF {_text(amount=invested)} paid in",
+                label=f"{_count(count=len(items), noun=noun)}, "
+                f"CHF {_text(amount=invested)} paid in",
                 kind="positions",
                 rows=[
                     SourceRow(
@@ -641,7 +643,7 @@ class TileService:
             invested_chf=invested,
             allocation=[
                 AllocationPart(
-                    label=ASSET_CLASSES.get(part["label"], part["label"]),
+                    label=ASSET_CLASSES.get(part["label"]) or part["label"],
                     value_chf=_chf(amount=part["value_chf"]),
                     weight_pct=part["weight_pct"],
                 )

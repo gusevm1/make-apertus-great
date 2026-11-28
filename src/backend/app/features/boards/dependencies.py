@@ -8,8 +8,8 @@ from fastapi import Depends
 from app.core.auth import CurrentUserDep
 from app.core.db import SessionDep
 from app.core.tools import TurnScope
-from app.features.boards import tools as board_tools
 from app.features.board_plans.dependencies import BoardPlanServiceDep
+from app.features.boards import tools as board_tools
 from app.features.boards.repository import BoardPlanRepository, BoardRepository, TileRepository
 from app.features.boards.schemas import Board, Tile
 from app.features.boards.service import BoardService
@@ -38,9 +38,7 @@ def get_board_service(
 BoardServiceDep = Annotated[BoardService, Depends(get_board_service)]
 
 
-async def get_owned_board(
-    board_id: UUID, user: CurrentUserDep, service: BoardServiceDep
-) -> Board:
+async def get_owned_board(board_id: UUID, user: CurrentUserDep, service: BoardServiceDep) -> Board:
     return await service.get_board(board_id=board_id, owner_id=user.id)
 
 

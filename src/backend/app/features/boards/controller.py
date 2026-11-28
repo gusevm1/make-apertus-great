@@ -112,9 +112,7 @@ async def create_board(
 ) -> ResponseBoard:
     """Create a board with a conversation of its own; with `about`, the model fills it."""
     board = await service.create_board(owner_id=user.id, data=body, token=user.token, today=today)
-    resolved, dropped = await service.get_board_resolved(
-        board=board, token=user.token, today=today
-    )
+    resolved, dropped = await service.get_board_resolved(board=board, token=user.token, today=today)
     return _board_response(board=board, resolved=resolved, dropped=dropped)
 
 
@@ -123,9 +121,7 @@ async def get_board(
     board: OwnedBoardDep, user: CurrentUserDep, service: BoardServiceDep, today: TodayDep
 ) -> ResponseBoard:
     """Get a board with its tiles, computed from the banking API now."""
-    resolved, dropped = await service.get_board_resolved(
-        board=board, token=user.token, today=today
-    )
+    resolved, dropped = await service.get_board_resolved(board=board, token=user.token, today=today)
     return _board_response(board=board, resolved=resolved, dropped=dropped)
 
 

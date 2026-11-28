@@ -19,13 +19,19 @@ def total_sentence(result: dict[str, Any], arguments: dict[str, Any]) -> str | N
         )
     if "spent_chf" in result:
         groups = ", ".join(
-            PROMPTS["total_group"].format(group=group["group"], amount=_chf(value=group["spent_chf"]))
+            PROMPTS["total_group"].format(
+                group=group["group"], amount=_chf(value=group["spent_chf"])
+            )
             for group in result.get("groups", [])[:GROUPS_LISTED]
         )
         sentence = PROMPTS["total_spent"].format(
             amount=_chf(value=result["spent_chf"]), count=result["count"], period=period
         )
-        return sentence if groups == "" else f"{sentence} {PROMPTS['total_groups'].format(groups=groups)}"
+        return (
+            sentence
+            if groups == ""
+            else f"{sentence} {PROMPTS['total_groups'].format(groups=groups)}"
+        )
     if "money_out_chf" in result and "count" in result:
         sentence = _moved(result=result, period=period)
         if "average_out_chf" in result:
@@ -66,7 +72,9 @@ def _period(date_from: Any, date_to: Any) -> str:
         return PROMPTS["total_since"].format(date_from=_day(value=date_from))
     if date_from is None:
         return PROMPTS["total_until"].format(date_to=_day(value=date_to))
-    return PROMPTS["total_between"].format(date_from=_day(value=date_from), date_to=_day(value=date_to))
+    return PROMPTS["total_between"].format(
+        date_from=_day(value=date_from), date_to=_day(value=date_to)
+    )
 
 
 def _day(value: Any) -> str:

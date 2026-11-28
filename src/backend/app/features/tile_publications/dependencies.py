@@ -14,6 +14,4 @@ def get_tile_publication_service(
     return TilePublicationService(boards=boards, ledger=ledger, payments=payments)
 
 
-TilePublicationServiceDep = Annotated[
-    TilePublicationService, Depends(get_tile_publication_service)
-]
+TilePublicationServiceDep = Annotated[TilePublicationService, Depends(get_tile_publication_service)]

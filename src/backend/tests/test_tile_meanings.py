@@ -9,7 +9,9 @@ from app.features.tiles.schemas import PaydayAlternative, PaydayBalancePayload, 
 TODAY = date(2026, 11, 27)
 
 
-def payday(left: str, per_day: str, alternative: PaydayAlternative | None = None) -> PaydayBalancePayload:
+def payday(
+    left: str, per_day: str, alternative: PaydayAlternative | None = None
+) -> PaydayBalancePayload:
     return PaydayBalancePayload(
         figure_chf=Decimal(left),
         source=Source(label="Privatkonto", kind="payments", rows=[], count=0),
@@ -48,7 +50,9 @@ def test_the_payday_meaning_names_the_missing_income_in_swiss_figures() -> None:
         per_day_chf=Decimal("43.52"),
     )
 
-    text = meaning(payload=payday(left="124.96", per_day="4.63", alternative=alternative), today=TODAY)
+    text = meaning(
+        payload=payday(left="124.96", per_day="4.63", alternative=alternative), today=TODAY
+    )
 
     assert "CHF 124.96 are left on 23.12. That is CHF 4.63 a day for 27 days." in text
     assert "The second case: the child support from Patrick Rüegg (CHF 1'050.00)" in text

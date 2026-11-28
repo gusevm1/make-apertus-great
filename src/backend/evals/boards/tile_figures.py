@@ -394,17 +394,13 @@ async def main() -> int:
                 )
                 login.raise_for_status()
                 ledger = LedgerService(banking=banking)
-                tiles = TileService(
-                    ledger=ledger, recurring=RecurringPaymentService(ledger=ledger)
-                )
+                tiles = TileService(ledger=ledger, recurring=RecurringPaymentService(ledger=ledger))
                 failed += await check_customer(
                     tiles=tiles, username=username, token=login.json()["token"], today=today
                 )
         ledger = LedgerService(banking=banking)
         failed += check_args(
-            tiles=TileService(
-                ledger=ledger, recurring=RecurringPaymentService(ledger=ledger)
-            )
+            tiles=TileService(ledger=ledger, recurring=RecurringPaymentService(ledger=ledger))
         )
     finally:
         await banking.close()

@@ -19,20 +19,19 @@ from app.clients.banking import BankingClient
 from app.clients.openrouter import openrouter_client
 from app.core.config import Settings
 from app.core.errors import AppError
-from app.features.board_plans.digest import tile_key
+from app.features.board_plans.digest import HERO_TEMPLATES, HERO_TOP, tile_key
 from app.features.board_plans.schemas import PlannedBoards, Signal
-from app.features.board_plans.digest import HERO_TEMPLATES, HERO_TOP
 from app.features.board_plans.service import (
+    FILLER,
+    IDEA_ALONE,
+    LOAN_UNKNOWN,
     MAIN_MAX,
     MAIN_MIN,
+    NOTHING_FOUND,
     REQUEST_MAX,
     REQUEST_MIN,
     SIDE_MAX,
     SIDE_MIN,
-    FILLER,
-    IDEA_ALONE,
-    LOAN_UNKNOWN,
-    NOTHING_FOUND,
     TITLE_SHORT,
     BoardPlanService,
     name_fits,
@@ -258,7 +257,7 @@ async def run_one(
         (out / f"{_name(record=record)}.json").write_text(
             json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8"
         )
-        print(f"{_name(record=record)}: {'pass' if record['acceptable'] else 'FAIL'}", flush=True)
+        print(f"{_name(record=record)}: {'pass' if record['acceptable'] else 'FAIL'}", flush=True)  # noqa: T201
         return record
 
 
@@ -305,7 +304,7 @@ async def idea_round_trip(
         )
         records.append(record)
     if len(plan.ideas) < 3:
-        print(f"{customer}: only {len(plan.ideas)} ideas", flush=True)
+        print(f"{customer}: only {len(plan.ideas)} ideas", flush=True)  # noqa: T201
     return records
 
 
@@ -432,8 +431,8 @@ async def main() -> None:
         records = [r for found in await asyncio.gather(*jobs) for r in found]
         spend = transport.spend.line()
         (out / "index.md").write_text(_index(records=records, model=args.model, spend=spend))
-        print(f"{sum(r['acceptable'] for r in records)} of {len(records)} acceptable; {spend}")
-        print(f"written to {out.relative_to(ROOT)}")
+        print(f"{sum(r['acceptable'] for r in records)} of {len(records)} acceptable; {spend}")  # noqa: T201
+        print(f"written to {out.relative_to(ROOT)}")  # noqa: T201
         await http.aclose()
         await banking.close()
         return
@@ -474,8 +473,8 @@ async def main() -> None:
             )
     spend = transport.spend.line()
     (out / "index.md").write_text(_index(records=records, model=args.model, spend=spend))
-    print(f"{sum(r['acceptable'] for r in records)} of {len(records)} acceptable; {spend}")
-    print(f"written to {out.relative_to(ROOT)}")
+    print(f"{sum(r['acceptable'] for r in records)} of {len(records)} acceptable; {spend}")  # noqa: T201
+    print(f"written to {out.relative_to(ROOT)}")  # noqa: T201
     await http.aclose()
     await banking.close()
 
