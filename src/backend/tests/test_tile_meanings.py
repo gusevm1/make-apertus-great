@@ -29,10 +29,10 @@ def payday(left: str, per_day: str, alternative: PaydayAlternative | None = None
 @pytest.mark.parametrize(
     ("left", "per_day", "verdict"),
     [
-        ("124.96", "4.63", "The money lasts, but only just:"),
-        ("1174.96", "43.52", "The money lasts:"),
-        ("5400.00", "200.00", "The money lasts comfortably:"),
-        ("-80.00", "-2.96", "The money does not last:"),
+        ("124.96", "4.63", "Yes, but only just. The money lasts:"),
+        ("1174.96", "43.52", "Yes. The money lasts:"),
+        ("5400.00", "200.00", "Yes, comfortably. The money lasts:"),
+        ("-80.00", "-2.96", "No. The money does not last:"),
     ],
 )
 def test_the_payday_verdict_comes_from_the_figures(left: str, per_day: str, verdict: str) -> None:
@@ -51,5 +51,5 @@ def test_the_payday_meaning_names_the_missing_income_in_swiss_figures() -> None:
     text = meaning(payload=payday(left="124.96", per_day="4.63", alternative=alternative), today=TODAY)
 
     assert "CHF 124.96 are left on 23.12. That is CHF 4.63 a day for 27 days." in text
-    assert "The child support from Patrick Rüegg (CHF 1'050.00) has not arrived" in text
-    assert text.endswith("With it, CHF 1'174.96 would be left.")
+    assert "The second case: the child support from Patrick Rüegg (CHF 1'050.00)" in text
+    assert text.endswith("if it arrives, CHF 1'174.96 are left on 23.12.")

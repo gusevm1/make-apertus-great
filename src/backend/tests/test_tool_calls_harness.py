@@ -22,11 +22,13 @@ from app.features.tool_calls.schemas import (
 )
 from app.features.tool_calls.service import (
     TOOL_FAILED,
+    BoardStyle,
     Paragraphs,
     SwissFigures,
     SwissSpelling,
     ToolCallService,
     swiss_figures,
+    swiss_text,
 )
 from tests.conftest import TODAY
 from tests.factories import make_conversation, make_message
@@ -390,3 +392,31 @@ def test_paragraphs_beside_a_board_get_an_empty_line() -> None:
     text = "".join(paragraphs.feed(text=piece) for piece in pieces)
 
     assert text == "Yes, but only just.  \n\nWith it, CHF 1'174.96.\n\nItems:\n- one\n- two"
+
+
+def test_a_streamed_answer_beside_a_board_reads_as_the_stored_one() -> None:
+    text = "Yes, but only just.\nCHF 1 050.00 are missing. Straße\n- one\n- two\nEnd."
+    spelling, numbers, paragraphs = SwissSpelling(), SwissFigures(), Paragraphs(is_on=True)
+
+    streamed = "".join(
+        paragraphs.feed(text=numbers.feed(text=spelling.feed(text=char))) for char in text
+    ) + paragraphs.feed(text=numbers.flush())
+
+    assert streamed == Paragraphs(is_on=True).feed(text=swiss_text(text=text))
+
+
+def test_beside_a_board_a_day_of_this_year_drops_its_year_and_dashes_become_commas() -> None:
+    style = BoardStyle(year=2026)
+    pieces = [
+        "Left on 23.12.2026 —",
+        " that is CHF 4.63, from 01.01.–27.11.",
+        " and 05.01.2027, on 23 Dec",
+        "ember 2026 and 24 December, not 5 January 2027, on 23. 12. 2026.",
+    ]
+
+    text = "".join(style.feed(text=piece) for piece in pieces) + style.flush()
+
+    assert text == (
+        "Left on 23.12., that is CHF 4.63, from 01.01.–27.11. and 05.01.2027, on 23.12. and"
+        " 24.12., not 5 January 2027, on 23.12."
+    )

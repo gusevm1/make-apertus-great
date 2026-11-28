@@ -31,6 +31,7 @@ from app.features.tool_calls.prompts import (
     scoped_decision_prompt,
 )
 from app.features.tool_calls.repository import ToolCallRepository
+from app.features.tool_calls.totals import total_sentence
 from app.features.tool_calls.schemas import (
     RequestToolCallConfirmationCreate,
     ToolCall,
@@ -77,8 +78,25 @@ _CURRENCY_AFTER = re.compile(r"^\s?(?:CHF|Franken|francs?)\b", re.IGNORECASE)
 # A number may still go on: held back until the text after it arrives.
 _OPEN_NUMBER = re.compile(rf"\d[\d.'\u2019{_SEPARATORS}]*$")
 _CONTEXT_CHARS = 8
+# Beside a board: a dash between parts of a sentence becomes a comma, a day drops this year.
+_SENTENCE_DASH = re.compile(r"\s+[—–]\s+|\s*—\s*")
+_DAY_WITH_YEAR = re.compile(r"\b(\d{1,2})\. ?(\d{1,2})\.(?: ?(\d{4})\b)?")
+_DAY_THEN_STOP = re.compile(r"(\b\d{1,2}\.\d{1,2}\.)\.")
+_OPEN_DASH = re.compile(r"[\s—–]+$|\b\d{1,2}\.?\s+[^\W\d]*\s*\d{0,3}$")
+_MONTH_NUMBERS = {
+    name: number
+    for names in (
+        "January February March April May June July August September October November December",
+        "Januar Februar März April Mai Juni Juli August September Oktober November Dezember",
+    )
+    for number, name in enumerate(names.split(), start=1)
+}
+_DAY_MONTH_YEAR = re.compile(
+    rf"\b(\d{{1,2}})\.?\s+({'|'.join(_MONTH_NUMBERS)})(?:\s+(\d{{4}}))?\b"
+)
 # A tile's index in the board block, such as T2 in: T2 "Bills due before the salary".
 TILE_INDEX = re.compile(r"\bT\d+ (?=\")")
+_CURRENCY_SPACE = re.compile(r"CHF[\u00a0\u202f\u2009]")
 _TYPOGRAPHIC_THOUSANDS = re.compile(r"(?<=\d)\u2019(?=\d{3}(?!\d))")
 
 
@@ -144,7 +162,9 @@ class ToolCallService:
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
         content = swiss_text(text=stream.result.content)
         if scope is not None:
-            content = Paragraphs(is_on=True).feed(text=content)
+            content = Paragraphs(is_on=True).feed(
+                text=board_style(text=content, year=self.today.year)
+            )
         return content, provenance
 
     async def stream_answer(
@@ -192,9 +212,11 @@ class ToolCallService:
         spelling = SwissSpelling()
         numbers = SwissFigures()
         paragraphs = Paragraphs(is_on=scope is not None)
+        style = BoardStyle(year=None if scope is None else self.today.year)
         async for text in stream:
-            yield TokenEvent(text=paragraphs.feed(text=numbers.feed(text=spelling.feed(text=text))))
-        rest = numbers.flush()
+            spelled = numbers.feed(text=spelling.feed(text=text))
+            yield TokenEvent(text=paragraphs.feed(text=style.feed(text=spelled)))
+        rest = paragraphs.feed(text=style.feed(text=numbers.flush()) + style.flush())
         if rest != "":
             yield TokenEvent(text=rest)
         if stream.result is None:
@@ -202,7 +224,9 @@ class ToolCallService:
         provenance = self._provenance(model=stream.result.model, started=started, calls=calls)
         content = swiss_text(text=stream.result.content)
         if scope is not None:
-            content = Paragraphs(is_on=True).feed(text=content)
+            content = Paragraphs(is_on=True).feed(
+                text=board_style(text=content, year=self.today.year)
+            )
         yield DoneEvent(result=(content, provenance))
 
     async def list_tool_calls(self, conversation_id: UUID) -> list[ToolCall]:
@@ -494,7 +518,12 @@ class ToolCallService:
                 return None, str(exc)
             logger.exception("Tool call %s to %s failed", call_id, name)
             return None, TOOL_FAILED
-        return output.model_dump(mode="json"), None
+        dumped = output.model_dump(mode="json")
+        sentence = total_sentence(result=dumped, arguments=arguments)
+        if sentence is not None:
+            # First in the result, so a cut for length never drops it.
+            dumped = {"total_sentence": sentence, **dumped}
+        return dumped, None
 
     def _provenance(self, model: str, started: float, calls: list[ToolCall]) -> Provenance:
         succeeded = [call for call in calls if call.error is None]
@@ -628,7 +657,7 @@ class SwissSpelling:
 
 def swiss_figures(text: str) -> str:
     """Writes the thousands of an amount with an apostrophe: CHF 1 050.00 becomes CHF 1'050.00."""
-    text = _TYPOGRAPHIC_THOUSANDS.sub("'", text)
+    text = _TYPOGRAPHIC_THOUSANDS.sub("'", _CURRENCY_SPACE.sub("CHF ", text))
     return _AMOUNT.sub(lambda match: _swiss_amount(match=match, text=text), text)
 
 
@@ -700,3 +729,44 @@ class Paragraphs:
         if not char.isspace():
             self.last = char
         return out + char
+
+
+def board_style(text: str, year: int) -> str:
+    """Beside a board: no dashes between parts of a sentence, and days of this year as 23.12."""
+    text = _SENTENCE_DASH.sub(", ", text)
+    text = _DAY_MONTH_YEAR.sub(lambda match: _swiss_day(match=match, year=year), text)
+    text = _DAY_WITH_YEAR.sub(lambda match: _swiss_date(match=match, year=year), text)
+    # The year was the sentence's end: its full stop is the day's own.
+    return _DAY_THEN_STOP.sub(r"\1", text)
+
+
+# board_style for a text in pieces: a dash or a space at the end waits for what follows.
+class BoardStyle:
+    def __init__(self, year: int | None) -> None:
+        self.year = year
+        self.pending = ""
+
+    def feed(self, text: str) -> str:
+        if self.year is None:
+            return text
+        text = self.pending + text
+        open_dash = _OPEN_DASH.search(text)
+        cut = len(text) if open_dash is None else open_dash.start()
+        self.pending = text[cut:]
+        return board_style(text=text[:cut], year=self.year)
+
+    def flush(self) -> str:
+        text, self.pending = self.pending, ""
+        return text if self.year is None else board_style(text=text, year=self.year)
+
+
+def _swiss_day(match: re.Match[str], year: int) -> str:
+    # "23 December 2026" becomes 23.12.; a day of another year keeps its year.
+    if match[3] is not None and int(match[3]) != year:
+        return match[0]
+    return f"{int(match[1]):02d}.{_MONTH_NUMBERS[match[2]]:02d}."
+
+
+def _swiss_date(match: re.Match[str], year: int) -> str:
+    day = f"{match[1]}.{match[2]}."
+    return day if match[3] is None or int(match[3]) == year else f"{day}{match[3]}"

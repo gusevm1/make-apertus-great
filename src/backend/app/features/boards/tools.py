@@ -27,6 +27,8 @@ from app.features.tiles.schemas import (
     Template,
 )
 
+# The answer about a new board names its first tiles only.
+NEW_BOARD_TILES_TOLD = 2
 TILE_INDEX = re.compile(r"T(\d+)", re.IGNORECASE)
 WORD = re.compile(r"[^\W\d_]{3,}")
 # Words of "the groceries tile" that name no tile.
@@ -309,13 +311,25 @@ async def get_turn(
         created = await service.create_board(
             owner_id=owner_id, data=RequestBoardCreate(about=args.about), token=token, today=today
         )
-        filled, _ = await service.get_board_resolved(board=created, token=token, today=today)
+        filled, dropped = await service.get_board_resolved(board=created, token=token, today=today)
+        starts = " ".join(
+            PROMPTS["new_board_tile"].format(title=tile.title, meaning=meaning(payload=payload, today=today))
+            for tile, payload in filled[:NEW_BOARD_TILES_TOLD]
+        )
+        plans = await service.list_board_plans(owner_id=owner_id)
+        plan = next((item for item in plans if item.request == args.about.strip()), None)
+        reasons = [reason for _, reason in dropped]
+        reasons += [] if plan is None else [item.reason for item in plan.dropped]
+        missing = " ".join(reasons)
         return BoardChange(
             summary=f'New board "{created.name}"',
             board_id=created.id,
+            meaning=PROMPTS["new_board"].format(
+                about=args.about, tiles=starts or PROMPTS["new_board_empty"], missing=missing
+            ).strip(),
             tiles=[
                 BoardTileFigures(title=tile.title, figure_chf=float(payload.figure_chf))
-                for tile, payload in filled
+                for tile, payload in filled[:NEW_BOARD_TILES_TOLD]
             ],
         )
 

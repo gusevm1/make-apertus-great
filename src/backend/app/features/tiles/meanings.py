@@ -153,6 +153,7 @@ def _meaning(payload: AnyPayload, today: date) -> str:
             return text
 
 
+# The first words of the payday meaning answer "Does my money last?": the verdict's polarity.
 def _payday(payload: PaydayBalancePayload) -> str:
     left, per_day, days = payload.figure_chf, payload.per_day_chf, payload.days
     after = (
@@ -161,30 +162,31 @@ def _payday(payload: PaydayBalancePayload) -> str:
         f"{_day(day=payload.day_before)}"
     )
     if left < 0:
-        text = f"The money does not last: {after}, so {_chf(amount=-left)} are missing."
+        text = f"No. The money does not last: {after}, so {_chf(amount=-left)} are missing."
     elif per_day < ONLY_JUST_PER_DAY:
         text = (
-            f"The money lasts, but only just: {after}. That is {_chf(amount=per_day)} a day "
+            f"Yes, but only just. The money lasts: {after}. That is {_chf(amount=per_day)} a day "
             f"for {days} days."
         )
     elif per_day < COMFORTABLY_PER_DAY:
-        text = f"The money lasts: {after}. That is {_chf(amount=per_day)} a day for {days} days."
+        text = f"Yes. The money lasts: {after}. That is {_chf(amount=per_day)} a day for {days} days."
     else:
         text = (
-            f"The money lasts comfortably: {after}. That is {_chf(amount=per_day)} a day for "
+            f"Yes, comfortably. The money lasts: {after}. That is {_chf(amount=per_day)} a day for "
             f"{days} days."
         )
     other = payload.alternative
     if other is None:
         return text
     name = (
-        f"The income from {other.counterparty}"
+        f"the income from {other.counterparty}"
         if other.label is None
-        else f"{other.label[:1].upper()}{other.label[1:]} from {other.counterparty}"
+        else f"{other.label} from {other.counterparty}"
     )
     return (
-        f"{text} {name} ({_chf(amount=other.amount_chf)}) has not arrived this month and is not "
-        f"counted. With it, {_chf(amount=other.left_chf)} would be left."
+        f"{text} The second case: {name} ({_chf(amount=other.amount_chf)}) has not arrived this "
+        f"month and is not counted above; if it arrives, {_chf(amount=other.left_chf)} are left "
+        f"on {_day(day=payload.day_before)}."
     )
 
 
@@ -200,7 +202,15 @@ def _bills_until_payday(payload: BillsUntilPaydayPayload, today: date) -> str:
     reminders = [row for row in payload.rows if row.flag == "reminder"]
     if reminders:
         text += f" {_reminder(row=reminders[0], today=today)}"
-    return text
+    others = [row for row in payload.rows if row not in reminders[:1]]
+    if not others:
+        return text
+    order = "; ".join(_row(row=row) for row in others)
+    last = " and ".join(_row(row=row) for row in reversed(others[-2:]))
+    return (
+        f"{text} The {'others' if reminders else 'payments'} fall due in this order: {order}. "
+        f"Last to fall due: {last}. Only a payee can agree to a later date."
+    )
 
 
 def _expected_income(payload: ExpectedIncomePayload) -> str:

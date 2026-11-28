@@ -26,8 +26,9 @@ def board_context(
     signals: list[Signal],
 ) -> str:
     """The open board as the customer's message carries it."""
+    # With a tile selected, the others are named only, so the answer stays on that tile.
     lines = "\n".join(
-        _tile(label=label, tile=tile, payload=payload, meaning=meaning)
+        _tile(label=label, tile=tile, payload=payload, meaning=meaning if selected is None else "")
         for label, tile, payload, meaning in tiles
     )
     selected_text = ""
@@ -43,7 +44,9 @@ def board_context(
         name=_escaped(text=name),
         tiles=lines or PROMPTS["context_empty"],
         selected=selected_text,
-        findings="\n".join(f"- {_escaped(text=signal.text)}" for signal in signals),
+        findings="\n".join(f"- {_escaped(text=signal.text)}" for signal in signals)
+        if selected is None
+        else PROMPTS["context_findings_left_out"],
     )
 
 
@@ -67,6 +70,8 @@ def _tile(label: str, tile: Tile, payload: AnyPayload | None, meaning: str) -> s
     title = _escaped(text=tile.title)
     if payload is None:
         return PROMPTS["context_dropped"].format(label=label, title=title, template=tile.template)
+    if meaning == "":
+        return PROMPTS["context_tile_named"].format(label=label, title=title, template=tile.template)
     return PROMPTS["context_tile"].format(
         label=label,
         title=title,
