@@ -61,6 +61,14 @@
 .tr-chat .hint.pad {
   padding: 20px 24px;
 }
+.tr-chat .ai-notice {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--soft);
+  color: var(--text);
+  font-size: 13px;
+}
 .tr-chat .talk-in {
   flex: 1;
   min-height: 0;
