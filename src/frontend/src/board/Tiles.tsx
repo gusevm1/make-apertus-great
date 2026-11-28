@@ -118,6 +118,9 @@ export function pillOf(payload: AnyPayload): ReactNode {
   }
 }
 
+// More bars than this leave no room for a value over each; only the highest keeps it.
+const LABELLED_BARS_MAX = 6;
+
 function Pill({
   tone,
   children,
@@ -634,7 +637,11 @@ function MonthlySpending({
         </>
       )}
       <div
-        className="bars num"
+        className={
+          payload.months.length > LABELLED_BARS_MAX
+            ? "bars many num"
+            : "bars num"
+        }
         role="group"
         aria-label={
           top === undefined
