@@ -62,7 +62,7 @@
   padding: 20px 24px;
 }
 .tr-chat .ai-notice {
-  margin: 0 0 8px;
+  margin: 0;
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   background: var(--soft);
