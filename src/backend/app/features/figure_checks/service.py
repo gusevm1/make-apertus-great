@@ -31,6 +31,8 @@ _DATES = re.compile(
     # A Swiss day without its year, such as 23.12., never after a currency.
     r"|(?<!CHF )(?<!CHF)(?<![\d.'\u2019])(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?!\d)"
     rf"|\b\d{{1,2}}(?:st|nd|rd|th)\s+(?:of\s+)?(?:{_MONTHS})\b"
+    # A day of the month on its own, such as "before the 23rd".
+    r"|\bthe \d{1,2}(?:st|nd|rd|th)\b"
     # Without its last dot only after a word that names a day: "on 07.12 at".
     r"|\b(?:on|by|until|from|am|bis|vom|ab) (?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])(?![\d.])"
 )
