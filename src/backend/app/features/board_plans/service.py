@@ -4,23 +4,27 @@ import re
 from datetime import date
 from typing import Any
 
-from app.clients.apertus import ApertusClient, Model
+from app.clients.apertus import ApertusClient, LLMResult, Model
 from app.core.errors import AppError
 from app.core.provenance import Check
 from app.features.board_plans import digest
 from app.features.board_plans.digest import HERO_TEMPLATES, HERO_TOP, Raw, tile_key
-from app.features.board_plans.prompts import plan_prompt
+from app.features.board_plans.prompts import board_prompt, profile_prompt
 from app.features.board_plans.schemas import (
-    TITLE_MAX,
+    OWN_TILE,
+    BoardChoice,
     CustomerDigest,
     DroppedTile,
     Idea,
+    IdeaChoice,
     PlanAnswer,
     PlannedBoard,
     PlannedBoards,
     PlannedTile,
     Signal,
     TileChoice,
+    board_schema,
+    profile_schema,
 )
 from app.features.figure_checks.service import FigureCheckService
 from app.features.ledger.service import LedgerService
@@ -37,11 +41,13 @@ from app.features.tiles.schemas import (
 )
 from app.features.tiles.service import TileError, TileService
 
-# Under Vercel's 120 s for a forwarded request.
-PLAN_TIMEOUT_SECONDS = 110
+# Two calls in a row stay under Vercel's 120 s for a forwarded request.
+CALL_TIMEOUT_SECONDS = 55
 MAIN_MIN, MAIN_MAX = 5, 7
 SIDE_MIN, SIDE_MAX = 3, 5
-REQUEST_MIN, REQUEST_MAX = 3, 6
+REQUEST_MIN, REQUEST_MAX = 2, 5
+# A requested board is filled with related signals only up to this many tiles.
+REQUEST_FILLED = 2
 FIRST_BOARDS_MAX = 2
 IDEAS_MAX = 3
 # The list argument of a template; a name in it that does not resolve is left out.
@@ -68,6 +74,29 @@ SINGLE_BILL_BESIDE_LIST = {
     frozenset({"bill", "due_soon"}),
 }
 MONTH_NUMBERS = {calendar.month_name[number]: number for number in range(1, 13)}
+EXPECTED_LABEL_MAX = 40
+# A tile title is a few plain words; longer, or with a filler word, it gets the default title.
+TITLE_SHORT = 28
+FILLER = re.compile(
+    r"\b(upcoming|expected|overview|progress|late|total|current|trend|breakdown)\b", re.IGNORECASE
+)
+# A date the model wrote, such as "30.11.2026" or "30 Nov"; the prompt forbids them.
+DATE = re.compile(
+    r"\b\d{1,2}\.\s?\d{1,2}\.|\b\d{1,2}\.?\s(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)",
+    re.IGNORECASE,
+)
+# A board name is a tab label.
+NAME_WORDS, NAME_CHARS = 3, 24
+PAYDAY_TEMPLATES = {"payday_balance", "bills_until_payday"}
+# The default name of a first board by its hero's template.
+HERO_NAMES = {
+    "payday_balance": "Until payday",
+    "bills_until_payday": "Until payday",
+    "mortgage": "The house",
+    "income_and_spending": "Every month",
+}
+# Two tiles of these templates show the same months.
+SAME_MONTHS = frozenset({"monthly_spending", "income_and_spending"})
 # Fewer non-zero parts than this, and net worth only repeats the account balances.
 NET_WORTH_PARTS_MIN = 2
 
@@ -101,18 +130,189 @@ class BoardPlanService:
 
     async def read_customer(self, token: str, today: date) -> CustomerDigest:
         """The customer's facts and the signals in them, computed without the model."""
+        customer, _ = await self._read_customer(token=token, today=today)
+        return customer
+
+    async def _read_customer(
+        self, token: str, today: date
+    ) -> tuple[CustomerDigest, dict[str, AnyPayload]]:
+        """The digest, and the resolved tile of every signal that has one, by signal id."""
         raw = await self._read_raw(token=token, today=today)
         resolved = await self._resolve_all(
             tiles=digest.candidates(raw=raw), token=token, today=today
         )
         signals = digest.signals(raw=raw, resolved=resolved)
+        payloads = {}
         for signal in signals:
             if signal.template is not None and signal.args is not None:
+                payloads[signal.id] = resolved[tile_key(signal.template, signal.args)]
                 # The same shape as a validated tile, so the two compare.
                 signal.args = self.tiles.validate_args(signal.template, signal.args).model_dump(
                     mode="json"
                 )
-        return CustomerDigest(text=digest.facts_text(raw=raw), signals=signals)
+        customer = CustomerDigest(
+            text=digest.facts_text(raw=raw), signals=signals, names=digest.names(raw=raw)
+        )
+        return customer, payloads
+
+    @staticmethod
+    def _distinct(customer: CustomerDigest, payloads: dict[str, AnyPayload]) -> list[Signal]:
+        """The signals whose tile shows something no stronger signal's tile shows already."""
+        kept: list[_Tile] = []
+        distinct = []
+        for signal in customer.signals:
+            # Its tile lists the payments but not the old prices, so it cannot show the rise.
+            if signal.template is None or signal.args is None or signal.kind == "price_rise":
+                continue
+            tile = _Tile(
+                template=signal.template, args=signal.args, title="", payload=payloads[signal.id]
+            )
+            if _repeats(tile=tile, others=kept):
+                continue
+            kept.append(tile)
+            distinct.append(signal)
+        return distinct
+
+    async def _ask(
+        self,
+        customer: CustomerDigest,
+        offered: list[Signal],
+        request: str | None,
+        existing: list[str] | None,
+    ) -> tuple[PlanAnswer, LLMResult[Any]]:
+        """The plan from two small calls: who the customer is, then the tiles."""
+        labels = {digest.label(signal=s): s for s in offered}
+        heroes = [digest.label(signal=s) for s in digest.hero_candidates(signals=offered)]
+        # A signal whose tile repeats a stronger one's is a fact only.
+        signals_text = digest.signals_text(
+            signals=[
+                s if s in offered else s.model_copy(update={"template": None})
+                for s in customer.signals
+            ]
+        )
+        profile_call = self.apertus.structured(
+            profile_prompt(
+                facts=customer.text,
+                signals=signals_text,
+                heroes=[f"{h}: {labels[h].text}" for h in heroes or list(labels)],
+            ),
+            schema=profile_schema(
+                labels=list(labels),
+                heroes=heroes or list(labels),
+                late_income=any(
+                    labels[h].template == "payday_balance"
+                    and (labels[h].args or {}).get("expected_from") is not None
+                    for h in heroes
+                ),
+            ),
+            model=Model.SMART,
+            purpose="board_profile",
+            timeout_seconds=CALL_TIMEOUT_SECONDS,
+            json_schema_mode=True,
+        )
+
+        def tiles_call(kind: str, question: str, hero: str | None):
+            rest = [label for label in labels if label != hero]
+            return self.apertus.structured(
+                board_prompt(
+                    facts=customer.text,
+                    signals=signals_text,
+                    kind=kind,
+                    question=question,
+                    hero="" if hero is None else f"{hero}: {labels[hero].text}",
+                    request=request,
+                    existing=existing,
+                ),
+                schema=board_schema(
+                    labels=rest,
+                    names=customer.names,
+                    first=rest if request is not None else None,
+                    second=request is None,
+                ),
+                model=Model.SMART,
+                purpose="board_tiles",
+                timeout_seconds=CALL_TIMEOUT_SECONDS,
+                json_schema_mode=True,
+            )
+
+        if request is None:
+            profile = await profile_call
+            hero = profile.content.hero
+            tiles = await tiles_call(
+                kind=profile.content.kind, question=profile.content.question, hero=hero
+            )
+            latency = profile.latency_ms + tiles.latency_ms
+            question = profile.content.question
+        else:
+            profile, tiles = await asyncio.gather(
+                profile_call, tiles_call(kind="", question=request, hero=None)
+            )
+            hero = None
+            latency = max(profile.latency_ms, tiles.latency_ms)
+            question = request
+        board = tiles.content
+        uses = board.signals.model_dump(by_alias=True)
+        rest = [label for label in labels if label != hero]
+        main_places = {"main"}
+
+        def placed(places: set[str]) -> list[TileChoice]:
+            # The server's order, strongest first; the model chose and titled.
+            return [
+                TileChoice(signal=labels[label].id, title=uses[label]["title"])
+                for label in rest
+                if uses[label]["use"] in places
+            ]
+
+        def own(place: str) -> list[TileChoice]:
+            return [
+                _choice(pick=pick)
+                for pick in board.own
+                if getattr(pick, "board", "main") == place
+            ]
+
+        if hero is not None:
+            main = placed(places=main_places) + own(place="main")
+            main = [_hero_choice(signal=labels[hero], profile=profile.content), *main]
+        else:
+            # What answers the request, then the model's own tiles; a related signal only fills
+            # a board that would be thin, as it drifts off the request.
+            main = placed(places={"answers"}) + own(place="main")
+            first = board.first
+            wanted = (
+                own(place="main")[:1]
+                if first == OWN_TILE
+                else [c for c in main if first in labels and c.signal == labels[first].id]
+            )
+            if not wanted and first in labels:
+                wanted = [TileChoice(signal=labels[first].id, title=uses[first]["title"])]
+            main = wanted + [c for c in main if c not in wanted]
+            for choice in placed(places={"related"}):
+                if len(main) >= REQUEST_FILLED:
+                    break
+                main.append(choice)
+        boards = [BoardChoice(name=board.name, tiles=main)]
+        second = placed(places={"second"}) + own(place="second")
+        if request is None and second:
+            boards.append(BoardChoice(name=board.second_name or "", tiles=second))
+        ideas = [
+            IdeaChoice(title=uses[label]["title"], signal=labels[label].id)
+            for label in rest
+            if uses[label]["use"] == "idea"
+        ]
+        answer = PlanAnswer(
+            kind=profile.content.kind,
+            evidence=[f"{labels[e].id}: {labels[e].text}" for e in profile.content.evidence],
+            question=question,
+            boards=boards,
+            ideas=ideas,
+        )
+        return answer, LLMResult(
+            content=answer,
+            model=tiles.model,
+            latency_ms=latency,
+            tokens_in=None,
+            tokens_out=None,
+        )
 
     async def plan_boards(
         self,
@@ -122,20 +322,13 @@ class BoardPlanService:
         existing: list[str] | None = None,
     ) -> PlannedBoards:
         """The customer's first boards, or one board for `request`, validated and ready to store."""
-        customer = await self.read_customer(token=token, today=today)
-        result = await self.apertus.structured(
-            plan_prompt(
-                facts=customer.text,
-                signals=digest.signals_text(signals=customer.signals),
-                request=request,
-                existing=existing,
-            ),
-            schema=PlanAnswer,
-            model=Model.SMART,
-            purpose="board_plan",
-            timeout_seconds=PLAN_TIMEOUT_SECONDS,
+        customer, payloads = await self._read_customer(token=token, today=today)
+        answer, result = await self._ask(
+            customer=customer,
+            offered=self._distinct(customer=customer, payloads=payloads),
+            request=request,
+            existing=existing,
         )
-        answer = result.content
         signals = {signal.id: signal for signal in customer.signals}
         tight = any(signal.kind == "payday_tight" for signal in customer.signals)
         dropped: list[DroppedTile] = []
@@ -174,17 +367,23 @@ class BoardPlanService:
                 dropped.append(DroppedTile(title=tile.title, reason=REPEATS_PAYMENTS))
             boards.append((choice.name.strip(), board_tiles))
         if not boards:
-            boards.append(("Overview" if request is None else request[:TITLE_MAX], []))
+            boards.append(("Overview" if request is None else "New board", []))
 
         hero_detail = None
         if request is None:
             hero_detail = await self._ensure_hero(
                 tiles=boards[0][1], signals=customer.signals, used=used, token=token, today=today
             )
-        # A thin second board is left out rather than filled with tiles off its theme.
+        # A thin second board is left out rather than filled with tiles off its theme; its
+        # tiles are free again for the main board.
+        for name, board_tiles in boards[1:]:
+            if len(board_tiles) < SIDE_MIN:
+                used -= {tile.key for tile in board_tiles}
         boards = [board for index, board in enumerate(boards) if index == 0 or len(board[1]) >= SIDE_MIN]
         repaired = []
-        for (name, board_tiles), (fewest, most) in zip(boards[:1], limits, strict=False):
+        # A requested board is never filled with the strongest signals, which are off its topic.
+        mended = boards[:1] if request is None else []
+        for (name, board_tiles), (fewest, most) in zip(mended, limits, strict=False):
             added = await self._repair(
                 tiles=board_tiles,
                 fewest=fewest,
@@ -197,6 +396,10 @@ class BoardPlanService:
             if added:
                 repaired.append(f"{name}: {added} added")
 
+        boards = [
+            (_board_name(name=name, index=index, tiles=board_tiles, request=request), board_tiles)
+            for index, (name, board_tiles) in enumerate(boards)
+        ]
         failed = [d for d in dropped if d.reason not in EXPECTED_DROPS]
         resolved_count = requested - len(failed)
         checks.append(
@@ -370,13 +573,19 @@ class BoardPlanService:
             return None
 
     def _check_title(self, tile: _Tile) -> list[str]:
-        """Replace a title that is too long, or names a figure or a month its payload lacks."""
+        """Replace a title that is too long, or names a figure, date or month its payload lacks."""
+        before = tile.title
+        # A filler word is left out ("Emergency fund progress" is "Emergency fund").
+        tile.title = re.sub(r"\s{2,}", " ", FILLER.sub("", tile.title)).strip(" ,:-")
         missing = self.figure_checks.missing_figures(
             answer=tile.title, sources=[tile.payload.model_dump_json()]
         )
-        if len(tile.title) <= TITLE_MAX and not missing and _month_fits(tile=tile):
+        dated = DATE.search(tile.title) is not None
+        # "Until payday" wording belongs to the tiles about payday.
+        payday = "payday" in tile.title.casefold() and tile.template not in PAYDAY_TEMPLATES
+        short = 0 < len(tile.title) <= TITLE_SHORT and not payday
+        if short and not missing and not dated and _month_fits(tile=tile):
             return []
-        before = tile.title
         tile.title = self.tiles.default_title(tile.payload)
         return [before]
 
@@ -466,16 +675,32 @@ def _payment_rows(payload: AnyPayload) -> set[tuple[date, Any]]:
 
 def _repeats(tile: _Tile, others: list[_Tile]) -> bool:
     """Whether most payments of `tile` are shown by one of `others` already."""
+    if any(frozenset({tile.template, other.template}) == SAME_MONTHS for other in others):
+        return True
+    if any(_same_account(first=tile, second=other) for other in others):
+        return True
     rows = _payment_rows(payload=tile.payload)
     if not rows:
         return False
     for other in others:
         if frozenset({tile.template, other.template}) in SINGLE_BILL_BESIDE_LIST:
             continue
-        shared = rows & _payment_rows(payload=other.payload)
-        if len(shared) >= len(rows) * OVERLAP_SHARE:
+        theirs = _payment_rows(payload=other.payload)
+        if not theirs:
+            continue
+        # Either list mostly inside the other: the smaller one shows nothing new.
+        if len(rows & theirs) >= min(len(rows), len(theirs)) * OVERLAP_SHARE:
             return True
     return False
+
+
+def _same_account(first: _Tile, second: _Tile) -> bool:
+    """An account_balances tile of only the account a savings_goal tile already shows."""
+    pair = {first.template: first, second.template: second}
+    if set(pair) != {"account_balances", "savings_goal"}:
+        return False
+    shown = set(pair["account_balances"].args["account_ids"])
+    return shown <= {pair["savings_goal"].args["account_id"]}
 
 
 def _repeating(tiles: list[_Tile]) -> list[_Tile]:
@@ -506,3 +731,54 @@ def _month_fits(tile: _Tile) -> bool:
     if isinstance(payload, CardBillPayload):
         return named == {int(payload.period[5:7])}
     return False
+
+
+def _hero_choice(signal: Signal, profile: Any) -> TileChoice:
+    """The hero's tile; a late income on payday_balance gets the customer's own words for it."""
+    label = (getattr(profile, "expected_label", None) or "").strip()
+    args = signal.args or {}
+    if (
+        signal.template != "payday_balance"
+        or args.get("expected_from") is None
+        or not label
+        or re.search(r"\d", label)
+        # Their own words, not the payer's name, which the tile shows already.
+        or any(part.casefold() in label.casefold() for part in args["expected_from"].split())
+        or len(label) > EXPECTED_LABEL_MAX
+    ):
+        return TileChoice(signal=signal.id, title=profile.hero_title)
+    return TileChoice(
+        template=signal.template,
+        args={**args, "expected_label": label},
+        title=profile.hero_title,
+    )
+
+
+def _choice(pick: Any) -> TileChoice:
+    """An own tile of the model, as a template with arguments."""
+    args = {
+        "merchant_spending": {"merchants": pick.names, "period": pick.period or "this_month"},
+        "regular_payments": {"payees": pick.names},
+        "account_balances": {"account_ids": pick.names},
+        "bill": {"payment_id": pick.names[0]},
+    }[pick.template]
+    return TileChoice(template=pick.template, args=args, title=pick.title)
+
+
+def name_fits(name: str) -> bool:
+    """Whether a board name reads as a tab label: one to three words, no question."""
+    return 0 < len(name) <= NAME_CHARS and len(name.split()) <= NAME_WORDS and "?" not in name
+
+
+def _board_name(name: str, index: int, tiles: list[_Tile], request: str | None) -> str:
+    """The model's name when it fits a tab, else a default from the hero or the first tile."""
+    name = name.strip().rstrip(".")
+    hero = tiles[0].template if tiles else None
+    # "Until payday" belongs to a payday hero only.
+    off_payday = "payday" in name.casefold() and hero not in PAYDAY_TEMPLATES
+    if name_fits(name=name) and not (index == 0 and request is None and off_payday):
+        return name
+    if request is None and index == 0:
+        return HERO_NAMES.get(hero or "", "Overview")
+    first = tiles[0].title if tiles else ""
+    return first if name_fits(name=first) else "New board"

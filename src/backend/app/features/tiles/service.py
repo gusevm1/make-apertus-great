@@ -199,19 +199,19 @@ class TileService:
         """The title a tile gets when nobody wrote one, such as "Left on 23.12."."""
         match payload:
             case PaydayBalancePayload():
-                return f"Left on {_day(day=payload.day_before)}, the day before your salary"
+                return "Left before payday"
             case BillsUntilPaydayPayload():
                 return "Bills until payday"
             case DueSoonPayload():
-                return f"Due in the next {payload.days} days"
+                return f"Due in {payload.days} days"
             case ExpectedIncomePayload():
-                return f"Income from {payload.counterparty}"
+                return f"From {payload.counterparty.split()[0]}"
             case MerchantSpendingPayload():
                 return _merchant_title(payload=payload)
             case SavingsGoalPayload():
-                return payload.account_name
+                return payload.account_name if len(payload.account_name) <= 24 else "Savings goal"
             case BillPayload():
-                return f"Bill from {payload.payee}"
+                return f"Bill, due {_day(day=payload.due)}"
             case NetWorthPayload():
                 return "What you own"
             case MonthlySpendingPayload():
@@ -1178,10 +1178,11 @@ def _per_day(amount: Decimal, days: int) -> Decimal:
 
 
 def _merchant_title(payload: MerchantSpendingPayload) -> str:
-    names = payload.rows[0].merchant if len(payload.rows) == 1 else f"{len(payload.rows)} shops"
     first, last = MONTHS[payload.date_from.month - 1], MONTHS[payload.date_to.month - 1]
-    when = f"in {first}" if first == last else f"from {first} to {last}"
-    return f"Spending at {names} {when}"
+    when = f"in {first}" if first == last else f"since {first}"
+    name = payload.rows[0].merchant if len(payload.rows) == 1 else "Shops"
+    titled = f"{name} {when}"
+    return titled if len(titled) <= 28 else f"Shops {when}"
 
 
 def _months_text(months: list[Any]) -> str:

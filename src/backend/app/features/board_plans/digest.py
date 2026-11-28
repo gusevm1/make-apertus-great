@@ -97,6 +97,8 @@ class Income:
     salary: bool
     arrived_this_month: bool
     late: bool
+    # The booking text of its last payment, such as "Unterhalt Lina Dezember".
+    text: str
 
 
 @dataclass
@@ -115,8 +117,12 @@ def day(value: date) -> str:
     return value.strftime("%d.%m.%Y")
 
 
+# Wording only; a tile with other words for the same figures is the same tile.
+WORDING_ARGS = {"expected_label"}
+
+
 def tile_key(template: str, args: dict[str, Any]) -> str:
-    return f"{template}:{sorted(args.items())}"
+    return f"{template}:{sorted((k, v) for k, v in args.items() if k not in WORDING_ARGS)}"
 
 
 # --- facts -------------------------------------------------------------------------------------
@@ -182,6 +188,7 @@ def incomes(raw: Raw) -> list[Income]:
                 salary=salary,
                 arrived_this_month=arrived,
                 late=not arrived and raw.today.day > usual_day + LATE_AFTER_DAYS,
+                text=steady[-1].text,
             )
         )
     return sorted(found, key=lambda income: (not income.salary, -income.amount))
@@ -245,20 +252,12 @@ def facts_text(raw: Raw) -> str:
         label = "salary" if income.salary else "transfer"
         lines.append(
             f"- {income.counterparty} ({label}) into {income.account_id}, around day "
-            f"{income.usual_day}, {chf(income.amount)}, {state}"
+            f"{income.usual_day}, {chf(income.amount)}, {state}, booked as \"{income.text}\""
         )
     lines.append("Months (came in / went out, CHF):")
     for month in months(raw=raw):
         lines.append(f"- {month.month}: {chf(month.income)} / {chf(month.spending)}")
-    # The same windows as the periods of merchant_spending.
-    month_start = raw.today.replace(day=1)
-    three_back = month_start
-    for _ in range(AVERAGE_MONTHS):
-        three_back = (three_back - timedelta(days=1)).replace(day=1)
-    windows = [
-        ("last_3_months", three_back, month_start - timedelta(days=1), TOP_PAYEES),
-        ("this_month", month_start, raw.today, TOP_PAYEES_THIS_MONTH),
-    ]
+    windows = payee_windows(raw=raw)
     for period, since, until, limit in windows:
         lines.append(
             f"Largest payees, period {period} ({day(since)} to {day(until)}), as the bookings "
@@ -283,6 +282,31 @@ def facts_text(raw: Raw) -> str:
             f'"{payment["description"][:80]}" [{payment["source_id"]}]'
         )
     return "\n".join(lines)
+
+
+def payee_windows(raw: Raw) -> list[tuple[str, date, date, int]]:
+    """The periods of merchant_spending the facts list the largest payees for."""
+    month_start = raw.today.replace(day=1)
+    three_back = month_start
+    for _ in range(AVERAGE_MONTHS):
+        three_back = (three_back - timedelta(days=1)).replace(day=1)
+    return [
+        ("last_3_months", three_back, month_start - timedelta(days=1), TOP_PAYEES),
+        ("this_month", month_start, raw.today, TOP_PAYEES_THIS_MONTH),
+    ]
+
+
+def names(raw: Raw) -> list[str]:
+    """Every name an own tile may use: payees, account ids and upcoming payment ids."""
+    found = [
+        name
+        for _, since, until, limit in payee_windows(raw=raw)
+        for name, _, _ in top_payees(raw=raw, since=since, until=until, limit=limit)
+    ]
+    found += [payment["payee_name"] for payment in raw.upcoming]
+    found += [account["account_id"] for account in raw.accounts]
+    found += [p["source_id"] for p in upcoming_within(raw=raw, days=UPCOMING_DAYS)]
+    return list(dict.fromkeys(found))
 
 
 # --- the tiles worth resolving, then the signals in them -----------------------------------
@@ -729,10 +753,30 @@ def signals(raw: Raw, resolved: dict[str, AnyPayload]) -> list[Signal]:
     return found
 
 
+def label(signal: Signal) -> str:
+    """The signal as the model names it: id, kind and template, so a title cannot drift."""
+    return f"{signal.id} {signal.kind} {signal.template}"
+
+
 def signals_text(signals: list[Signal]) -> str:
     lines = []
     for signal in signals:
-        tile = f" -> tile {signal.template} {signal.args}" if signal.template is not None else ""
+        if signal.template is None:
+            lines.append(f"(fact, no tile) {signal.text}")
+            continue
         headline = " (can be the hero)" if signal.template in HERO_TEMPLATES else ""
-        lines.append(f"{signal.id} [{signal.kind}]{headline} {signal.text}{tile}")
+        lines.append(f"{label(signal=signal)}{headline}: {signal.text}")
     return "\n".join(lines)
+
+
+# The kinds that decide the question, in the order the server proposes them as the hero.
+HERO_KINDS = ["payday_tight", "mortgage_maturity", "depot_large", "cashflow_negative"]
+
+
+def hero_candidates(signals: list[Signal]) -> list[Signal]:
+    """The signals the hero may be: the one a deciding kind names, else the strongest headlines."""
+    top = [s for s in signals if s.template in HERO_TEMPLATES][:HERO_TOP]
+    rank = {kind: index for index, kind in enumerate(HERO_KINDS)}
+    ranked = sorted(top, key=lambda s: rank.get(s.kind, len(HERO_KINDS)))
+    # A deciding kind fixes the hero; the model still writes the kind, question and title.
+    return ranked[:1] if ranked and ranked[0].kind in rank else ranked

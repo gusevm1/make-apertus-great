@@ -4,9 +4,9 @@
 every tile was validated and resolved against the banking API.
 """
 
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 
 from app.core.provenance import Check
 from app.features.tiles.schemas import Template
@@ -31,6 +31,8 @@ class CustomerDigest(BaseModel):
     # The compact text the model reads: facts and signals.
     text: str
     signals: list[Signal]
+    # Every payee, account id and payment id the customer's data names, for an own tile.
+    names: list[str] = []
 
 
 # --- what the model returns ---------------------------------------------------------------------
@@ -83,6 +85,64 @@ class PlanAnswer(BaseModel):
     ideas: list[IdeaChoice] = Field(
         default_factory=list, description="Up to three further boards, each about one signal."
     )
+
+
+# --- the split calls, each with a schema built for this customer --------------------------------
+
+OWN_TILE = "own tile"
+# The templates a tile of the model's own may use, where knowing the world is the point.
+OWN_TEMPLATES = ("merchant_spending", "regular_payments", "account_balances", "bill")
+Period = Literal["this_month", "last_month", "last_3_months"]
+
+
+def _enum(values: list[str]) -> Any:
+    return Literal[tuple(values)]  # type: ignore[valid-type]
+
+
+def profile_schema(labels: list[str], heroes: list[str], late_income: bool) -> type[BaseModel]:
+    """kind, evidence, question, hero and its title; evidence and hero only from these labels."""
+    return create_model(
+        "CustomerProfile",
+        hero=(_enum(heroes), ...),
+        kind=(str, ...),
+        evidence=(list[_enum(labels)], Field(min_length=1, max_length=4)),
+        question=(str, ...),
+        hero_title=(str, ...),
+        # Asked for only when the hero can be a payday with money that has not arrived.
+        expected_label=(str, ...) if late_income else (None, None),
+    )
+
+
+def board_schema(
+    labels: list[str], names: list[str], first: list[str] | None, second: bool
+) -> type[BaseModel]:
+    """One verdict and title per signal of `labels`, so none repeats, plus up to two own tiles."""
+    places = ["main", "second", "idea", "no"] if second else ["answers", "related", "unrelated"]
+    verdict = create_model("SignalUse", use=(_enum(places), ...), title=(str, ...))
+    own_fields: dict[str, Any] = {
+        "template": (_enum(list(OWN_TEMPLATES)), ...),
+        "names": (list[_enum(names)], Field(min_length=1, max_length=8)),
+        "period": (Period | None, None),
+        "title": (str, ...),
+    }
+    if second:
+        own_fields["board"] = (Literal["main", "second"], "main")
+    own = create_model("OwnTile", **own_fields)
+    uses = create_model(
+        "SignalUses",
+        **{f"s{index}": (verdict, Field(alias=label)) for index, label in enumerate(labels)},
+    )
+    fields: dict[str, Any] = {}
+    if first is not None:
+        fields["first"] = (_enum([*first, OWN_TILE]), ...)
+    fields["signals"] = (uses, ...)
+    # A requested board is mostly the model's knowledge of the world: at least one own tile.
+    fewest_own = 0 if first is None else 1
+    fields["own"] = (list[own], Field(min_length=fewest_own, max_length=2))
+    fields["name"] = (str, ...)
+    if second:
+        fields["second_name"] = (str | None, None)
+    return create_model("BoardAnswer", **fields)
 
 
 # --- what the server returns ----------------------------------------------------------------
