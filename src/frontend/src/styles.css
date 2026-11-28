@@ -217,11 +217,11 @@ a:hover {
 }
 
 /* Board and chat on one screen; either side slides closed, the line between them drags. */
-.split {
+.screen {
   flex: 1;
   display: flex;
   min-height: 0;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .pane {
@@ -230,14 +230,14 @@ a:hover {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: clip;
   transition:
     flex-basis 0.42s var(--ease-slide),
     opacity 0.3s ease,
     visibility 0s;
 }
 
-.split[data-dragging] .pane {
+.screen[data-dragging] .pane {
   transition: none;
   user-select: none;
 }
@@ -290,7 +290,7 @@ a:hover {
 
 .handle:hover,
 .handle:focus-visible,
-.split[data-dragging] .handle {
+.screen[data-dragging] .handle {
   background: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
   outline: none;
@@ -359,7 +359,7 @@ a:hover {
   pointer-events: auto;
 }
 
-.drawer {
+.profile-drawer {
   position: fixed;
   top: 0;
   right: 0;
@@ -376,13 +376,13 @@ a:hover {
     visibility 0s 0.34s;
 }
 
-.drawer[data-shown] {
+.profile-drawer[data-shown] {
   transform: none;
   visibility: visible;
   transition: transform 0.34s var(--ease-slide);
 }
 
-.drawer-close {
+.profile-close {
   position: absolute;
   top: 16px;
   right: 16px;
@@ -398,7 +398,7 @@ a:hover {
   box-shadow: var(--shadow-switch);
 }
 
-.drawer-close:hover {
+.profile-close:hover {
   color: var(--text);
 }
 
@@ -498,7 +498,7 @@ a:hover {
   }
 
   /* Board on top, chat below, the line between them drags up and down. */
-  .split {
+  .screen {
     flex-direction: column;
   }
 
@@ -515,11 +515,10 @@ a:hover {
     min-width: 0;
   }
 
+  /* Above the board tabs, which sit at the bottom here. */
   .askfab {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    justify-content: center;
+    right: 16px;
+    bottom: 76px;
   }
 
   /* While the first board is built, its steps are the page; the wait would push them below. */
@@ -539,8 +538,8 @@ a:hover {
   .askfab,
   .askfab[data-shown],
   .scrim,
-  .drawer,
-  .drawer[data-shown] {
+  .profile-drawer,
+  .profile-drawer[data-shown] {
     transition: none;
   }
 }

@@ -407,7 +407,9 @@ function ChatInner({
       )}
       {isEmpty && (
         <p className="hint">
-          Ask a question, or tell me what this board should show.
+          {board === null
+            ? "Ask anything about your money."
+            : "Ask a question, or tell me what this board should show."}
         </p>
       )}
       {load !== "error" &&
@@ -610,7 +612,7 @@ function History({
   const search = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) search.current?.focus();
+    if (isOpen) search.current?.focus({ preventScroll: true });
   }, [isOpen]);
 
   const words = query.trim().toLowerCase();

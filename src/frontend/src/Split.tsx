@@ -9,8 +9,11 @@ import {
 
 /** The board's share of the screen when both sides show. */
 export const SPLIT = 0.62;
-// Let go this close to an edge and that side closes.
+// Let go this close to an edge and that side closes; up to twice as close, it snaps open.
 const SNAP = 0.14;
+// The narrowest a side may be when the screen is wide; less than half of it closes the side.
+const BOARD_MIN = 420;
+const CHAT_MIN = 340;
 const NARROW = "(max-width: 860px)";
 
 /** Board and chat on one screen: `share` is the board's part, 1 is only the board, 0 only the chat. */
@@ -42,11 +45,14 @@ export function Split({
 
   function drop() {
     setIsDragging(false);
-    if (dragShare === null) return;
+    if (dragShare === null || stage.current === null) return;
     setDragShare(null);
-    if (dragShare < SNAP) return onShare(0);
-    if (dragShare > 1 - SNAP) return onShare(1);
-    onShare(dragShare);
+    const size = stage.current.getBoundingClientRect().width;
+    const boardMin = Math.max(2 * SNAP, isNarrow ? 0 : BOARD_MIN / size);
+    const chatMin = Math.max(2 * SNAP, isNarrow ? 0 : CHAT_MIN / size);
+    if (dragShare < boardMin / 2) return onShare(0);
+    if (1 - dragShare < chatMin / 2) return onShare(1);
+    onShare(Math.min(1 - chatMin, Math.max(boardMin, dragShare)));
   }
 
   // The arrows step from only the board to both to only the chat.
@@ -60,7 +66,7 @@ export function Split({
   return (
     <div
       ref={stage}
-      className="split"
+      className="screen"
       data-dragging={isDragging ? "" : undefined}
     >
       <div

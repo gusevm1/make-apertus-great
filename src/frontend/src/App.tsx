@@ -85,7 +85,7 @@ function TrustRoom({
   }, [build.steps]);
 
   useEffect(() => {
-    if (isProfileOpen) drawerClose.current?.focus();
+    if (isProfileOpen) drawerClose.current?.focus({ preventScroll: true });
   }, [isProfileOpen]);
 
   useEffect(() => {
@@ -173,6 +173,7 @@ function TrustRoom({
 
   function openConversation(conversation: ConversationRef) {
     if (conversation.board_id !== null) openBoard(conversation.board_id);
+    setAskTile(null);
     setChatBoardId(conversation.board_id);
     setPicked(conversation);
   }
@@ -438,7 +439,7 @@ function TrustRoom({
         onClick={closeProfile}
       />
       <div
-        className="drawer"
+        className="profile-drawer"
         role="dialog"
         aria-modal="true"
         aria-label={`Profile of ${name}`}
@@ -449,7 +450,7 @@ function TrustRoom({
         <button
           type="button"
           ref={drawerClose}
-          className="drawer-close"
+          className="profile-close"
           aria-label="Close the profile"
           onClick={closeProfile}
         >
