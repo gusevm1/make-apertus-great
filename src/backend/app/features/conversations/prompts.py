@@ -24,7 +24,15 @@ def chat_prompt(
     system: LLMMessage = {"role": "system", "content": PROMPTS["chat_system"]}
     *earlier, last = history
     # ponytail: only the last turn sends its quotes and documents; earlier ones live on in replies
-    turns: list[LLMMessage] = [{"role": m.role, "content": m.content} for m in earlier]
+    # Beside a board, the board block of this turn holds the figures; an earlier answer would
+    # anchor its own, possibly wrong or outdated, verdict.
+    turns: list[LLMMessage] = [
+        {
+            "role": m.role,
+            "content": PROMPTS["earlier_answer"] if board != "" and m.role == "assistant" else m.content,
+        }
+        for m in earlier
+    ]
     # The page goes with the question, not into the system message: the tool decision only
     # sees the turns, and what the browser sends has no place in the system role.
     # Only what the customer sent with this message; everything else the model reads by a tool.

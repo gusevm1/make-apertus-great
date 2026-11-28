@@ -26,7 +26,12 @@ from app.features.figure_checks.service import FigureCheckService
 from app.features.figure_corrections.service import FigureCorrectionService
 from app.features.guardrails.schemas import Guardrail
 from app.features.guardrails.service import GuardrailService
-from app.features.tool_calls.service import ToolCallService, swiss_text
+from app.features.tool_calls.service import (
+    Paragraphs,
+    ToolCallService,
+    board_style,
+    swiss_text,
+)
 
 HISTORY_LIMIT = 20
 # The first round's figure check, kept beside the check of the corrected answer.
@@ -302,6 +307,10 @@ class ConversationService:
         )
         draft = figures.model_copy(update={"name": DRAFT_CHECK})
         content = swiss_text(text=corrected.content)
+        if board != "":
+            content = Paragraphs(is_on=True).feed(
+                text=board_style(text=content, year=self.tool_calls.today.year)
+            )
         checks = self._checks(content=content, sources=sources, outputs=outputs, texts=texts)
         return content, provenance.model_copy(
             update={
