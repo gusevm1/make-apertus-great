@@ -1,5 +1,6 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { api, json, type RequestError, requestErrorOf } from "../api";
+import { AlertSettings } from "../alerts/AlertSettings";
 import { useHostContext } from "../host";
 
 // The chat announces a saved proposal with this event, so the notes reload.
@@ -52,6 +53,7 @@ export function ProfilePanel(props: {
           <Suggestions token={context.access_token} />
           <Notes token={context.access_token} />
           <Documents token={context.access_token} />
+          <AlertSettings token={context.access_token} />
         </>
       )}
       <p className="foot">

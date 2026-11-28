@@ -216,6 +216,11 @@ a:hover {
   min-height: 0;
 }
 
+/* The side panel's chat, with the alerts line above it. */
+.main.chat-only {
+  flex-direction: column;
+}
+
 /* Board and chat on one screen; either side slides closed, the line between them drags. */
 .screen {
   flex: 1;

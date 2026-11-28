@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api, type RequestError, requestErrorOf } from "./api";
+import { AlertLine, NeedsAttention } from "./alerts/NeedsAttention";
 import { BoardScreen } from "./board/BoardScreen";
 import { Dock } from "./board/Dock";
 import { Mark, SmallIcon } from "./board/icons";
@@ -288,6 +289,11 @@ function TrustRoom({
     >
       {loading.state === "ready" ? (
         <>
+          <NeedsAttention
+            token={token}
+            customerId={customer?.customer_id ?? "anonymous"}
+            onOpenSettings={() => setIsProfileOpen(true)}
+          />
           {openBoardSummary === null ? (
             <NewBoard
               token={token}
@@ -452,8 +458,13 @@ function TrustRoom({
           </button>
         </div>
       </header>
-      {isChatOnly || chatSide === null ? (
-        <div className="main">{isChatOnly ? chatSide : boardSide}</div>
+      {isChatOnly ? (
+        <div className="main chat-only">
+          <AlertLine token={token} reloadKey={context.page.path} />
+          {chatSide}
+        </div>
+      ) : chatSide === null ? (
+        <div className="main">{boardSide}</div>
       ) : (
         <Split
           share={share}

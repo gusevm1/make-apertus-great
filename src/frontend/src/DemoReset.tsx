@@ -11,7 +11,7 @@ async function removeAll(listPath: string, path: string, token: string) {
     await api<void>(`${path}/${row.id}`, token, { method: "DELETE" });
 }
 
-/** Removes the boards, chats and notes the TrustRoom made for this customer; their documents stay. */
+/** Removes the boards, chats, notes and alert choices the TrustRoom made for this customer; their documents stay. */
 export function DemoReset({
   token,
   onDone,
@@ -35,6 +35,15 @@ export function DemoReset({
           "/api/context-entries",
           token,
         );
+      await removeAll("/api/alert-dismissals", "/api/alert-dismissals", token);
+      const settings = await api<{ kind: string }[]>(
+        "/api/alert-settings",
+        token,
+      );
+      for (const setting of settings)
+        await api<void>(`/api/alert-settings/${setting.kind}`, token, {
+          method: "DELETE",
+        });
       onDone();
     } catch (error) {
       setError(requestErrorOf(error).message);
