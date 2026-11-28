@@ -12,7 +12,13 @@ deterministic check and every judged criterion passes.
 - **no_repeats**: no tile (template and arguments) appears twice, on one
   board or across boards.
 - **tile_count**: the main board has 5 to 7 tiles, a second board 3 to 5, a
-  board made for a request 3 to 6.
+  board made for a request 2 to 5.
+- **names_short** (added after the first live Apertus boards): every board
+  name is a tab label, one to three words, at most 24 characters, no question
+  mark.
+- **titles_short** (same): every tile title is at most 28 characters and has
+  none of the filler words upcoming, expected, overview, progress, late,
+  total, current, trend, breakdown.
 - **differs**: no other customer's main board in the same run has the same
   templates in the same order.
 
@@ -44,3 +50,15 @@ and the judge reads them as part of the truth about the customer:
 - A single bill that carries a reminder may stand beside the list of bills it
   is in, to show its detail; the confirmed Daniela board does this with the
   dentist's second reminder.
+
+## A board made for a request (added with the request runs)
+
+The customer asked for one board in their own words. The same criteria hold,
+read against the request:
+
+- **hero_question**: the first tile answers the request most directly.
+- **about_customer**: every tile is about the request and this customer's real
+  situation; a strong signal that is not about the request does not belong.
+- **coherent**: the board is about the request and nothing else.
+- A small board (two tiles) passes when the data holds nothing more about the
+  request; an off-topic tile added to fill it fails.
