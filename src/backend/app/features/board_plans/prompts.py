@@ -4,14 +4,17 @@ from app.core.prompts import load_prompts
 PROMPTS = load_prompts(prompts_py=__file__)
 
 
-def profile_prompt(facts: str, signals: str, heroes: list[str]) -> list[Message]:
+def profile_prompt(facts: str, signals: str, heroes: list[str], booked: str) -> list[Message]:
     """Who the customer is, their question and the signal that answers it."""
     return [
         {"role": "system", "content": PROMPTS["profile_system"].format()},
         {
             "role": "user",
             "content": PROMPTS["profile_user"].format(
-                facts=facts, signals=signals, heroes="\n".join(heroes)
+                facts=facts,
+                signals=signals,
+                heroes="\n".join(heroes),
+                booked="" if not booked else PROMPTS["profile_booked"].format(booked=booked),
             ),
         },
     ]
@@ -23,20 +26,26 @@ def board_prompt(
     kind: str,
     question: str,
     hero: str,
-    request: str | None,
-    existing: list[str] | None,
 ) -> list[Message]:
-    """The tiles of the first boards after the hero, or of one board for `request`."""
-    if request is None:
-        user = PROMPTS["board_first"].format(
-            kind=kind, question=question, hero=hero, facts=facts, signals=signals
-        )
-    else:
-        names = "" if not existing else PROMPTS["existing"].format(names=", ".join(existing))
-        user = PROMPTS["board_request"].format(
-            request=request.replace('"', "'"), existing=names, facts=facts, signals=signals
-        )
+    """The tiles of the first boards after the hero."""
+    user = PROMPTS["board_first"].format(
+        kind=kind, question=question, hero=hero, facts=facts, signals=signals
+    )
     return [
         {"role": "system", "content": PROMPTS["board_system"].format()},
+        {"role": "user", "content": user},
+    ]
+
+
+def request_prompt(
+    request: str, lists: str, signals: str, existing: list[str] | None
+) -> list[Message]:
+    """Which of the customer's things one requested board is about."""
+    names = "" if not existing else PROMPTS["existing"].format(names=", ".join(existing))
+    user = PROMPTS["request_user"].format(
+        request=request.replace('"', "'"), existing=names, lists=lists, signals=signals
+    )
+    return [
+        {"role": "system", "content": PROMPTS["request_system"].format()},
         {"role": "user", "content": user},
     ]

@@ -780,3 +780,94 @@ def hero_candidates(signals: list[Signal]) -> list[Signal]:
     ranked = sorted(top, key=lambda s: rank.get(s.kind, len(HERO_KINDS)))
     # A deciding kind fixes the hero; the model still writes the kind, question and title.
     return ranked[:1] if ranked and ranked[0].kind in rank else ranked
+
+
+# --- what a requested board may be built from -------------------------------------------------
+
+REQUEST_MONTHS = 12
+REQUEST_SHOPS = 25
+REQUEST_PAYMENT_DAYS = 60
+# What an income is, from its booking text, in the customer's English words.
+INCOME_WORDS = [
+    (re.compile(r"unterhalt|alimente", re.IGNORECASE), "the child support"),
+    (re.compile(r"kinderzulage|familienzulage", re.IGNORECASE), "the child allowance"),
+    (re.compile(r"stipendium", re.IGNORECASE), "the grant"),
+    (re.compile(r"\brente\b|pension", re.IGNORECASE), "the pension"),
+    (re.compile(r"miete|mietzins", re.IGNORECASE), "the rent"),
+]
+
+
+@dataclass
+class RequestLists:
+    """The customer's things a requested board can show, each list keyed by what the model picks."""
+
+    accounts: dict[str, dict[str, Any]]
+    # Upcoming payee: the texts of its payments.
+    payees: dict[str, str]
+    # Payee of the bookings of the last year: a booking text and the total.
+    shops: dict[str, str]
+    # Open single payment id: its line.
+    payments: dict[str, str]
+    # Payees that a standing order repays a private loan to.
+    lenders: list[str]
+
+
+def income_label(text: str) -> str | None:
+    """The customer's words for an income from its booking text, such as "the child support"."""
+    for pattern, label in INCOME_WORDS:
+        if pattern.search(text):
+            return label
+    return None
+
+
+def income_texts(raw: Raw) -> dict[str, str]:
+    """The booking text of every regular income, by counterparty."""
+    return {income.counterparty: income.text for income in incomes(raw=raw)}
+
+
+def request_lists(raw: Raw) -> RequestLists:
+    since = raw.today - timedelta(days=365)
+    texts: dict[str, list[str]] = defaultdict(list)
+    for payment in raw.upcoming:
+        texts[payment["payee_name"]].append(payment["description"][:60])
+    payees = {name: "; ".join(dict.fromkeys(found))[:120] for name, found in texts.items()}
+    shops: dict[str, str] = {}
+    booked: dict[str, str] = {}
+    for row in raw.rows:
+        if row.kind == "spending" and row.counterparty is not None:
+            booked[row.counterparty] = row.text[:70]
+    for name, total, count in top_payees(
+        raw=raw, since=since, until=raw.today, limit=REQUEST_SHOPS
+    ):
+        if name in booked:
+            shops[name] = f'{chf(total)} in {count} bookings, booked as "{booked[name]}"'
+    payments = {
+        payment["source_id"]: (
+            f"{payment['due_date']} {payment['payee_name']} {chf(payment['amount_chf'])} "
+            f'"{payment["description"][:80]}"'
+        )
+        for payment in upcoming_within(raw=raw, days=REQUEST_PAYMENT_DAYS)
+        if payment["type"] in ONE_OFF_TYPES
+    }
+    accounts = {account["account_id"]: account for account in raw.accounts}
+    return RequestLists(
+        accounts=accounts,
+        payees=payees,
+        shops=shops,
+        payments=payments,
+        lenders=_payee_groups(raw=raw).get("private_loan", []),
+    )
+
+
+def request_text(lists: RequestLists) -> str:
+    lines = ["Accounts (id: name, purpose, goal):"]
+    for account_id, account in lists.accounts.items():
+        goal = account.get("savings_goal") or "none"
+        lines.append(f"- {account_id}: {account['name']}, {account.get('purpose')}, goal: {goal}")
+    lines.append("Upcoming payees (name: what their payments say):")
+    lines += [f"- {name}: {text}" for name, text in lists.payees.items()]
+    lines.append("Payees of the last 12 months (name: what was paid, a booking text):")
+    lines += [f"- {name}: {text}" for name, text in lists.shops.items()]
+    lines.append("Open single payments (id: due, payee, amount, text):")
+    lines += [f"- {payment_id}: {text}" for payment_id, text in lists.payments.items()]
+    return "\n".join(lines)

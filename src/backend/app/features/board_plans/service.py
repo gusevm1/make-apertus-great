@@ -5,11 +5,11 @@ from datetime import date
 from typing import Any
 
 from app.clients.apertus import ApertusClient, LLMResult, Model
-from app.core.errors import AppError
+from app.core.errors import AppError, UpstreamError
 from app.core.provenance import Check
 from app.features.board_plans import digest
 from app.features.board_plans.digest import HERO_TEMPLATES, HERO_TOP, Raw, tile_key
-from app.features.board_plans.prompts import board_prompt, profile_prompt
+from app.features.board_plans.prompts import board_prompt, profile_prompt, request_prompt
 from app.features.board_plans.schemas import (
     OWN_TILE,
     BoardChoice,
@@ -25,6 +25,8 @@ from app.features.board_plans.schemas import (
     TileChoice,
     board_schema,
     profile_schema,
+    RequestKeywords,
+    request_schema,
 )
 from app.features.figure_checks.service import FigureCheckService
 from app.features.ledger.service import LedgerService
@@ -41,13 +43,87 @@ from app.features.tiles.schemas import (
 )
 from app.features.tiles.service import TileError, TileService
 
-# Two calls in a row stay under Vercel's 120 s for a forwarded request.
-CALL_TIMEOUT_SECONDS = 55
+# Each planning call has its own budget, the client's retries included; two in a row stay
+# under a minute, and the server's ranking takes over when one runs out.
+CALL_TIMEOUT_SECONDS = 20
+CALL_BUDGET_SECONDS = 28
+PLAN_FAILURES = (TimeoutError, UpstreamError)
+RANKED_KIND = "Not classified: the model did not answer in time."
+NOT_PLANNED = "The model did not answer in time; this board follows the server's ranking of your signals."
+NOT_PICKED = "The model did not answer in time; this board holds what your request names word for word."
+NOTHING_FOUND = "Nothing in your accounts is about this request yet."
+LOAN_UNKNOWN = "The bank does not know how much of the loan is left; tell me the amount and I add it."
+KEYWORD_MIN = 4
+REQUEST_BILLS = 2
+# An idea's board: its finding and what the request call found beside it.
+REQUEST_IDEA_TILES = 3
+# The German words of a finding's kind, as the findings are written in English.
+KIND_WORDS = {
+    "mortgage_maturity": "Hypothek Haus house",
+    "mortgage": "Hypothek Haus house",
+    "private_loan": "Darlehen loan Rückzahlung",
+    "instalments": "Raten Leasing instalment",
+    "tax_bill": "Steuer Steuern tax",
+    "reminder": "Mahnung Rechnung reminder bill",
+    "large_bill": "Rechnung bill",
+    "card_bill": "Kreditkarte card",
+    "pillar_3a": "Säule Vorsorge pension",
+}
+STOP_WORDS = {
+    "what", "does", "when", "have", "should", "about", "that", "this", "with", "keep", "want",
+    "every", "month", "cost", "costs", "which", "decide", "there", "them", "they", "your", "from",
+}
+# For the keyword match without the model: the German word an English request means.
+ENGLISH_WORDS = {
+    "emergency": "Notgroschen",
+    "subscription": "Abo",
+    "house": "Haus",
+    "mortgage": "Hypothek",
+    "loan": "Darlehen",
+    "parent": "Darlehen",
+    "repa": "Rückzahlung",
+    "trip": "Reise",
+    "bill": "Rechnung",
+    "reminder": "Mahnung",
+    "tax": "Steuer",
+}
+# An idea's title when the model wrote none, by the kind of its signal.
+IDEA_TITLES = {
+    "instalments": "Instalments",
+    "private_loan": "Paying back a loan",
+    "fixed_costs": "Fixed costs",
+    "price_rise": "What got dearer",
+    "card_bill": "Credit card",
+    "securities": "Securities",
+    "pillar_3a": "Pillar 3a",
+    "savings_pots": "Savings pots",
+    "tax_bill": "Taxes",
+    "reminder": "Open reminders",
+    "spending": "Where the money goes",
+    "cashflow": "In and out",
+    "cashflow_negative": "In and out",
+    "due_soon": "Bills due soon",
+    "bills_before_payday": "Bills until payday",
+}
+# Findings about the whole month make no board of their own.
+NO_IDEA_KINDS = {"spending", "cashflow", "due_soon", "bills_before_payday", "payday", "payday_tight"}
+# Findings about the whole month, which a requested board about one thing never needs.
+GENERAL_KINDS = {
+    "spending",
+    "cashflow",
+    "cashflow_negative",
+    "due_soon",
+    "bills_before_payday",
+    "payday",
+    "payday_tight",
+    "fixed_costs",
+    "savings_pots",
+    "depot_large",
+    "income_regular",
+}
 MAIN_MIN, MAIN_MAX = 5, 7
 SIDE_MIN, SIDE_MAX = 3, 5
 REQUEST_MIN, REQUEST_MAX = 2, 5
-# A requested board is filled with related signals only up to this many tiles.
-REQUEST_FILLED = 2
 FIRST_BOARDS_MAX = 2
 IDEAS_MAX = 3
 # The list argument of a template; a name in it that does not resolve is left out.
@@ -130,13 +206,13 @@ class BoardPlanService:
 
     async def read_customer(self, token: str, today: date) -> CustomerDigest:
         """The customer's facts and the signals in them, computed without the model."""
-        customer, _ = await self._read_customer(token=token, today=today)
+        customer, _, _ = await self._read_customer(token=token, today=today)
         return customer
 
     async def _read_customer(
         self, token: str, today: date
-    ) -> tuple[CustomerDigest, dict[str, AnyPayload]]:
-        """The digest, and the resolved tile of every signal that has one, by signal id."""
+    ) -> tuple[CustomerDigest, dict[str, AnyPayload], Raw]:
+        """The digest, the resolved tile of every signal that has one by signal id, the raw read."""
         raw = await self._read_raw(token=token, today=today)
         resolved = await self._resolve_all(
             tiles=digest.candidates(raw=raw), token=token, today=today
@@ -153,7 +229,7 @@ class BoardPlanService:
         customer = CustomerDigest(
             text=digest.facts_text(raw=raw), signals=signals, names=digest.names(raw=raw)
         )
-        return customer, payloads
+        return customer, payloads, raw
 
     @staticmethod
     def _distinct(customer: CustomerDigest, payloads: dict[str, AnyPayload]) -> list[Signal]:
@@ -173,16 +249,13 @@ class BoardPlanService:
             distinct.append(signal)
         return distinct
 
-    async def _ask(
-        self,
-        customer: CustomerDigest,
-        offered: list[Signal],
-        request: str | None,
-        existing: list[str] | None,
-    ) -> tuple[PlanAnswer, LLMResult[Any]]:
-        """The plan from two small calls: who the customer is, then the tiles."""
+    async def _ask_first(
+        self, customer: CustomerDigest, offered: list[Signal], incomes: dict[str, str]
+    ) -> tuple[PlanAnswer, str | None, int]:
+        """The first boards from two small calls; the server's ranking when the model fails."""
         labels = {digest.label(signal=s): s for s in offered}
         heroes = [digest.label(signal=s) for s in digest.hero_candidates(signals=offered)]
+        heroes = heroes or list(labels)
         # A signal whose tile repeats a stronger one's is a fact only.
         signals_text = digest.signals_text(
             signals=[
@@ -190,128 +263,155 @@ class BoardPlanService:
                 for s in customer.signals
             ]
         )
-        profile_call = self.apertus.structured(
-            profile_prompt(
-                facts=customer.text,
-                signals=signals_text,
-                heroes=[f"{h}: {labels[h].text}" for h in heroes or list(labels)],
-            ),
-            schema=profile_schema(
-                labels=list(labels),
-                heroes=heroes or list(labels),
-                late_income=any(
-                    labels[h].template == "payday_balance"
-                    and (labels[h].args or {}).get("expected_from") is not None
-                    for h in heroes
-                ),
-            ),
-            model=Model.SMART,
-            purpose="board_profile",
-            timeout_seconds=CALL_TIMEOUT_SECONDS,
-            json_schema_mode=True,
-        )
-
-        def tiles_call(kind: str, question: str, hero: str | None):
-            rest = [label for label in labels if label != hero]
-            return self.apertus.structured(
-                board_prompt(
+        late = {
+            h: incomes.get((labels[h].args or {}).get("expected_from") or "", "")
+            for h in heroes
+            if labels[h].template == "payday_balance"
+            and (labels[h].args or {}).get("expected_from") is not None
+        }
+        try:
+            profile = await self._structured(
+                messages=profile_prompt(
                     facts=customer.text,
                     signals=signals_text,
-                    kind=kind,
-                    question=question,
-                    hero="" if hero is None else f"{hero}: {labels[hero].text}",
-                    request=request,
-                    existing=existing,
+                    heroes=[f"{h}: {labels[h].text}" for h in heroes],
+                    booked="; ".join(f'"{text}"' for text in late.values()),
+                ),
+                schema=profile_schema(
+                    labels=list(labels), heroes=heroes, late_income=bool(late)
+                ),
+                purpose="board_profile",
+            )
+        except PLAN_FAILURES:
+            return _ranked_answer(labels=labels, hero=heroes[0] if heroes else None), None, 0
+        hero = profile.content.hero
+        hero_tile = _hero_choice(
+            signal=labels[hero], profile=profile.content, booked=late.get(hero)
+        )
+        try:
+            tiles = await self._structured(
+                messages=board_prompt(
+                    facts=customer.text,
+                    signals=signals_text,
+                    kind=profile.content.kind,
+                    question=profile.content.question,
+                    hero=f"{hero}: {labels[hero].text}",
                 ),
                 schema=board_schema(
-                    labels=rest,
+                    labels=[label for label in labels if label != hero],
                     names=customer.names,
-                    first=rest if request is not None else None,
-                    second=request is None,
+                    first=None,
+                    second=True,
                 ),
-                model=Model.SMART,
                 purpose="board_tiles",
-                timeout_seconds=CALL_TIMEOUT_SECONDS,
-                json_schema_mode=True,
             )
-
-        if request is None:
-            profile = await profile_call
-            hero = profile.content.hero
-            tiles = await tiles_call(
-                kind=profile.content.kind, question=profile.content.question, hero=hero
+        except PLAN_FAILURES:
+            ranked = _ranked_answer(labels=labels, hero=hero)
+            ranked.boards[0].tiles[0] = hero_tile
+            answer = ranked.model_copy(
+                update={
+                    "kind": profile.content.kind,
+                    "evidence": [_evidence(signal=labels[e]) for e in profile.content.evidence],
+                    "question": profile.content.question,
+                }
             )
-            latency = profile.latency_ms + tiles.latency_ms
-            question = profile.content.question
-        else:
-            profile, tiles = await asyncio.gather(
-                profile_call, tiles_call(kind="", question=request, hero=None)
-            )
-            hero = None
-            latency = max(profile.latency_ms, tiles.latency_ms)
-            question = request
+            return answer, None, profile.latency_ms
         board = tiles.content
         uses = board.signals.model_dump(by_alias=True)
         rest = [label for label in labels if label != hero]
-        main_places = {"main"}
 
-        def placed(places: set[str]) -> list[TileChoice]:
+        def placed(place: str) -> list[TileChoice]:
             # The server's order, strongest first; the model chose and titled.
             return [
                 TileChoice(signal=labels[label].id, title=uses[label]["title"])
                 for label in rest
-                if uses[label]["use"] in places
+                if uses[label]["use"] == place
             ]
 
         def own(place: str) -> list[TileChoice]:
-            return [
-                _choice(pick=pick)
-                for pick in board.own
-                if getattr(pick, "board", "main") == place
-            ]
+            return [_choice(pick=pick) for pick in board.own if pick.board == place]
 
-        if hero is not None:
-            main = placed(places=main_places) + own(place="main")
-            main = [_hero_choice(signal=labels[hero], profile=profile.content), *main]
-        else:
-            # What answers the request, then the model's own tiles; a related signal only fills
-            # a board that would be thin, as it drifts off the request.
-            main = placed(places={"answers"}) + own(place="main")
-            first = board.first
-            wanted = (
-                own(place="main")[:1]
-                if first == OWN_TILE
-                else [c for c in main if first in labels and c.signal == labels[first].id]
-            )
-            if not wanted and first in labels:
-                wanted = [TileChoice(signal=labels[first].id, title=uses[first]["title"])]
-            main = wanted + [c for c in main if c not in wanted]
-            for choice in placed(places={"related"}):
-                if len(main) >= REQUEST_FILLED:
-                    break
-                main.append(choice)
-        boards = [BoardChoice(name=board.name, tiles=main)]
-        second = placed(places={"second"}) + own(place="second")
-        if request is None and second:
-            boards.append(BoardChoice(name=board.second_name or "", tiles=second))
-        ideas = [
-            IdeaChoice(title=uses[label]["title"], signal=labels[label].id)
-            for label in rest
-            if uses[label]["use"] == "idea"
+        boards = [
+            BoardChoice(name=board.name, tiles=[hero_tile, *placed("main"), *own("main")])
         ]
+        second = placed("second") + own("second")
+        if second:
+            boards.append(BoardChoice(name=board.second_name or "", tiles=second))
         answer = PlanAnswer(
             kind=profile.content.kind,
-            evidence=[f"{labels[e].id}: {labels[e].text}" for e in profile.content.evidence],
-            question=question,
+            evidence=[_evidence(signal=labels[e]) for e in profile.content.evidence],
+            question=profile.content.question,
             boards=boards,
-            ideas=ideas,
+            # Every signal's title; the server picks the ideas from those left off the boards.
+            ideas=[
+                IdeaChoice(title=uses[label]["title"], signal=labels[label].id) for label in rest
+            ],
         )
-        return answer, LLMResult(
-            content=answer,
-            model=tiles.model,
-            latency_ms=latency,
-            tokens_in=None,
-            tokens_out=None,
+        return answer, tiles.model, profile.latency_ms + tiles.latency_ms
+
+    async def _ask_request(
+        self,
+        request: str,
+        customer: CustomerDigest,
+        offered: list[Signal],
+        lists: digest.RequestLists,
+        existing: list[str] | None,
+    ) -> tuple[PlanAnswer, str | None, int]:
+        bills = next(
+            (s for s in offered if s.kind in {"bills_before_payday", "due_soon"}), None
+        )
+        """One requested board: the model picks the customer's things, the server builds tiles."""
+        findings = {
+            digest.label(signal=s): s for s in offered if s.kind not in GENERAL_KINDS
+        }
+        # An idea from the first plan carries its finding's sentence: that finding answers it.
+        idea = next(
+            (s for s in customer.signals if s.template is not None and s.text in request), None
+        )
+        try:
+            result = await self._structured(
+                messages=request_prompt(
+                    request=request,
+                    lists=digest.request_text(lists=lists),
+                    signals=digest.signals_text(signals=list(findings.values())),
+                    existing=existing,
+                ),
+                schema=request_schema(entries=list(dict.fromkeys([*lists.payees, *lists.shops]))),
+                purpose="board_request",
+            )
+        except PLAN_FAILURES:
+            words = [
+                w
+                for w in re.findall(r"\w+", request)
+                if len(w) >= KEYWORD_MIN and w.casefold() not in STOP_WORDS
+            ]
+            words += [
+                german for english, german in ENGLISH_WORDS.items() if english in request.casefold()
+            ]
+            asked = RequestKeywords(keywords=words, costs_only=False, open_bills=False, name="")
+            if idea is not None:
+                asked = RequestKeywords(keywords=[], costs_only=False, open_bills=False, name="")
+            answer = _request_answer(
+                request=request, asked=asked, findings=findings, lists=lists, bills=bills
+            )
+            return _with_idea(answer=answer, idea=idea, request=request), None, 0
+        answer = _request_answer(
+            request=request, asked=result.content, findings=findings, lists=lists, bills=bills
+        )
+        return _with_idea(answer=answer, idea=idea, request=request), result.model, result.latency_ms
+
+    async def _structured(self, messages: Any, schema: Any, purpose: str) -> LLMResult[Any]:
+        # One budget per call: the client's own retries happen inside it.
+        return await asyncio.wait_for(
+            self.apertus.structured(
+                messages,
+                schema=schema,
+                model=Model.SMART,
+                purpose=purpose,
+                timeout_seconds=CALL_TIMEOUT_SECONDS,
+                json_schema_mode=True,
+            ),
+            timeout=CALL_BUDGET_SECONDS,
         )
 
     async def plan_boards(
@@ -322,13 +422,20 @@ class BoardPlanService:
         existing: list[str] | None = None,
     ) -> PlannedBoards:
         """The customer's first boards, or one board for `request`, validated and ready to store."""
-        customer, payloads = await self._read_customer(token=token, today=today)
-        answer, result = await self._ask(
-            customer=customer,
-            offered=self._distinct(customer=customer, payloads=payloads),
-            request=request,
-            existing=existing,
-        )
+        customer, payloads, raw = await self._read_customer(token=token, today=today)
+        offered = self._distinct(customer=customer, payloads=payloads)
+        if request is None:
+            answer, model, latency_ms = await self._ask_first(
+                customer=customer, offered=offered, incomes=digest.income_texts(raw=raw)
+            )
+        else:
+            answer, model, latency_ms = await self._ask_request(
+                request=request,
+                customer=customer,
+                offered=offered,
+                lists=digest.request_lists(raw=raw),
+                existing=existing,
+            )
         signals = {signal.id: signal for signal in customer.signals}
         tight = any(signal.kind == "payday_tight" for signal in customer.signals)
         dropped: list[DroppedTile] = []
@@ -431,11 +538,19 @@ class BoardPlanService:
                 detail=None if not repeated else "already exists: " + ", ".join(repeated),
             )
         )
-        ideas = [
-            Idea(title=idea.title, text=signals[idea.signal].text)
-            for idea in answer.ideas
-            if idea.signal in signals and not self._signal_used(signals[idea.signal], used)
-        ][:IDEAS_MAX]
+        ideas = [] if request is not None else self._ideas(
+            answer=answer, signals=customer.signals, used=used, payloads=payloads
+        )
+        dropped += answer.notes
+        if request is not None and not boards[0][1] and not dropped:
+            dropped.append(DroppedTile(title=request[:TITLE_SHORT], reason=NOTHING_FOUND))
+        checks.append(
+            Check(
+                name="planned_by_model",
+                passed=model is not None,
+                detail=None if model is not None else NOT_PLANNED if request is None else NOT_PICKED,
+            )
+        )
         return PlannedBoards(
             kind=answer.kind,
             evidence=answer.evidence,
@@ -452,10 +567,46 @@ class BoardPlanService:
             ],
             ideas=ideas,
             dropped=dropped,
-            model=result.model,
-            latency_ms=result.latency_ms,
+            model=model or "server",
+            latency_ms=latency_ms,
             checks=checks,
         )
+
+    def _ideas(
+        self,
+        answer: PlanAnswer,
+        signals: list[Signal],
+        used: set[str],
+        payloads: dict[str, AnyPayload],
+    ) -> list[Idea]:
+        """Three further boards: the strongest signals off the boards that can carry one."""
+        titles = {idea.signal: idea.title for idea in answer.ideas}
+        free = [
+            signal
+            for signal in signals
+            if signal.template is not None
+            # A price rise's tile shows no old prices; its board would not show the rise.
+            and signal.kind not in {"payday", "payday_tight", "price_rise"}
+            and not self._signal_used(signal, used)
+        ]
+        # Findings about one thing first; those about the whole month only to make three.
+        ranked = [s for s in free if s.kind not in NO_IDEA_KINDS] + [
+            s for s in free if s.kind in NO_IDEA_KINDS
+        ]
+        ideas: list[Idea] = []
+        for signal in ranked:
+            title = (titles.get(signal.id) or "").strip()
+            title = re.sub(r"\s{2,}", " ", FILLER.sub("", title)).strip(" ,:-")
+            if not 0 < len(title) <= TITLE_SHORT or DATE.search(title):
+                title = IDEA_TITLES.get(signal.kind) or self.tiles.default_title(
+                    payloads[signal.id]
+                )
+            if any(idea.title.casefold() == title.casefold() for idea in ideas):
+                continue
+            ideas.append(Idea(title=title, text=signal.text))
+            if len(ideas) == IDEAS_MAX:
+                break
+        return ideas
 
     async def _read_raw(self, token: str, today: date) -> Raw:
         rows = await self.ledger.list_rows(token=token)
@@ -580,6 +731,8 @@ class BoardPlanService:
         missing = self.figure_checks.missing_figures(
             answer=tile.title, sources=[tile.payload.model_dump_json()]
         )
+        # A title starts with a capital, as a person writes a label.
+        tile.title = tile.title[:1].upper() + tile.title[1:]
         dated = DATE.search(tile.title) is not None
         # "Until payday" wording belongs to the tiles about payday.
         payday = "payday" in tile.title.casefold() and tile.template not in PAYDAY_TEMPLATES
@@ -733,24 +886,192 @@ def _month_fits(tile: _Tile) -> bool:
     return False
 
 
-def _hero_choice(signal: Signal, profile: Any) -> TileChoice:
+def _hero_choice(signal: Signal, profile: Any, booked: str | None) -> TileChoice:
     """The hero's tile; a late income on payday_balance gets the customer's own words for it."""
-    label = (getattr(profile, "expected_label", None) or "").strip()
     args = signal.args or {}
-    if (
-        signal.template != "payday_balance"
-        or args.get("expected_from") is None
-        or not label
-        or re.search(r"\d", label)
-        # Their own words, not the payer's name, which the tile shows already.
-        or any(part.casefold() in label.casefold() for part in args["expected_from"].split())
-        or len(label) > EXPECTED_LABEL_MAX
-    ):
+    if signal.template != "payday_balance" or args.get("expected_from") is None:
         return TileChoice(signal=signal.id, title=profile.hero_title)
+    label = (getattr(profile, "expected_label", None) or "").strip()
+    fits = (
+        label
+        and re.search(r"\d", label) is None
+        and len(label) <= EXPECTED_LABEL_MAX
+        # Their own words, not the payer's name, which the tile shows already.
+        and not any(part.casefold() in label.casefold() for part in args["expected_from"].split())
+    )
+    if not fits:
+        label = digest.income_label(text=booked or "") or ""
+    if not label:
+        return TileChoice(signal=signal.id, title=profile.hero_title)
+    if not label.casefold().startswith("the "):
+        label = f"the {label}"
     return TileChoice(
-        template=signal.template,
-        args={**args, "expected_label": label},
-        title=profile.hero_title,
+        template=signal.template, args={**args, "expected_label": label}, title=profile.hero_title
+    )
+
+
+def _evidence(signal: Signal) -> str:
+    return f"{signal.id}: {signal.text}"
+
+
+def _ranked_answer(labels: dict[str, Signal], hero: str | None) -> PlanAnswer:
+    """The first board from the server's ranking alone: the hero, then the strongest signals."""
+    order = [label for label in labels if label != hero]
+    if hero is not None:
+        order.insert(0, hero)
+    return PlanAnswer(
+        kind=RANKED_KIND,
+        evidence=[_evidence(signal=labels[label]) for label in order[:3]],
+        question="",
+        boards=[
+            BoardChoice(name="", tiles=[TileChoice(signal=labels[label].id) for label in order])
+        ],
+        ideas=[],
+    )
+
+
+def _matches(keywords: list[str], text: str) -> bool:
+    """Whether a keyword stands in the text as a word or the start of one, case ignored."""
+    words = re.findall(r"\w+", text.casefold())
+    joined = " ".join(words)
+    for keyword in keywords:
+        parts = re.findall(r"\w+", keyword.casefold())
+        if not parts or len("".join(parts)) < KEYWORD_MIN - 1:
+            continue
+        if re.search(r"\b" + r"\s+".join(map(re.escape, parts)), joined):
+            return True
+    return False
+
+
+def _with_idea(answer: PlanAnswer, idea: Signal | None, request: str) -> PlanAnswer:
+    """An idea's board opens on the finding it was made from, titled as the idea was."""
+    if idea is None:
+        return answer
+    title = request.split(".", 1)[0].strip()
+    board = answer.boards[0]
+    hero = TileChoice(signal=idea.id, title=title)
+    rest = [t for t in board.tiles if t.signal != idea.id]
+    name = board.name or title
+    return answer.model_copy(
+        update={"boards": [BoardChoice(name=name, tiles=[hero, *rest][:REQUEST_IDEA_TILES])]}
+    )
+
+
+def _request_answer(
+    request: str,
+    asked: RequestKeywords,
+    findings: dict[str, Signal],
+    lists: digest.RequestLists,
+    bills: Signal | None,
+) -> PlanAnswer:
+    """The tiles of a requested board, built by type from what its keywords find, most direct first."""
+    keywords = [k.strip() for k in [*asked.entries, *asked.keywords] if k.strip()]
+
+    def account_text(account: dict[str, Any]) -> str:
+        return f"{account['name']} {account.get('purpose')} {account.get('savings_goal') or ''}"
+
+    found = [
+        label
+        for label, s in findings.items()
+        if _matches(keywords, f"{s.text} {KIND_WORDS.get(s.kind, '')}")
+    ]
+    # Payees the model named win over keywords, which also catch payees off the topic.
+    if asked.entries:
+        payees = [n for n in lists.payees if n in asked.entries]
+        shops = [n for n in lists.shops if n in asked.entries]
+    else:
+        payees = [n for n, text in lists.payees.items() if _matches(keywords, f"{n} {text}")]
+        shops = [n for n, text in lists.shops.items() if _matches(keywords, f"{n} {text}")]
+    # A transfer to the customer's own account is no cost of anything.
+    own = {account["name"] for account in lists.accounts.values()}
+    payees = [n for n in payees if not any(n.startswith(name) for name in own)]
+    payments = [p for p, text in lists.payments.items() if _matches(keywords, text)]
+    accounts = [] if asked.costs_only else [
+        a for a, account in lists.accounts.items() if _matches(keywords, account_text(account))
+    ]
+    goals = [
+        a for a in accounts
+        if digest.goal_amount(goal=lists.accounts[a].get("savings_goal")) is not None
+    ]
+    plain = [a for a in accounts if a not in goals]
+    notes = []
+    lenders = [name for name in lists.lenders if name in payees or name in shops]
+    if lenders:
+        # What the data can say about a private loan: what it repaid and the standing order.
+        payees = list(dict.fromkeys([*lenders, *payees]))
+        shops = list(dict.fromkeys([*lenders, *shops]))
+        notes.append(DroppedTile(title="What is left of the loan", reason=LOAN_UNKNOWN))
+    tiles: list[TileChoice] = []
+    if asked.open_bills:
+        tiles += [
+            TileChoice(template="bill", args={"payment_id": p}) for p in lists.payments
+        ][:REQUEST_BILLS]
+        if bills is not None:
+            tiles.append(TileChoice(signal=bills.id))
+    tiles += [TileChoice(signal=findings[label].id) for label in found]
+    goal_tiles = [
+        TileChoice(
+            template="savings_goal",
+            args={"account_id": a},
+            title=asked.goal_title if len(goals) == 1 else None,
+        )
+        for a in goals
+    ]
+    # A request about a goal is answered by the goal, unless it is about the mortgage.
+    mortgage = any(findings[label].template == "mortgage" for label in found)
+    tiles = tiles + goal_tiles if mortgage else goal_tiles + tiles
+    if lenders:
+        tiles.append(
+            TileChoice(
+                template="monthly_spending",
+                args={"merchants": shops[:6], "months": 12},
+                title="Repaid each month",
+            )
+        )
+    costs: list[TileChoice] = []
+    # The same payees as a list and as bars per month show one stream twice; the list stays.
+    shops = shops if lenders else [name for name in shops if name not in payees]
+    named = asked.name[:1].lower() + asked.name[1:] if asked.name.startswith("The ") else asked.name
+    each_month = f"What {named} costs" if asked.costs_only else f"{asked.name} each month"
+    if asked.name.casefold().startswith("what "):
+        each_month = asked.name
+    if len(each_month) > TITLE_SHORT or not asked.name:
+        each_month = "Each month"
+    if shops and not lenders:
+        costs.append(
+            TileChoice(
+                template="monthly_spending",
+                args={"merchants": shops[:6], "months": 12},
+                title=each_month,
+            )
+        )
+    if payees:
+        costs.append(
+            TileChoice(
+                template="regular_payments",
+                args={"payees": payees[:8]},
+                title=asked.payees_title or asked.name,
+            )
+        )
+    # A question about cost opens on what it cost; otherwise the goal or finding stays first.
+    tiles = costs + tiles if asked.costs_only else tiles + costs
+
+    # A decision about the mortgage is not about the house's single bills.
+    if not asked.open_bills and not mortgage:
+        tiles += [
+            TileChoice(template="bill", args={"payment_id": p}) for p in payments
+        ][:REQUEST_BILLS]
+    # Accounts without a goal only when nothing more specific was found.
+    if plain and not tiles:
+        tiles.append(TileChoice(template="account_balances", args={"account_ids": plain[:6]}))
+    return PlanAnswer(
+        kind="",
+        # What the board was looked up by, so the customer sees why these tiles.
+        evidence=[f"Looked for: {', '.join(keywords)}"] if keywords else [],
+        question=request,
+        boards=[BoardChoice(name=asked.name, tiles=tiles)],
+        ideas=[],
+        notes=notes,
     )
 
 
