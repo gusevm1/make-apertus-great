@@ -18,6 +18,10 @@ class BoardRepository(BaseRepository[BoardORM, Board]):
         row = await self.session.scalar(stmt)
         return self._to_schema(row=row) if row is not None else None
 
+    async def close_read(self) -> None:
+        # Ends the reads' transaction, so none stays open across a model call.
+        await self.session.commit()
+
     async def count_owned(self, owner_id: UUID) -> int:
         stmt = select(func.count()).select_from(BoardORM).where(BoardORM.owner_id == owner_id)
         return await self.session.scalar(stmt) or 0
