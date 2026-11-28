@@ -21,9 +21,7 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     """A board has many conversations, so the link moves from the board to the conversation."""
     op.add_column("conversations", sa.Column("board_id", sa.Uuid(), nullable=True))
-    op.create_index(
-        op.f("ix_conversations_board_id"), "conversations", ["board_id"], unique=False
-    )
+    op.create_index(op.f("ix_conversations_board_id"), "conversations", ["board_id"], unique=False)
     op.create_foreign_key(
         op.f("fk_conversations_board_id_boards"),
         "conversations",
