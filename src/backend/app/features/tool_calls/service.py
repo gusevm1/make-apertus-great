@@ -93,6 +93,10 @@ _DONE_SENTENCE = re.compile(
     r"^\s*(?:Done\b[.,:!]?\s*)?[^.!?\n]*\b(?:removed|renamed|moved|added)\b[^.!?\n]*[.!]\s*",
     re.I,
 )
+# ponytail: only the safe cases of "tile"; any other sentence with it stays as it is
+_TILE_CLAUSE = re.compile(r",?\s*(?:according to|as) the tile[’']s description(?: says)?,?", re.I)
+_QUOTED_TILE = re.compile(r"\b[Tt]he (?:new )?([“\"][^”\"\n]+[”\"]) tile\b")
+_YOUR_TILE = re.compile(r"\b([Yy]our(?: new)?) ([“\"][^”\"\n]+[”\"]) tile\b")
 _SENTENCE_START = re.compile(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ])")
 # A last sentence keeps its place when it holds a figure, a name or advice.
 _FACT = re.compile(r"\d|\b(?:payee|tell me|let me|ask|you could|you can)\b", re.I)
@@ -809,6 +813,9 @@ def board_style(text: str, year: int) -> str:
     text = _DAY_MONTH_YEAR.sub(lambda match: _swiss_day(match=match, year=year), text)
     text = _DAY_WITH_YEAR.sub(lambda match: _swiss_date(match=match, year=year), text)
     text = _BOARD_WORDS.sub("", text)
+    text = _TILE_CLAUSE.sub("", text)
+    text = _QUOTED_TILE.sub(r"\1", text)
+    text = _YOUR_TILE.sub(r"\1 \2", text)
     # What was removed, renamed or moved the summaries under the answer say already.
     text = _without_done_sentence(text=text)
     # The year was the sentence's end: its full stop is the day's own.

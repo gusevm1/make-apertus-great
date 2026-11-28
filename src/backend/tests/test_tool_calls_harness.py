@@ -23,6 +23,7 @@ from app.features.tool_calls.schemas import (
 from app.features.tool_calls.service import (
     TOOL_FAILED,
     BoardStyle,
+    board_style,
     Paragraphs,
     SwissFigures,
     SwissSpelling,
@@ -444,3 +445,21 @@ def test_beside_a_board_a_day_of_this_year_drops_its_year_and_dashes_become_comm
 )
 def test_an_answer_beside_a_board_does_not_end_on_an_empty_sentence(text: str, kept: str) -> None:
     assert without_empty_end(text=text) == kept
+
+
+@pytest.mark.parametrize(
+    ("text", "styled"),
+    [
+        (
+            "It is due in three days; according to the tile's description, it cannot wait.",
+            "It is due in three days; it cannot wait.",
+        ),
+        (
+            'You find it in the "Groceries in November" tile on your board.',
+            'You find it in "Groceries in November" on your board.',
+        ),
+        ('Your new "Subscriptions" tile shows two payments.', 'Your new "Subscriptions" shows two payments.'),
+    ],
+)
+def test_beside_a_board_the_safe_cases_of_tile_are_rewritten(text: str, styled: str) -> None:
+    assert board_style(text=text, year=2026) == styled

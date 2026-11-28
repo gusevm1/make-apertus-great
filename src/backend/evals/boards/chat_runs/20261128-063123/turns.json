@@ -1,0 +1,89 @@
+[
+  {
+    "name": "subscriptions",
+    "customer": "daniela",
+    "message": "Add my subscriptions.",
+    "selected": null,
+    "seconds": 12.5,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Subscriptions",
+          "payees": [
+            "Sunrise GmbH",
+            "Lebara Schweiz"
+          ],
+          "template": "regular_payments"
+        },
+        "summary": "Added \"Subscriptions\"",
+        "plan": "Add a tile showing my regular subscription payments to the open board.",
+        "error": null
+      }
+    ],
+    "answer": "Lebara Schweiz is due CHF 19.90 on 07.12., and Sunrise GmbH is due CHF 39.90 on 15.12.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "2 of 2 found"
+      }
+    ]
+  },
+  {
+    "name": "subscriptions_lukas",
+    "customer": "lukas",
+    "message": "Add my subscriptions.",
+    "selected": null,
+    "seconds": 14.2,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "payees": [
+            "Fitnesspark Zürich Stadelhofen",
+            "Swisscom (Schweiz) AG"
+          ],
+          "template": "regular_payments"
+        },
+        "summary": "Added \"Subscriptions\"",
+        "plan": "Add a tile showing my regular subscription payments using the regular_payments template with the payees from the signals.",
+        "error": null
+      }
+    ],
+    "answer": "Your upcoming regular payments currently total CHF 252.95. They are due as follows: CHF 119.00 on 01.12. for Fitnesspark Zürich Stadelhofen, CHF 39.95 on 03.12. for Salt Mobile SA, and CHF 94.00 on 14.12. for Swisscom (Schweiz) AG.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "4 of 4 found"
+      }
+    ]
+  }
+]

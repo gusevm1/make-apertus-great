@@ -258,7 +258,21 @@ TURNS = [
         customer="daniela",
         message="Add my subscriptions.",
         board_tools={"add_tile"},
-        forbidden_args=["Wohnbau", "Steueramt", "Assura", "Ratenwerk"],
+        merchants_in=["Lebara", "Sunrise"],
+        merchants_out=["Wohnbau", "Steueramt", "Assura", "Ratenwerk", "Stadt Winterthur"],
+        summary_contains="Subscriptions",
+        propose=None,
+        max_sentences=4,
+    ),
+    Turn(
+        name="subscriptions_lukas",
+        customer="lukas",
+        message="Add my subscriptions.",
+        board_tools={"add_tile"},
+        merchants_in=["Fitnesspark", "Swisscom", "Salt"],
+        merchants_out=["Wohnbau", "Mythen", "Mobiliar", "Depot", "Glückskette", "EKZ"],
+        summary_contains="Subscriptions",
+        contains=["252.95"],
         propose=None,
         max_sentences=4,
     ),
@@ -397,11 +411,11 @@ def problems_of(
             problems.append(f"{word} in the arguments")
     # The shops of the tile as drawn, which the server may have narrowed to the customer's payees.
     shops = [
-        str(row.get("merchant"))
+        str(row.get("merchant") or row.get("payee"))
         for call in calls
         if call["error"] is None and call["tool_name"] in {"add_tile", "change_tile"}
         for row in ((call.get("result") or {}).get("figures") or {}).get("rows") or []
-        if "merchant" in row
+        if "merchant" in row or "payee" in row
     ] or [
         str(name)
         for call in calls
