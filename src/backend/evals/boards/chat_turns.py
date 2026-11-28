@@ -100,6 +100,13 @@ class Turn(BaseModel):
     max_sentences: int = 5
     # Words no argument of the turn's calls may hold, such as the rent among subscriptions.
     forbidden_args: list[str] = []
+    # Any board tool may run, or none.
+    any_board_tools: bool = False
+    # Messages sent first in the same conversation, beside the same board.
+    before: list[str] = []
+    # The answer must start with this, and contain these texts.
+    starts_with: str | None = None
+    contains: list[str] = []
 
 
 TURNS = [
@@ -111,6 +118,27 @@ TURNS = [
         propose=True,
         figure_of="payday_balance",
         alternative=True,
+        starts_with="Yes",
+    ),
+    Turn(
+        name="payday_again",
+        customer="daniela",
+        message="Does my money last until payday?",
+        before=["Does my money last until payday?"],
+        propose=None,
+        any_board_tools=True,
+        starts_with="Yes",
+        contains=["124.96", "1'174.96"],
+    ),
+    Turn(
+        name="payday_after_edit",
+        customer="daniela",
+        message="Does my money last until payday?",
+        before=["Rename the emergency fund to Rainy day money."],
+        propose=True,
+        board_tools={"add_tile"},
+        starts_with="Yes",
+        contains=["124.96", "1'174.96"],
     ),
     Turn(
         name="remove",
@@ -170,7 +198,7 @@ TURNS = [
         message="Which of these can wait?",
         selected="bills_until_payday",
         reminder=True,
-        max_sentences=6,
+        max_sentences=3,
     ),
     Turn(
         name="lina_board",
@@ -184,7 +212,7 @@ TURNS = [
         name="health_board",
         customer="daniela",
         message="How much did I pay for health insurance this year?",
-        any_amount=True,
+        contains=["2'985.40"],
         propose=None,
     ),
     Turn(
@@ -197,10 +225,10 @@ TURNS = [
     ),
     Turn(
         name="health_chat",
-        customer="lukas",
+        customer="daniela",
         message="How much did I pay for health insurance this year?",
         board=False,
-        any_amount=True,
+        contains=["2'985.40"],
         propose=None,
         max_sentences=8,
     ),
@@ -282,7 +310,7 @@ def problems_of(
     board_ran = ran & BOARD_TOOLS
     if turn.board_tools and not turn.board_tools <= board_ran:
         problems.append(f"expected {sorted(turn.board_tools)}, ran {sorted(board_ran) or 'none'}")
-    if not turn.board_tools and board_ran:
+    if not turn.board_tools and board_ran and not turn.any_board_tools:
         problems.append(f"no board tool expected, ran {sorted(board_ran)}")
     arguments = json.dumps([call["arguments"] for call in calls if call["error"] is None])
     for word in turn.forbidden_args:
@@ -296,9 +324,20 @@ def problems_of(
     text = answer.split("\n\n✓")[0].strip()
     if turn.board and BANNED.search(text):
         problems.append(f"banned word: {BANNED.search(text)[0]!r}")
+    if turn.starts_with is not None and not text.startswith(turn.starts_with):
+        problems.append(f"does not start with {turn.starts_with!r}")
+    for wanted in turn.contains:
+        if wanted not in text:
+            problems.append(f"{wanted} missing")
+    if turn.board and re.search(r"\bNo,", text):
+        problems.append("says 'No,'")
+    if turn.board and re.search(r"[—–]", text):
+        problems.append("a dash")
+    if turn.board and re.search(r"\b\d{1,2}\.\d{1,2}\.\d{4}", text):
+        problems.append("a year after a day")
     if turn.board and SINGLE_BREAK.search(text):
         problems.append("a single line break instead of a paragraph")
-    sentences = len(SENTENCE_END.findall(text))
+    sentences = len(SENTENCE_END.findall(re.sub(r"\b\d{1,2}\.\d{1,2}\.", "D", text)))
     if sentences > turn.max_sentences:
         problems.append(f"{sentences} sentences, at most {turn.max_sentences}")
     tiles = {} if board is None else {tile["template"]: tile for tile in board["tiles"]}
@@ -343,12 +382,16 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
             )
             if selected is not None:
                 body["tile_id"] = selected["id"]
-        started = time.perf_counter()
         calls: list[dict[str, Any]] = []
         try:
+            for earlier in turn.before:
+                await stream_turn(client=client, path=path, body={**body, "content": earlier})
+            earlier_calls = (await client.get(f"{path}/tool-calls")).raise_for_status().json()
+            started = time.perf_counter()
             reply = await stream_turn(client=client, path=path, body=body)
             seconds = time.perf_counter() - started
-            calls = (await client.get(f"{path}/tool-calls")).raise_for_status().json()
+            every_call = (await client.get(f"{path}/tool-calls")).raise_for_status().json()
+            calls = every_call[len(earlier_calls) :]
             answer = reply["content"]
             checks = (reply.get("provenance") or {}).get("checks", [])
             problems = problems_of(turn=turn, answer=answer, calls=calls, board=board)
@@ -358,13 +401,13 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
                 if check["name"] == "figures_found" and not check["passed"]
             ]
         except Exception as exc:
-            seconds = time.perf_counter() - started
+            seconds = 0.0
             answer, checks, problems = "", [], [f"turn failed: {exc!r}"[:300]]
         finally:
             await cleanup(
                 client=client,
                 path=path,
-                calls=calls,
+                calls=(await client.get(f"{path}/tool-calls")).json(),
                 board_id=None if board is None else board["id"],
             )
     return {
