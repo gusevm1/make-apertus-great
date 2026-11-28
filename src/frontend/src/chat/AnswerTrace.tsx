@@ -1,3 +1,4 @@
+import { checkLabel, decides } from "./checks";
 import { CheckIcon } from "./icons";
 import type { ChatMessage } from "./types";
 
@@ -34,13 +35,14 @@ export function AnswerTrace({
     (first, second) => first - second,
   );
   const checks = provenance?.checks ?? [];
-  const failed = checks.filter((check) => !check.passed).length;
+  const deciding = checks.filter((check) => decides(check.name));
+  const failed = deciding.filter((check) => !check.passed).length;
   const parts = [`${calls.length} ${calls.length === 1 ? "call" : "calls"}`];
   if (checks.length > 0)
     parts.push(
       failed === 0
-        ? `${checks.length} checks passed`
-        : `${failed} of ${checks.length} checks failed`,
+        ? `${deciding.length} checks passed`
+        : `${failed} of ${deciding.length} checks failed`,
     );
   if (provenance !== null) parts.push(seconds(provenance.latency_ms));
   return (
@@ -79,7 +81,7 @@ export function AnswerTrace({
                       key={check.name}
                       data-mark={check.passed ? "kept" : "dropped"}
                     >
-                      <dt>Check: {check.name.replaceAll("_", " ")}</dt>
+                      <dt>{checkLabel(check.name)}</dt>
                       <dd>
                         {check.passed && <CheckIcon />}
                         {check.detail ??

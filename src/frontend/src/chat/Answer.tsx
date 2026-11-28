@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { ToolCall } from "../api";
 import { Markdown } from "../lib/markdown";
 import { AnswerTrace } from "./AnswerTrace";
+import { checkFailure, decides } from "./checks";
 import { CheckIcon } from "./icons";
 import { MemoryCard } from "./MemoryCard";
 import {
@@ -103,7 +104,8 @@ function Meta({
   hasFailedCall: boolean;
 }) {
   const checks = provenance.checks ?? [];
-  const failedCheck = checks.find(
+  const deciding = checks.filter((check) => decides(check.name));
+  const failedCheck = deciding.find(
     (check) =>
       !check.passed && (check.name !== "tool_calls_valid" || hasFailedCall),
   );
@@ -111,10 +113,9 @@ function Meta({
     ? "Apertus"
     : provenance.model;
   let note = "every figure comes from your bookings";
-  if (failedCheck !== undefined)
-    note = `a check did not pass: ${failedCheck.name}`;
-  else if (checks.length > 0)
-    note += `, ${checks.length} ${checks.length === 1 ? "check" : "checks"} passed`;
+  if (failedCheck !== undefined) note = checkFailure(failedCheck.name);
+  else if (deciding.length > 0)
+    note += `, ${deciding.length} ${deciding.length === 1 ? "check" : "checks"} passed`;
   const links: ReactNode[] = provenance.sources
     // Only web addresses become links; the list comes from a search result.
     .filter((source) => source.url?.startsWith("http") === true)
