@@ -35,6 +35,7 @@ export function ProfilePanel(props: {
   name: string;
   initials: string;
   customerSince: string | null;
+  onOpenCategorization: () => void;
 }) {
   const context = useHostContext();
   const year = props.customerSince?.match(/\d{4}/)?.[0];
@@ -54,6 +55,7 @@ export function ProfilePanel(props: {
           <Suggestions token={context.access_token} />
           <Notes token={context.access_token} />
           <Documents token={context.access_token} />
+          <CategorizationLink onOpen={props.onOpenCategorization} />
           <AlertSettings token={context.access_token} />
           <DebugSettings />
         </>
@@ -63,6 +65,27 @@ export function ProfilePanel(props: {
         note and every document.
       </p>
     </aside>
+  );
+}
+
+/** The way into Categorization, where the customer settles what Apertus was unsure of. */
+function CategorizationLink({ onOpen }: { onOpen: () => void }) {
+  return (
+    <div className="sec">
+      <h2>Categories</h2>
+      <div className="card">
+        <button type="button" className="fact profile-link" onClick={onOpen}>
+          <p>
+            Categorization
+            <span>
+              Settle the categories Apertus was unsure of and see what each
+              category holds
+            </span>
+          </p>
+          <span aria-hidden="true">›</span>
+        </button>
+      </div>
+    </div>
   );
 }
 

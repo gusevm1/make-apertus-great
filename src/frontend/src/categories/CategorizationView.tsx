@@ -38,7 +38,13 @@ function isGoing(run: CategorisationRun | null): boolean {
 }
 
 /** The Categorization tab: settle what Apertus was unsure of, and see what each category holds. */
-export function CategorizationView({ token }: { token: string }) {
+export function CategorizationView({
+  token,
+  onBack,
+}: {
+  token: string;
+  onBack: () => void;
+}) {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -258,6 +264,9 @@ export function CategorizationView({ token }: { token: string }) {
 
   return (
     <div className="cat-view">
+      <button type="button" className="cat-back" onClick={onBack}>
+        ← Personalized Board
+      </button>
       <header className="cat-head">
         <div>
           <h1>Categorization</h1>

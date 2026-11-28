@@ -11,6 +11,20 @@
   margin: 0 auto;
 }
 
+.cat-back {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cat-back:hover {
+  color: var(--deep);
+}
+
 .cat-head {
   display: flex;
   align-items: flex-end;
@@ -51,6 +65,10 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
+}
+
+.cat-progress-text b {
+  white-space: nowrap;
 }
 
 .cat-progress-track {
