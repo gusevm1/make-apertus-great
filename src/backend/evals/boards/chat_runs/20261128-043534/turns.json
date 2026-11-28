@@ -1,0 +1,556 @@
+[
+  {
+    "name": "payday",
+    "customer": "daniela",
+    "message": "Does my money last until payday?",
+    "selected": null,
+    "seconds": 7.2,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S1"
+        },
+        "summary": "\"What is left the day before the salary\" is on the board already",
+        "plan": "Add the two ready tiles that answer 'Does my money last until payday?'",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "signal": "S5"
+        },
+        "summary": "\"Bills due before the salary\" is on the board already",
+        "plan": "Add the two ready tiles that answer 'Does my money last until payday?'",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "fact",
+          "text": "The child support often comes late: on 22.10. last month. Always show both cases."
+        },
+        "summary": null,
+        "plan": "Propose the suggested profile note as a fact.",
+        "error": null
+      }
+    ],
+    "answer": "Yes, but only just. On 23.12.2026, the day before payday of 24.12.2026, CHF 124.96 will remain on your Privatkonto after paying eight pending bills totaling CHF 2'950.20, leaving you CHF 4.63 per day for the 27 following days.\n\nWith the expected child support from Patrick Rüegg of CHF 1'050.00 that has not yet arrived, you would have CHF 1'174.96 left and about CHF 43.52 a day.\n\nBoth are on your board already.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "3 of 3"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "7 of 7 found"
+      }
+    ]
+  },
+  {
+    "name": "remove",
+    "customer": "daniela",
+    "message": "Remove the groceries tile.",
+    "selected": null,
+    "seconds": 2.3,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "remove_tile",
+        "arguments": {
+          "tile": "T5"
+        },
+        "summary": "Removed \"Groceries\"",
+        "plan": "Remove the tile that shows groceries spending.",
+        "error": null
+      }
+    ],
+    "answer": "Done.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      }
+    ]
+  },
+  {
+    "name": "rename",
+    "customer": "daniela",
+    "message": "Rename the emergency fund to Rainy day money.",
+    "selected": null,
+    "seconds": 2.4,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "rename_tile",
+        "arguments": {
+          "tile": "T3",
+          "title": "Rainy day money"
+        },
+        "summary": "Renamed \"Emergency fund\" to \"Rainy day money\"",
+        "plan": "Rename the tile titled 'Emergency fund' to 'Rainy day money'.",
+        "error": null
+      }
+    ],
+    "answer": "Done.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      }
+    ]
+  },
+  {
+    "name": "move",
+    "customer": "daniela",
+    "message": "Move the dentist bill to the top.",
+    "selected": null,
+    "seconds": 2.5,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "move_tile",
+        "arguments": {
+          "to": "top",
+          "tile": "T6"
+        },
+        "summary": "Moved \"Dentist bill for Lina\" to the top",
+        "plan": "Move the dentist bill tile to the top of the board.",
+        "error": null
+      }
+    ],
+    "answer": "Done.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      }
+    ]
+  },
+  {
+    "name": "migros_coop",
+    "customer": "daniela",
+    "message": "Show me what I spend at Migros and Coop each month.",
+    "selected": null,
+    "seconds": 4.3,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "months": 6,
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Coop"
+          ]
+        },
+        "summary": null,
+        "plan": "Add a tile showing monthly spending at Migros and Coop over the last few months.",
+        "error": "merchant_spending has no argument months. Send it again without it. The arguments of merchant_spending are: merchants, period."
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Coop"
+          ]
+        },
+        "summary": "Added \"Shops in November\"",
+        "plan": "Add a tile showing monthly spending at Migros and Coop over the last 6 months using the merchant_spending template with the correct arguments.",
+        "error": null
+      }
+    ],
+    "answer": "Nov 2026 shows your spending at Migros for CHF 219.69 and at Coop for CHF 12.65.\n\nNo other spending breakdowns have been extracted.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "1 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "2 of 2 found"
+      },
+      {
+        "name": "figures_in_context",
+        "passed": true,
+        "detail": "2 of 2 fit"
+      }
+    ]
+  },
+  {
+    "name": "twelve_months",
+    "customer": "daniela",
+    "message": "Make the spending chart show 12 months.",
+    "selected": null,
+    "seconds": 2.4,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "change_tile",
+        "arguments": {
+          "tile": "T4",
+          "months": 12
+        },
+        "summary": "Changed \"Where the money goes\"",
+        "plan": "Change the spending chart to show 12 months.",
+        "error": null
+      }
+    ],
+    "answer": "Done.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      }
+    ]
+  },
+  {
+    "name": "subscriptions",
+    "customer": "daniela",
+    "message": "Add my subscriptions.",
+    "selected": null,
+    "seconds": 6.1,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "payees": [
+            "phone",
+            "internet",
+            "streaming",
+            "software",
+            "gym",
+            "other_memberships"
+          ],
+          "template": "regular_payments"
+        },
+        "summary": null,
+        "plan": "Add a tile showing my regular subscriptions as a list of payees and amounts.",
+        "error": "No regular payment to phone. The upcoming payees are: Wohnbaugenossenschaft Talgut, Zahnarztpraxis Neuwiesen, Ratenwerk Finanz, Lebara Schweiz, Stadt Winterthur, Sunrise, Steueramt Winterthur, Assura-Basis, Stadtwerk Winterthur. Send the call again without it."
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "payees": [
+            "Wohnbaugenossenschaft Talgut",
+            "Ratenwerk Finanz",
+            "Lebara Schweiz",
+            "Stadt Winterthur",
+            "Sunrise",
+            "Steueramt Winterthur",
+            "Assura-Basis",
+            "Stadtwerk Winterthur"
+          ],
+          "template": "regular_payments"
+        },
+        "summary": "Added \"Regular payments\"",
+        "plan": "Add a tile showing my regular subscriptions using only the payees that actually exist in my bookings: Wohnbaugenossenschaft Talgut, Ratenwerk Finanz, Lebara Schweiz, Stadt Winterthur, Sunrise, Steueramt Winterthur, Assura-Basis, Stadtwerk Winterthur.",
+        "error": null
+      }
+    ],
+    "answer": "Regular payments were added to your board. This group includes an upcoming round of payments totalling CHF 2'647.90 due over the next month, with individual charges ranging from CHF 19.90 to CHF 1'640.00.\n\nNo income was mentioned as available in the data provided.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "1 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  },
+  {
+    "name": "tile_meaning",
+    "customer": "daniela",
+    "message": "What is this tile telling me?",
+    "selected": "payday_balance",
+    "seconds": 6.6,
+    "passed": false,
+    "problems": [
+      "check figures_found failed: 9 of 11 found; not found: 15, 21"
+    ],
+    "calls": [],
+    "answer": "The tile shows that after covering all 8 upcoming bills totaling CHF 2'950.20 before your salary on 24.12.2026, only CHF 124.96 will remain on your Privatkonto on 23.12.2026 — just CHF 4.63 per day for 27 days.\n\nIf the expected child support from Patrick Rüegg (CHF 1'050.00) arrives, the day before payday, CHF 1'174.96 would be left instead — meaning your money would last at CHF 43.52 per day.\n\nThis situation reveals a narrow buffer and the critical nature of the upcoming dentist bill, which cannot wait — it is due this 30th of November. All other bills listed fall due on later dates: 3rd December, 7th December, 10th December, 15th December, and 21st December. Whether any other payee would accept a delay is not known; you would have to ask them directly.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "figures_found",
+        "passed": false,
+        "detail": "9 of 11 found; not found: 15, 21"
+      }
+    ]
+  },
+  {
+    "name": "bills_wait",
+    "customer": "daniela",
+    "message": "Which of these can wait?",
+    "selected": "bills_until_payday",
+    "seconds": 3.9,
+    "passed": true,
+    "problems": [],
+    "calls": [],
+    "answer": "The payment to Zahnarztpraxis Neuwiesen (CHF 440.00) cannot wait — it is due in 3 days on 30.11.2026 and marked as a reminder.\n\nThe remaining bills are due on 27.11., 07.12., 10.12., 15.12., 21.12., and 23.12.; you would need to ask each payee whether they could defer their respective payments — as no reassurance exists that they would agree to wait.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "1 of 1 found"
+      },
+      {
+        "name": "dates_match",
+        "passed": true,
+        "detail": "1 of 1 matched"
+      }
+    ]
+  },
+  {
+    "name": "lina_board",
+    "customer": "daniela",
+    "message": "Start a board about Lina.",
+    "selected": null,
+    "seconds": 10.1,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "create_board",
+        "arguments": {
+          "about": "Lina"
+        },
+        "summary": "New board \"Lina\"",
+        "plan": "Create a new board about Lina as requested.",
+        "error": null
+      }
+    ],
+    "answer": "New board for Lina is now available in your space.\n\nThe tile “Dentist bill due soon” carries the meaning “This cannot wait” and shows CHF 440. 00.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "1 of 1 found"
+      }
+    ]
+  },
+  {
+    "name": "health_board",
+    "customer": "daniela",
+    "message": "How much did I pay for health insurance this year?",
+    "selected": null,
+    "seconds": 7.6,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "text": "health insurance"
+        },
+        "summary": null,
+        "plan": "Need to find all payments related to health insurance by searching movements with the payee name or text containing 'health insurance' and then summing them up.",
+        "error": "No movement in the whole ledger contains \"health insurance\". Movements carry no category: call sum_by_counterparty for the period without text to see who the customer pays, then search for those names. For health insurance, search the insurers' names, such as Krankenversicherung, Krankenkasse, Assura, CSS, Helsana, Sanitas, Swica or Visana, each as its own word in text, with date_from and date_to of the period asked about: money_out_chf is then the sum."
+      },
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "text": "Krankenversicherung|Krankenkasse|Assura|CSS|Helsana|Sanitas|Swica|Visana"
+        },
+        "summary": null,
+        "plan": "Search for health insurance payments by looking for insurer names in the movement text, then sum them up.",
+        "error": null
+      }
+    ],
+    "answer": "You have made a total of CHF 9'256.80 in health‑insurance payments so far this year (sum of the monthly premiums paid to Assura‑Basis SA from January through November 2026).\n\nNo other health‑insurance transactions appear in the ledger; no further payments or income related to health insurance have been recorded.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "1 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "1 of 1 found"
+      }
+    ]
+  },
+  {
+    "name": "japan",
+    "customer": "lukas",
+    "message": "We want to go to Japan in 2027. Keep an eye on that for me.",
+    "selected": null,
+    "seconds": 12.5,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "create_board",
+        "arguments": {
+          "about": "Our trip to Japan in 2027"
+        },
+        "summary": "New board \"Japan 2027\"",
+        "plan": "Create a new board for the Japan trip and propose a context entry about the goal.",
+        "error": null
+      },
+      {
+        "tool": "propose_context_entry",
+        "arguments": {
+          "kind": "goal",
+          "text": "You are planning a trip to Japan in 2027."
+        },
+        "summary": null,
+        "plan": "Create a new board for the Japan trip and propose a context entry about the goal.",
+        "error": null
+      }
+    ],
+    "answer": "Your board \"Japan 2027\" has been created and is now available.\n\nA goal has been proposed to plan your trip to Japan in 2027.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      }
+    ]
+  },
+  {
+    "name": "health_chat",
+    "customer": "lukas",
+    "message": "How much did I pay for health insurance this year?",
+    "selected": null,
+    "seconds": 13.4,
+    "passed": true,
+    "problems": [],
+    "calls": [
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "kind": "spending",
+          "text": "health insurance"
+        },
+        "summary": null,
+        "plan": "Need to find all payments related to health insurance by searching movements with the payee name or text containing 'health insurance' or similar terms.",
+        "error": "No movement in the whole ledger contains \"health insurance\". Movements carry no category: call sum_by_counterparty for the period without text to see who the customer pays, then search for those names. For health insurance, search the insurers' names, such as Krankenversicherung, Krankenkasse, Assura, CSS, Helsana, Sanitas, Swica or Visana, each as its own word in text, with date_from and date_to of the period asked about: money_out_chf is then the sum."
+      },
+      {
+        "tool": "search_movements",
+        "arguments": {
+          "kind": "spending",
+          "text": "Krankenversicherung|Krankenkasse|Assura|CSS|Helsana|Sanitas|Swica|Visana"
+        },
+        "summary": null,
+        "plan": "Search for health insurance payments by looking for insurer names such as Krankenversicherung, Krankenkasse, Assura, CSS, Helsana, Sanitas, Swica, Visana in the movement text, filtering for spending kind.",
+        "error": null
+      }
+    ],
+    "answer": "I looked for payments labeled \"health insurance\" but did not find any matching entries. However, I found 36 recorded payments on your account this year, and among them, payments clearly designated as health insurance premiums were made to Mythen Krankenversicherung AG.\n\nFor the year 2026 (from January 1, 2026 to November 27, 2026), you paid a total of CHF 16'216.80 in monthly health insurance premiums to Mythen Krankenversicherung AG. This amount comes directly from the e‑banking transaction list showing recurring monthly payments of CHF 467.40 to Mythen Krankenversicherung AG between February 24 and November 24, 2026.\n\nSource of premium amounts: e‑banking transaction list showing recurring monthly payments of CHF 467.40 to Mythen Krankenversicherung AG between February 24 and November 24, 2026.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": false,
+        "detail": "1 of 2"
+      },
+      {
+        "name": "figures_found_draft",
+        "passed": false,
+        "detail": "4 of 5 found; not found: 3'736.80"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "4 of 4 found"
+      }
+    ]
+  }
+]
