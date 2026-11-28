@@ -35,7 +35,8 @@ export function MemoryCard({
   }
 
   if (answer === "dismissed") return null;
-  if (answer === "saved") return <span className="meta">Saved to your profile</span>;
+  if (answer === "saved")
+    return <span className="meta">Saved to your profile</span>;
   return (
     <div className="mem">
       <span className="k">

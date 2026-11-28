@@ -226,8 +226,8 @@ export function BoardScreen({
           ) : (
             <div className="stack">
               <p className="more-hint">
-                This board is small on purpose: it shows only what your
-                accounts say about it. Tell the chat what else belongs here.
+                This board is small on purpose: it shows only what your accounts
+                say about it. Tell the chat what else belongs here.
               </p>
             </div>
           )}

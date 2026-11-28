@@ -25,8 +25,8 @@ export function BuildTrace({
         <span>{note}</span>
       </summary>
       <p className="lead">
-        The server reads and computes every figure. Apertus decides what
-        matters and names it.
+        The server reads and computes every figure. Apertus decides what matters
+        and names it.
       </p>
       <ol aria-live={isLive ? "polite" : undefined}>
         {steps.map((step) => (

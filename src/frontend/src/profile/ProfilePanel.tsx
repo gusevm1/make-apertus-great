@@ -156,10 +156,14 @@ function NoteRow({
     if (text === note.text) return setDraft(null);
     void run(async () => {
       // A change makes a new entry; the old one is kept by the backend.
-      const updated = await api<Note>(`/api/context-entries/${note.id}`, token, {
-        ...json({ text }),
-        method: "PATCH",
-      });
+      const updated = await api<Note>(
+        `/api/context-entries/${note.id}`,
+        token,
+        {
+          ...json({ text }),
+          method: "PATCH",
+        },
+      );
       onChanged(updated);
     });
   }
@@ -183,7 +187,17 @@ function NoteRow({
           aria-label="Edit this note"
           onClick={() => setDraft(note.text)}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <path d="M8.6 2.6 11.4 5.4 5 11.8H2.2V9Z" />
           </svg>
         </button>
@@ -295,8 +309,8 @@ function Documents({ token }: { token: string }) {
         )}
         {documents?.length === 0 && (
           <p className="hint">
-            Nothing yet. Add a payslip, a contract or a reminder and I can
-            read it.
+            Nothing yet. Add a payslip, a contract or a reminder and I can read
+            it.
           </p>
         )}
         {documents?.map((document) => (
@@ -331,7 +345,16 @@ function Documents({ token }: { token: string }) {
         disabled={isUploading}
         onClick={() => picker.current?.click()}
       >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
           <path d="M7 2.5v9M2.5 7h9" />
         </svg>
         {isUploading ? "Reading the document…" : "Add a document"}
@@ -355,7 +378,8 @@ function DocumentRow({
   const dot = document.name.lastIndexOf(".");
   const badge =
     dot === -1 ? "FILE" : document.name.slice(dot + 1, dot + 5).toUpperCase();
-  const kind = document.kind === null ? null : (KIND_LABELS[document.kind] ?? null);
+  const kind =
+    document.kind === null ? null : (KIND_LABELS[document.kind] ?? null);
 
   async function remove() {
     setIsSending(true);
@@ -405,7 +429,17 @@ function DocumentRow({
           aria-label={`Delete ${document.name}`}
           onClick={() => setIsAsking(true)}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
             <path d="M2.5 4h9M5.5 4V2.5h3V4M3.8 4l.5 7.5h5.4l.5-7.5" />
           </svg>
         </button>

@@ -91,7 +91,9 @@ export function Dock({
                 }}
                 onDoubleClick={() => startRename(board)}
               >
-                {board.id === freshId && <i className="fresh" aria-label="New" />}
+                {board.id === freshId && (
+                  <i className="fresh" aria-label="New" />
+                )}
                 {board.name}
               </button>
               {isOpen && (

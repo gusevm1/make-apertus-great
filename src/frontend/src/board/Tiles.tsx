@@ -878,6 +878,9 @@ function CardBill({
   );
 }
 
-function incomeName(alternative: { counterparty: string; label?: string | null }) {
+function incomeName(alternative: {
+  counterparty: string;
+  label?: string | null;
+}) {
   return alternative.label ?? `the payment from ${alternative.counterparty}`;
 }

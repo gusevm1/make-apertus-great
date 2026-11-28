@@ -54,7 +54,11 @@ export function Composer({
   }
 
   return (
-    <form className="compose" aria-label="Ask TrustRoom" onSubmit={handleSubmit}>
+    <form
+      className="compose"
+      aria-label="Ask TrustRoom"
+      onSubmit={handleSubmit}
+    >
       {tile !== null && (
         <span className="about">
           {tile.title}

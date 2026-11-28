@@ -49,7 +49,13 @@ export function SendIcon() {
 
 export function CloseIcon({ size = 10 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 10 10" {...BASE} strokeWidth="1.6">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 10 10"
+      {...BASE}
+      strokeWidth="1.6"
+    >
       <path d="M2 2l6 6M8 2l-6 6" />
     </svg>
   );

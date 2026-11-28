@@ -152,8 +152,8 @@ export function NewBoard({
 
       {failure !== null && (
         <p className="error-note" role="alert">
-          The board was not built. {failure.message} Your words are still in
-          the field.
+          The board was not built. {failure.message} Your words are still in the
+          field.
         </p>
       )}
       {voice.failure !== null && (

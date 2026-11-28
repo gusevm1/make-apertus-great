@@ -72,6 +72,7 @@
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 20px;
-  --font-family: "Geist Variable", Geist, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-family:
+    "Geist Variable", Geist, system-ui, -apple-system, "Segoe UI", sans-serif;
   --top-height: 64px;
 }
