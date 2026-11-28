@@ -64,10 +64,14 @@ def _meaning(payload: AnyPayload, today: date) -> str:
             shops = ", ".join(
                 f"{row.merchant} {_chf(amount=row.amount_chf)}" for row in payload.rows
             )
-            return (
+            text = (
                 f"From {_day(day=payload.date_from)} to {_day(day=payload.date_to)}, "
                 f"{_chf(amount=payload.figure_chf)} went to these shops: {shops}."
             )
+            if len(payload.rows) < 2:
+                return text
+            top = payload.rows[0]
+            return f"{text} Most of it went to {top.merchant}, {_chf(amount=top.amount_chf)}."
         case SavingsGoalPayload():
             return _savings_goal(payload=payload)
         case BillPayload():

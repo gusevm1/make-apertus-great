@@ -11,13 +11,14 @@ SAVED_LISTED = 8
 
 
 def board_guide(
-    signals: list[Signal], labels: dict[str, str], notes: list[str], saved: list[str]
+    signals: list[Signal], labels: dict[str, str], notes: list[str], saved: list[str], payees: str
 ) -> str:
     """The board decision's job; `labels` maps a signal id to the tile it is on the board as."""
     lines = "\n".join(_signal(signal=signal, label=labels.get(signal.id)) for signal in signals)
     return PROMPTS["guide"].format(
         signals=lines or "(none)",
         notes="\n".join(f"- {note}" for note in notes) or "(none)",
+        payees=_escaped(text=payees) or "(none)",
         saved="\n".join(f"- {_escaped(text=note)}" for note in saved[:SAVED_LISTED]) or "(none)",
         catalogue=PROMPTS["catalogue"],
     )
@@ -91,3 +92,32 @@ def _json(value: Any) -> str:
 def _escaped(text: str) -> str:
     # Escaped, a text can neither close its block nor open a tag of its own.
     return text.replace("<", "&lt;").replace(">", "&gt;")
+
+
+def payee_lines(facts: str) -> str:
+    """The digest's lists of the largest payees, with their headings, from its facts text."""
+    lines: list[str] = []
+    in_list = False
+    for line in facts.splitlines():
+        if line.startswith("Largest payees"):
+            in_list = True
+            lines.append(line)
+        elif in_list and line.startswith("- "):
+            lines.append(f"  {line}")
+        else:
+            in_list = False
+    return "\n".join(lines)
+
+
+def payee_names(facts: str, period: str) -> set[str]:
+    """The payees the digest lists for a period, such as this_month, in lower case."""
+    names: set[str] = set()
+    in_period = False
+    for line in facts.splitlines():
+        if line.startswith("Largest payees"):
+            in_period = f"period {period} " in line
+        elif in_period and line.startswith("- "):
+            names.add(line[2:].rsplit(":", 1)[0].casefold())
+        else:
+            in_period = False
+    return names

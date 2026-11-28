@@ -68,6 +68,9 @@ answer_board: >-
   words "meaning", "tile" or "as stated", never a percentage above 100, and never end with a
   sentence that says nothing new.
   When my message only asks for a change, one sentence about the change is the whole answer.
+  When my message changes something and also adds something, answer in one short paragraph
+  about the added figure only, such as "You spent CHF 1'092.35 on groceries in November, most
+  of it at Lidl, CHF 505.75.", and nothing about what was removed, renamed or moved.
   When my message asks to show, add or track something, answer in one or two sentences what
   my board now shows, with its key figures as its meaning gives them, and nothing about income,
   cases or tiles the meaning does not name.

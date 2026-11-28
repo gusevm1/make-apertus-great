@@ -51,8 +51,12 @@ guide: |
   - "Move the dentist bill to the top.": move_tile {{"tile": "T5", "to": "top"}}.
   - "Make the spending chart show 12 months.": change_tile {{"tile": "T2", "months": 12}}, the
     tile with the monthly_spending template.
-  - "Show me what I spend at Migros and Coop each month.": add_tile {{"template":
-    "monthly_spending", "months": 6, "merchants": ["Migros", "Coop"]}}.
+  - "Show me what I spend at <shop A> and <shop B> each month.": add_tile {{"template":
+    "monthly_spending", "months": 6, "merchants": ["<shop A>", "<shop B>"]}}, exactly the
+    shops I name, as the list of my payees below writes them.
+  - "Add what I spend on groceries.": add_tile {{"template": "merchant_spending", "period":
+    "this_month", "merchants": [...], "title": "Groceries in <month>"}}, with every grocery
+    shop of my this_month payees below, all of them, written as the list writes them.
   - "Add my subscriptions.": add_tile {{"template": "regular_payments", "payees": [...]}} with
     only those payees of the signals that are a subscription: a phone or internet provider,
     streaming, software, a gym or another membership, written as the signals write them. Never a
@@ -67,6 +71,17 @@ guide: |
 
   The signals the server found in this customer's data, strongest first:
   {signals}
+
+  Shops and payees, for a tile about a kind of spending:
+  - For a kind of spending, such as groceries, restaurants, fuel, pharmacy, clothing or online
+    shops, choose every payee of the list below for the tile's period (this_month or
+    last_3_months) that belongs to that kind, and none that is not on that list. Swiss grocery
+    shops are such as Migros, Coop, Lidl, Aldi, Denner, Volg, Spar and Landi. Names in <...> are placeholders, never send them.
+  - When I name shops myself, use exactly those, as the list writes them.
+  - Give such a tile a title of two to four words with the kind of spending and the period,
+    such as "Groceries in November" or "Restaurants since August".
+  My largest payees, as the bookings name them:
+  {payees}
 
   Notes the bank suggests for this customer's profile:
   {notes}
@@ -145,3 +160,4 @@ both_cases_there: Both are on your board already.
 new_board: "The new board about {about} starts with, first: {tiles} {missing}"
 new_board_tile: '"{title}": {meaning}'
 new_board_empty: "none yet."
+unknown_merchants: "{error} Send the call again with the customer's payees that fit, as this list writes them:\n{payees}"

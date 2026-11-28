@@ -88,6 +88,11 @@ _SENTENCE_DASH = re.compile(r"\s+[—–]\s+|\s*—\s*")
 _DAY_WITH_YEAR = re.compile(r"\b(\d{1,2})\. ?(\d{1,2})\.(?: ?(\d{4})\b)?")
 # Words about our own machinery that an answer beside a board never needs.
 _BOARD_WORDS = re.compile(r",? as (?:stated|shown|given) in (?:the|its) meaning", re.I)
+# A first sentence that only says what changed, such as: Done, "X" has been removed.
+_DONE_SENTENCE = re.compile(
+    r"^\s*(?:Done\b[.,:!]?\s*)?[^.!?\n]*\b(?:removed|renamed|moved|added)\b[^.!?\n]*[.!]\s*",
+    re.I,
+)
 _SENTENCE_START = re.compile(r"(?<=[.!?])\s+(?=[A-ZÄÖÜ])")
 # A last sentence keeps its place when it holds a figure, a name or advice.
 _FACT = re.compile(r"\d|\b(?:payee|tell me|let me|ask|you could|you can)\b", re.I)
@@ -804,6 +809,8 @@ def board_style(text: str, year: int) -> str:
     text = _DAY_MONTH_YEAR.sub(lambda match: _swiss_day(match=match, year=year), text)
     text = _DAY_WITH_YEAR.sub(lambda match: _swiss_date(match=match, year=year), text)
     text = _BOARD_WORDS.sub("", text)
+    # What was removed, renamed or moved the summaries under the answer say already.
+    text = _without_done_sentence(text=text)
     # The year was the sentence's end: its full stop is the day's own.
     return _DAY_THEN_STOP.sub(r"\1", text)
 
@@ -852,3 +859,12 @@ def without_empty_end(text: str) -> str:
         return text
     rest = " ".join(sentences[:-1])
     return "\n\n".join([*paragraphs[:-1], rest] if rest != "" else paragraphs[:-1])
+
+
+def _without_done_sentence(text: str) -> str:
+    # The summaries under the answer say what changed; a figure in the sentence keeps it.
+    match = _DONE_SENTENCE.match(text)
+    if match is None or re.search(r"\d", match[0]) is not None:
+        return text
+    rest = text[match.end() :]
+    return text if rest.strip() == "" else rest.lstrip()

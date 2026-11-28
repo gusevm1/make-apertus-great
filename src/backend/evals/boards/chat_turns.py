@@ -115,6 +115,12 @@ class Turn(BaseModel):
     contains: list[str] = []
     # A note saved as active before the turn, deleted after it.
     saved_note: str | None = None
+    # The board's tiles for this turn instead of the customer's fixed board.
+    tiles: list[tuple[str, dict[str, Any], str]] | None = None
+    # A shop tile's merchants must hold these and none of those; a summary must hold this.
+    merchants_in: list[str] = []
+    merchants_out: list[str] = []
+    summary_contains: str | None = None
 
 
 TURNS = [
@@ -182,6 +188,34 @@ TURNS = [
         starts_with="Yes",
         contains=["124.96", "1'174.96"],
         max_sentences=4,
+    ),
+    Turn(
+        name="groceries",
+        customer="daniela",
+        message="Remove the monthly cash flow tile and add what I spend on groceries.",
+        tiles=[
+            BOARDS["daniela"][0],
+            BOARDS["daniela"][1],
+            ("income_and_spending", {"months": 6}, "Monthly cash flow"),
+            BOARDS["daniela"][3],
+        ],
+        board_tools={"remove_tile", "add_tile"},
+        merchants_in=["Lidl", "Aldi", "Migros", "Denner"],
+        merchants_out=["Coop"],
+        summary_contains="Groceries",
+        contains=["1'092.35"],
+        max_sentences=2,
+    ),
+    Turn(
+        name="named_shops",
+        customer="daniela",
+        message="Show me what I spend at Migros and Denner this month.",
+        tiles=[BOARDS["daniela"][0], BOARDS["daniela"][1], BOARDS["daniela"][3]],
+        board_tools={"add_tile"},
+        merchants_in=["Migros", "Denner"],
+        merchants_out=["Lidl", "Aldi", "Coop"],
+        propose=None,
+        max_sentences=3,
     ),
     Turn(
         name="remove",
@@ -293,11 +327,13 @@ async def ensure_boards(client: httpx.AsyncClient) -> None:
         (await client.post("/api/board-plans", json={})).raise_for_status()
 
 
-async def fixed_board(client: httpx.AsyncClient, customer: str) -> dict[str, Any]:
+async def fixed_board(
+    client: httpx.AsyncClient, customer: str, tiles: list[tuple[str, dict[str, Any], str]] | None
+) -> dict[str, Any]:
     board = (
         (await client.post("/api/boards", json={"name": "Eval board"})).raise_for_status().json()
     )
-    for template, args, title in BOARDS[customer]:
+    for template, args, title in BOARDS[customer] if tiles is None else tiles:
         tile = await client.post(
             f"/api/boards/{board['id']}/tiles",
             json={"template": template, "args": args, "title": title},
@@ -359,6 +395,30 @@ def problems_of(
     for word in turn.forbidden_args:
         if word in arguments:
             problems.append(f"{word} in the arguments")
+    # The shops of the tile as drawn, which the server may have narrowed to the customer's payees.
+    shops = [
+        str(row.get("merchant"))
+        for call in calls
+        if call["error"] is None and call["tool_name"] in {"add_tile", "change_tile"}
+        for row in ((call.get("result") or {}).get("figures") or {}).get("rows") or []
+        if "merchant" in row
+    ] or [
+        str(name)
+        for call in calls
+        if call["error"] is None and call["tool_name"] in {"add_tile", "change_tile"}
+        for name in call["arguments"].get("merchants") or []
+    ]
+    for name in turn.merchants_in:
+        if not any(name.casefold() in shop.casefold() for shop in shops):
+            problems.append(f"{name} not among the shops {shops}")
+    for name in turn.merchants_out:
+        if any(name.casefold() in shop.casefold() for shop in shops):
+            problems.append(f"{name} among the shops")
+    summaries = " ".join(
+        str((call.get("result") or {}).get("summary")) for call in calls if call["error"] is None
+    )
+    if turn.summary_contains is not None and turn.summary_contains not in summaries:
+        problems.append(f"no summary with {turn.summary_contains!r}: {summaries}")
     if turn.propose is True and PROPOSE not in ran:
         problems.append("no profile note proposed")
     if turn.propose is False and PROPOSE in ran:
@@ -417,7 +477,7 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
     async with httpx.AsyncClient(
         base_url=base_url, headers=headers, timeout=TIMEOUT_SECONDS
     ) as client:
-        board = await fixed_board(client=client, customer=turn.customer) if turn.board else None
+        board = await fixed_board(client=client, customer=turn.customer, tiles=turn.tiles) if turn.board else None
         conversation = (
             (await client.post("/api/conversations", json={"title": "eval"}))
             .raise_for_status()
@@ -433,6 +493,10 @@ async def run_turn(base_url: str, turn: Turn, token: str) -> dict[str, Any]:
             if selected is not None:
                 body["tile_id"] = selected["id"]
         calls: list[dict[str, Any]] = []
+        active = (await client.get("/api/context-entries", params={"status": "active"})).json()
+        # A note the customer saved in the page already: the turn must not propose it again.
+        if turn.propose is True and any(entry["text"] == CHILD_SUPPORT_NOTE for entry in active):
+            turn = turn.model_copy(update={"propose": False})
         saved_id = None
         if turn.saved_note is not None:
             saved = await client.post(

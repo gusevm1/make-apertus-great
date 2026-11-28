@@ -1,0 +1,159 @@
+[
+  {
+    "name": "groceries",
+    "customer": "daniela",
+    "message": "Remove the monthly cash flow tile and add what I spend on groceries.",
+    "selected": null,
+    "seconds": 14.9,
+    "passed": false,
+    "path": "model",
+    "problems": [
+      "Coop among the shops"
+    ],
+    "calls": [
+      {
+        "tool": "remove_tile",
+        "arguments": {
+          "tile": "T3"
+        },
+        "summary": "Removed \"Monthly cash flow\"",
+        "plan": "Remove the monthly cash flow tile and add a tile showing my grocery spending for this month.",
+        "error": null
+      },
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Groceries in November",
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Lidl",
+            "Aldi",
+            "Migros",
+            "Coop",
+            "Denner",
+            "Volg",
+            "Spar",
+            "Landi"
+          ]
+        },
+        "summary": "Added \"Groceries in November\"",
+        "plan": "Remove the monthly cash flow tile and add a tile showing my grocery spending for this month.",
+        "error": null
+      }
+    ],
+    "answer": "Added \"Groceries in November\": You spent CHF 1'092.35 on groceries from 01.11. to 27.11. Most of it went to Lidl with CHF 505.75.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "2 of 2"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "2 of 2 found"
+      }
+    ]
+  },
+  {
+    "name": "named_shops",
+    "customer": "daniela",
+    "message": "Show me what I spend at Migros and Denner this month.",
+    "selected": null,
+    "seconds": 13.0,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Groceries and shopping at Migros & Denner this month",
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Denner"
+          ]
+        },
+        "summary": "Added \"Groceries and shopping at Migros & Denner this month\"",
+        "plan": "Add a tile showing spending at Migros and Denner this month.",
+        "error": null
+      }
+    ],
+    "answer": "Groceries and shopping at Migros and Denner this month totalled CHF 358.58. CHF 219.69 went to Migros and CHF 138.89 to Denner.\n\nMost of the spending was at Migros, with CHF 219.69 spent there compared to CHF 138.89 at Denner.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "5 of 5 found"
+      },
+      {
+        "name": "figures_in_context",
+        "passed": true,
+        "detail": "1 of 1 fit"
+      }
+    ]
+  },
+  {
+    "name": "migros_coop",
+    "customer": "daniela",
+    "message": "Show me what I spend at Migros and Coop each month.",
+    "selected": null,
+    "seconds": 10.3,
+    "passed": true,
+    "path": "model",
+    "problems": [],
+    "calls": [
+      {
+        "tool": "add_tile",
+        "arguments": {
+          "title": "Groceries at Migros and Coop this month",
+          "period": "this_month",
+          "template": "merchant_spending",
+          "merchants": [
+            "Migros",
+            "Coop"
+          ]
+        },
+        "summary": "Added \"Groceries at Migros and Coop this month\"",
+        "plan": "Add a tile showing my spending at Migros and Coop each month.",
+        "error": null
+      }
+    ],
+    "answer": "You have spent CHF 232.34 at Migros and Coop so far this month. \n\nMost of that went to Migros, CHF 219.69, with Coop accounting for CHF 12.65.",
+    "checks": [
+      {
+        "name": "guardrail",
+        "passed": true,
+        "detail": "ok"
+      },
+      {
+        "name": "tool_calls_valid",
+        "passed": true,
+        "detail": "1 of 1"
+      },
+      {
+        "name": "figures_found",
+        "passed": true,
+        "detail": "3 of 3 found"
+      }
+    ]
+  }
+]
