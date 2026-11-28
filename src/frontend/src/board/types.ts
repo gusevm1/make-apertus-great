@@ -163,6 +163,7 @@ export interface MerchantSpendingPayload extends PayloadBase {
   date_from: string;
   date_to: string;
   rows: MerchantRow[];
+  view: "bars" | "donut";
 }
 
 export interface SavingsGoalPayload extends PayloadBase {
@@ -205,6 +206,7 @@ export interface MonthlySpendingPayload extends PayloadBase {
   template: "monthly_spending";
   months: SpendingMonth[];
   highest: string;
+  view: "bars" | "line";
 }
 
 export interface CashflowMonth {

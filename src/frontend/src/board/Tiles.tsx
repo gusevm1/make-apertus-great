@@ -456,23 +456,79 @@ function MerchantSpending({
   return (
     <>
       <Figure amount={payload.figure_chf} isHero={isHero} isSmall={isSmall} />
-      <div className="shops num">
-        {payload.rows.map((row) => (
-          <div key={row.merchant} className="shop">
-            <span>{row.merchant}</span>
-            <span className="t">
-              <span
-                style={{
-                  width: `${Math.min(100, Math.max(0, row.share * 100))}%`,
-                }}
-              />
+      {payload.view === "donut" ? (
+        <ShopDonut payload={payload} />
+      ) : (
+        <div className="shops num">
+          {payload.rows.map((row) => (
+            <div key={row.merchant} className="shop">
+              <span>{row.merchant}</span>
+              <span className="t">
+                <span
+                  style={{
+                    width: `${Math.min(100, Math.max(0, row.share * 100))}%`,
+                  }}
+                />
+              </span>
+              <span className="v">{money(row.amount_chf)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <SourceLink source={payload.source} onSource={onSource} />
+    </>
+  );
+}
+
+const DONUT_COLORS = [...ALLOCATION_COLORS, "var(--muted)"];
+// A circle of this radius is 100 long, so a share in percent is its stroke length.
+const DONUT_RADIUS = 15.9155;
+
+function ShopDonut({ payload }: { payload: MerchantSpendingPayload }) {
+  const total = payload.figure_chf;
+  const slices = payload.rows.map((row, index) => ({
+    ...row,
+    percent: total > 0 ? (row.amount_chf / total) * 100 : 0,
+    color: DONUT_COLORS[index % DONUT_COLORS.length],
+  }));
+  const starts = slices.map((_, index) =>
+    slices.slice(0, index).reduce((sum, slice) => sum + slice.percent, 0),
+  );
+  return (
+    <div className="donut num">
+      <svg
+        viewBox="0 0 42 42"
+        role="img"
+        aria-label={slices
+          .map((slice) => `${slice.merchant} ${percent(slice.percent)}`)
+          .join(", ")}
+      >
+        {slices.map((slice, index) => (
+          <circle
+            key={slice.merchant}
+            cx="21"
+            cy="21"
+            r={DONUT_RADIUS}
+            fill="none"
+            stroke={slice.color}
+            strokeWidth="6"
+            strokeDasharray={`${slice.percent} ${100 - slice.percent}`}
+            strokeDashoffset={25 - starts[index]}
+          />
+        ))}
+      </svg>
+      <div className="shops">
+        {slices.map((slice) => (
+          <div key={slice.merchant} className="shop">
+            <span>
+              <i style={{ background: slice.color }} />
+              {slice.merchant}
             </span>
-            <span className="v">{money(row.amount_chf)}</span>
+            <span className="v">{money(slice.amount_chf)}</span>
           </div>
         ))}
       </div>
-      <SourceLink source={payload.source} onSource={onSource} />
-    </>
+    </div>
   );
 }
 
@@ -601,6 +657,8 @@ function Securities({
 // --- monthly_spending and income_and_spending -------------------------------------------------
 
 const BAR_HEIGHT = 104;
+// The line view's plot height in px, which its SVG and the dots on the buttons share.
+const LINE_HEIGHT = 132;
 
 function barHeight(value: number, highest: number): number {
   if (highest <= 0 || value <= 0) return 2;
@@ -628,6 +686,7 @@ function MonthlySpending({
     ...payload.months.map((month) => month.total_chf),
   );
   const top = payload.months.find((month) => month.month === payload.highest);
+  const isLine = payload.view === "line";
   return (
     <>
       {isHero && (
@@ -637,11 +696,11 @@ function MonthlySpending({
         </>
       )}
       <div
-        className={
-          payload.months.length > LABELLED_BARS_MAX
-            ? "bars many num"
-            : "bars num"
-        }
+        className={[
+          "bars num",
+          payload.months.length > LABELLED_BARS_MAX ? "many" : "",
+          isLine ? "line" : "",
+        ].join(" ")}
         role="group"
         aria-label={
           top === undefined
@@ -660,13 +719,42 @@ function MonthlySpending({
               onSource(monthView(payload.source, month.month, month.count));
             }}
           >
-            <span className="v">{moneyRounded(month.total_chf)}</span>
+            <span
+              className="v"
+              style={
+                isLine
+                  ? { bottom: barHeight(month.total_chf, highest) + 10 }
+                  : undefined
+              }
+            >
+              {moneyRounded(month.total_chf)}
+            </span>
             <span
               className="b"
-              style={{ height: barHeight(month.total_chf, highest) }}
+              style={
+                isLine
+                  ? { bottom: barHeight(month.total_chf, highest) - 4 }
+                  : { height: barHeight(month.total_chf, highest) }
+              }
             />
           </button>
         ))}
+        {isLine && (
+          <svg
+            viewBox={`0 0 ${payload.months.length} ${LINE_HEIGHT}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <polyline
+              points={payload.months
+                .map(
+                  (month, index) =>
+                    `${index + 0.5},${LINE_HEIGHT - barHeight(month.total_chf, highest)}`,
+                )
+                .join(" ")}
+            />
+          </svg>
+        )}
       </div>
       <div className="mlabels" aria-hidden="true">
         {payload.months.map((month) => (

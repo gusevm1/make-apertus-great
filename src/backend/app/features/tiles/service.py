@@ -389,8 +389,10 @@ class TileService:
             merchant: -sum((row.amount_chf for row in group), Decimal(0))
             for merchant, group in by_merchant.items()
         }
-        names = sorted(totals, key=lambda name: totals[name], reverse=True)
-        largest = totals[names[0]]
+        names = sorted(
+            totals, key=lambda name: totals[name], reverse=args.order != "smallest_first"
+        )
+        largest = max(totals.values())
         matched = sorted(
             (row for group in by_merchant.values() for row in group), key=lambda row: row.date
         )
@@ -418,6 +420,7 @@ class TileService:
                 )
                 for name in names
             ],
+            view="bars" if args.view is None else args.view,
         )
 
     async def _savings_goal(
@@ -589,6 +592,7 @@ class TileService:
             ),
             months=months,
             highest=highest.month,
+            view="bars" if args.view is None else args.view,
         )
 
     async def _income_and_spending(
