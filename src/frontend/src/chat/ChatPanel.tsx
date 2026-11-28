@@ -549,6 +549,7 @@ function ChatInner({
         <History
           isOpen={isHistoryOpen}
           conversations={conversations}
+          isLoading={load === "loading"}
           activeId={activeId}
           boardId={boardId}
           boards={boards}
@@ -605,6 +606,7 @@ function ChatInner({
 function History({
   isOpen,
   conversations,
+  isLoading,
   activeId,
   boardId,
   boards,
@@ -613,6 +615,7 @@ function History({
 }: {
   isOpen: boolean;
   conversations: ConversationRef[];
+  isLoading: boolean;
   activeId: string | null;
   boardId: string | null;
   boards: { id: string; name: string }[];
@@ -691,9 +694,11 @@ function History({
         ))}
         {groups.length === 0 && (
           <p className="hint">
-            {conversations.length === 0
-              ? "No chats yet."
-              : "No chat has these words in its name."}
+            {isLoading
+              ? "Loading your chats…"
+              : conversations.length === 0
+                ? "No chats yet."
+                : "No chat has these words in its name."}
           </p>
         )}
       </nav>

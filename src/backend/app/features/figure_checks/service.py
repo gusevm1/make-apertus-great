@@ -45,7 +45,7 @@ _DATES = re.compile(
     rf"\b\d{{4}}{_HYPHEN}\d{{2}}{_HYPHEN}\d{{2}}\b|\b\d{{1,2}}\.\d{{1,2}}\.\d{{2,4}}\b"
     rf"|\b\d{{1,2}}\.?\s+(?:{_MONTHS})\b|\b(?:{_MONTHS})\b\.?\s+(?:\d{{4}}|\d{{1,2}})\b"
     # A Swiss day without its year, such as 23.12., never after a currency.
-    r"|(?<!CHF )(?<!CHF)(?<![\d.'\u2019])(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?!\d)"
+    r"|(?<!CHF )(?<!CHF)(?<![\d.'\u2019\u2032])(?:0?[1-9]|[12]\d|3[01])\.(?:0?[1-9]|1[0-2])\.(?!\d)"
     rf"|\b\d{{1,2}}(?:st|nd|rd|th)\s+(?:of\s+)?(?:{_MONTHS})\b"
     # A day of the month on its own, such as "before the 23rd".
     r"|\bthe \d{1,2}(?:st|nd|rd|th)\b"
@@ -79,10 +79,10 @@ _MONTH_NUMBERS = {
     "dec": 12,
 }
 # Thousands written with an apostrophe or a typographic space, never with a plain space.
-_THOUSANDS = "'\u2019\u00a0\u202f\u2009"
+_THOUSANDS = "'\u2019\u2032\u00a0\u202f\u2009"
 # 2'916.35, 2 916.35 with a narrow space, 114,599.33, 2916.35, 0,95, 12 %, 9.8k
 _NUMBER = re.compile(
-    rf"(?<![\w.,'\u2019])(?<!\d[{_THOUSANDS}])(\d{{1,3}}(?:[{_THOUSANDS}]\d{{3}})+"
+    rf"(?<![\w.,'\u2019\u2032])(?<!\d[{_THOUSANDS}])(\d{{1,3}}(?:[{_THOUSANDS}]\d{{3}})+"
     r"|\d{1,3}(?:,\d{3})+(?!\d|,\d)|\d+)"
     r"(?:[.,](\d+))?(\s?%|k\b)?"
 )
