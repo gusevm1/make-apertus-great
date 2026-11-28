@@ -254,6 +254,7 @@
 
 /* Swipe: one card, leaning towards the side it would go to. */
 .cat-deck {
+  overflow-x: clip;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -270,7 +271,28 @@
   touch-action: pan-y;
   user-select: none;
   cursor: grab;
+  transition:
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.22s,
+    box-shadow 0.15s;
+  animation: cat-card-in 0.22s ease-out;
+}
+
+/* Under the finger the card follows exactly; it eases only when let go. */
+.cat-swipe[data-dragging] {
   transition: box-shadow 0.15s;
+}
+
+.cat-swipe[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes cat-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
 }
 
 .cat-swipe:active {
@@ -394,8 +416,17 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cat-swipe,
   .cat-progress-track span {
     transition: none;
+  }
+
+  /* Cards fade instead of moving. */
+  .cat-swipe {
+    transition: opacity 0.15s;
+    animation: none;
+  }
+
+  .cat-swipe[data-leaving] {
+    transform: none !important;
   }
 }
