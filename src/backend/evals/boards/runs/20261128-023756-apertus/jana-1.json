@@ -1,0 +1,398 @@
+{
+ "customer": "jana",
+ "run": 1,
+ "request": null,
+ "seconds": 7.3,
+ "plan": {
+  "kind": "Young professional starting out with a tight monthly budget",
+  "evidence": [
+   "S2: On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "S3: Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\"."
+  ],
+  "question": "Will my money last until the next salary arrives?",
+  "boards": [
+   {
+    "name": "Budget Check Until Next Paycheck",
+    "tiles": [
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "What came in and went out each month"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Emergency fund progress"
+     },
+     {
+      "template": "pillar_3a",
+      "args": {},
+      "title": "Pillar 3a retirement savings"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Loan repayment to Andrea Widmer",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Pillar 3a retirement savings",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Loan repayment to Andrea Widmer",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 6728,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "4 of 6 resolved; dropped: Loan repayment to Andrea Widmer; Pillar 3a retirement savings; Loan repayment to Andrea Widmer"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Budget Check Until Next Paycheck",
+   "tiles": [
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "What came in and went out each month",
+     "payload": {
+      "figure_chf": 250.82,
+      "source": {
+       "label": "444 bookings, May to October",
+       "kind": "bookings",
+       "count": 444
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 5768.75,
+        "spending_chf": 5771.55,
+        "left_chf": -2.8
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 5773.75,
+        "spending_chf": 6116.82,
+        "left_chf": -343.07
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 5773.75,
+        "spending_chf": 4995.51,
+        "left_chf": 778.24
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 5763.75,
+        "spending_chf": 5735.49,
+        "left_chf": 28.26
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 5753.75,
+        "spending_chf": 4454.57,
+        "left_chf": 1299.18
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 5742.75,
+        "spending_chf": 5997.64,
+        "left_chf": -254.89
+       }
+      ]
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Emergency fund progress",
+     "payload": {
+      "figure_chf": 4919.2,
+      "source": {
+       "label": "1 transfer",
+       "kind": "bookings",
+       "count": 1
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto",
+      "goal_text": "Notgroschen CHF 10'000",
+      "goal_chf": 10000.0,
+      "percent": 49.2,
+      "month_change_chf": 250.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "pillar_3a",
+     "args": {},
+     "title": "Pillar 3a retirement savings",
+     "payload": {
+      "figure_chf": 3658.0,
+      "source": {
+       "label": "11 payments in 2026",
+       "kind": "bookings",
+       "count": 11
+      },
+      "template": "pillar_3a",
+      "year": 2026,
+      "maximum_chf": 7258.0,
+      "paid_chf": 3300.0,
+      "standing_orders_chf": 300.0,
+      "balance_chf": 3300.0,
+      "planned": []
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "private_loan",
+   "text": "A standing order repays a private loan to Andrea Widmer.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Andrea Widmer"
+    ]
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "cashflow_negative",
+   "text": "On average 250.82 was left per month over the last 6 months; in 3 months more went out than came in (2026-05, 2026-06, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto holds 4'919.20, 49 % of its goal \"Notgroschen CHF 10'000\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "tax_bill",
+   "text": "Steuerverwaltung des Kantons Bern is due on 30.11.2026: 1'180.00, \"Steuern 2026, 3. Rate (provisorisch)\".",
+   "strength": 35,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0131"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 3'300.00 of the maximum 7'258.00; after the standing orders 3'658.00 is missing.",
+   "strength": 35,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S6",
+   "kind": "due_soon",
+   "text": "6 payments of together 3'155.45 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: KPT Krankenkasse AG from 296.80 to 399.40 on 24.12.2025.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "KPT Krankenkasse AG"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 5'363.93 is left on Privatkonto after 6 payments, 198.66 a day. A month's spending is about 5'395.90.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S9",
+   "kind": "spending",
+   "text": "Spending averaged 5'511.93 a month over the last 6 months, highest in 2026-06.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "bills_before_payday",
+   "text": "6 payments of together 3'155.45 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'103.25 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Immobilien Aareblick AG",
+     "KPT Krankenkasse AG",
+     "Andrea Widmer",
+     "Activ Fitness AG",
+     "Sunrise GmbH",
+     "Wingo (Swisscom Schweiz AG)"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": false,
+   "detail": "tiles per board: [3]"
+  },
+  "hero_fits": {
+   "passed": true,
+   "detail": "hero income_and_spending; strongest headline signals: S2 income_and_spending, S3 savings_goal, S5 pillar_3a"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero's six-month income-versus-spending view with roughly CHF 250 left on average (and three negative months) directly answers Jana's own complaint that she earns well yet little remains at the end of the month and she has no picture of a normal budget."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "All three tiles are grounded in Jana's real situation — her monthly cash flow, her Sparkonto emergency fund she explicitly asks about, and the pillar 3a she opened in January 2026 — so none is generic filler or another kind of customer's material."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The titles are short, read naturally, use Jana's own terms (emergency fund, Pillar 3a), and each accurately describes what its tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "Every tile carries meaningful, non-zero figures from her data and the three cover distinct topics — monthly flow, savings-goal progress, and 3a contributions — with no duplication."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board tells one followable story for this exact persona — her months barely balance yet she is quietly building an emergency fund and 3a — which mirrors her guiding question «What can I afford – and how do I build something up?»."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero's six-month income-versus-spending view with roughly CHF 250 left on average (and three negative months) directly answers Jana's own complaint that she earns well yet little remains at the end of the month and she has no picture of a normal budget."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "All three tiles are grounded in Jana's real situation — her monthly cash flow, her Sparkonto emergency fund she explicitly asks about, and the pillar 3a she opened in January 2026 — so none is generic filler or another kind of customer's material."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The titles are short, read naturally, use Jana's own terms (emergency fund, Pillar 3a), and each accurately describes what its tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Every tile carries meaningful, non-zero figures from her data and the three cover distinct topics — monthly flow, savings-goal progress, and 3a contributions — with no duplication."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one followable story for this exact persona — her months barely balance yet she is quietly building an emergency fund and 3a — which mirrors her guiding question «What can I afford – and how do I build something up?»."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero's six months of income versus spending, showing leftovers near zero or negative, directly answers Jana's stated question that she earns well but far less is left at month's end than she expected."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "All three tiles are specific to Jana's real situation: her working-phase monthly cash flow, the emergency fund she is rebuilding after dipping into savings, and the pillar 3a she opened in 2026 with a monthly standing order."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The titles are short, read naturally, use her own terms (emergency fund, pillar 3a), and each accurately describes what its tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "No tile is empty or pointless (49.2% of a 10'000 goal, 3'300 of a 7'258 maximum, six months of real bookings) and no two tiles show the same content in different words."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one followable story that matches her guiding question: what is left each month and the two pots she is building with it, the emergency fund and the 3a."
+   }
+  }
+ ],
+ "acceptable": false
+}

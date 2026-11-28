@@ -1,0 +1,7 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "Which bills and reminders are open?",
+ "error": "Apertus timed out",
+ "acceptable": false
+}

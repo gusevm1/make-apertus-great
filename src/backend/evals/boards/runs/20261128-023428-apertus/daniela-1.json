@@ -1,0 +1,578 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": null,
+ "seconds": 7.4,
+ "plan": {
+  "kind": "Alleinerziehende mit knappem Monatsbudget, die jede Woche aufs Geld schauen muss",
+  "evidence": [
+   "S1: On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "S2: The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "S5: 8 payments of together 2'950.20 leave before the salary on 24.12.2026."
+  ],
+  "question": "Wie viel Geld ist am Tag vor dem nächsten Lohn noch auf dem Konto?",
+  "boards": [
+   {
+    "name": "Tight Budget Check",
+    "tiles": [
+     {
+      "template": "payday_balance",
+      "args": {
+       "account_id": "ACC-PRIV",
+       "expected_from": "Patrick Rüegg",
+       "expected_label": null
+      },
+      "title": "Was bleibt am Tag vor dem Lohn?"
+     },
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "Money left each month"
+     },
+     {
+      "template": "monthly_spending",
+      "args": {
+       "months": 6,
+       "merchants": null
+      },
+      "title": "Monthly spending trend"
+     },
+     {
+      "template": "expected_income",
+      "args": {
+       "counterparty": "Patrick Rüegg"
+      },
+      "title": "Income from Patrick Rüegg"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Sparkonto Notgroschen"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Rising monthly bills",
+    "reason": "shows the same payments as another tile on the board"
+   },
+   {
+    "title": "Big monthly payments",
+    "reason": "shows the same payments as another tile on the board"
+   },
+   {
+    "title": "Bills due in the next 30 days",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 6948,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "6 of 6 resolved; dropped: Rising monthly bills; Big monthly payments; Bills due in the next 30 days"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": false,
+    "detail": "Tight Budget Check: 2 added"
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Tight Budget Check",
+   "tiles": [
+    {
+     "template": "payday_balance",
+     "args": {
+      "account_id": "ACC-PRIV",
+      "expected_from": "Patrick Rüegg",
+      "expected_label": null
+     },
+     "title": "Was bleibt am Tag vor dem Lohn?",
+     "payload": {
+      "figure_chf": 124.96,
+      "source": {
+       "label": "Privatkonto and 8 upcoming payments",
+       "kind": "payments",
+       "count": 8
+      },
+      "template": "payday_balance",
+      "account_name": "Privatkonto",
+      "payday": "2026-12-24",
+      "day_before": "2026-12-23",
+      "days": 27,
+      "per_day_chf": 4.63,
+      "today": "2026-11-27",
+      "today_balance_chf": 3075.16,
+      "points": [
+       {
+        "date": "2026-11-27",
+        "balance_chf": 3075.16
+       },
+       {
+        "date": "2026-11-27",
+        "balance_chf": 1435.16
+       },
+       {
+        "date": "2026-11-30",
+        "balance_chf": 995.16
+       },
+       {
+        "date": "2026-12-07",
+        "balance_chf": 917.36
+       },
+       {
+        "date": "2026-12-07",
+        "balance_chf": 897.46
+       },
+       {
+        "date": "2026-12-10",
+        "balance_chf": 549.46
+       },
+       {
+        "date": "2026-12-15",
+        "balance_chf": 509.56
+       },
+       {
+        "date": "2026-12-21",
+        "balance_chf": 414.56
+       },
+       {
+        "date": "2026-12-23",
+        "balance_chf": 124.96
+       }
+      ],
+      "upcoming_count": 8,
+      "alternative": {
+       "counterparty": "Patrick Rüegg",
+       "label": null,
+       "amount_chf": 1050.0,
+       "left_chf": 1174.96,
+       "per_day_chf": 43.52
+      }
+     }
+    },
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "Money left each month",
+     "payload": {
+      "figure_chf": -370.77,
+      "source": {
+       "label": "362 bookings, May to October",
+       "kind": "bookings",
+       "count": 362
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 4267.12,
+        "spending_chf": 4152.76,
+        "left_chf": 114.36
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 4052.12,
+        "spending_chf": 3994.05,
+        "left_chf": 58.07
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 4052.12,
+        "spending_chf": 4662.39,
+        "left_chf": -610.27
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 4052.12,
+        "spending_chf": 4793.17,
+        "left_chf": -741.05
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 4107.12,
+        "spending_chf": 4568.97,
+        "left_chf": -461.85
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 4052.12,
+        "spending_chf": 4636.02,
+        "left_chf": -583.9
+       }
+      ]
+     }
+    },
+    {
+     "template": "monthly_spending",
+     "args": {
+      "months": 6,
+      "merchants": null
+     },
+     "title": "Monthly spending trend",
+     "payload": {
+      "figure_chf": 4467.89,
+      "source": {
+       "label": "346 payments, May to October",
+       "kind": "bookings",
+       "count": 346
+      },
+      "template": "monthly_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "total_chf": 4152.76,
+        "count": 58
+       },
+       {
+        "month": "2026-06",
+        "total_chf": 3994.05,
+        "count": 51
+       },
+       {
+        "month": "2026-07",
+        "total_chf": 4662.39,
+        "count": 62
+       },
+       {
+        "month": "2026-08",
+        "total_chf": 4793.17,
+        "count": 58
+       },
+       {
+        "month": "2026-09",
+        "total_chf": 4568.97,
+        "count": 55
+       },
+       {
+        "month": "2026-10",
+        "total_chf": 4636.02,
+        "count": 62
+       }
+      ],
+      "highest": "2026-08"
+     }
+    },
+    {
+     "template": "expected_income",
+     "args": {
+      "counterparty": "Patrick Rüegg"
+     },
+     "title": "Income from Patrick Rüegg",
+     "payload": {
+      "figure_chf": 1050.0,
+      "source": {
+       "label": "2 bookings from Patrick Rüegg",
+       "kind": "bookings",
+       "count": 2
+      },
+      "template": "expected_income",
+      "counterparty": "Patrick Rüegg",
+      "usual_day": 4,
+      "status": "not_arrived",
+      "months": [
+       {
+        "month": "2026-09",
+        "arrived_on": "2026-09-01",
+        "amount_chf": 1050.0,
+        "state": "on_time"
+       },
+       {
+        "month": "2026-10",
+        "arrived_on": "2026-10-22",
+        "amount_chf": 1050.0,
+        "state": "late"
+       },
+       {
+        "month": "2026-11",
+        "arrived_on": null,
+        "amount_chf": null,
+        "state": "open"
+       }
+      ]
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Sparkonto Notgroschen",
+     "payload": {
+      "figure_chf": 284.25,
+      "source": {
+       "label": "2 transfers",
+       "kind": "bookings",
+       "count": 2
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Notgroschen",
+      "goal_text": "Notgroschen CHF 3'000",
+      "goal_chf": 3000.0,
+      "percent": 9.5,
+      "month_change_chf": -600.0,
+      "month": "2026-11"
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [5]"
+  },
+  "hero_fits": {
+   "passed": true,
+   "detail": "hero payday_balance; strongest headline signals: S1 payday_balance, S2 expected_income, S4 savings_goal"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero is exactly what the brief fixes for Daniela — CHF 124.96 left on 23 December, the day before her salary — and it even shows the CHF 1'174.96 alternative if the child support arrives, directly answering 'will my money last until payday?'"
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every tile is built from her real life — the payday countdown on her private account, the recurring monthly shortfall, her spending since May, the still-missing child support from Patrick Rüegg, and the emergency fund at 9.5% of its CHF 3'000 goal — with no generic filler and nothing that belongs to another kind of customer."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "All titles are short, read like a person wrote them and match what their tiles show, with the hero in her own words ('Was bleibt am Tag vor dem Lohn?') and the savings tile using her term 'Notgroschen'; the switch from German to English after the hero is a cosmetic quibble rather than a wrong or mismatched title."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "No tile is empty, zero or pointless — CHF 124.96 before payday and a 9.5% savings goal are real, meaningful figures — and although the income-and-spending and spending-trend tiles share the underlying spending series, they carry different figures and different messages (the monthly gap versus the spending trend), so nothing is shown twice in different words."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board tells one story a customer would follow: this month ends with barely CHF 125 before payday, recent months have ended short, spending has climbed since July, the child support that would close the gap has not arrived, and the emergency fund is down to CHF 284 — precisely her 'what's coming, what's left, where is there room' question."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows exactly what the brief demands — CHF 124.96 left on 23 December, the day before her salary — directly answering Daniela's 'Will my money last until payday?', even including the alternative if the child support arrives."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every tile is drawn from her real situation: her payday balance, her months of negative budget gap, the late child support from Lina's father, and the emergency fund drained by CHF 600 this month."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "The hand-written German hero sits beside generic English template titles ('Money left each month', 'Monthly spending trend', 'Income from Patrick Rüegg') that ignore this German-speaking customer's own terms, such as 'Kindesunterhalt'."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "Tile 3 repeats the identical six monthly spending figures (4'152.76 … 4'636.02) already shown inside tile 2's income-and-spending series, adding only a transaction count."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one followable story for her tight-budget life: almost nothing left before payday, spending outrunning income since July, the child support missing again, and the emergency fund as the strained buffer."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero is exactly what the brief fixes for Daniela — CHF 124.96 left on 23 December, the day before her salary — and it even shows the CHF 1'174.96 alternative if the child support arrives, directly answering 'will my money last until payday?'"
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every tile is built from her real life — the payday countdown on her private account, the recurring monthly shortfall, her spending since May, the still-missing child support from Patrick Rüegg, and the emergency fund at 9.5% of its CHF 3'000 goal — with no generic filler and nothing that belongs to another kind of customer."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "All titles are short, read like a person wrote them and match what their tiles show, with the hero in her own words ('Was bleibt am Tag vor dem Lohn?') and the savings tile using her term 'Notgroschen'; the switch from German to English after the hero is a cosmetic quibble rather than a wrong or mismatched title."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "No tile is empty, zero or pointless — CHF 124.96 before payday and a 9.5% savings goal are real, meaningful figures — and although the income-and-spending and spending-trend tiles share the underlying spending series, they carry different figures and different messages (the monthly gap versus the spending trend), so nothing is shown twice in different words."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one story a customer would follow: this month ends with barely CHF 125 before payday, recent months have ended short, spending has climbed since July, the child support that would close the gap has not arrived, and the emergency fund is down to CHF 284 — precisely her 'what's coming, what's left, where is there room' question."
+   }
+  }
+ ],
+ "acceptable": true
+}

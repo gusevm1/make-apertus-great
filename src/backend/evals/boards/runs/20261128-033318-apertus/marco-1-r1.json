@@ -1,0 +1,352 @@
+{
+ "customer": "marco",
+ "run": 1,
+ "request": "What does the house cost us?",
+ "seconds": 7.0,
+ "plan": {
+  "kind": "Family with a house and a decision ahead on their mortgage tranche",
+  "evidence": [
+   "S1: The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "S11: 2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder)."
+  ],
+  "question": "What does the house cost us?",
+  "boards": [
+   {
+    "name": "The house",
+    "tiles": [
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-HOUSE",
+        "ACC-SAV"
+       ]
+      },
+      "title": "Your accounts"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-HOUSE"
+      },
+      "title": "House reserve nearly met"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Savings pots for house and family",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "House reserve fund",
+    "reason": "No payment mentions ACC-HOUSE. Check the spelling, or send the call without it."
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 6807,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "2 of 4 resolved; dropped: Savings pots for house and family; House reserve fund"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Savings pots for house and family"
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "The house",
+   "tiles": [
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-HOUSE",
+       "ACC-SAV"
+      ]
+     },
+     "title": "Your accounts",
+     "payload": {
+      "figure_chf": 83484.9,
+      "source": {
+       "label": "2 savings accounts",
+       "kind": "accounts",
+       "count": 2
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-HOUSE",
+        "name": "Sparkonto Haus",
+        "balance_chf": 19350.3,
+        "purpose": "Rücklage für Unterhalt und Nebenkosten des Hauses"
+       },
+       {
+        "account_id": "ACC-SAV",
+        "name": "Sparkonto Familie",
+        "balance_chf": 64134.6,
+        "purpose": "Ferien, Reserve, Ausbildung Kinder"
+       }
+      ]
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-HOUSE"
+     },
+     "title": "House reserve nearly met",
+     "payload": {
+      "figure_chf": 19350.3,
+      "source": {
+       "label": "No bookings in November",
+       "kind": "bookings",
+       "count": 0
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Haus",
+      "goal_text": "Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)",
+      "goal_chf": 20000.0,
+      "percent": 96.8,
+      "month_change_chf": 0.0,
+      "month": "2026-11"
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "mortgage_maturity",
+   "text": "The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "strength": 95,
+   "template": "mortgage",
+   "args": {}
+  },
+  {
+   "id": "S2",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'000.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto Haus holds 19'350.30, 97 % of its goal \"Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-HOUSE"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "instalments",
+   "text": "Instalment plans running: Seeblick Auto-Leasing AG (29 of 48 paid, 9'291.00 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Seeblick Auto-Leasing AG"
+    ]
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "9 payments of together 6'566.00 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "cashflow",
+   "text": "On average -246.13 was left per month over the last 6 months; in 2 months more went out than came in (2026-06, 2026-08).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 11'914.96 is left on Privatkonto after 8 payments, 441.29 a day. A month's spending is about 12'344.47.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S8",
+   "kind": "spending",
+   "text": "Spending averaged 11'716.70 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 6'423.30 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "fixed_costs",
+   "text": "The 3 largest monthly payments add up to 2'812.60 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Steueramt Wädenswil",
+     "Helsana Versicherungen AG",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-HOUSE",
+     "ACC-SAV"
+    ]
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "income_regular",
+   "text": "Simone Baumann sends about 2'600.00 every month, around day 26.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Simone Baumann"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [2]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The request asks what the house costs, but the hero tile shows savings account balances, which says nothing about interest, amortisation or maintenance costs."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "Both tiles are about Marco's real accounts, but neither is about the request: they show savings reserves rather than the annual cost of the house, so they do not belong on a board made for this question."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The titles are short, read naturally and match what each tile actually shows (two savings accounts, and a house reserve at 96.8% of its goal)."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "Both tiles carry real non-zero figures and show different things (combined balances versus progress toward the house reserve goal)."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The two tiles form a story about savings reserves, not about the requested theme of what the house costs each year, so the board is not about the request."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The request asks what the house costs, but the hero tile shows savings account balances, which says nothing about interest, amortisation or maintenance costs."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Both tiles are about Marco's real accounts, but neither is about the request: they show savings reserves rather than the annual cost of the house, so they do not belong on a board made for this question."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The titles are short, read naturally and match what each tile actually shows (two savings accounts, and a house reserve at 96.8% of its goal)."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Both tiles carry real non-zero figures and show different things (combined balances versus progress toward the house reserve goal)."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The two tiles form a story about savings reserves, not about the requested theme of what the house costs each year, so the board is not about the request."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The customer asked what the house costs (interest, amortisation, maintenance), but the hero tile shows savings account balances, which does not answer that question at all."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Both tiles show the customer's real savings accounts, but neither is about the request — the data holds mortgage interest, amortisation and maintenance figures that were ignored in favour of an off-topic savings signal."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Both titles are short, read naturally, and match what their tiles show."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Both tiles carry real, non-zero figures and, despite the shared house-account balance, they show different things (balances versus goal progress)."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board tells a story about savings reserves rather than the cost of the house, so it is not coherent with the request the customer made."
+   }
+  }
+ ],
+ "acceptable": false
+}

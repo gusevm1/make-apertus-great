@@ -1,0 +1,7 @@
+{
+ "customer": "lukas",
+ "run": 1,
+ "request": "We want to go to Japan in 2027. Keep an eye on that for me.",
+ "error": "Apertus timed out",
+ "acceptable": false
+}

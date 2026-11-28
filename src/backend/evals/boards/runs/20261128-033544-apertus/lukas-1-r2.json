@@ -1,0 +1,362 @@
+{
+ "customer": "lukas",
+ "run": 1,
+ "request": "What do my subscriptions cost me?",
+ "seconds": 9.5,
+ "plan": {
+  "kind": "A young professional building wealth with a large investment portfolio and multiple savings pots.",
+  "evidence": [
+   "S1: Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "S8: Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\"."
+  ],
+  "question": "What do my subscriptions cost me?",
+  "boards": [
+   {
+    "name": "Biggest monthly bills",
+    "tiles": [
+     {
+      "template": "regular_payments",
+      "args": {
+       "payees": [
+        "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+        "Mythen Krankenversicherung AG",
+        "Fitnesspark Zürich Stadelhofen",
+        "Swisscom (Schweiz) AG",
+        "Salt Mobile SA"
+       ]
+      },
+      "title": "Biggest monthly bills"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Regular payments",
+    "reason": "shows the same payments as another tile on the board"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 8862,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "2 of 2 resolved; dropped: Regular payments"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Monthly subscriptions and bills"
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Biggest monthly bills",
+   "tiles": [
+    {
+     "template": "regular_payments",
+     "args": {
+      "payees": [
+       "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+       "Mythen Krankenversicherung AG",
+       "Fitnesspark Zürich Stadelhofen",
+       "Swisscom (Schweiz) AG",
+       "Salt Mobile SA"
+      ]
+     },
+     "title": "Biggest monthly bills",
+     "payload": {
+      "figure_chf": 3542.85,
+      "source": {
+       "label": "5 upcoming payments",
+       "kind": "payments",
+       "count": 5
+      },
+      "template": "regular_payments",
+      "rows": [
+       {
+        "payee": "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+        "amount_chf": 2800.0,
+        "next_due": "2026-11-27"
+       },
+       {
+        "payee": "Mythen Krankenversicherung AG",
+        "amount_chf": 489.9,
+        "next_due": "2026-12-23"
+       },
+       {
+        "payee": "Fitnesspark Zürich Stadelhofen",
+        "amount_chf": 119.0,
+        "next_due": "2026-12-01"
+       },
+       {
+        "payee": "Swisscom (Schweiz) AG",
+        "amount_chf": 94.0,
+        "next_due": "2026-12-14"
+       },
+       {
+        "payee": "Salt Mobile SA",
+        "amount_chf": 39.95,
+        "next_due": "2026-12-03"
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "depot_large",
+   "text": "Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "strength": 80,
+   "template": "net_worth",
+   "args": {
+    "include_pension": false
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "card_bill",
+   "text": "The Visa Gold bill for 2026-11 is 3'301.74 (provisional), collected on 21.12.2026, 38 purchases.",
+   "strength": 50,
+   "template": "card_bill",
+   "args": {
+    "card_id": "CARD-VISA"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'600.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S4",
+   "kind": "securities",
+   "text": "The depot is worth 72'512.96, 30'800.00 were paid in.",
+   "strength": 40,
+   "template": "securities",
+   "args": {}
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "10 payments of together 8'302.59 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Fitnesspark Zürich Stadelhofen from 109.00 to 119.00 on 01.06.2026; Swisscom (Schweiz) AG from 89.00 to 94.00 on 12.05.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "savings_pots",
+   "text": "3 savings accounts with their own purpose: Sparkonto Steuern (Rücklage für Steuerrechnungen); Sparkonto Rücklagen (Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)); Sparkonto Langfristig (Langfristiger Vermögensaufbau).",
+   "strength": 30,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-TAX",
+     "ACC-RES",
+     "ACC-LT"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "goal_reached",
+   "text": "Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\".",
+   "strength": 25,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-LT"
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "cashflow",
+   "text": "On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 1'413.74 is left on Privatkonto after 10 payments, 52.36 a day. A month's spending is about 11'634.33.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 11'561.65 a month over the last 6 months, highest in 2026-09.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "bills_before_payday",
+   "text": "10 payments of together 8'302.59 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S13",
+   "kind": "fixed_costs",
+   "text": "The 5 largest monthly payments add up to 3'520.35 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+     "Mythen Krankenversicherung AG",
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG",
+     "Salt Mobile SA"
+    ]
+   }
+  },
+  {
+   "id": "S14",
+   "kind": "income_regular",
+   "text": "Sara Keller sends about 2'200.00 every month, around day 27.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Sara Keller"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": false,
+   "detail": "tiles per board: [1]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "Lukas asked what his subscriptions cost, but the hero's CHF 3'542.85 headline is dominated by his CHF 2'800 rent and CHF 490 health insurance, so it answers 'what are my biggest bills' instead of the question he actually asked."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The payees are all genuinely Lukas's, but rent and health insurance are strong signals that are not about the subscription request and yet take the top two rows of the tile."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "'Biggest monthly bills' is short, reads like a person wrote it, and accurately labels the five largest upcoming regular payments the tile actually shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The single tile holds five real payments with amounts and due dates that sum to its figure, with nothing empty, zero, or duplicated."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board tells one story, but it is the story of his largest recurring bills rather than the requested subscriptions story, so it is not about the request."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "Lukas asked what his subscriptions cost, but the hero's CHF 3'542.85 headline is dominated by his CHF 2'800 rent and CHF 490 health insurance, so it answers 'what are my biggest bills' instead of the question he actually asked."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The payees are all genuinely Lukas's, but rent and health insurance are strong signals that are not about the subscription request and yet take the top two rows of the tile."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "'Biggest monthly bills' is short, reads like a person wrote it, and accurately labels the five largest upcoming regular payments the tile actually shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile holds five real payments with amounts and due dates that sum to its figure, with nothing empty, zero, or duplicated."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board tells one story, but it is the story of his largest recurring bills rather than the requested subscriptions story, so it is not about the request."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero answers 'what are my biggest recurring bills' rather than the request, since the CHF 3'542.85 figure is dominated by rent (CHF 2'800) and health insurance, which are not subscriptions, and his actual streaming and news subscriptions do not appear."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The payees are genuinely Lukas's, but the tile's strongest signals (rent, health insurance) are not about the requested subscriptions, while his real subscriptions like streaming and news, which bill via his credit card, are missing."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The title 'Biggest monthly bills' is short, reads like a person wrote it, and accurately matches what the tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The single tile shows real, non-zero amounts for each listed payee and nothing is duplicated."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board tells a story about his largest recurring payments instead of being about the requested topic, subscriptions, and nothing else."
+   }
+  }
+ ],
+ "acceptable": false
+}
