@@ -520,6 +520,9 @@ class LedgerService:
             for booking in await self._all_pages(path="/bookings", token=token)
         ]
         cards = await self.read(path="/cards", token=token)
+        # A settled bill without purchases in the data, such as one for the month before the
+        # bookings start, is the only trace of that money, so it counts as spending.
+        bills_without_purchases: set[str] = set()
         for card in cards["items"]:
             # Debit card payments are bookings already; only a credit card has its own list.
             if card["type"] != "credit":
@@ -531,6 +534,11 @@ class LedgerService:
                 for statement in statements["items"]
                 if statement["status"] == "open"
             }
+            bills_without_purchases |= {
+                statement["statement_id"]
+                for statement in statements["items"]
+                if statement["status"] != "open" and statement.get("transactions_count") == 0
+            }
             purchases = await self._all_pages(path=f"{card_path}/transactions", token=token)
             rows += [
                 _card_row(
@@ -540,6 +548,12 @@ class LedgerService:
                 )
                 for purchase in purchases
             ]
+        rows = [
+            row.model_copy(update={"kind": "spending"})
+            if row.kind == "card_settlement" and row.statement_id in bills_without_purchases
+            else row
+            for row in rows
+        ]
         return sorted(rows, key=lambda row: (row.date, row.id))
 
     async def _all_pages(self, path: str, token: str) -> list[dict[str, Any]]:

@@ -104,7 +104,14 @@ def pages_read() -> list[str]:
 
 @pytest.fixture
 def statements() -> list[dict]:
-    return [{"statement_id": "STMT-2026-10", "card_id": "CARD-VISA", "status": "settled"}]
+    return [
+        {
+            "statement_id": "STMT-2026-10",
+            "card_id": "CARD-VISA",
+            "status": "settled",
+            "transactions_count": 2,
+        }
+    ]
 
 
 @pytest.fixture
@@ -1086,3 +1093,25 @@ async def test_two_periods_that_share_a_day_are_refused() -> None:
         _compare(first=("2025-01-01", "2025-06-30"), second=("2025-06-30", "2025-12-31"))
     with pytest.raises(ValueError, match="share days"):
         _compare(first=("2025-03-01", "2025-12-31"), second=("2025-01-01", "2025-06-30"))
+
+
+async def test_a_settled_bill_without_purchases_counts_as_spending_once(
+    statements: list[dict],
+) -> None:
+    statements.append(
+        {
+            "statement_id": "STMT-2023-11",
+            "card_id": "CARD-VISA",
+            "status": "settled",
+            "transactions_count": 0,
+        }
+    )
+    old_bill = _booking("BK-9", "card_settlement", -2264.35, reference="STMT-2023-11")
+    ledger = _fake_ledger(
+        bookings=[*BOOKINGS, old_bill], purchases=PURCHASES, statements=statements, pages_read=[]
+    )
+
+    rows = {row.id: row for row in await ledger.list_rows(token=TOKEN)}
+
+    assert (rows["BK-9"].kind, rows["BK-9"].statement_id) == ("spending", "STMT-2023-11")
+    assert rows["BK-5"].kind == "card_settlement"
