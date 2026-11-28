@@ -450,21 +450,26 @@ def test_a_total_that_is_not_the_sum_of_its_column_is_refused() -> None:
 
 
 def test_a_donut_draws_money_out_by_its_size_and_refuses_mixed_signs_and_a_wrong_total() -> None:
+    body = {**BODIES["donut"], "value": "money_out_chf"}
     out = {
         "months": [
-            {"label": "2026-09", "total_chf": -5.0},
-            {"label": "2026-10", "total_chf": -3.0},
+            {"label": "2026-09", "money_out_chf": -5.0},
+            {"label": "2026-10", "money_out_chf": -3.0},
         ],
         "months_total_chf": -8.0,
     }
-    page = render(spec=spec(body=BODIES["donut"]), data=out, form="static")
+    page = render(spec=spec(body=body), data=out, form="static")
     assert page.count('data-component="donut-slice"') == 2
     assert 'data-value="5.0"' in page
     assert "CHF 8.00" in page
     assert "-CHF" not in page and "CHF -" not in page
-    mixed = {**out, "months": [out["months"][0], {"label": "2026-10", "total_chf": 3.0}]}
+    mixed = {**out, "months": [out["months"][0], {"label": "2026-10", "money_out_chf": 3.0}]}
+    with pytest.raises(BadRequestError, match=r"months\[0\].money_out_chf is negative"):
+        render(spec=spec(body=body), data=mixed, form="static")
+    # A field whose sign is its meaning draws no slices from negatives.
+    left = {"months": [{"label": "2026-09", "total_chf": -5.0}], "months_total_chf": -5.0}
     with pytest.raises(BadRequestError, match=r"months\[0\].total_chf is negative"):
-        render(spec=spec(body=BODIES["donut"]), data=mixed, form="static")
+        render(spec=spec(body=BODIES["donut"]), data=left, form="static")
     with pytest.raises(BadRequestError, match="months_total_chf is 1.0, but the total_chf column"):
         render(
             spec=spec(body=BODIES["donut"]), data={**DATA, "months_total_chf": 1.0}, form="static"
@@ -609,6 +614,10 @@ def test_daniela_support_timeline_shows_the_month_it_has_not_arrived_as_not_yet(
     dropped = [*months[:2], {"month": "2026-11", "amount_chf": 0.0}]
     page = render(spec=spec(body=body), data={"months": dropped}, form="static")
     assert '<span class="tl-date">not yet</span>' in page
+    # A date field no row has is a wrong name, not dates still to come.
+    wrong = {**body, "date": "paid_on"}
+    with pytest.raises(BadRequestError, match=r"months\[0\] has no field paid_on; fields: month"):
+        render(spec=spec(body=wrong), data={"months": months}, form="static")
 
 
 def test_daniela_fixed_costs_draw_rent_due_twice_as_one_bar() -> None:
@@ -663,15 +672,18 @@ def test_marco_interest_by_tranche_sums_each_loans_payments() -> None:
 
 
 def test_bars_of_money_out_stand_up_and_mixed_signs_keep_their_sign() -> None:
-    body = {"type": "bar_chart", "data": "months", "x": "label", "y": "total_chf"}
-    out = [{"label": "2026-09", "total_chf": -5.0}, {"label": "2026-10", "total_chf": -3.5}]
+    body = {"type": "bar_chart", "data": "months", "x": "label", "y": "amount_chf"}
+    out = [{"label": "2026-09", "amount_chf": -5.0}, {"label": "2026-10", "amount_chf": -3.5}]
     values = _values(body=body, data={"months": out})
     assert [(value["y"], value["shown"]) for value in values] == [
         (5.0, "CHF 5.00"),
         (3.5, "CHF 3.50"),
     ]
-    net = [out[0], {"label": "2026-10", "total_chf": 3.5}]
+    net = [out[0], {"label": "2026-10", "amount_chf": 3.5}]
     assert [value["y"] for value in _values(body=body, data={"months": net})] == [-5.0, 3.5]
+    left = [{"category": "Groceries", "left_chf": -72.4}, {"category": "Fun", "left_chf": -9.0}]
+    body = {"type": "bar_chart", "data": "budgets", "x": "category", "y": "left_chf"}
+    assert [value["y"] for value in _values(body=body, data={"budgets": left})] == [-72.4, -9.0]
 
 
 def test_a_comparison_needs_its_period_field() -> None:

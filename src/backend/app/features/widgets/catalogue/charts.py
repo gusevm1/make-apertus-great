@@ -86,6 +86,8 @@ PALETTE = {
     "amber_light": "#c27a12",
 }
 # A series value naming a year, month or day; the newest such series gets the accent colour.
+# Fields whose negative sign only says the money went out, such as amount_chf or money_out_chf.
+OUTGOING = re.compile(r"amount|(^|_)out(_|$)")
 PERIOD = re.compile(r"^\d{4}(-\d{2}){0,2}$")
 # The newest period in the accent colour, earlier ones in quieter colours that are still 3:1 on
 # white and never the accent again; a chart shows at most this many periods.
@@ -160,8 +162,13 @@ def chart_spec(component: Chart | Trend, data: dict[str, Any], live: bool) -> di
     if isinstance(component, Waterfall):
         _check_steps(component=component, found=found)
     marks = _one_per_label(component=component, found=found, x_field=x_field, y_field=y_field)
-    # Money out comes signed negative; a slice or bar then shows its size.
-    if isinstance(component, Donut | BarChart) and all(row[y_field] <= 0 for _, row in marks):
+    # Money out comes signed negative; a slice or bar then shows its size. A left, net or change
+    # field keeps its sign, which is its meaning.
+    if (
+        isinstance(component, Donut | BarChart)
+        and OUTGOING.search(y_field) is not None
+        and all(row[y_field] <= 0 for _, row in marks)
+    ):
         marks = [(index, {**row, y_field: abs(row[y_field])}) for index, row in marks]
     for index, row in marks:
         # Slices of money in and out, or days on one scale, have no negative size.
