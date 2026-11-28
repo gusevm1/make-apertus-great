@@ -1,5 +1,6 @@
 import asyncio
 import calendar
+import dataclasses
 import re
 from datetime import date
 from typing import Any
@@ -9,7 +10,12 @@ from app.core.errors import AppError, UpstreamError
 from app.core.provenance import Check
 from app.features.board_plans import digest
 from app.features.board_plans.digest import HERO_TEMPLATES, HERO_TOP, Raw, tile_key
-from app.features.board_plans.prompts import board_prompt, profile_prompt, request_prompt
+from app.features.board_plans.prompts import (
+    board_prompt,
+    entry_prompt,
+    profile_prompt,
+    request_prompt,
+)
 from app.features.board_plans.schemas import (
     OWN_TILE,
     BoardChoice,
@@ -25,6 +31,7 @@ from app.features.board_plans.schemas import (
     TileChoice,
     board_schema,
     profile_schema,
+    EntryCheck,
     RequestKeywords,
     request_schema,
 )
@@ -52,6 +59,9 @@ from app.features.tiles.service import TileError, TileService
 # under a minute, and the server's ranking takes over when one runs out.
 CALL_TIMEOUT_SECONDS = 20
 CALL_BUDGET_SECONDS = 28
+# The check of one picked payee on its own, several at once.
+ENTRY_CHECK_SECONDS = 12
+ENTRY_CHECKS_PARALLEL = 4
 PLAN_FAILURES = (TimeoutError, UpstreamError)
 RANKED_KIND = "Not classified: the model did not answer in time."
 NOT_PLANNED = "The model did not answer in time; this board follows the server's ranking of your signals."
@@ -59,6 +69,7 @@ NOT_PICKED = "The model did not answer in time; this board holds what your reque
 NOTHING_FOUND = "Nothing in your accounts is about this request yet."
 LOAN_UNKNOWN = "The bank does not know how much of the loan is left; tell me the amount and I add it."
 KEYWORD_MIN = 4
+SUBSCRIPTION_REQUEST = re.compile(r"subscri|\babo\b|abonnement", re.IGNORECASE)
 REQUEST_BILLS = 2
 # An idea's board: its finding and what the request call found beside it.
 REQUEST_IDEA_TILES = 3
@@ -444,12 +455,70 @@ class BoardPlanService:
                 request=request, asked=asked, findings=findings, lists=lists, bills=bills
             )
             return _with_idea(answer=answer, idea=idea, request=request), None, 0
+        asked = result.content
+        keywords = [k for k in [*asked.entries, *asked.keywords] if k.strip()]
+        matched = [p for p, text in lists.payments.items() if _matches(keywords, text)]
+        kept, kept_payments = await asyncio.gather(
+            self._checked_entries(request=request, entries=asked.entries, lists=lists),
+            self._checked_entries(request=request, entries=matched, lists=lists),
+        )
+        asked = asked.model_copy(update={"entries": kept})
+        # An open bill the keywords found is checked on its own like a payee.
+        lists = dataclasses.replace(
+            lists,
+            payments={
+                p: text
+                for p, text in lists.payments.items()
+                if p not in matched or p in kept_payments
+            },
+        )
         answer = _request_answer(
-            request=request, asked=result.content, findings=findings, lists=lists, bills=bills
+            request=request, asked=asked, findings=findings, lists=lists, bills=bills
         )
         return _with_idea(answer=answer, idea=idea, request=request), result.model, result.latency_ms
 
-    async def _structured(self, messages: Any, schema: Any, purpose: str) -> LLMResult[Any]:
+    async def _checked_entries(
+        self, request: str, entries: list[str], lists: digest.RequestLists
+    ) -> list[str]:
+        """The picked payees that a check of each on its own still finds about the request."""
+        words = [
+            w
+            for w in re.findall(r"\w+", request)
+            # A year is in many texts (a holiday in January 2027 is not the trip of 2027).
+            if len(w) >= KEYWORD_MIN and w.casefold() not in STOP_WORDS and not w.isdigit()
+        ]
+        semaphore = asyncio.Semaphore(ENTRY_CHECKS_PARALLEL)
+
+        async def check(name: str) -> bool:
+            text = lists.payments.get(name) or (
+                f"{name}: {lists.payees.get(name) or lists.shops.get(name) or ''}"
+            )
+            # The request's own words in the entry's texts: no check needed.
+            if _matches(words, text):
+                return True
+            async with semaphore:
+                try:
+                    result = await self._structured(
+                        messages=entry_prompt(request=request, entry=text),
+                        schema=EntryCheck,
+                        purpose="board_request_entry",
+                        budget_seconds=ENTRY_CHECK_SECONDS,
+                    )
+                except PLAN_FAILURES:
+                    return False
+            return result.content.about == "yes"
+
+        names = list(dict.fromkeys(entries))
+        verdicts = await asyncio.gather(*(check(name) for name in names))
+        return [name for name, keep in zip(names, verdicts, strict=True) if keep]
+
+    async def _structured(
+        self,
+        messages: Any,
+        schema: Any,
+        purpose: str,
+        budget_seconds: float = CALL_BUDGET_SECONDS,
+    ) -> LLMResult[Any]:
         # One budget per call: the client's own retries happen inside it.
         return await asyncio.wait_for(
             self.apertus.structured(
@@ -457,10 +526,10 @@ class BoardPlanService:
                 schema=schema,
                 model=Model.SMART,
                 purpose=purpose,
-                timeout_seconds=CALL_TIMEOUT_SECONDS,
+                timeout_seconds=min(CALL_TIMEOUT_SECONDS, budget_seconds),
                 json_schema_mode=True,
             ),
-            timeout=CALL_BUDGET_SECONDS,
+            timeout=budget_seconds,
         )
 
     async def plan_boards(
@@ -507,6 +576,13 @@ class BoardPlanService:
                 )
                 if tile is None:
                     continue
+                # On a requested board, a later tile titled like the board or the request says
+                # nothing about what it shows.
+                said = tile.title.casefold()
+                if request is not None and board_tiles and (
+                    said == choice.name.strip().casefold() or said in request.casefold()
+                ):
+                    tile.title = self.tiles.default_title(tile.payload)
                 if tile.key in used:
                     dropped.append(DroppedTile(title=tile.title, reason="repeats another tile"))
                     continue
@@ -879,6 +955,8 @@ def _repeats(tile: _Tile, others: list[_Tile]) -> bool:
     """Whether most payments of `tile` are shown by one of `others` already."""
     if any(frozenset({tile.template, other.template}) == SAME_MONTHS for other in others):
         return True
+    if any(_same_payee(first=tile, second=other) for other in others):
+        return True
     if any(_same_account(first=tile, second=other) for other in others):
         return True
     rows = _payment_rows(payload=tile.payload)
@@ -903,6 +981,20 @@ def _same_account(first: _Tile, second: _Tile) -> bool:
         return False
     shown = set(pair["account_balances"].args["account_ids"])
     return shown <= {pair["savings_goal"].args["account_id"]}
+
+
+def _same_payee(first: _Tile, second: _Tile) -> bool:
+    """A bill of a payee whose regular payments another tile lists already."""
+    pair = {first.template: first, second.template: second}
+    if set(pair) != {"bill", "regular_payments"}:
+        return False
+    bill = pair["bill"].payload
+    listed = pair["regular_payments"].payload
+    if not isinstance(bill, BillPayload) or not isinstance(listed, RegularPaymentsPayload):
+        return False
+    # The bank names one payee a little differently in a bill and in a standing order.
+    first = bill.payee.split()[0].casefold()
+    return any(row.payee.split()[0].casefold() == first for row in listed.rows)
 
 
 def _repeating(tiles: list[_Tile]) -> list[_Tile]:
@@ -985,7 +1077,8 @@ def _matches(keywords: list[str], text: str) -> bool:
     joined = " ".join(words)
     for keyword in keywords:
         parts = re.findall(r"\w+", keyword.casefold())
-        if not parts or len("".join(parts)) < KEYWORD_MIN - 1:
+        # A year alone marks many texts (a holiday in January 2027 is not the trip of 2027).
+        if not parts or len("".join(parts)) < KEYWORD_MIN - 1 or "".join(parts).isdigit():
             continue
         if re.search(r"\b" + r"\s+".join(map(re.escape, parts)), joined):
             return True
@@ -1032,6 +1125,9 @@ def _request_answer(
     else:
         payees = [n for n, text in lists.payees.items() if _matches(keywords, f"{n} {text}")]
         shops = [n for n, text in lists.shops.items() if _matches(keywords, f"{n} {text}")]
+    if SUBSCRIPTION_REQUEST.search(request):
+        # Subscriptions by the bank's own payment texts, not by the model's pick.
+        payees, shops = list(lists.subscriptions), []
     # A transfer to the customer's own account is no cost of anything.
     own = {account["name"] for account in lists.accounts.values()}
     payees = [n for n in payees if not any(n.startswith(name) for name in own)]

@@ -797,6 +797,22 @@ INCOME_WORDS = [
 ]
 
 
+# ponytail: the same text rule as boards/subscriptions.py, copied because boards/ imports this
+# feature; the two lists should become one shared helper (a feature both can import).
+SUBSCRIPTION = re.compile(
+    r"\babo\b|abonnement|mitgliedschaft|membership|\bmobile\b|internet|inone|\btv\b|streaming"
+    r"|netflix|spotify|disney|youtube|icloud|microsoft",
+    re.IGNORECASE,
+)
+NOT_SUBSCRIPTION = re.compile(
+    r"miete|prämie|praemie|steuer|\brate\b|ratenvertrag|leasing|zins|spende|sparplan|rücklage"
+    r"|sparen|säule|einzahlung|abrechnung",
+    re.IGNORECASE,
+)
+OWN_ACCOUNT_TYPES = {"account_transfer", "card_statement"}
+SUBSCRIPTIONS_MAX = 8
+
+
 @dataclass
 class RequestLists:
     """The customer's things a requested board can show, each list keyed by what the model picks."""
@@ -810,6 +826,8 @@ class RequestLists:
     payments: dict[str, str]
     # Payees that a standing order repays a private loan to.
     lenders: list[str]
+    # Payees whose upcoming payments the bank's text names as a subscription.
+    subscriptions: list[str]
 
 
 def income_label(text: str) -> str | None:
@@ -856,6 +874,15 @@ def request_lists(raw: Raw) -> RequestLists:
         shops=shops,
         payments=payments,
         lenders=_payee_groups(raw=raw).get("private_loan", []),
+        subscriptions=list(
+            dict.fromkeys(
+                p["payee_name"]
+                for p in raw.upcoming
+                if p["type"] not in OWN_ACCOUNT_TYPES
+                and SUBSCRIPTION.search(p["description"]) is not None
+                and NOT_SUBSCRIPTION.search(p["description"]) is None
+            )
+        )[:SUBSCRIPTIONS_MAX],
     )
 
 

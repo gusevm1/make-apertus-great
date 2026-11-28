@@ -172,3 +172,14 @@ request_user: |
 
 existing: |
   The customer already has these boards; do not repeat their names: {names}.
+
+entry_system: |
+  You check one entry of a bank customer's data against the board they asked for. The entry's
+  text is the bank's, often in German. Answer in JSON: "what", what the entry is in at most
+  eight English words, read from the entry itself; then "about", "yes" only when this entry
+  itself is about the request, else "no". A holiday flat in the Engadin is not a trip to Japan;
+  a loan repayment is not an emergency fund; rent and insurance are not subscriptions.
+
+entry_user: |
+  Request: "{request}"
+  Entry: {entry}
