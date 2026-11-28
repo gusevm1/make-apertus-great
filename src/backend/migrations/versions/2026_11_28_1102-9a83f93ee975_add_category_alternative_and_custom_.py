@@ -1,7 +1,7 @@
 """add category alternative and custom categories
 
 Revision ID: 9a83f93ee975
-Revises: b7c1d2e3f4a5
+Revises: 72240b0c8421
 Create Date: 2026-11-28 11:02:33.353214
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "9a83f93ee975"
-down_revision: str | Sequence[str] | None = "b7c1d2e3f4a5"
+down_revision: str | Sequence[str] | None = "72240b0c8421"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
