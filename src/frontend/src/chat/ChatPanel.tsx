@@ -130,7 +130,7 @@ function ChatInner({
   } | null>(null);
   const loadRequest = useRef(0);
   const scroller = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const isFollowing = useRef(true);
   const lastScrollTop = useRef(0);
   const stream = useStream<ChatMessage>();
