@@ -410,7 +410,6 @@ class ToolCallService:
                     messages=plan_prompt(messages=messages, tools=tools, today=self.today),
                     model=Model.THINKING,
                     purpose=PLAN_PURPOSE,
-                    timeout_seconds=PLAN_BUDGET_SECONDS,
                 ),
                 timeout=PLAN_BUDGET_SECONDS,
             )

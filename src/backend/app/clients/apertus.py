@@ -173,15 +173,10 @@ class ApertusClient:
         model: Model,
         purpose: str,
         temperature: float | None = None,
-        timeout_seconds: float | None = None,
     ) -> LLMResult[str]:
         """Complete a chat; returns the full text, without a thinking model's reasoning."""
         return await self._complete(
-            messages=messages,
-            model=model,
-            purpose=purpose,
-            temperature=temperature,
-            timeout_seconds=timeout_seconds,
+            messages=messages, model=model, purpose=purpose, temperature=temperature
         )
 
     async def transcribe(
