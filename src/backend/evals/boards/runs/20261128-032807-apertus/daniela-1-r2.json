@@ -1,0 +1,440 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "Which bills and reminders are open?",
+ "seconds": 4.8,
+ "plan": {
+  "kind": "single mother with tight month-to-month cash flow",
+  "evidence": [
+   "S1: On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "S2: The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "S5: 8 payments of together 2'950.20 leave before the salary on 24.12.2026."
+  ],
+  "question": "Which bills and reminders are open?",
+  "boards": [
+   {
+    "name": "Until payday",
+    "tiles": [
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Emergency fund"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0244"
+      },
+      "title": "Dentist bill due"
+     },
+     {
+      "template": "bills_until_payday",
+      "args": {
+       "account_id": "ACC-PRIV"
+      },
+      "title": "Bills until payday"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 4650,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "3 of 3 resolved"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Until payday",
+   "tiles": [
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Emergency fund",
+     "payload": {
+      "figure_chf": 284.25,
+      "source": {
+       "label": "2 transfers",
+       "kind": "bookings",
+       "count": 2
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Notgroschen",
+      "goal_text": "Notgroschen CHF 3'000",
+      "goal_chf": 3000.0,
+      "percent": 9.5,
+      "month_change_chf": -600.0,
+      "month": "2026-11"
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0244"
+     },
+     "title": "Dentist bill due",
+     "payload": {
+      "figure_chf": 440.0,
+      "source": {
+       "label": "Zahnarztpraxis Neuwiesen, due 30.11.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Zahnarztpraxis Neuwiesen",
+      "due": "2026-11-30",
+      "description": "Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+      "flag": "reminder"
+     }
+    },
+    {
+     "template": "bills_until_payday",
+     "args": {
+      "account_id": "ACC-PRIV"
+     },
+     "title": "Bills until payday",
+     "payload": {
+      "figure_chf": 2950.2,
+      "source": {
+       "label": "8 upcoming payments",
+       "kind": "payments",
+       "count": 8
+      },
+      "template": "bills_until_payday",
+      "payday": "2026-12-24",
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Wohnbaugenossenschaft Talgut",
+        "detail": "rent for December",
+        "amount_chf": 1640.0,
+        "balance_after_chf": 1435.16,
+        "flag": null
+       },
+       {
+        "id": "PAY-0244",
+        "due": "2026-11-30",
+        "payee": "Zahnarztpraxis Neuwiesen",
+        "detail": null,
+        "amount_chf": 440.0,
+        "balance_after_chf": 995.16,
+        "flag": "reminder"
+       },
+       {
+        "id": "PAY-0245",
+        "due": "2026-12-07",
+        "payee": "Ratenwerk Finanz",
+        "detail": "instalment 21 of 24",
+        "amount_chf": 77.8,
+        "balance_after_chf": 917.36,
+        "flag": null
+       },
+       {
+        "id": "PAY-0247",
+        "due": "2026-12-07",
+        "payee": "Lebara Schweiz",
+        "detail": "mobile",
+        "amount_chf": 19.9,
+        "balance_after_chf": 897.46,
+        "flag": null
+       },
+       {
+        "id": "PAY-0249",
+        "due": "2026-12-10",
+        "payee": "Stadt Winterthur",
+        "detail": "Hort und Mittagstisch",
+        "amount_chf": 348.0,
+        "balance_after_chf": 549.46,
+        "flag": null
+       },
+       {
+        "id": "PAY-0251",
+        "due": "2026-12-15",
+        "payee": "Sunrise",
+        "detail": "internet",
+        "amount_chf": 39.9,
+        "balance_after_chf": 509.56,
+        "flag": null
+       },
+       {
+        "id": "SO-STEUER",
+        "due": "2026-12-21",
+        "payee": "Steueramt Winterthur",
+        "detail": "advance payment",
+        "amount_chf": 95.0,
+        "balance_after_chf": 414.56,
+        "flag": null
+       },
+       {
+        "id": "PAY-0253",
+        "due": "2026-12-23",
+        "payee": "Assura-Basis",
+        "detail": "premium for January",
+        "amount_chf": 289.6,
+        "balance_after_chf": 124.96,
+        "flag": null
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [3]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The hero is the emergency fund tile, which does not answer 'Which bills and reminders are open?' — the bills list or the dentist reminder would answer it directly."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The dentist bill and bills list are about the request, but the emergency fund tile is a strong signal about her savings buffer, not about open bills and reminders, so it does not belong on a request board."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "All three titles are short, natural, use her terms (emergency fund, dentist bill, bills), and match exactly what each tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "Every tile shows a real, non-zero figure, and the dentist reminder standing beside the bills list it belongs to is the exact pattern the confirmed ground truth sanctions."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The board should be about the open bills and reminders and nothing else, but the emergency fund tile pulls in a second theme, breaking the request's focus."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero is the emergency fund tile, which does not answer 'Which bills and reminders are open?' — the bills list or the dentist reminder would answer it directly."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The dentist bill and bills list are about the request, but the emergency fund tile is a strong signal about her savings buffer, not about open bills and reminders, so it does not belong on a request board."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "All three titles are short, natural, use her terms (emergency fund, dentist bill, bills), and match exactly what each tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Every tile shows a real, non-zero figure, and the dentist reminder standing beside the bills list it belongs to is the exact pattern the confirmed ground truth sanctions."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board should be about the open bills and reminders and nothing else, but the emergency fund tile pulls in a second theme, breaking the request's focus."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The first tile shows the emergency fund's goal status, which does not answer the request \"Which bills and reminders are open?\" — the bills list or the dentist reminder should have been the hero."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The emergency fund tile is a real signal in Daniela's life but is not about open bills and reminders, and the rubric says a strong signal that is not about the request does not belong on a request board."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "\"Emergency fund\", \"Dentist bill due\" and \"Bills until payday\" are short, human-sounding, use her terms, and each matches exactly what its tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All three tiles carry meaningful non-zero figures, and the dentist reminder standing beside the bill list it belongs to is explicitly sanctioned by the ground truth."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board is meant to answer one request about open bills and reminders, but the emergency fund tile drags in a second theme, so the board is not about the request and nothing else."
+   }
+  }
+ ],
+ "acceptable": false
+}

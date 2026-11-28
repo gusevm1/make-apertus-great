@@ -1,0 +1,552 @@
+{
+ "customer": "marco",
+ "run": 2,
+ "request": null,
+ "seconds": 6.3,
+ "plan": {
+  "kind": "A family with a house and children who must decide on their mortgage renewal",
+  "evidence": [
+   "S1: The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "S11: 2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder)."
+  ],
+  "question": "What should we do with the mortgage tranche that expires in March 2027?",
+  "boards": [
+   {
+    "name": "Mortgage Renewal Decision",
+    "tiles": [
+     {
+      "template": "mortgage",
+      "args": {},
+      "title": "Mortgage"
+     },
+     {
+      "template": "expected_income",
+      "args": {
+       "counterparty": "Simone Baumann"
+      },
+      "title": "Regular family support from Simone"
+     },
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-HOUSE",
+        "ACC-SAV"
+       ]
+      },
+      "title": "Savings pots for house and family"
+     },
+     {
+      "template": "income_and_spending",
+      "args": {
+       "months": 6
+      },
+      "title": "Monthly cash flow trend"
+     },
+     {
+      "template": "due_soon",
+      "args": {
+       "days": 30
+      },
+      "title": "Upcoming bills in the next month"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Current balances of savings accounts",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Pillar 3a account balance",
+    "reason": "repeats another tile"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 6124,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "5 of 7 resolved; dropped: Current balances of savings accounts; Pillar 3a account balance"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: The mortgage that matures in March 2027"
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Mortgage Renewal Decision",
+   "tiles": [
+    {
+     "template": "mortgage",
+     "args": {},
+     "title": "Mortgage",
+     "payload": {
+      "figure_chf": 862500.0,
+      "source": {
+       "label": "3 tranches",
+       "kind": "loans",
+       "count": 3
+      },
+      "template": "mortgage",
+      "annual_interest_chf": 8425.0,
+      "tranches": [
+       {
+        "loan_id": "LOAN-01",
+        "product": "Festhypothek 10 Jahre",
+        "balance_chf": 400000.0,
+        "interest_rate": 1.05,
+        "maturity_date": "2029-03-31",
+        "next_interest_date": "2026-12-31"
+       },
+       {
+        "loan_id": "LOAN-02",
+        "product": "Festhypothek 8 Jahre",
+        "balance_chf": 350000.0,
+        "interest_rate": 0.95,
+        "maturity_date": "2027-03-31",
+        "next_interest_date": "2026-12-31"
+       },
+       {
+        "loan_id": "LOAN-03",
+        "product": "SARON-Hypothek",
+        "balance_chf": 112500.0,
+        "interest_rate": 0.8,
+        "maturity_date": "2028-03-31",
+        "next_interest_date": "2026-12-31"
+       }
+      ],
+      "next_maturity": {
+       "loan_id": "LOAN-02",
+       "product": "Festhypothek 8 Jahre",
+       "balance_chf": 350000.0,
+       "interest_rate": 0.95,
+       "maturity_date": "2027-03-31",
+       "next_interest_date": "2026-12-31"
+      }
+     }
+    },
+    {
+     "template": "expected_income",
+     "args": {
+      "counterparty": "Simone Baumann"
+     },
+     "title": "Regular family support from Simone",
+     "payload": {
+      "figure_chf": 2600.0,
+      "source": {
+       "label": "3 bookings from Simone Baumann",
+       "kind": "bookings",
+       "count": 3
+      },
+      "template": "expected_income",
+      "counterparty": "Simone Baumann",
+      "usual_day": 26,
+      "status": "arrived",
+      "months": [
+       {
+        "month": "2026-09",
+        "arrived_on": "2026-09-28",
+        "amount_chf": 2600.0,
+        "state": "on_time"
+       },
+       {
+        "month": "2026-10",
+        "arrived_on": "2026-10-26",
+        "amount_chf": 2600.0,
+        "state": "on_time"
+       },
+       {
+        "month": "2026-11",
+        "arrived_on": "2026-11-26",
+        "amount_chf": 2600.0,
+        "state": "on_time"
+       }
+      ]
+     }
+    },
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-HOUSE",
+       "ACC-SAV"
+      ]
+     },
+     "title": "Savings pots for house and family",
+     "payload": {
+      "figure_chf": 83484.9,
+      "source": {
+       "label": "2 savings accounts",
+       "kind": "accounts",
+       "count": 2
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-HOUSE",
+        "name": "Sparkonto Haus",
+        "balance_chf": 19350.3,
+        "purpose": "Rücklage für Unterhalt und Nebenkosten des Hauses"
+       },
+       {
+        "account_id": "ACC-SAV",
+        "name": "Sparkonto Familie",
+        "balance_chf": 64134.6,
+        "purpose": "Ferien, Reserve, Ausbildung Kinder"
+       }
+      ]
+     }
+    },
+    {
+     "template": "income_and_spending",
+     "args": {
+      "months": 6
+     },
+     "title": "Monthly cash flow trend",
+     "payload": {
+      "figure_chf": -246.13,
+      "source": {
+       "label": "290 bookings, May to October",
+       "kind": "bookings",
+       "count": 290
+      },
+      "template": "income_and_spending",
+      "months": [
+       {
+        "month": "2026-05",
+        "income_chf": 11442.82,
+        "spending_chf": 6849.1,
+        "left_chf": 4593.72
+       },
+       {
+        "month": "2026-06",
+        "income_chf": 11392.82,
+        "spending_chf": 17093.2,
+        "left_chf": -5700.38
+       },
+       {
+        "month": "2026-07",
+        "income_chf": 11392.82,
+        "spending_chf": 9324.49,
+        "left_chf": 2068.33
+       },
+       {
+        "month": "2026-08",
+        "income_chf": 11412.82,
+        "spending_chf": 18496.99,
+        "left_chf": -7084.17
+       },
+       {
+        "month": "2026-09",
+        "income_chf": 11789.32,
+        "spending_chf": 10021.12,
+        "left_chf": 1768.2
+       },
+       {
+        "month": "2026-10",
+        "income_chf": 11392.82,
+        "spending_chf": 8515.29,
+        "left_chf": 2877.53
+       }
+      ]
+     }
+    },
+    {
+     "template": "due_soon",
+     "args": {
+      "days": 30
+     },
+     "title": "Upcoming bills in the next month",
+     "payload": {
+      "figure_chf": 6566.0,
+      "source": {
+       "label": "All 9 payments",
+       "kind": "payments",
+       "count": 9
+      },
+      "template": "due_soon",
+      "days": 30,
+      "rows": [
+       {
+        "id": "SO-HOUSE",
+        "due": "2026-11-27",
+        "payee": "Sparkonto Haus",
+        "detail": "Rücklage Haus",
+        "amount_chf": 900.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "SO-SAV",
+        "due": "2026-11-27",
+        "payee": "Sparkonto Familie",
+        "detail": "Sparen Familie",
+        "amount_chf": 1500.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "SO-TAX",
+        "due": "2026-12-21",
+        "payee": "Steueramt Wädenswil",
+        "detail": "advance payment",
+        "amount_chf": 1450.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0203",
+        "due": "2026-12-23",
+        "payee": "Helsana Versicherungen",
+        "detail": "premium for January",
+        "amount_chf": 1262.3,
+        "balance_after_chf": null,
+        "flag": null
+       }
+      ],
+      "count": 9
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "mortgage_maturity",
+   "text": "The mortgage is 862'500.00 in 3 tranches, 8'425.00 interest a year; the tranche Festhypothek 8 Jahre of 350'000.00 runs out on 31.03.2027 and needs a decision.",
+   "strength": 95,
+   "template": "mortgage",
+   "args": {}
+  },
+  {
+   "id": "S2",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'000.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S3",
+   "kind": "goal_progress",
+   "text": "Sparkonto Haus holds 19'350.30, 97 % of its goal \"Rücklage mind. CHF 20'000 (ca. 1.5 % des Hauswerts)\".",
+   "strength": 40,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-HOUSE"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "instalments",
+   "text": "Instalment plans running: Seeblick Auto-Leasing AG (29 of 48 paid, 9'291.00 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Seeblick Auto-Leasing AG"
+    ]
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "9 payments of together 6'566.00 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "cashflow",
+   "text": "On average -246.13 was left per month over the last 6 months; in 2 months more went out than came in (2026-06, 2026-08).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 11'914.96 is left on Privatkonto after 8 payments, 441.29 a day. A month's spending is about 12'344.47.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S8",
+   "kind": "spending",
+   "text": "Spending averaged 11'716.70 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 6'423.30 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "fixed_costs",
+   "text": "The 3 largest monthly payments add up to 2'812.60 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Steueramt Wädenswil",
+     "Helsana Versicherungen AG",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Haus (Rücklage für Unterhalt und Nebenkosten des Hauses); Sparkonto Familie (Ferien, Reserve, Ausbildung Kinder).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-HOUSE",
+     "ACC-SAV"
+    ]
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "income_regular",
+   "text": "Simone Baumann sends about 2'600.00 every month, around day 26.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Simone Baumann"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [5]"
+  },
+  "hero_fits": {
+   "passed": true,
+   "detail": "hero mortgage; strongest headline signals: S1 mortgage, S2 pillar_3a, S3 savings_goal"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero shows his three mortgage tranches with the maturing 8-year fixed (CHF 350'000 at 0.95%, due 31 March 2027) as next maturity, which is exactly the fixed-or-SARON decision the persona says dominates his life right now."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every tile is built from his real data – his three tranches, Simone's actual monthly household contribution, his two named savings pots, his own six-month cash flow and his real upcoming bills (Wädenswil tax office, Helsana, his standing orders) – and none is generic filler or another customer's material."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Titles are short, human-sounding and match their tiles: 'Mortgage' for the tranche overview, 'Regular family support from Simone' for her on-time transfers, 'Savings pots for house and family' for the two Sparkonten, 'Monthly cash flow trend' and 'Upcoming bills in the next month' for exactly those figures."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "All five tiles carry real, non-zero content (CHF 862'500 mortgage, CHF 2'600 contribution, CHF 83'484.90 savings, a genuine six-month trend with swings, nine real payments) and no two tiles show the same thing in different words."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board reads as one story a customer would follow – the maturing tranche to decide on, the reliable income behind it, the savings he could use to pay it down, the monthly budget that must absorb any rate change, and the bills falling due around the decision window."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows his three tranches with the 8-year fixed of CHF 350'000 flagged as maturing 31.03.2027, which is exactly the tranche and decision deadline Marco is wrestling with."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every tile is built from Marco's real life – his three mortgage tranches, Simone's documented household contribution, his two named savings pots, his actual cash flow and upcoming bills – and none belongs to a different kind of customer."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short and match their tiles in Marco's own terms ('Mortgage', 'Savings pots for house and family'), though the hero's bare 'Mortgage' is the most minimal of them."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All five tiles carry real, non-zero figures and none duplicates another – savings balances versus the standing orders feeding them, and overall cash flow versus Simone's single income stream, are different views."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "A board titled 'Mortgage Renewal Decision' tells two stories: tiles 1 and 3 serve the renewal, but Simone's on-time transfers, the generic cash-flow trend and the upcoming bills are everyday household management that has nothing to do with the fixed-or-SARON decision."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows his three mortgage tranches with the maturing 8-year fixed (CHF 350'000 at 0.95%, due 31 March 2027) as next maturity, which is exactly the fixed-or-SARON decision the persona says dominates his life right now."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every tile is built from his real data – his three tranches, Simone's actual monthly household contribution, his two named savings pots, his own six-month cash flow and his real upcoming bills (Wädenswil tax office, Helsana, his standing orders) – and none is generic filler or another customer's material."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short, human-sounding and match their tiles: 'Mortgage' for the tranche overview, 'Regular family support from Simone' for her on-time transfers, 'Savings pots for house and family' for the two Sparkonten, 'Monthly cash flow trend' and 'Upcoming bills in the next month' for exactly those figures."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All five tiles carry real, non-zero content (CHF 862'500 mortgage, CHF 2'600 contribution, CHF 83'484.90 savings, a genuine six-month trend with swings, nine real payments) and no two tiles show the same thing in different words."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board reads as one story a customer would follow – the maturing tranche to decide on, the reliable income behind it, the savings he could use to pay it down, the monthly budget that must absorb any rate change, and the bills falling due around the decision window."
+   }
+  }
+ ],
+ "acceptable": true
+}

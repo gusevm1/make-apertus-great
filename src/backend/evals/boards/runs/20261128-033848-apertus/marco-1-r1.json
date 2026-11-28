@@ -1,0 +1,7 @@
+{
+ "customer": "marco",
+ "run": 1,
+ "request": "What does the house cost us?",
+ "error": "Apertus timed out",
+ "acceptable": false
+}

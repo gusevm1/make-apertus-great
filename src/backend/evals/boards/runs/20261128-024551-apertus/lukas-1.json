@@ -1,0 +1,533 @@
+{
+ "customer": "lukas",
+ "run": 1,
+ "request": null,
+ "seconds": 6.5,
+ "plan": {
+  "kind": "A young professional building wealth with a large portfolio and multiple savings pots",
+  "evidence": [
+   "S1: Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "S8: Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\"."
+  ],
+  "question": "What do I actually own and where is it going, so I can keep growing it while hitting my goals?",
+  "boards": [
+   {
+    "name": "Wealth Overview",
+    "tiles": [
+     {
+      "template": "net_worth",
+      "args": {
+       "include_pension": false
+      },
+      "title": "What you own"
+     },
+     {
+      "template": "expected_income",
+      "args": {
+       "counterparty": "Sara Keller"
+      },
+      "title": "Regular income from Sara Keller"
+     },
+     {
+      "template": "due_soon",
+      "args": {
+       "days": 30
+      },
+      "title": "Due in the next 30 days"
+     },
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-TAX",
+        "ACC-RES",
+        "ACC-LT"
+       ]
+      },
+      "title": "Savings pots breakdown"
+     },
+     {
+      "template": "card_bill",
+      "args": {
+       "card_id": "CARD-VISA"
+      },
+      "title": "Visa Gold, November"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Monthly salary from Limmatblau Versicherungen AG",
+    "reason": "repeats another tile"
+   },
+   {
+    "title": "Total monthly income estimate",
+    "reason": "repeats another tile"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 5932,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "4 of 6 resolved; dropped: Monthly salary from Limmatblau Versicherungen AG; Total monthly income estimate"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Bills due in the next 30 days"
+   },
+   {
+    "name": "hero",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": false,
+    "detail": "Wealth Overview: 1 added"
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Wealth Overview",
+   "tiles": [
+    {
+     "template": "net_worth",
+     "args": {
+      "include_pension": false
+     },
+     "title": "What you own",
+     "payload": {
+      "figure_chf": 131212.64,
+      "source": {
+       "label": "4 accounts and 1 depot, without pillar 3a",
+       "kind": "accounts",
+       "count": 5
+      },
+      "template": "net_worth",
+      "parts": [
+       {
+        "group": "accounts",
+        "value_chf": 58699.68,
+        "count": 4
+       },
+       {
+        "group": "securities",
+        "value_chf": 72512.96,
+        "count": 1
+       }
+      ],
+      "includes_pension": false
+     }
+    },
+    {
+     "template": "expected_income",
+     "args": {
+      "counterparty": "Sara Keller"
+     },
+     "title": "Regular income from Sara Keller",
+     "payload": {
+      "figure_chf": 2200.0,
+      "source": {
+       "label": "2 bookings from Sara Keller",
+       "kind": "bookings",
+       "count": 2
+      },
+      "template": "expected_income",
+      "counterparty": "Sara Keller",
+      "usual_day": 27,
+      "status": "not_arrived",
+      "months": [
+       {
+        "month": "2026-09",
+        "arrived_on": "2026-09-28",
+        "amount_chf": 2200.0,
+        "state": "on_time"
+       },
+       {
+        "month": "2026-10",
+        "arrived_on": "2026-10-27",
+        "amount_chf": 2200.0,
+        "state": "on_time"
+       },
+       {
+        "month": "2026-11",
+        "arrived_on": null,
+        "amount_chf": null,
+        "state": "open"
+       }
+      ]
+     }
+    },
+    {
+     "template": "due_soon",
+     "args": {
+      "days": 30
+     },
+     "title": "Due in the next 30 days",
+     "payload": {
+      "figure_chf": 8302.59,
+      "source": {
+       "label": "All 10 payments",
+       "kind": "payments",
+       "count": 10
+      },
+      "template": "due_soon",
+      "days": 30,
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Wohnbau Sihlfeld",
+        "detail": "rent for December",
+        "amount_chf": 2800.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "SO-ETF",
+        "due": "2026-12-07",
+        "payee": "Depot 0418-2210.01",
+        "detail": "savings plan",
+        "amount_chf": 600.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0233",
+        "due": "2026-12-10",
+        "payee": "Ferienwohnungen Engadin",
+        "detail": "deposit",
+        "amount_chf": 600.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "STMT-2026-11",
+        "due": "2026-12-21",
+        "payee": "Visa Gold",
+        "detail": "November",
+        "amount_chf": 3301.74,
+        "balance_after_chf": null,
+        "flag": "provisional"
+       }
+      ],
+      "count": 10
+     }
+    },
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-TAX",
+       "ACC-RES",
+       "ACC-LT"
+      ]
+     },
+     "title": "Savings pots breakdown",
+     "payload": {
+      "figure_chf": 48983.35,
+      "source": {
+       "label": "3 savings accounts",
+       "kind": "accounts",
+       "count": 3
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-TAX",
+        "name": "Sparkonto Steuern",
+        "balance_chf": 4638.04,
+        "purpose": "Rücklage für Steuerrechnungen"
+       },
+       {
+        "account_id": "ACC-RES",
+        "name": "Sparkonto Rücklagen",
+        "balance_chf": 6779.02,
+        "purpose": "Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)"
+       },
+       {
+        "account_id": "ACC-LT",
+        "name": "Sparkonto Langfristig",
+        "balance_chf": 37566.29,
+        "purpose": "Langfristiger Vermögensaufbau"
+       }
+      ]
+     }
+    },
+    {
+     "template": "card_bill",
+     "args": {
+      "card_id": "CARD-VISA"
+     },
+     "title": "Visa Gold, November",
+     "payload": {
+      "figure_chf": 3301.74,
+      "source": {
+       "label": "38 purchases in November",
+       "kind": "bookings",
+       "count": 38
+      },
+      "template": "card_bill",
+      "card_name": "Visa Gold",
+      "period": "2026-11",
+      "due": "2026-12-21",
+      "flag": "provisional",
+      "purchases": 38
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "depot_large",
+   "text": "Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "strength": 80,
+   "template": "net_worth",
+   "args": {
+    "include_pension": false
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "card_bill",
+   "text": "The Visa Gold bill for 2026-11 is 3'301.74 (provisional), collected on 21.12.2026, 38 purchases.",
+   "strength": 50,
+   "template": "card_bill",
+   "args": {
+    "card_id": "CARD-VISA"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'600.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S4",
+   "kind": "securities",
+   "text": "The depot is worth 72'512.96, 30'800.00 were paid in.",
+   "strength": 40,
+   "template": "securities",
+   "args": {}
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "10 payments of together 8'302.59 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Fitnesspark Zürich Stadelhofen from 109.00 to 119.00 on 01.06.2026; Swisscom (Schweiz) AG from 89.00 to 94.00 on 12.05.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "savings_pots",
+   "text": "3 savings accounts with their own purpose: Sparkonto Steuern (Rücklage für Steuerrechnungen); Sparkonto Rücklagen (Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)); Sparkonto Langfristig (Langfristiger Vermögensaufbau).",
+   "strength": 30,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-TAX",
+     "ACC-RES",
+     "ACC-LT"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "goal_reached",
+   "text": "Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\".",
+   "strength": 25,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-LT"
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "cashflow",
+   "text": "On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 1'413.74 is left on Privatkonto after 10 payments, 52.36 a day. A month's spending is about 11'634.33.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 11'561.65 a month over the last 6 months, highest in 2026-09.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "bills_before_payday",
+   "text": "10 payments of together 8'302.59 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S13",
+   "kind": "fixed_costs",
+   "text": "The 5 largest monthly payments add up to 3'520.35 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+     "Mythen Krankenversicherung AG",
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG",
+     "Salt Mobile SA"
+    ]
+   }
+  },
+  {
+   "id": "S14",
+   "kind": "income_regular",
+   "text": "Sara Keller sends about 2'200.00 every month, around day 27.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Sara Keller"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [5]"
+  },
+  "hero_fits": {
+   "passed": true,
+   "detail": "hero net_worth; strongest headline signals: S1 net_worth, S3 pillar_3a, S5 due_soon"
+  },
+  "differs": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero 'What you own' (net worth) is exactly the overview of what he owns that the brief fixes as Lukas's hero, answering his 'where does my money go and am I on track' question at the top."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Every tile draws on Lukas's real life — his net worth, Sara's monthly share, his actual upcoming payments (rent, ETF plan, Visa bill), his named savings pots for taxes/reserves/long-term, and his Visa Gold — with no generic filler."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Titles are short and human ('What you own', 'Savings pots breakdown' uses his own word 'pots') and each accurately names what its tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "All figures are non-zero and meaningful, and the Visa bill appearing both in the due-soon list and as its own detail tile is the sanctioned pattern of a bill standing beside the list it is in, not a repeat."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The board tells one story — what Lukas owns and where his money goes — with net worth as the anchor and income, upcoming payments, savings pots and the card bill as its moving parts."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero 'What you own' (net worth) is exactly the overview of what he owns that the brief fixes as Lukas's hero, answering his 'where does my money go and am I on track' question at the top."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every tile draws on Lukas's real life — his net worth, Sara's monthly share, his actual upcoming payments (rent, ETF plan, Visa bill), his named savings pots for taxes/reserves/long-term, and his Visa Gold — with no generic filler."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short and human ('What you own', 'Savings pots breakdown' uses his own word 'pots') and each accurately names what its tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All figures are non-zero and meaningful, and the Visa bill appearing both in the due-soon list and as its own detail tile is the sanctioned pattern of a bill standing beside the list it is in, not a repeat."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one story — what Lukas owns and where his money goes — with net worth as the anchor and income, upcoming payments, savings pots and the card bill as its moving parts."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile is «What you own» (net worth), exactly the hero the confirmed brief fixes for Lukas, answering his «where does my money go and am I on track» need."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Every tile reflects Lukas's real situation — his net worth, Sara's monthly share, his actual upcoming payments (rent, ETF plan, holiday deposit, Visa bill), his three named savings pots and his Visa Gold bill — with no generic filler."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short, human, use his own terms («savings pots»), and each matches exactly what its tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All figures are non-zero and meaningful, and the Visa bill's detail tile standing beside the due-soon list that contains it is the bill-beside-its-list pattern the brief explicitly permits, not a duplicate."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board tells one story — what he owns and where his money moves this month, with Sara's inflow, upcoming outflows, his pots and his card bill — that a customer would follow as a wealth overview."
+   }
+  }
+ ],
+ "acceptable": true
+}

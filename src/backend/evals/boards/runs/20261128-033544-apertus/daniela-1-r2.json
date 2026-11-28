@@ -1,0 +1,420 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "Which bills and reminders are open?",
+ "seconds": 7.5,
+ "plan": {
+  "kind": "single mother with tight month-to-month cash flow",
+  "evidence": [
+   "S1: On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "S2: The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "S5: 8 payments of together 2'950.20 leave before the salary on 24.12.2026."
+  ],
+  "question": "Which bills and reminders are open?",
+  "boards": [
+   {
+    "name": "bill reminder",
+    "tiles": [
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0244"
+      },
+      "title": "bill reminder"
+     },
+     {
+      "template": "bills_until_payday",
+      "args": {
+       "account_id": "ACC-PRIV"
+      },
+      "title": "Bills before next payday"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Dentist bill for Lina due soon",
+    "reason": "No upcoming payment Zahnarztpraxis Neuwiesen. The next ones are: SO-RENT (Wohnbaugenossenschaft Talgut, 27.11.), PAY-0244 (Zahnarztpraxis Neuwiesen, 30.11.), PAY-0245 (Ratenwerk Finanz, 07.12.), PAY-0247 (Lebara Schweiz, 07.12.), PAY-0249 (Stadt Winterthur, 10.12.), PAY-0251 (Sunrise, 15.12.), SO-STEUER (Steueramt Winterthur, 21.12.), PAY-0253 (Assura-Basis, 23.12.), SO-RENT (Wohnbaugenossenschaft Talgut, 28.12.), PAY-0246 (Ratenwerk Finanz, 05.01.)."
+   },
+   {
+    "title": "Bills due in next 30 days",
+    "reason": "No upcoming payment Wohnbaugenossenschaft Talgut. The next ones are: SO-RENT (Wohnbaugenossenschaft Talgut, 27.11.), PAY-0244 (Zahnarztpraxis Neuwiesen, 30.11.), PAY-0245 (Ratenwerk Finanz, 07.12.), PAY-0247 (Lebara Schweiz, 07.12.), PAY-0249 (Stadt Winterthur, 10.12.), PAY-0251 (Sunrise, 15.12.), SO-STEUER (Steueramt Winterthur, 21.12.), PAY-0253 (Assura-Basis, 23.12.), SO-RENT (Wohnbaugenossenschaft Talgut, 28.12.), PAY-0246 (Ratenwerk Finanz, 05.01.)."
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 7348,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "2 of 4 resolved; dropped: Dentist bill for Lina due soon; Bills due in next 30 days"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "bill reminder",
+   "tiles": [
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0244"
+     },
+     "title": "bill reminder",
+     "payload": {
+      "figure_chf": 440.0,
+      "source": {
+       "label": "Zahnarztpraxis Neuwiesen, due 30.11.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Zahnarztpraxis Neuwiesen",
+      "due": "2026-11-30",
+      "description": "Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+      "flag": "reminder"
+     }
+    },
+    {
+     "template": "bills_until_payday",
+     "args": {
+      "account_id": "ACC-PRIV"
+     },
+     "title": "Bills before next payday",
+     "payload": {
+      "figure_chf": 2950.2,
+      "source": {
+       "label": "8 upcoming payments",
+       "kind": "payments",
+       "count": 8
+      },
+      "template": "bills_until_payday",
+      "payday": "2026-12-24",
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Wohnbaugenossenschaft Talgut",
+        "detail": "rent for December",
+        "amount_chf": 1640.0,
+        "balance_after_chf": 1435.16,
+        "flag": null
+       },
+       {
+        "id": "PAY-0244",
+        "due": "2026-11-30",
+        "payee": "Zahnarztpraxis Neuwiesen",
+        "detail": null,
+        "amount_chf": 440.0,
+        "balance_after_chf": 995.16,
+        "flag": "reminder"
+       },
+       {
+        "id": "PAY-0245",
+        "due": "2026-12-07",
+        "payee": "Ratenwerk Finanz",
+        "detail": "instalment 21 of 24",
+        "amount_chf": 77.8,
+        "balance_after_chf": 917.36,
+        "flag": null
+       },
+       {
+        "id": "PAY-0247",
+        "due": "2026-12-07",
+        "payee": "Lebara Schweiz",
+        "detail": "mobile",
+        "amount_chf": 19.9,
+        "balance_after_chf": 897.46,
+        "flag": null
+       },
+       {
+        "id": "PAY-0249",
+        "due": "2026-12-10",
+        "payee": "Stadt Winterthur",
+        "detail": "Hort und Mittagstisch",
+        "amount_chf": 348.0,
+        "balance_after_chf": 549.46,
+        "flag": null
+       },
+       {
+        "id": "PAY-0251",
+        "due": "2026-12-15",
+        "payee": "Sunrise",
+        "detail": "internet",
+        "amount_chf": 39.9,
+        "balance_after_chf": 509.56,
+        "flag": null
+       },
+       {
+        "id": "SO-STEUER",
+        "due": "2026-12-21",
+        "payee": "Steueramt Winterthur",
+        "detail": "advance payment",
+        "amount_chf": 95.0,
+        "balance_after_chf": 414.56,
+        "flag": null
+       },
+       {
+        "id": "PAY-0253",
+        "due": "2026-12-23",
+        "payee": "Assura-Basis",
+        "detail": "premium for January",
+        "amount_chf": 289.6,
+        "balance_after_chf": 124.96,
+        "flag": null
+       }
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [2]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The hero is the dentist's second reminder (CHF 440, due 30.11), the only open reminder and the most urgent open bill, which directly answers the request for open bills and reminders, with the full list of open bills right beside it as the brief's confirmed arrangement allows."
+  },
+  "about_customer": {
+   "passed": true,
+   "reason": "Both tiles show her real open items: the dentist reminder for Lina's treatment with the Mahngebühr, and her actual upcoming bills (rent to her housing cooperative, washing-machine instalment 21 of 24, Hort und Mittagstisch, Lebara, Sunrise), so nothing is generic or belongs to another customer."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "\"bill reminder\" accurately labels the reminder tile and \"Bills before next payday\" accurately labels the payday-scoped list, both short and using her own terms (reminder, payday) without filler."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "The reminder tile carries real, non-zero content (CHF 440 with the fee broken out) and the list tile holds six distinct bills, and their overlap on the dentist bill is the detail-beside-list pairing the confirmed Daniela board uses, not a repetition."
+  },
+  "coherent": {
+   "passed": true,
+   "reason": "The two-tile board is entirely about the request — the open reminder and every bill due before her 24.12 payday — telling one story with nothing off-topic added to fill it."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero is the open reminder itself — the dentist's second reminder with the CHF 20 fee and its due date — which most directly answers 'which bills and reminders are open', with the full list of open bills beside it as the brief's confirmed pattern allows."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Both tiles are her real situation — the dentist's second reminder for Lina's treatment and her actual upcoming bills (cooperative rent, washing-machine instalment 21 of 24, Hort und Mittagstisch childcare, Lebara and Sunrise) — with no generic filler."
+   },
+   "titles": {
+    "passed": false,
+    "reason": "The hero title 'bill reminder' is a lowercase category label identical to the board name and does not name the dentist's second reminder the tile actually shows, so it does not read like a person wrote it or match the tile's content."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Neither tile is empty or pointless, and although the dentist bill appears in both, the brief explicitly allows the reminder bill to stand beside the list of bills it is in to show its detail."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The board is about the request and nothing else — the open reminder followed by the bills due before payday — telling one story a customer would follow."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero is the dentist's second reminder (CHF 440, due 30.11), the only open reminder and the most urgent open bill, which directly answers the request for open bills and reminders, with the full list of open bills right beside it as the brief's confirmed arrangement allows."
+   },
+   "about_customer": {
+    "passed": true,
+    "reason": "Both tiles show her real open items: the dentist reminder for Lina's treatment with the Mahngebühr, and her actual upcoming bills (rent to her housing cooperative, washing-machine instalment 21 of 24, Hort und Mittagstisch, Lebara, Sunrise), so nothing is generic or belongs to another customer."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "\"bill reminder\" accurately labels the reminder tile and \"Bills before next payday\" accurately labels the payday-scoped list, both short and using her own terms (reminder, payday) without filler."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "The reminder tile carries real, non-zero content (CHF 440 with the fee broken out) and the list tile holds six distinct bills, and their overlap on the dentist bill is the detail-beside-list pairing the confirmed Daniela board uses, not a repetition."
+   },
+   "coherent": {
+    "passed": true,
+    "reason": "The two-tile board is entirely about the request — the open reminder and every bill due before her 24.12 payday — telling one story with nothing off-topic added to fill it."
+   }
+  }
+ ],
+ "acceptable": true
+}

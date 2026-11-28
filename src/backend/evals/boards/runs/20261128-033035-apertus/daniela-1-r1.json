@@ -1,0 +1,579 @@
+{
+ "customer": "daniela",
+ "run": 1,
+ "request": "What does Lina cost me every month?",
+ "seconds": 6.6,
+ "plan": {
+  "kind": "single mother with tight month-to-month cash flow",
+  "evidence": [
+   "S1: On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "S2: The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "S5: 8 payments of together 2'950.20 leave before the salary on 24.12.2026."
+  ],
+  "question": "What does Lina cost me every month?",
+  "boards": [
+   {
+    "name": "Lina's monthly costs",
+    "tiles": [
+     {
+      "template": "bills_until_payday",
+      "args": {
+       "account_id": "ACC-PRIV"
+      },
+      "title": "Bills due before next salary"
+     },
+     {
+      "template": "payday_balance",
+      "args": {
+       "account_id": "ACC-PRIV",
+       "expected_from": "Patrick Rüegg",
+       "expected_label": null
+      },
+      "title": "Left before payday"
+     },
+     {
+      "template": "expected_income",
+      "args": {
+       "counterparty": "Patrick Rüegg"
+      },
+      "title": "Pending support from Patrick"
+     },
+     {
+      "template": "bill",
+      "args": {
+       "payment_id": "PAY-0244"
+      },
+      "title": "Dentist bill due soon"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-SAV"
+      },
+      "title": "Emergency fund"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Monthly spending vs income",
+    "reason": "board is full"
+   },
+   {
+    "title": "Savings and reserve accounts",
+    "reason": "board is full"
+   },
+   {
+    "title": "Fixed monthly bills for Lina and home",
+    "reason": "board is full"
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 6391,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": true,
+    "detail": "8 of 8 resolved; dropped: Monthly spending vs income; Savings and reserve accounts; Fixed monthly bills for Lina and home"
+   },
+   {
+    "name": "titles_checked",
+    "passed": false,
+    "detail": "default title for: Money left before next payday"
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Lina's monthly costs",
+   "tiles": [
+    {
+     "template": "bills_until_payday",
+     "args": {
+      "account_id": "ACC-PRIV"
+     },
+     "title": "Bills due before next salary",
+     "payload": {
+      "figure_chf": 2950.2,
+      "source": {
+       "label": "8 upcoming payments",
+       "kind": "payments",
+       "count": 8
+      },
+      "template": "bills_until_payday",
+      "payday": "2026-12-24",
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Wohnbaugenossenschaft Talgut",
+        "detail": "rent for December",
+        "amount_chf": 1640.0,
+        "balance_after_chf": 1435.16,
+        "flag": null
+       },
+       {
+        "id": "PAY-0244",
+        "due": "2026-11-30",
+        "payee": "Zahnarztpraxis Neuwiesen",
+        "detail": null,
+        "amount_chf": 440.0,
+        "balance_after_chf": 995.16,
+        "flag": "reminder"
+       },
+       {
+        "id": "PAY-0245",
+        "due": "2026-12-07",
+        "payee": "Ratenwerk Finanz",
+        "detail": "instalment 21 of 24",
+        "amount_chf": 77.8,
+        "balance_after_chf": 917.36,
+        "flag": null
+       },
+       {
+        "id": "PAY-0247",
+        "due": "2026-12-07",
+        "payee": "Lebara Schweiz",
+        "detail": "mobile",
+        "amount_chf": 19.9,
+        "balance_after_chf": 897.46,
+        "flag": null
+       },
+       {
+        "id": "PAY-0249",
+        "due": "2026-12-10",
+        "payee": "Stadt Winterthur",
+        "detail": "Hort und Mittagstisch",
+        "amount_chf": 348.0,
+        "balance_after_chf": 549.46,
+        "flag": null
+       },
+       {
+        "id": "PAY-0251",
+        "due": "2026-12-15",
+        "payee": "Sunrise",
+        "detail": "internet",
+        "amount_chf": 39.9,
+        "balance_after_chf": 509.56,
+        "flag": null
+       },
+       {
+        "id": "SO-STEUER",
+        "due": "2026-12-21",
+        "payee": "Steueramt Winterthur",
+        "detail": "advance payment",
+        "amount_chf": 95.0,
+        "balance_after_chf": 414.56,
+        "flag": null
+       },
+       {
+        "id": "PAY-0253",
+        "due": "2026-12-23",
+        "payee": "Assura-Basis",
+        "detail": "premium for January",
+        "amount_chf": 289.6,
+        "balance_after_chf": 124.96,
+        "flag": null
+       }
+      ]
+     }
+    },
+    {
+     "template": "payday_balance",
+     "args": {
+      "account_id": "ACC-PRIV",
+      "expected_from": "Patrick Rüegg",
+      "expected_label": null
+     },
+     "title": "Left before payday",
+     "payload": {
+      "figure_chf": 124.96,
+      "source": {
+       "label": "Privatkonto and 8 upcoming payments",
+       "kind": "payments",
+       "count": 8
+      },
+      "template": "payday_balance",
+      "account_name": "Privatkonto",
+      "payday": "2026-12-24",
+      "day_before": "2026-12-23",
+      "days": 27,
+      "per_day_chf": 4.63,
+      "today": "2026-11-27",
+      "today_balance_chf": 3075.16,
+      "points": [
+       {
+        "date": "2026-11-27",
+        "balance_chf": 3075.16
+       },
+       {
+        "date": "2026-11-27",
+        "balance_chf": 1435.16
+       },
+       {
+        "date": "2026-11-30",
+        "balance_chf": 995.16
+       },
+       {
+        "date": "2026-12-07",
+        "balance_chf": 917.36
+       },
+       {
+        "date": "2026-12-07",
+        "balance_chf": 897.46
+       },
+       {
+        "date": "2026-12-10",
+        "balance_chf": 549.46
+       },
+       {
+        "date": "2026-12-15",
+        "balance_chf": 509.56
+       },
+       {
+        "date": "2026-12-21",
+        "balance_chf": 414.56
+       },
+       {
+        "date": "2026-12-23",
+        "balance_chf": 124.96
+       }
+      ],
+      "upcoming_count": 8,
+      "alternative": {
+       "counterparty": "Patrick Rüegg",
+       "label": null,
+       "amount_chf": 1050.0,
+       "left_chf": 1174.96,
+       "per_day_chf": 43.52
+      }
+     }
+    },
+    {
+     "template": "expected_income",
+     "args": {
+      "counterparty": "Patrick Rüegg"
+     },
+     "title": "Pending support from Patrick",
+     "payload": {
+      "figure_chf": 1050.0,
+      "source": {
+       "label": "2 bookings from Patrick Rüegg",
+       "kind": "bookings",
+       "count": 2
+      },
+      "template": "expected_income",
+      "counterparty": "Patrick Rüegg",
+      "usual_day": 4,
+      "status": "not_arrived",
+      "months": [
+       {
+        "month": "2026-09",
+        "arrived_on": "2026-09-01",
+        "amount_chf": 1050.0,
+        "state": "on_time"
+       },
+       {
+        "month": "2026-10",
+        "arrived_on": "2026-10-22",
+        "amount_chf": 1050.0,
+        "state": "late"
+       },
+       {
+        "month": "2026-11",
+        "arrived_on": null,
+        "amount_chf": null,
+        "state": "open"
+       }
+      ]
+     }
+    },
+    {
+     "template": "bill",
+     "args": {
+      "payment_id": "PAY-0244"
+     },
+     "title": "Dentist bill due soon",
+     "payload": {
+      "figure_chf": 440.0,
+      "source": {
+       "label": "Zahnarztpraxis Neuwiesen, due 30.11.",
+       "kind": "payments",
+       "count": 1
+      },
+      "template": "bill",
+      "payee": "Zahnarztpraxis Neuwiesen",
+      "due": "2026-11-30",
+      "description": "Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis 30.11.2026",
+      "flag": "reminder"
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-SAV"
+     },
+     "title": "Emergency fund",
+     "payload": {
+      "figure_chf": 284.25,
+      "source": {
+       "label": "2 transfers",
+       "kind": "bookings",
+       "count": 2
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Notgroschen",
+      "goal_text": "Notgroschen CHF 3'000",
+      "goal_chf": 3000.0,
+      "percent": 9.5,
+      "month_change_chf": -600.0,
+      "month": "2026-11"
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "payday_tight",
+   "text": "On 23.12.2026, the day before the next salary, 124.96 is left on Privatkonto after 8 payments, 4.63 a day; if the money from Patrick Rüegg arrives, 1'174.96. A month's spending is about 4'666.05.",
+   "strength": 100,
+   "template": "payday_balance",
+   "args": {
+    "account_id": "ACC-PRIV",
+    "expected_from": "Patrick Rüegg",
+    "expected_label": null
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "income_late",
+   "text": "The 1'050.00 from Patrick Rüegg usually arrive around day 5 and have not arrived this month.",
+   "strength": 90,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Patrick Rüegg"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "reminder",
+   "text": "Zahnarztpraxis Neuwiesen is due on 30.11.2026: 440.00, \"Rechnung Nr. 2026-0817 Lina (CHF 420.00) + Mahngebühr CHF 20.00 – 2. Mahnung, zahlbar bis \".",
+   "strength": 85,
+   "template": "bill",
+   "args": {
+    "payment_id": "PAY-0244"
+   }
+  },
+  {
+   "id": "S4",
+   "kind": "goal_far",
+   "text": "Sparkonto Notgroschen holds 284.25, 10 % of its goal \"Notgroschen CHF 3'000\"; 600.00 went out of it this month.",
+   "strength": 70,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-SAV"
+   }
+  },
+  {
+   "id": "S5",
+   "kind": "bills_before_payday",
+   "text": "8 payments of together 2'950.20 leave before the salary on 24.12.2026.",
+   "strength": 60,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "fixed_costs",
+   "text": "The 6 largest monthly payments add up to 2'414.20 a month, half of the income or more.",
+   "strength": 45,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbaugenossenschaft Talgut",
+     "Stadt Winterthur, Betreuung Schule",
+     "Assura-Basis SA",
+     "Steueramt Winterthur",
+     "Sunrise GmbH",
+     "Lebara Schweiz"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "cashflow_negative",
+   "text": "On average -370.77 was left per month over the last 6 months; in 4 months more went out than came in (2026-07, 2026-08, 2026-09, 2026-10).",
+   "strength": 45,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "instalments",
+   "text": "Instalment plans running: Ratenwerk Finanz AG (20 of 24 paid, 311.20 left).",
+   "strength": 40,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Ratenwerk Finanz AG"
+    ]
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "due_soon",
+   "text": "8 payments of together 2'950.20 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Stadt Winterthur, Betreuung Schule from 312.00 to 348.00 on 10.08.2026; Steueramt Winterthur from 85.00 to 95.00 on 20.01.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Stadt Winterthur, Betreuung Schule",
+     "Steueramt Winterthur"
+    ]
+   }
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 4'467.89 a month over the last 6 months, highest in 2026-08.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "savings_pots",
+   "text": "2 savings accounts with their own purpose: Sparkonto Notgroschen (Reserve für Unvorhergesehenes); Jugendsparkonto Lina (Geschenke der Grosseltern für Lina (nicht antasten)).",
+   "strength": 15,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-SAV",
+     "ACC-KID"
+    ]
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [5]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": false,
+   "reason": "The hero is a generic list of all bills due before payday (rent, internet, mobile included), which does not answer what Lina costs Daniela each month."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "Only the dentist bill (Lina's treatment) is about the request; the payday balance, pending child support and emergency fund tiles are real signals for Daniela but not about Lina's monthly costs, so they do not belong on this request board."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "The titles are short, read naturally in her terms (payday, support from Patrick, emergency fund) and each matches what its tile actually shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": true,
+   "reason": "Every tile carries a real, non-zero figure and no two tiles duplicate each other; the dentist bill beside the bills list is the detail pattern the confirmed board allows."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "Despite the board name \"Lina's monthly costs\", the tiles tell her general month story (bills, leftover, support, buffer) rather than being about the request and nothing else."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The hero is a generic list of all bills due before payday (rent, internet, mobile included), which does not answer what Lina costs Daniela each month."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "Only the dentist bill (Lina's treatment) is about the request; the payday balance, pending child support and emergency fund tiles are real signals for Daniela but not about Lina's monthly costs, so they do not belong on this request board."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "The titles are short, read naturally in her terms (payday, support from Patrick, emergency fund) and each matches what its tile actually shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "Every tile carries a real, non-zero figure and no two tiles duplicate each other; the dentist bill beside the bills list is the detail pattern the confirmed board allows."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "Despite the board name \"Lina's monthly costs\", the tiles tell her general month story (bills, leftover, support, buffer) rather than being about the request and nothing else."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": false,
+    "reason": "The customer asked what Lina costs her every month, but the hero shows all bills due before payday (rent, internet, mobile included), which is Daniela's overall budget question, not a breakdown of Lina's costs."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The payday-balance, pending-support and emergency-fund tiles are strong signals about Daniela's general cash squeeze, not about the request, and only the dentist bill is genuinely a Lina cost."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Every title is short, reads naturally and matches exactly what its tile shows (bills list, money left, pending support, dentist reminder, emergency fund)."
+   },
+   "not_empty_or_repeated": {
+    "passed": true,
+    "reason": "All five tiles carry real, non-zero figures, and the dentist reminder standing beside the bills list it belongs to is the pairing the brief explicitly sanctions."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "Despite its name, the board tells the will-my-money-last-until-payday story rather than being about what Lina costs each month, so it is not about the request."
+   }
+  }
+ ],
+ "acceptable": false
+}

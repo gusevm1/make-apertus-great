@@ -1,0 +1,427 @@
+{
+ "customer": "lukas",
+ "run": 1,
+ "request": "We want to go to Japan in 2027. Keep an eye on that for me.",
+ "seconds": 9.0,
+ "plan": {
+  "kind": "A young professional building wealth with a large investment portfolio and multiple savings pots.",
+  "evidence": [
+   "S1: Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "S8: Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\"."
+  ],
+  "question": "We want to go to Japan in 2027. Keep an eye on that for me.",
+  "boards": [
+   {
+    "name": "Japan 2027",
+    "tiles": [
+     {
+      "template": "account_balances",
+      "args": {
+       "account_ids": [
+        "ACC-LT"
+       ]
+      },
+      "title": "Japan savings pot"
+     },
+     {
+      "template": "due_soon",
+      "args": {
+       "days": 30
+      },
+      "title": "Bills due soon"
+     },
+     {
+      "template": "savings_goal",
+      "args": {
+       "account_id": "ACC-LT"
+      },
+      "title": "Japan savings goal"
+     }
+    ]
+   }
+  ],
+  "ideas": [],
+  "dropped": [
+   {
+    "title": "Bills due before payday",
+    "reason": "No upcoming payment Wohnbau Sihlfeld AG Liegenschaftsverwaltung. The next ones are: SO-RENT (Wohnbau Sihlfeld, 27.11.), PAY-0230 (Fitnesspark Zürich Stadelhofen, 01.12.), PAY-0228 (Salt Mobile, 03.12.), SO-ETF (Depot 0418-2210.01, 07.12.), PAY-0233 (Ferienwohnungen Engadin, 10.12.), PAY-0226 (Swisscom, 14.12.), PAY-0234 (Glückskette, 15.12.), MANUAL-3A (Vorsorgekonto Säule 3a, 18.12.), STMT-2026-11 (Visa Gold Abrechnung November 2026, 21.12.), PAY-0225 (Mythen Krankenversicherung, 23.12.)."
+   }
+  ],
+  "model": "apertus-v1-5-70b",
+  "latency_ms": 8291,
+  "checks": [
+   {
+    "name": "tiles_resolved",
+    "passed": false,
+    "detail": "3 of 4 resolved; dropped: Bills due before payday"
+   },
+   {
+    "name": "titles_checked",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "boards_full",
+    "passed": true,
+    "detail": null
+   },
+   {
+    "name": "names_new",
+    "passed": true,
+    "detail": null
+   }
+  ]
+ },
+ "boards": [
+  {
+   "name": "Japan 2027",
+   "tiles": [
+    {
+     "template": "account_balances",
+     "args": {
+      "account_ids": [
+       "ACC-LT"
+      ]
+     },
+     "title": "Japan savings pot",
+     "payload": {
+      "figure_chf": 37566.29,
+      "source": {
+       "label": "1 savings account",
+       "kind": "accounts",
+       "count": 1
+      },
+      "template": "account_balances",
+      "rows": [
+       {
+        "account_id": "ACC-LT",
+        "name": "Sparkonto Langfristig",
+        "balance_chf": 37566.29,
+        "purpose": "Langfristiger Vermögensaufbau"
+       }
+      ]
+     }
+    },
+    {
+     "template": "due_soon",
+     "args": {
+      "days": 30
+     },
+     "title": "Bills due soon",
+     "payload": {
+      "figure_chf": 8302.59,
+      "source": {
+       "label": "All 10 payments",
+       "kind": "payments",
+       "count": 10
+      },
+      "template": "due_soon",
+      "days": 30,
+      "rows": [
+       {
+        "id": "SO-RENT",
+        "due": "2026-11-27",
+        "payee": "Wohnbau Sihlfeld",
+        "detail": "rent for December",
+        "amount_chf": 2800.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "SO-ETF",
+        "due": "2026-12-07",
+        "payee": "Depot 0418-2210.01",
+        "detail": "savings plan",
+        "amount_chf": 600.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "PAY-0233",
+        "due": "2026-12-10",
+        "payee": "Ferienwohnungen Engadin",
+        "detail": "deposit",
+        "amount_chf": 600.0,
+        "balance_after_chf": null,
+        "flag": null
+       },
+       {
+        "id": "STMT-2026-11",
+        "due": "2026-12-21",
+        "payee": "Visa Gold",
+        "detail": "November",
+        "amount_chf": 3301.74,
+        "balance_after_chf": null,
+        "flag": "provisional"
+       }
+      ],
+      "count": 10
+     }
+    },
+    {
+     "template": "savings_goal",
+     "args": {
+      "account_id": "ACC-LT"
+     },
+     "title": "Japan savings goal",
+     "payload": {
+      "figure_chf": 37566.29,
+      "source": {
+       "label": "1 transfer",
+       "kind": "bookings",
+       "count": 1
+      },
+      "template": "savings_goal",
+      "account_name": "Sparkonto Langfristig",
+      "goal_text": "Japanreise 2027: CHF 12'000",
+      "goal_chf": 12000.0,
+      "percent": 313.1,
+      "month_change_chf": 500.0,
+      "month": "2026-11"
+     }
+    }
+   ]
+  }
+ ],
+ "signals": [
+  {
+   "id": "S1",
+   "kind": "depot_large",
+   "text": "Without pillar 3a the customer owns 131'212.64: accounts 58'699.68, securities 72'512.96. The depot is worth more than all accounts.",
+   "strength": 80,
+   "template": "net_worth",
+   "args": {
+    "include_pension": false
+   }
+  },
+  {
+   "id": "S2",
+   "kind": "card_bill",
+   "text": "The Visa Gold bill for 2026-11 is 3'301.74 (provisional), collected on 21.12.2026, 38 purchases.",
+   "strength": 50,
+   "template": "card_bill",
+   "args": {
+    "card_id": "CARD-VISA"
+   }
+  },
+  {
+   "id": "S3",
+   "kind": "pillar_3a",
+   "text": "Paid into pillar 3a in 2026: 6'600.00 of the maximum 7'258.00; after the standing orders 58.00 is missing, covered by 1 planned transfer(s).",
+   "strength": 45,
+   "template": "pillar_3a",
+   "args": {}
+  },
+  {
+   "id": "S4",
+   "kind": "securities",
+   "text": "The depot is worth 72'512.96, 30'800.00 were paid in.",
+   "strength": 40,
+   "template": "securities",
+   "args": {}
+  },
+  {
+   "id": "S5",
+   "kind": "due_soon",
+   "text": "10 payments of together 8'302.59 are due in the next 30 days.",
+   "strength": 35,
+   "template": "due_soon",
+   "args": {
+    "days": 30
+   }
+  },
+  {
+   "id": "S6",
+   "kind": "price_rise",
+   "text": "Regular payments that cost more within a year: Fitnesspark Zürich Stadelhofen from 109.00 to 119.00 on 01.06.2026; Swisscom (Schweiz) AG from 89.00 to 94.00 on 12.05.2026.",
+   "strength": 30,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG"
+    ]
+   }
+  },
+  {
+   "id": "S7",
+   "kind": "savings_pots",
+   "text": "3 savings accounts with their own purpose: Sparkonto Steuern (Rücklage für Steuerrechnungen); Sparkonto Rücklagen (Jahreskosten (Versicherungen, Auto, Ferien, Zahnarzt)); Sparkonto Langfristig (Langfristiger Vermögensaufbau).",
+   "strength": 30,
+   "template": "account_balances",
+   "args": {
+    "account_ids": [
+     "ACC-TAX",
+     "ACC-RES",
+     "ACC-LT"
+    ]
+   }
+  },
+  {
+   "id": "S8",
+   "kind": "goal_reached",
+   "text": "Sparkonto Langfristig holds 37'566.29, 313 % of its goal \"Japanreise 2027: CHF 12'000\".",
+   "strength": 25,
+   "template": "savings_goal",
+   "args": {
+    "account_id": "ACC-LT"
+   }
+  },
+  {
+   "id": "S9",
+   "kind": "cashflow",
+   "text": "On average -199.61 was left per month over the last 6 months; in 2 months more went out than came in (2026-05, 2026-09).",
+   "strength": 25,
+   "template": "income_and_spending",
+   "args": {
+    "months": 6
+   }
+  },
+  {
+   "id": "S10",
+   "kind": "payday",
+   "text": "On 23.12.2026, the day before the next salary, 1'413.74 is left on Privatkonto after 10 payments, 52.36 a day. A month's spending is about 11'634.33.",
+   "strength": 20,
+   "template": null,
+   "args": null
+  },
+  {
+   "id": "S11",
+   "kind": "spending",
+   "text": "Spending averaged 11'561.65 a month over the last 6 months, highest in 2026-09.",
+   "strength": 20,
+   "template": "monthly_spending",
+   "args": {
+    "months": 6,
+    "merchants": null
+   }
+  },
+  {
+   "id": "S12",
+   "kind": "bills_before_payday",
+   "text": "10 payments of together 8'302.59 leave before the salary on 24.12.2026.",
+   "strength": 15,
+   "template": "bills_until_payday",
+   "args": {
+    "account_id": "ACC-PRIV"
+   }
+  },
+  {
+   "id": "S13",
+   "kind": "fixed_costs",
+   "text": "The 5 largest monthly payments add up to 3'520.35 a month.",
+   "strength": 15,
+   "template": "regular_payments",
+   "args": {
+    "payees": [
+     "Wohnbau Sihlfeld AG Liegenschaftsverwaltung",
+     "Mythen Krankenversicherung AG",
+     "Fitnesspark Zürich Stadelhofen",
+     "Swisscom (Schweiz) AG",
+     "Salt Mobile SA"
+    ]
+   }
+  },
+  {
+   "id": "S14",
+   "kind": "income_regular",
+   "text": "Sara Keller sends about 2'200.00 every month, around day 27.",
+   "strength": 10,
+   "template": "expected_income",
+   "args": {
+    "counterparty": "Sara Keller"
+   }
+  }
+ ],
+ "checks": {
+  "resolved": {
+   "passed": true,
+   "detail": ""
+  },
+  "no_repeats": {
+   "passed": true,
+   "detail": ""
+  },
+  "tile_count": {
+   "passed": true,
+   "detail": "tiles per board: [3]"
+  },
+  "names_short": {
+   "passed": true,
+   "detail": ""
+  },
+  "titles_short": {
+   "passed": true,
+   "detail": ""
+  }
+ },
+ "judge": {
+  "hero_question": {
+   "passed": true,
+   "reason": "The first tile shows the balance of the long-term savings account earmarked for the Japan 2027 trip, which directly answers the request to keep an eye on the Japan plan."
+  },
+  "about_customer": {
+   "passed": false,
+   "reason": "The 'Bills due soon' tile is a strong generic signal that is not about the Japan request and does not belong on a board made for this request."
+  },
+  "titles": {
+   "passed": true,
+   "reason": "Titles are short, natural, use the customer's terms, and match what each tile shows."
+  },
+  "not_empty_or_repeated": {
+   "passed": false,
+   "reason": "The 'Japan savings pot' and 'Japan savings goal' tiles both headline the same CHF 37'566.29 balance of the same account, so one largely repeats the other."
+  },
+  "coherent": {
+   "passed": false,
+   "reason": "The off-topic bills-due tile breaks the board's single theme, so the board is not about the Japan request and nothing else."
+  }
+ },
+ "judge_samples": [
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The first tile shows the balance of the long-term savings account earmarked for the Japan 2027 trip, which directly answers the request to keep an eye on the Japan plan."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The 'Bills due soon' tile is a strong generic signal that is not about the Japan request and does not belong on a board made for this request."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short, natural, use the customer's terms, and match what each tile shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The 'Japan savings pot' and 'Japan savings goal' tiles both headline the same CHF 37'566.29 balance of the same account, so one largely repeats the other."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The off-topic bills-due tile breaks the board's single theme, so the board is not about the Japan request and nothing else."
+   }
+  },
+  {
+   "hero_question": {
+    "passed": true,
+    "reason": "The hero shows the long-term savings pot for the Japan 2027 trip (CHF 37'566.29), which directly answers his ask to keep an eye on the Japan trip money."
+   },
+   "about_customer": {
+    "passed": false,
+    "reason": "The 'Bills due soon' tile lists rent, the ETF savings plan, an Engadin holiday deposit and the Visa bill — real data, but nothing to do with the Japan 2027 request, and the rubric says a strong signal off the request does not belong."
+   },
+   "titles": {
+    "passed": true,
+    "reason": "Titles are short, read naturally, use his own terms (Japan, savings pot, savings goal) and match what each tile actually shows."
+   },
+   "not_empty_or_repeated": {
+    "passed": false,
+    "reason": "The hero and 'Japan savings goal' both present the same CHF 37'566.29 balance of the same account, so the balance tile adds nothing the goal tile does not already show."
+   },
+   "coherent": {
+    "passed": false,
+    "reason": "The board mixes the Japan savings story with an unrelated 30-day bills list, so it is not about the request and nothing else."
+   }
+  }
+ ],
+ "acceptable": false
+}
